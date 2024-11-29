@@ -1,2 +1,7 @@
 node_modules/
-dist/
+dist/src/
+dist/*.js
+dist/*.map
+dist/tsconfig.tsbuildinfo
+!dist/index.html
+.DS_Store

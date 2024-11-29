@@ -89,7 +89,7 @@ function onInputChanged(event: Event) {
 	try {
 		result = String(arithmeticParser.parseAndEval(input));
 	} catch (error) {
-		result = error.message;
+		result = error instanceof Error ? error.message : "unknown error";
 	}
 
 	console.log(`${input} = ${result}`);

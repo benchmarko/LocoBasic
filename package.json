@@ -1,19 +1,22 @@
 {
   "name": "locobasic",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "# LocoBasic - Loco BASIC",
+  "type": "commonjs",
   "scripts": {
     "lint": "eslint .",
-    "clean": "rm -rf dist/*",
-    "copy": "cp src/*.html dist/ && mkdirp -p dist/src && cp -r src/*.ts dist/src",
-    "build": "tsc --build && npm run copy"
+    "clean": "rm -rf dist/src/* && rm dist/ohmjstest.js",
+    "copyXXX": "cp src/*.html dist/ && mkdirp -p dist/src && cp -r src/*.ts dist/src",
+    "build": "tsc --build && npx rollup -c"
   },
   "devDependencies": {
-    "@types/node": "^22.9.0",
     "@eslint/js": "^9.14.0",
     "@types/eslint__js": "^8.42.3",
+    "@types/node": "^22.9.0",
     "eslint": "^9.14.0",
     "mkdirp": "^3.0.1",
+    "rollup": "^4.25.0",
+    "rollup-plugin-typescript2": "^0.36.0",
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.13.0"
   },
