@@ -17,7 +17,10 @@ export const arithmetic = {
     emptyLine = comment eol
 
     Line
-      = Statements comment? (eol | end)
+      = Label? Statements comment? (eol | end)
+
+    Label
+     = label 
 
     Statements
      = Statement (":" Statement)*
@@ -26,8 +29,12 @@ export const arithmetic = {
      = Comparison
      | Dim
      | ForLoop
+     | Gosub
      | Next
+     | On
      | Print
+     | Rem
+     | Return
      | WhileLoop
      | Wend
      | ArrayAssign
@@ -65,6 +72,9 @@ export const arithmetic = {
     ForLoop
       = caseInsensitive<"for"> variable "=" NumExp caseInsensitive<"to"> NumExp (caseInsensitive<"step"> NumExp)?
 
+    Gosub
+      = caseInsensitive<"gosub"> label
+
     Hex
       = caseInsensitive<"hex$"> "(" NumExp ("," NumExp)? ")"
 
@@ -101,6 +111,9 @@ export const arithmetic = {
     Next
      = caseInsensitive<"next"> variable?
 
+    On
+     = caseInsensitive<"on"> Exp caseInsensitive<"gosub"> ListOf<label, ",">
+
     Print
       = (caseInsensitive<"print"> | "?") PrintArgs (";")?
     
@@ -110,6 +123,12 @@ export const arithmetic = {
     PrintArg
       = Exp
       | string
+
+    Rem
+      = rem
+
+    Return
+      = caseInsensitive<"return">
 
     Right
       = caseInsensitive<"right$"> "(" StrExp "," NumExp ")"
@@ -518,8 +537,8 @@ export const arithmetic = {
     = caseInsensitive<"read"> ~identPart
     release
     = caseInsensitive<"release"> ~identPart            
-    rem
-    = caseInsensitive<"rem"> ~identPart
+    //rem
+    //= caseInsensitive<"rem"> ~identPart
     remain
     = caseInsensitive<"remain"> ~identPart
     renum
@@ -652,8 +671,11 @@ export const arithmetic = {
 
     string = "\\"" ("\\\\\\"" | (~"\\"" any))* "\\""
 
+    label = "sub" digit+
+
     space := " " | "\t"
-    comment = ("\\'" | caseInsensitive<"rem">) (~eol any)*
+    comment = "\\'" (~eol any)*
+    rem = caseInsensitive<"rem"> (~eol any)*
     eol (end of line)
         = "\\n"
     }

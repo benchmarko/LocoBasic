@@ -16,6 +16,10 @@ import { arithmetic } from "./arithmetic";
 // https://stackoverflow.com/questions/69762570/rollup-umd-output-format-doesnt-work-however-es-does
 // ?
 
+// https://github.com/beautifier/js-beautify
+// https://jsonformatter.org/javascript-pretty-print
+// ?
+
 // not implemented: mode
 
 export type ConfigEntryType = string | number | boolean;
@@ -92,10 +96,26 @@ function getVariable(name: string) {
 	return name;
 }
 
-function deleteAllVariables() {
-	for (const name in variables) { // eslint-disable-line guard-for-in
-		delete variables[name];
+function deleteAllItems(items: Record<string, any>) {
+	for (const name in items) { // eslint-disable-line guard-for-in
+		delete items[name];
 	}
+}
+
+
+type SubRoutineType = {
+	first: number
+	last: number
+}
+
+const subRoutines: Record<string, SubRoutineType> = {};
+
+let lineIndex = 0;
+
+function resetParser() {
+	deleteAllItems(variables);
+	deleteAllItems(subRoutines);
+	lineIndex = 0;
 }
 
 function evalChildren(children: Node[]) {
@@ -108,14 +128,45 @@ const semantics = {
 		const lineList = evalChildren(lines.children);
 
 		const variabeList = Object.keys(variables);
-		const varStr = variabeList.length ? "var " + variabeList.join(", ") + ";\n" : "";
+		const varStr = variabeList.length ? "let " + variabeList.join(", ") + ";\n" : "";
 
-		return varStr + lineList.join('\n');
+		const subKeys = Object.keys(subRoutines);
+		for (const key of subKeys) {
+			const sub = subRoutines[key];
+
+			const indent = lineList[sub.first].search(/\S|$/);
+			const indentStr = " ".repeat(indent);
+			for (let i = sub.first; i <= sub.last; i += 1) {
+				lineList[i] = "  " + lineList[i]; // ident
+			}
+
+			lineList[sub.first] = `${indentStr}const ${key} = () => {${indentStr}\n` + lineList[sub.first];
+			lineList[sub.last] += `\n${indentStr}` + "};" //TS issue when using the following? `\n${indentStr}};`
+		}
+
+		const lineStr = lineList.join('\n');
+
+		return varStr + lineStr;
 	},
 
-	Line(stmts: Node, comment: Node, _eol: Node) {
+	Line(label: Node, stmts: Node, comment: Node, _eol: Node) {
+		const labelStr = label.sourceString;
 		const commentStr = comment.sourceString ? `; //${comment.sourceString.substring(1)}` : "";
-		return stmts.eval() + commentStr;
+
+		if (labelStr) {
+			const item = subRoutines[labelStr];
+			if (item) {
+				item.last = lineIndex;
+			} else {
+				subRoutines[labelStr] = {
+					first: lineIndex,
+					last: -1
+				}
+			}
+		}
+
+		lineIndex += 1;
+		return stmts.eval() + ";" + commentStr;
 	},
 
 	Statements(stmt: Node, _stmtSep: Node, stmts: Node) {
@@ -215,6 +266,10 @@ const semantics = {
 		return result;
 	},
 
+	Gosub(_gosubLit: Node, e: Node) {
+		return `${e.sourceString}()`;
+	},
+
 	Hex(_hexLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) {
 		const pad = n.child(0)?.eval();
 		return `(${e.eval()}).toString(16).toUpperCase().padStart(${pad} || 0, "0")`;
@@ -263,8 +318,22 @@ const semantics = {
 		return '}';
 	},
 
+	On(_nLit: Node, e1: Node, _gosubLit: Node, args: Node) {
+		const index = e1.eval();
+		const argList = args.asIteration().children.map(c => c.sourceString); 
+		return `[${argList.join(",")}][${index} - 1]()`; // 1-based index
+	},
+
 	Pi(_piLit: Node) {
 		return "Math.PI";
+	},
+
+	Rem(_remLit: Node /*, comment: Node */) { //TTT
+		return ''; //return `//${comment.sourceString.substring(1)}`;
+	},
+
+	Return(_returnLit: Node) {
+		return "return";
 	},
 
 	Right(_rightLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) {
@@ -452,6 +521,7 @@ const semantics = {
 		return getVariable(name);
 	},
 	emptyLine(comment: Node, _eol: Node) {
+		lineIndex += 1;
 		return `//${comment.sourceString.substring(1)}`;
 	}
 };
@@ -460,7 +530,7 @@ const semantics = {
 const arithmeticParser = new Parser(arithmetic.grammar, semantics);
 
 function compileScript(script: string) {
-	deleteAllVariables();
+	resetParser();
 
 	const compiledScript = arithmeticParser.parseAndEval(script);
 	return compiledScript;
