@@ -6,7 +6,11 @@ export default {
   output: {
     file: 'dist/locobasic.js',
     format: 'umd', // "es" ECMAScript-Module
-    sourcemap: true
+    sourcemap: true,
+    name: 'locobasic',
+    globals: {
+      'ohm-js': 'ohmJs'
+    }
   },
   plugins: [typescript()],
 };

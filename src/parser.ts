@@ -9,6 +9,7 @@
 
 import { Grammar, grammar, Node, Semantics } from "ohm-js";
 import { arithmetic } from "./arithmetic";
+import { examples } from "./examples";
 
 // https://ohmjs.org/editor/
 // https://ohmjs.org/docs/releases/ohm-js-16.0#default-semantic-actions
@@ -166,11 +167,14 @@ const semantics = {
 		}
 
 		lineIndex += 1;
-		return stmts.eval() + ";" + commentStr;
+		const lineStr = stmts.eval();
+		const semi = lineStr.endsWith("{") ? "" : ";";
+		return lineStr + semi + commentStr;
 	},
 
 	Statements(stmt: Node, _stmtSep: Node, stmts: Node) {
 		return [stmt.eval(), ...evalChildren(stmts.children)].join('; ');
+		//TODO: return [stmt.eval(), ...evalChildren(stmts.children)].map((e) => e.endsWith("{") ? e : `${e};`).join(' ');
 	},
 
 	ArrayAssign(ident: Node, _op: Node, e: Node): string { // TODO
@@ -218,15 +222,8 @@ const semantics = {
 	},
 
 	Dim(_dimLit: Node, arrayIdent: Node) {
-		const arrIdent = arrayIdent.eval(); // we need eval to process expressions (replace ( => [ and ) => ])
-
-		const index1 = String(arrIdent).indexOf("[");
-		const ident = arrIdent.substring(0, index1);
-		const dimStr = arrIdent.substring(index1 + 1, arrIdent.length - 1);
-
-		const result = `${ident} = o.dimArray([${dimStr}])`;
-
-		return result;
+		const [ident, ...indices] = arrayIdent.eval();
+		return `${ident} = o.dimArray([${indices}])`; // indices are converted to string, that means they are joined with comma 
 	},
 
     Comparison(_iflit: Node, condExp: Node, _thenLit: Node, thenStat: Node, elseLit: Node, elseStat: Node) {
@@ -492,7 +489,11 @@ const semantics = {
 	},
 
 	ArrayIdent(ident: Node, _open: Node, e: Node, _close: Node) {
-		return `${ident.eval()}[${e.eval()}]`;
+		return `${ident.eval()}[${e.eval().join("][")}]`;
+	},
+
+	DimArrayIdent(ident: Node, _open: Node, indices: Node, _close: Node) {
+		return [ident.eval(), ...indices.eval()]; //`${ident.eval()}(${String(e.eval())})`;
 	},
 
 	decimalValue(value: Node) {
@@ -555,30 +556,71 @@ function executeScript(compiledScript: string) {
 	return output;
 }
 
-
-function onCompiledAreaChange(event: Event) {
-	const compiledArea = event.target as HTMLTextAreaElement;
+function onExecuteButtonClick(_event: Event) {
+	const compiledArea = document.getElementById("compiledArea") as HTMLTextAreaElement;
 	const outputArea = document.getElementById("outputArea") as HTMLTextAreaElement;
 
 	const compiledScript = compiledArea.value;
-
 	const output = executeScript(compiledScript);
-
 	outputArea.value = output;
 }
 
-function onScriptAreaChange(event: Event) {
-	const scriptArea = event.target as HTMLTextAreaElement;
+function onCompiledAreaChange(_event: Event) {
+	const autoExecuteInput = document.getElementById("autoExecuteInput") as HTMLInputElement;
+	if (autoExecuteInput.checked) {
+		const executeButton = window.document.getElementById("executeButton") as HTMLButtonElement;
+		executeButton.dispatchEvent(new Event('click'));
+	}
+}
+
+function onCompileButtonClick(_event: Event) {
+	const basicArea = document.getElementById("basicArea") as HTMLTextAreaElement;
 	const compiledArea = document.getElementById("compiledArea") as HTMLTextAreaElement;
-
-	const input = scriptArea.value;
-
+	const input = basicArea.value;
 	const compiledScript = compileScript(input);
 	compiledArea.value = compiledScript;
 
-	const newEvent = new Event('change');
-	compiledArea.dispatchEvent(newEvent);
+	const autoExecuteInput = document.getElementById("autoExecuteInput") as HTMLInputElement;
+	if (autoExecuteInput.checked) {
+		const newEvent = new Event('change');
+		compiledArea.dispatchEvent(newEvent);
+	}
 }
+
+function onBasicAreaChange(_event: Event) {
+	const autoCompileInput = document.getElementById("autoCompileInput") as HTMLInputElement;
+	if (autoCompileInput.checked) {
+		const compileButton = window.document.getElementById("compileButton") as HTMLButtonElement;
+		compileButton.dispatchEvent(new Event('click'));
+	}
+}
+
+function onExampleSelectChange(event: Event) {
+	//const exampleSelect = document.getElementById("exampleSelect") as HTMLSelectElement;
+	const exampleSelect = event.target as HTMLSelectElement;
+
+	const basicArea = document.getElementById("basicArea") as HTMLTextAreaElement;
+	basicArea.value = examples[exampleSelect.value];
+	basicArea.dispatchEvent(new Event('change'));
+}
+
+
+function setExampleSelectOptions(examples: Record<string, string>) {
+	const exampleSelect = document.getElementById("exampleSelect") as HTMLSelectElement;
+
+	for (const key of Object.keys(examples)) {
+		const value = key; //examples[key];
+		const option = window.document.createElement("option");
+
+		option.value = value;
+		option.text = value;
+		option.title = value;
+		option.selected = false;
+		exampleSelect.add(option);
+	}
+}
+
+
 
 interface NodeFs {
 	//readFile: (name: string, encoding: string, fn: (res: any) => void) => any
@@ -688,15 +730,26 @@ function main(config: ConfigType) {
 
 if (typeof window !== "undefined") {
 	window.onload = () => {
-		const scriptArea = window.document.getElementById("scriptArea");
-		if (scriptArea) {
-			scriptArea.addEventListener('change', onScriptAreaChange);
-		}
+		const basicArea = window.document.getElementById("basicArea") as HTMLTextAreaElement;
+		basicArea.addEventListener('change', onBasicAreaChange);
 
-		const compiledArea = window.document.getElementById("compiledArea");
-		if (compiledArea) {
-			compiledArea.addEventListener('change', onCompiledAreaChange);
-		}
+		const compiledArea = window.document.getElementById("compiledArea") as HTMLTextAreaElement;
+		compiledArea.addEventListener('change', onCompiledAreaChange);
+
+		const compileButton = window.document.getElementById("compileButton") as HTMLButtonElement;
+		compileButton.addEventListener('click', onCompileButtonClick, false);
+
+		const executeButton = window.document.getElementById("executeButton") as HTMLButtonElement;
+		executeButton.addEventListener('click', onExecuteButtonClick, false);
+
+		const exampleSelect = document.getElementById("exampleSelect") as HTMLSelectElement;
+		exampleSelect.addEventListener('change', onExampleSelectChange);
+
+		//const keys = Object.keys(examples);
+		//basicArea.value = examples[keys[0]]; // set first example
+		setExampleSelectOptions(examples);
+		exampleSelect.dispatchEvent(new Event('change'));
+
 		main(fnParseUri(window.location.search.substring(1), startConfig));
 	};
 } else {

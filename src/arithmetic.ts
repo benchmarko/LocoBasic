@@ -66,6 +66,9 @@ export const arithmetic = {
     Cos
       = caseInsensitive<"cos"> "(" NumExp ")"
 
+    Dim
+      = caseInsensitive<"dim"> DimArrayIdent
+
     Fix
       = caseInsensitive<"fix"> "(" NumExp ")"
   
@@ -168,9 +171,6 @@ export const arithmetic = {
 
     WhileLoop
       = caseInsensitive<"while"> Exp
-
-    Dim
-      = caseInsensitive<"dim">ArrayIdent
 
     Comparison
       = caseInsensitive<"if"> Exp caseInsensitive<"then"> Statements (caseInsensitive<"else"> Statements)?
@@ -296,6 +296,9 @@ export const arithmetic = {
       = ListOf<Exp, ",">
 
     ArrayIdent
+      = ident "(" ArrayArgs ")"
+
+    DimArrayIdent
       = ident "(" ArrayArgs ")"
   
     keyword

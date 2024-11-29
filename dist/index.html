@@ -7,24 +7,39 @@
 
   <script src="https://unpkg.com/ohm-js@17/dist/ohm.js"></script>
 
-  <script>window.ohmJs = window.ohm</script>
+  <script>
+    if (!window.ohm) {
+      console.error("window.ohm not loaded!");
+    }
+    window.ohmJs = window.ohm;
+  </script>
 
   <script src="locobasic.js"></script>
 </head>
 <body>
-  <label for="scriptArea" title="Script input">Script</label>
+  <select id="exampleSelect" title="Load Example"></select>
+  =>
+  <label for="basicArea" title="BASIC input">BASIC</label>
   <br /> 
-  <textarea id="scriptArea" rows="10" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" tabindex="0"></textarea>
+  <textarea id="basicArea" rows="20" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" tabindex="0"></textarea>
   <br />
 
+  <input id="autoCompileInput" type="checkbox" title="automatic compile" checked>
+  <label for="autoCompileInput" title="auto compile on change">Auto</label>
+  <button id="compileButton" title="Compile to JavaScript">Compile</button>
+  =>
   <label for="compiledArea" title="Compiled Script">Compiled</label>
-  <br />
-  <textarea id="compiledArea" rows="10" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" tabindex="0"></textarea>
+   <br />
+  <textarea id="compiledArea" rows="20" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" tabindex="0"></textarea>
   <br />
 
+  <input id="autoExecuteInput" type="checkbox" title="automatic execute" checked>
+  <label for="autoExecuteInput" title="auto execute on change">Auto</label>
+  <button id="executeButton" title="Execute JavaScript">Execute</button>
+  =>
   <label for="outputArea" title="output">Output</label>
   <br />
-  <textarea id="outputArea" rows="10" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" tabindex="0"></textarea>
+  <textarea id="outputArea" rows="20" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" tabindex="0"></textarea>
   <br />
 
 </body>
