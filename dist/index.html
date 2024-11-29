@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LocoBasic</title>
+  <link rel="stylesheet" href="locobasic.css">
+  <title>LocoBasic v0.1.0</title>
 
   <script src="https://unpkg.com/ohm-js@17/dist/ohm.js"></script>
 
@@ -14,33 +15,59 @@
     window.ohmJs = window.ohm;
   </script>
 
-  <script src="locobasic.js"></script>
+<!-- XXX https://cdnjs.com/libraries/codemirror
+https://codemirror.net/5/doc/manual.html#operation
+https://codemirror.net/5/mode/
+https://codemirror.net/5/mode/diff/diff.js
+https://codemirror.net/5/demo/simplemode.html
+https://github.com/codemirror/legacy-modes/blob/main/mode/pascal.js
+
+
+https://github.com/dfreniche/amstradbasic-vscode/blob/master/syntaxes/amstradbasic.tmLanguage.json
+https://marketplace.visualstudio.com/items?itemName=CPCReady.basic-language-extension
+https://retroprogramming.iwashere.eu/ugbasic:user
+https://ugbasic.iwashere.eu/target/cpc#examples
+
+-->
+
+
+<script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
+<script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js"></script>
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css"></link>
+
+
+<!-- XXX or: https://www.unpkg.com/browse/codemirror@6.65.7/lib/ -->
+
 </head>
+
 <body>
-  <select id="exampleSelect" title="Load Example"></select>
-  =>
-  <label for="basicArea" title="BASIC input">BASIC</label>
-  <br /> 
-  <textarea id="basicArea" rows="20" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" tabindex="0"></textarea>
-  <br />
+  <div id="basicArea" class="flexBox">
+    <label for="basicText" title="BASIC input">BASIC</label>
+    <select id="exampleSelect" title="Load Example"></select>
+    <br /> 
+    <textarea id="basicText" rows="20" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" tabindex="0"></textarea>
+    <br /> 
+    <input id="autoCompileInput" type="checkbox" title="automatic compile" checked>
+    <label for="autoCompileInput" title="auto compile on change">Auto</label>
+    <button id="compileButton" title="Compile to JavaScript">Compile</button>
+  </div>
 
-  <input id="autoCompileInput" type="checkbox" title="automatic compile" checked>
-  <label for="autoCompileInput" title="auto compile on change">Auto</label>
-  <button id="compileButton" title="Compile to JavaScript">Compile</button>
-  =>
-  <label for="compiledArea" title="Compiled Script">Compiled</label>
-   <br />
-  <textarea id="compiledArea" rows="20" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" tabindex="0"></textarea>
-  <br />
+  <div id="compiledArea" class="flexBox">
+    <label for="compiledText" title="Compiled Script">Compiled</label>
+    <br />
+    <textarea id="compiledText" rows="20" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" tabindex="0"></textarea>
+    <br />
+    <input id="autoExecuteInput" type="checkbox" title="automatic execute" checked>
+    <label for="autoExecuteInput" title="auto execute on change">Auto</label>
+    <button id="executeButton" title="Execute JavaScript">Execute</button>
+  </div>
 
-  <input id="autoExecuteInput" type="checkbox" title="automatic execute" checked>
-  <label for="autoExecuteInput" title="auto execute on change">Auto</label>
-  <button id="executeButton" title="Execute JavaScript">Execute</button>
-  =>
-  <label for="outputArea" title="output">Output</label>
-  <br />
-  <textarea id="outputArea" rows="20" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" tabindex="0"></textarea>
-  <br />
+  <div id="outputArea" class="flexBox">
+    <label for="outputText" title="output">Output</label>
+    <br />
+    <textarea id="outputText" rows="20" cols="80" spellcheck="false" autocomplete="off" autocapitalize="off" tabindex="0"></textarea>
+  </div>
 
+  <script src="locobasic.js"></script>
 </body>
 </html>

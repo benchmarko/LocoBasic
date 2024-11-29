@@ -4,7 +4,7 @@
 //
 // https://stackoverflow.com/questions/60857610/grammar-for-expression-language
 // !
-//https://github.com/Gamadril/led-basic-vscode
+// https://github.com/Gamadril/led-basic-vscode
 // !
 //
 export const arithmetic = {
@@ -12,22 +12,22 @@ export const arithmetic = {
     `
     Arithmetic {
     Program
-      = (emptyLine | Line)*
-
-    emptyLine = comment eol
+      = Line*
 
     Line
-      = Label? Statements comment? (eol | end)
+      = Label? Statements Comment? (eol | end)
 
     Label
-     = label 
+     = label
 
     Statements
      = Statement (":" Statement)*
 
     Statement
-     = Comparison
+     = Comment
+     | Comparison
      | Dim
+     | End
      | ForLoop
      | Gosub
      | Next
@@ -35,15 +35,16 @@ export const arithmetic = {
      | Print
      | Rem
      | Return
+     | Stop
      | WhileLoop
      | Wend
      | ArrayAssign
      | Assign
 
     ArrayAssign
-      = ArrayIdent "=" Exp
-      | ArrayIdent "=" string
-  
+      = ArrayIdent "=" NumExp
+      | StrArrayIdent "=" StrExp
+
     Abs
       = caseInsensitive<"abs"> "(" NumExp ")"
 
@@ -54,24 +55,30 @@ export const arithmetic = {
       = caseInsensitive<"atn"> "(" NumExp ")"
 
     Assign
-      = ident "=" Exp
-      | ident "=" string
+      = ident "=" NumExp
+      | strIdent "=" StrExp
 
     Bin
       = caseInsensitive<"bin$"> "(" NumExp ("," NumExp)? ")"
 
     Chr
       = caseInsensitive<"chr$"> "(" NumExp ")"
-    
+
+    Comment
+      = "\\'" partToEol
+
     Cos
       = caseInsensitive<"cos"> "(" NumExp ")"
 
     Dim
       = caseInsensitive<"dim"> DimArrayIdent
 
+    End
+      = caseInsensitive<"end">
+
     Fix
       = caseInsensitive<"fix"> "(" NumExp ")"
-  
+
     ForLoop
       = caseInsensitive<"for"> variable "=" NumExp caseInsensitive<"to"> NumExp (caseInsensitive<"step"> NumExp)?
 
@@ -89,11 +96,11 @@ export const arithmetic = {
 
     Len
       = caseInsensitive<"len"> "(" StrExp ")"
-    
+
     Log
       = caseInsensitive<"log"> "(" NumExp ")"
 
-    Log10 
+    Log10
       = caseInsensitive<"log10"> "(" NumExp ")"
 
     Lower
@@ -108,8 +115,8 @@ export const arithmetic = {
     Min
       = caseInsensitive<"min"> "(" ListOf<NumExp, ","> ")"
 
-    Pi  
-      = caseInsensitive<"pi">  
+    Pi
+      = caseInsensitive<"pi">
 
     Next
      = caseInsensitive<"next"> variable?
@@ -119,16 +126,15 @@ export const arithmetic = {
 
     Print
       = (caseInsensitive<"print"> | "?") PrintArgs (";")?
-    
+
     PrintArgs
       = PrintArg (("," | ";") PrintArg)*
 
     PrintArg
       = Exp
-      | string
 
     Rem
-      = rem
+      = caseInsensitive<"Rem"> partToEol
 
     Return
       = caseInsensitive<"return">
@@ -138,16 +144,19 @@ export const arithmetic = {
 
     Rnd
       = caseInsensitive<"rnd"> "(" NumExp? ")"
-  
+
     Sin
       = caseInsensitive<"sin"> "(" NumExp ")"
-    
+
     Space2
       = caseInsensitive<"space$"> "(" NumExp ")"
-    
+
     Sqr
       = caseInsensitive<"sqr"> "(" NumExp ")"
-  
+
+    Stop
+      = caseInsensitive<"stop">
+
     Str
       = caseInsensitive<"str$"> "(" NumExp ")"
 
@@ -184,7 +193,7 @@ export const arithmetic = {
 
     StrAndExp
       = StrCmpExp caseInsensitive<"and"> StrAndExp  -- and
-      | StrCmpExp    
+      | StrCmpExp
 
     StrCmpExp
       = StrCmpExp "=" StrAddExp  -- eq
@@ -197,9 +206,6 @@ export const arithmetic = {
 
     StrPriExp
       = "(" StrExp ")"  -- paren
-      | ArrayIdent
-      | ident
-      | string
       | Bin
       | Chr
       | Hex
@@ -211,9 +217,12 @@ export const arithmetic = {
       | Str
       | String2
       | Upper
+      | StrArrayIdent
+      | strIdent
+      | string
 
     Exp
-      = NumExp | StrExp
+      = StrExp | NumExp
 
     NumExp
       = XorExp
@@ -228,7 +237,7 @@ export const arithmetic = {
 
     AndExp
       = NotExp caseInsensitive<"and"> AndExp  -- and
-      | NotExp    
+      | NotExp
 
     NotExp
       = caseInsensitive<"not"> NotExp  -- not
@@ -298,9 +307,13 @@ export const arithmetic = {
     ArrayIdent
       = ident "(" ArrayArgs ")"
 
+    StrArrayIdent
+      = strIdent "(" ArrayArgs ")"
+
     DimArrayIdent
       = ident "(" ArrayArgs ")"
-  
+      | strIdent "(" ArrayArgs ")"
+
     keyword
       = abs | after | and | asc | atn | auto | bin | border | break
       | call | cat | chain | chr | cint | clear | clg | closein | closeout | cls | cont | copychr | cos | creal | cursor
@@ -338,51 +351,51 @@ export const arithmetic = {
     cat
     = caseInsensitive<"cat"> ~identPart
     chain
-    = caseInsensitive<"chain"> ~identPart                        
+    = caseInsensitive<"chain"> ~identPart
     chr
     = caseInsensitive<"chr$"> ~identPart
     cint
-    = caseInsensitive<"cint"> ~identPart    
+    = caseInsensitive<"cint"> ~identPart
     clear
-    = caseInsensitive<"clear"> ~identPart    
+    = caseInsensitive<"clear"> ~identPart
     clg
-    = caseInsensitive<"clg"> ~identPart                
+    = caseInsensitive<"clg"> ~identPart
     closein
-    = caseInsensitive<"closein"> ~identPart                
+    = caseInsensitive<"closein"> ~identPart
     closeout
-    = caseInsensitive<"closeout"> ~identPart                
+    = caseInsensitive<"closeout"> ~identPart
     cls
-    = caseInsensitive<"cls"> ~identPart                
+    = caseInsensitive<"cls"> ~identPart
     cont
-    = caseInsensitive<"cont"> ~identPart                
+    = caseInsensitive<"cont"> ~identPart
     copychr
-    = caseInsensitive<"copychr$"> ~identPart  
+    = caseInsensitive<"copychr$"> ~identPart
     cos
     = caseInsensitive<"cos"> ~identPart
     creal
-    = caseInsensitive<"creal"> ~identPart  
+    = caseInsensitive<"creal"> ~identPart
     cursor
-    = caseInsensitive<"cursor"> ~identPart  
+    = caseInsensitive<"cursor"> ~identPart
     data
-    = caseInsensitive<"data"> ~identPart  
+    = caseInsensitive<"data"> ~identPart
     dec
-    = caseInsensitive<"dec"> ~identPart  
+    = caseInsensitive<"dec"> ~identPart
     def
-    = caseInsensitive<"def"> ~identPart  
+    = caseInsensitive<"def"> ~identPart
     defint
-    = caseInsensitive<"defint"> ~identPart  
+    = caseInsensitive<"defint"> ~identPart
     defreal
-    = caseInsensitive<"defreal"> ~identPart  
+    = caseInsensitive<"defreal"> ~identPart
     defstr
-    = caseInsensitive<"defstr"> ~identPart  
+    = caseInsensitive<"defstr"> ~identPart
     deg
-    = caseInsensitive<"deg"> ~identPart  
+    = caseInsensitive<"deg"> ~identPart
     delete
-    = caseInsensitive<"delete"> ~identPart  
+    = caseInsensitive<"delete"> ~identPart
     derr
-    = caseInsensitive<"derr"> ~identPart  
+    = caseInsensitive<"derr"> ~identPart
     di
-    = caseInsensitive<"di"> ~identPart  
+    = caseInsensitive<"di"> ~identPart
     dim
     = caseInsensitive<"dim"> ~identPart
     draw
@@ -430,20 +443,20 @@ export const arithmetic = {
     gosub
     = caseInsensitive<"gosub"> ~identPart
     goto
-    = caseInsensitive<"goto"> ~identPart      
+    = caseInsensitive<"goto"> ~identPart
     graphics
-    = caseInsensitive<"graphics"> ~identPart      
+    = caseInsensitive<"graphics"> ~identPart
     hex
     = caseInsensitive<"hex$"> ~identPart
     himem
-    = caseInsensitive<"himem"> ~identPart      
+    = caseInsensitive<"himem"> ~identPart
     if
     = caseInsensitive<"if"> ~identPart
     ink
-    = caseInsensitive<"ink"> ~identPart      
+    = caseInsensitive<"ink"> ~identPart
     inkey
     = caseInsensitive<"inkey"> ~identPart
-    | caseInsensitive<"inkey$"> ~identPart   
+    | caseInsensitive<"inkey$"> ~identPart
     inp
     = caseInsensitive<"inp"> ~identPart
     input
@@ -539,9 +552,9 @@ export const arithmetic = {
     read
     = caseInsensitive<"read"> ~identPart
     release
-    = caseInsensitive<"release"> ~identPart            
-    //rem
-    //= caseInsensitive<"rem"> ~identPart
+    = caseInsensitive<"release"> ~identPart
+    rem
+    = caseInsensitive<"rem"> ~identPart
     remain
     = caseInsensitive<"remain"> ~identPart
     renum
@@ -553,7 +566,7 @@ export const arithmetic = {
     return
     = caseInsensitive<"return"> ~identPart
     right
-    = caseInsensitive<"right$"> ~identPart    
+    = caseInsensitive<"right$"> ~identPart
     rnd
     = caseInsensitive<"rnd"> ~identPart
     round
@@ -603,7 +616,7 @@ export const arithmetic = {
     testr
     = caseInsensitive<"testr"> ~identPart
     then
-    = caseInsensitive<"then"> ~identPart      
+    = caseInsensitive<"then"> ~identPart
     time
     = caseInsensitive<"time"> ~identPart
     to
@@ -621,19 +634,19 @@ export const arithmetic = {
     val
     = caseInsensitive<"val"> ~identPart
     vpos
-    = caseInsensitive<"vpos"> ~identPart                  
+    = caseInsensitive<"vpos"> ~identPart
     wait
-    = caseInsensitive<"wait"> ~identPart                  
+    = caseInsensitive<"wait"> ~identPart
     wend
     = caseInsensitive<"wend"> ~identPart
     while
     = caseInsensitive<"while"> ~identPart
     width
-    = caseInsensitive<"width"> ~identPart                  
+    = caseInsensitive<"width"> ~identPart
     window
-    = caseInsensitive<"window"> ~identPart                  
+    = caseInsensitive<"window"> ~identPart
     write
-    = caseInsensitive<"write"> ~identPart                  
+    = caseInsensitive<"write"> ~identPart
     xor
     = caseInsensitive<"xor"> ~identPart
     xpos
@@ -642,18 +655,20 @@ export const arithmetic = {
     = caseInsensitive<"ypos"> ~identPart
     zone
     = caseInsensitive<"zone"> ~identPart
-    
+
 
     ident (an identifier) =
       ~keyword identName
 
-    identName = identStart identPart* ("$")?
+    identName = identStart identPart*
 
     identStart = letter
 
     identPart = identStart | digit
 
     variable = ident
+
+    strIdent = identName ("$")
 
     binaryDigit = "0".."1"
 
@@ -672,13 +687,15 @@ export const arithmetic = {
       | hexValue
       | binaryValue
 
+    partToEol
+      = (~eol any)*
+
     string = "\\"" ("\\\\\\"" | (~"\\"" any))* "\\""
 
-    label = "sub" digit+
+    label = digit+
 
     space := " " | "\t"
-    comment = "\\'" (~eol any)*
-    rem = caseInsensitive<"rem"> (~eol any)*
+
     eol (end of line)
         = "\\n"
     }
@@ -689,6 +706,6 @@ export const arithmetic = {
 after auto border break call cat chain cint clear cog closein closeout cos cont copychr
  creal cursor data dec def defint defreal defstr deg delete derr di draw drawr edit ei eof erase erl err error every exp fill fn frame fre
  gosub goto graphics himem ink inkey-$ inp input instr joy key let line list load locate mask memory merge mode move mover new
- on openin openout origin out paper peek pen plot plotr poke pos rad randomize read release remain renum restore resume return round run 
- save sgn sound spc speed sq stop swap symbol tab tag tagoff test testr troff tron unt using vpos wait width window write xpos ypos zone
+ on openin openout origin out paper peek pen plot plotr poke pos rad randomize read release remain renum restore resume return round run
+ save sgn sound spc speed sq swap symbol tab tag tagoff test testr troff tron unt using vpos wait width window write xpos ypos zone
  */

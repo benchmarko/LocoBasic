@@ -71,6 +71,31 @@ WEND
 PRINT "Number of primes below ";n;": ";x
 `,
 
+testSub:
+`?"start"
+'
+100 ?"sub100"
+return
+'
+200 ?"sub200"
+  ?"inside sub200"
+  gosub 100
+return
+'
+gosub 200
+?"in between"
+'
+300 ?"sub300"
+  ?"inside sub300"
+  'gosub 400
+return
+'
+gosub 300
+a=1
+on a gosub 200, 300
+?"at end"
+`,
+
 time:
 `REM cpcmhz - CPC MHz: Time measurement
 PRINT "Measurement started."

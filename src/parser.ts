@@ -3,11 +3,12 @@
 //
 // Usage:
 // node dist/locobasic.js input="?3 + 5 * (2 - 8)"
-// node dist/locobasic.js fileName=dist/example.bas
+// node dist/locobasic.js fileName=dist/examples/example.bas
+// node dist/locobasic.js example=euler
 //
 // [ npx ts-node parser.ts input="?3 + 5 * (2 - 8)" ]
 
-import { Grammar, grammar, Node, Semantics } from "ohm-js";
+import { ActionDict, Grammar, grammar, Node, Semantics } from "ohm-js";
 import { arithmetic } from "./arithmetic";
 import { examples } from "./examples";
 
@@ -21,14 +22,13 @@ import { examples } from "./examples";
 // https://jsonformatter.org/javascript-pretty-print
 // ?
 
-// not implemented: mode
-
 export type ConfigEntryType = string | number | boolean;
 
 export type ConfigType = Record<string, ConfigEntryType>;
 
 const startConfig: ConfigType = {
 	debug: 0,
+	example: "",
 	fileName: "",
 	input: ""
 };
@@ -57,7 +57,7 @@ function dimArray(dims: number[], initVal: string | number = 0) {
 const vm = {
 	_output: "",
 	print: (...args: string[]) => vm._output += args.join(''),
-	
+
 	dimArray: dimArray,
 	getOutput: () => vm._output,
 	setOutput: (str: string) => vm._output = str
@@ -67,11 +67,11 @@ class Parser {
 	private readonly ohmGrammar: Grammar;
 	private readonly ohmSemantics: Semantics;
 
-	constructor(grammarString: string, semanticsMap: Record<string, any>) {
+	constructor(grammarString: string, semanticsMap: ActionDict<string|string[]>) {
 		this.ohmGrammar = grammar(grammarString);
 		this.ohmSemantics = this.ohmGrammar
 			.createSemantics()
-			.addOperation<number>("eval", semanticsMap);
+			.addOperation<string|string[]>("eval", semanticsMap);
 	}
 
 	// Function to parse and evaluate an expression
@@ -81,8 +81,7 @@ class Parser {
 			if (matchResult.succeeded()) {
 				return this.ohmSemantics(matchResult).eval();
 			} else {
-			//throw new Error("Parsing failed: " + matchResult.message);
-			  	return 'ERROR: Parsing failed: ' + matchResult.message; // or .shortMessage
+			  	return 'ERROR: Parsing failed: ' + matchResult.message;
 			}
 		} catch (error) {
 			return 'ERROR: Parsing evaluator failed: ' + (error instanceof Error ? error.message : "unknown");
@@ -103,19 +102,41 @@ function deleteAllItems(items: Record<string, any>) {
 	}
 }
 
-
-type SubRoutineType = {
-	first: number
+type DefinedLabelEntryType = {
+	label: string,
+	first: number,
 	last: number
 }
 
-const subRoutines: Record<string, SubRoutineType> = {};
+type UsedLabelEntryType = {
+	count: number
+}
+
+const definedLabels: DefinedLabelEntryType[] = [];
+const usedLabels: Record<string, UsedLabelEntryType> = {};
 
 let lineIndex = 0;
 
+function addDefinedLabel(label: string, line: number) {
+	definedLabels.push({
+		label,
+		first: line,
+		last: -1
+	});
+}
+
+function addUsedLabel(label: string) {
+	usedLabels[label] = usedLabels[label] || {
+		count: 0
+	};
+
+	usedLabels[label].count = (usedLabels[label].count || 0) + 1;
+}
+
 function resetParser() {
 	deleteAllItems(variables);
-	deleteAllItems(subRoutines);
+	definedLabels.length = 0;
+	deleteAllItems(usedLabels);
 	lineIndex = 0;
 }
 
@@ -124,52 +145,60 @@ function evalChildren(children: Node[]) {
 }
 
 // Semantics to evaluate an arithmetic expression
-const semantics = {
+const semantics: ActionDict<string|string[]> = {
 	Program(lines: Node) {
 		const lineList = evalChildren(lines.children);
 
 		const variabeList = Object.keys(variables);
-		const varStr = variabeList.length ? "let " + variabeList.join(", ") + ";\n" : "";
+		const varStr = variabeList.length ? "let " + variabeList.map((v) => v.endsWith("$") ? `${v} = ""`: `${v} = 0`).join(", ") + ";\n" : "";
 
-		const subKeys = Object.keys(subRoutines);
-		for (const key of subKeys) {
-			const sub = subRoutines[key];
-
-			const indent = lineList[sub.first].search(/\S|$/);
-			const indentStr = " ".repeat(indent);
-			for (let i = sub.first; i <= sub.last; i += 1) {
-				lineList[i] = "  " + lineList[i]; // ident
+		// find subroutines
+		let subFirst: DefinedLabelEntryType | undefined;
+		for (let index = 0; index < definedLabels.length; index += 1) {
+			const item = definedLabels[index];
+			if (usedLabels[item.label]) {
+				subFirst = item;
 			}
 
-			lineList[sub.first] = `${indentStr}const ${key} = () => {${indentStr}\n` + lineList[sub.first];
-			lineList[sub.last] += `\n${indentStr}` + "};" //TS issue when using the following? `\n${indentStr}};`
+			if (subFirst && item.last >= 0) {
+				const first = subFirst.first;
+				const indent = lineList[first].search(/\S|$/);
+				const indentStr = " ".repeat(indent);
+
+				for (let i = first; i <= item.last; i += 1) {
+					lineList[i] = "  " + lineList[i]; // ident
+				}
+
+				lineList[first] = `${indentStr}function _${subFirst.label}() {${indentStr}\n` + lineList[first];
+				lineList[item.last] += `\n${indentStr}` + "}"; //TS issue when using the following? `\n${indentStr}};`
+				subFirst = undefined;
+			}
 		}
 
 		const lineStr = lineList.join('\n');
-
 		return varStr + lineStr;
 	},
 
-	Line(label: Node, stmts: Node, comment: Node, _eol: Node) {
+	Line(label: Node, stmts: Node, comment: Node, _eol: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		const labelStr = label.sourceString;
-		const commentStr = comment.sourceString ? `; //${comment.sourceString.substring(1)}` : "";
 
 		if (labelStr) {
-			const item = subRoutines[labelStr];
-			if (item) {
-				item.last = lineIndex;
-			} else {
-				subRoutines[labelStr] = {
-					first: lineIndex,
-					last: -1
-				}
+			addDefinedLabel(labelStr, lineIndex);
+		}
+
+		const lineStr = stmts.eval();
+
+		if (lineStr === "return") {
+			if (definedLabels.length) {
+				const lastLabelItem = definedLabels[definedLabels.length - 1];
+				lastLabelItem.last = lineIndex;
 			}
 		}
 
+		const commentStr = comment.sourceString ? `; //${comment.sourceString.substring(1)}` : "";
+		const semi = lineStr.endsWith("{") || lineStr.startsWith("//") || commentStr ? "" : ";";
 		lineIndex += 1;
-		const lineStr = stmts.eval();
-		const semi = lineStr.endsWith("{") ? "" : ";";
-		return lineStr + semi + commentStr;
+		return lineStr + commentStr + semi;
 	},
 
 	Statements(stmt: Node, _stmtSep: Node, stmts: Node) {
@@ -177,7 +206,7 @@ const semantics = {
 		//TODO: return [stmt.eval(), ...evalChildren(stmts.children)].map((e) => e.endsWith("{") ? e : `${e};`).join(' ');
 	},
 
-	ArrayAssign(ident: Node, _op: Node, e: Node): string { // TODO
+	ArrayAssign(ident: Node, _op: Node, e: Node): string {
 		return `${ident.eval()} = ${e.eval()}`;
 	},
 
@@ -193,37 +222,42 @@ const semantics = {
 	},
 	Print(_printLit: Node, params: Node, semi: Node) {
 		const newline = semi.sourceString ? "" : ` + "\\n"`;
-		return `o.print(${params.eval()}${newline})`;
+		return `_o.print(${params.eval()}${newline})`;
 	},
 
-	Abs(_absLit: Node, _open: Node, e: Node, _close: Node) {
+	Abs(_absLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `Math.abs(${e.eval()})`;
 	},
 
-	Asc(_ascLit: Node, _open: Node, e: Node, _close: Node) {
+	Asc(_ascLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `(${e.eval()}).charCodeAt(0)`;
 	},
 
-	Atn(_atnLit: Node, _open: Node, e: Node, _close: Node) {
+	Atn(_atnLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `Math.atan(${e.eval()})`;
 	},
 
-	Bin(_binLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) {
+	Bin(_binLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		const pad = n.child(0)?.eval();
 		return `(${e.eval()}).toString(2).padStart(${pad} || 0, "0")`;
 	},
-	
-	Chr(_chrLit: Node, _open: Node, e: Node, _close: Node) {
+
+	Chr(_chrLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `String.fromCharCode(${e.eval()})`;
 	},
 
-	Cos(_cosLit: Node, _open: Node, e: Node, _close: Node) {
+	Comment(_commentLit: Node, remain: Node) {
+		return `//${remain.sourceString}`;
+	},
+
+	Cos(_cosLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `Math.cos(${e.eval()})`;
 	},
 
 	Dim(_dimLit: Node, arrayIdent: Node) {
 		const [ident, ...indices] = arrayIdent.eval();
-		return `${ident} = o.dimArray([${indices}])`; // indices are converted to string, that means they are joined with comma 
+		const initValStr = ident.endsWith("$") ? ', ""' : '';
+		return `${ident} = _o.dimArray([${indices}]${initValStr})`; // automatically joined with comma
 	},
 
     Comparison(_iflit: Node, condExp: Node, _thenLit: Node, thenStat: Node, elseLit: Node, elseStat: Node) {
@@ -239,7 +273,11 @@ const semantics = {
 		return result;
 	},
 
-	Fix(_fixLit: Node, _open: Node, e: Node, _close: Node) {
+	End(_endLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		return `return "end"`;
+	},
+
+	Fix(_fixLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `Math.trunc(${e.eval()})`;
 	},
 
@@ -250,7 +288,7 @@ const semantics = {
         const stepExp = step.child(0)?.eval() || "1";
 
 		const stepAsNum = Number(stepExp);
-		
+
 		let cmpSt = "";
 		if (isNaN(stepAsNum)) {
 			cmpSt = `${stepExp} >= 0 ? ${varExp} <= ${endExp} : ${varExp} >= ${endExp}`
@@ -264,128 +302,140 @@ const semantics = {
 	},
 
 	Gosub(_gosubLit: Node, e: Node) {
-		return `${e.sourceString}()`;
+		const labelStr = e.sourceString;
+		addUsedLabel(labelStr);
+
+		return `_${labelStr}()`;
 	},
 
-	Hex(_hexLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) {
+	Hex(_hexLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		const pad = n.child(0)?.eval();
 		return `(${e.eval()}).toString(16).toUpperCase().padStart(${pad} || 0, "0")`;
 	},
 
-	Int(_intLit: Node, _open: Node, e: Node, _close: Node) {
+	Int(_intLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `Math.floor(${e.eval()})`;
 	},
 
-	Left(_leftLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) {
+	Left(_leftLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `(${e1.eval()}).slice(0, ${e2.eval()})`;
 	},
 
-	Len(_lenLit: Node, _open: Node, e: Node, _close: Node) {
+	Len(_lenLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `(${e.eval()}).length`;
 	},
 
-	Log(_logLit: Node, _open: Node, e: Node, _close: Node) {
+	Log(_logLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `Math.log(${e.eval()})`;
 	},
 
-	Log10(_log10Lit: Node, _open: Node, e: Node, _close: Node) {
+	Log10(_log10Lit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `Math.log10(${e.eval()})`;
 	},
 
-	Lower(_lowerLit: Node, _open: Node, e: Node, _close: Node) {
+	Lower(_lowerLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `(${e.eval()}).toLowerCase()`;
 	},
 
-	Max(_maxLit: Node, _open: Node, args: Node, _close: Node) {
-		const argList = args.asIteration().children.map(c => c.eval()); // see also ArrayArgs
+	Max(_maxLit: Node, _open: Node, args: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		const argList = args.asIteration().children.map(c => c.eval()); // see also: ArrayArgs
 		return `Math.max(${argList})`;
 	},
 
-	Mid(_midLit: Node, _open: Node, e1: Node, _comma1: Node, e2: Node, _comma2: Node, e3: Node, _close: Node) {
+	Mid(_midLit: Node, _open: Node, e1: Node, _comma1: Node, e2: Node, _comma2: Node, e3: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		const length = e3.child(0)?.eval() || "0";
 		return `(${e1.eval()}).substr(${e2.eval()} - 1, ${length})`;
 	},
 
-	Min(_minLit: Node, _open: Node, args: Node, _close: Node) {
-		const argList = args.asIteration().children.map(c => c.eval()); // see also ArrayArgs
+	Min(_minLit: Node, _open: Node, args: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		const argList = args.asIteration().children.map(c => c.eval()); // see also: ArrayArgs
 		return `Math.min(${argList})`;
 	},
 
-	Next(_nextLit: Node, _variable: Node) {
+	Next(_nextLit: Node, _variable: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return '}';
 	},
 
 	On(_nLit: Node, e1: Node, _gosubLit: Node, args: Node) {
 		const index = e1.eval();
-		const argList = args.asIteration().children.map(c => c.sourceString); 
-		return `[${argList.join(",")}][${index} - 1]()`; // 1-based index
+		const argList = args.asIteration().children.map(c => c.sourceString);
+
+		for (let i = 0; i < argList.length; i += 1) {
+			addUsedLabel(argList[i]);
+		}
+
+		return `[${argList.map((label) => `_${label}`).join(",")}]?.[${index} - 1]()`; // 1-based index
 	},
 
-	Pi(_piLit: Node) {
+	Pi(_piLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return "Math.PI";
 	},
 
-	Rem(_remLit: Node /*, comment: Node */) { //TTT
-		return ''; //return `//${comment.sourceString.substring(1)}`;
+	Rem(_remLit: Node, remain: Node) {
+		return `// ${remain.sourceString}`;
 	},
 
-	Return(_returnLit: Node) {
+	Return(_returnLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return "return";
 	},
 
-	Right(_rightLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) {
+	Right(_rightLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `(${e1.eval()}).slice(-${e2.eval()})`;
 	},
 
-	Rnd(_rndLit: Node, _open: Node, _e: Node, _close: Node) {
-		// currently no args
+	Rnd(_rndLit: Node, _open: Node, _e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		// args are ignored
 		return `Math.random()`;
 	},
 
-	Sin(_sinLit: Node, _open: Node, e: Node, _close: Node) {
+	Sin(_sinLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `Math.sin(${e.eval()})`;
 	},
 
-	Space2(_stringLit: Node, _open: Node, len: Node, _close: Node) {
+	Space2(_stringLit: Node, _open: Node, len: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `" ".repeat(${len.eval()})`;
 	},
 
-	Sqr(_sqrLit: Node, _open: Node, e: Node, _close: Node) {
+	Sqr(_sqrLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `Math.sqrt(${e.eval()})`;
 	},
 
-	Str(_strLit: Node, _open: Node, e: Node, _close: Node) {
+	Stop(_stopLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		return `return "stop"`;
+	},
+
+	Str(_strLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `String(${e.eval()})`; // TODO: additional space for n>0?
 	},
 
-	String2(_stringLit: Node, _open: Node, len: Node, _commaLit: Node, chr: Node, _close: Node) {
-		// we just support the version second parameter as string; we do not use charAt(0) get just one char
+	String2(_stringLit: Node, _open: Node, len: Node, _commaLit: Node, chr: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		// Note: String$: we only support second parameter as string; we do not use charAt(0) to get just one char
 		return `(${chr.eval()}).repeat(${len.eval()})`;
 	},
 
-	Tan(_tanLit: Node, _open: Node, e: Node, _close: Node) {
+	Tan(_tanLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `Math.tan(${e.eval()})`;
 	},
 
-	Time(_timeLit: Node) {
+	Time(_timeLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `Date.now()`; // TODO; or *300/1000
 	},
 
-	Upper(_upperLit: Node, _open: Node, e: Node, _close: Node) {
+	Upper(_upperLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `(${e.eval()}).toUpperCase()`;
 	},
 
-	Val(_upperLit: Node, _open: Node, e: Node, _close: Node) {
+	Val(_upperLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		const numPattern = /^"[\\+\\-]?\d*\.?\d+(?:[Ee][\\+\\-]?\d+)?"$/;
 		const numStr = String(e.eval());
 
 		if (numPattern.test(numStr)) {
 			return `Number(${numStr})`; // for non-hex/bin number strings we can use this simple version
-		} 
+		}
 		return `Number((${numStr}).replace("&x", "0b").replace("&", "0x"))`;
 	},
 
-	Wend(_wendLit: Node) {
+	Wend(_wendLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return '}';
 	},
 
@@ -394,8 +444,8 @@ const semantics = {
 		return `while (${cond}) {`;
 	},
 
-	Exp(e: Node): number {
-		return e.eval();
+	Exp(e: Node) {
+		return String(e.eval());
 	},
 
 	XorExp_xor(a: Node, _op: Node, b: Node) {
@@ -459,11 +509,11 @@ const semantics = {
 		return `Math.pow(${a.eval()}, ${b.eval()})`;
 	},
 
-	PriExp_paren(_open: Node, e: Node, _close: Node) {
+	PriExp_paren(_open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `(${e.eval()})`;
 	},
 	PriExp_pos(_op: Node, e: Node) {
-		return e.eval();
+		return String(e.eval());
 	},
 	PriExp_neg(_op: Node, e: Node) {
 		return `-${e.eval()}`;
@@ -480,20 +530,24 @@ const semantics = {
 		return `${a.eval()} + ${b.eval()}`;
 	},
 
-	StrPriExp_paren(_open: Node, e: Node, _close: Node) {
+	StrPriExp_paren(_open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `(${e.eval()})`;
 	},
 
 	ArrayArgs(args: Node) {
-		return args.asIteration().children.map(c => c.eval());
+		return args.asIteration().children.map(c => String(c.eval()));
 	},
 
-	ArrayIdent(ident: Node, _open: Node, e: Node, _close: Node) {
+	ArrayIdent(ident: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `${ident.eval()}[${e.eval().join("][")}]`;
 	},
 
-	DimArrayIdent(ident: Node, _open: Node, indices: Node, _close: Node) {
-		return [ident.eval(), ...indices.eval()]; //`${ident.eval()}(${String(e.eval())})`;
+	StrArrayIdent(ident: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		return `${ident.eval()}[${e.eval().join("][")}]`;
+	},
+
+	DimArrayIdent(ident: Node, _open: Node, indices: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		return [ident.eval(), ...indices.eval()]; //TTT
 	},
 
 	decimalValue(value: Node) {
@@ -508,22 +562,29 @@ const semantics = {
         return `0b${value.sourceString}`;
     },
 
-	string(_quote1: Node, e: Node, _quote2: Node) {
+	string(_quote1: Node, e: Node, _quote2: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `"${e.sourceString}"`;
 	},
 
-	identName(first: Node, remain: Node, typeSuffix: Node) {
-		const name = [first.sourceString, remain.sourceString, typeSuffix.sourceString].join("");
-
+	ident(ident: Node) {
+		const name = ident.sourceString;
 		return getVariable(name);
+	},
+
+	strIdent(ident: Node, typeSuffix: Node) {
+		const name = ident.sourceString + typeSuffix.sourceString;
+		return getVariable(name);
+	},
+
+	identName(first: Node, remain: Node /*, typeSuffix: Node */) {
+		//const name = [first.sourceString, remain.sourceString, typeSuffix.sourceString].join("").toLowerCase();
+		const name = [first.sourceString, remain.sourceString].join("").toLowerCase();
+
+		return name; //return getVariable(name);
 	},
 	variable(e: Node) {
-        const name = e.sourceString;
+        const name = e.sourceString.toLowerCase();
 		return getVariable(name);
-	},
-	emptyLine(comment: Node, _eol: Node) {
-		lineIndex += 1;
-		return `//${comment.sourceString.substring(1)}`;
 	}
 };
 
@@ -546,26 +607,35 @@ function executeScript(compiledScript: string) {
 
 	let output: string;
 	try {
-		const fnScript = new Function("o", compiledScript); // eslint-disable-line no-new-func
+		const fnScript = new Function("_o", compiledScript); // eslint-disable-line no-new-func
 		const result = fnScript(vm) || "";
 		output = vm.getOutput() + result;
 
 	} catch (error) {
-		output = "ERROR: " + ((error instanceof Error) ? error.message : "unknown"); 
+		output = "ERROR: " + ((error instanceof Error) ? error.message : "unknown");
 	}
 	return output;
 }
 
-function onExecuteButtonClick(_event: Event) {
-	const compiledArea = document.getElementById("compiledArea") as HTMLTextAreaElement;
-	const outputArea = document.getElementById("outputArea") as HTMLTextAreaElement;
+let basicCm: any;
+let compiledCm: any;
 
-	const compiledScript = compiledArea.value;
+function onExecuteButtonClick(_event: Event) { // eslint-disable-line @typescript-eslint/no-unused-vars
+	const compiledText = document.getElementById("compiledText") as HTMLTextAreaElement;
+	const outputText = document.getElementById("outputText") as HTMLTextAreaElement;
+
+	const compiledScript = compiledCm ? compiledCm.getValue() : compiledText.value;
+	/*
+	if (compiledCm) {
+		compiledCm.save();
+	}
+	const compiledScript = compiledText.value;
+	*/
 	const output = executeScript(compiledScript);
-	outputArea.value = output;
+	outputText.value = output;
 }
 
-function onCompiledAreaChange(_event: Event) {
+function oncompiledTextChange(_event: Event) { // eslint-disable-line @typescript-eslint/no-unused-vars
 	const autoExecuteInput = document.getElementById("autoExecuteInput") as HTMLInputElement;
 	if (autoExecuteInput.checked) {
 		const executeButton = window.document.getElementById("executeButton") as HTMLButtonElement;
@@ -573,21 +643,27 @@ function onCompiledAreaChange(_event: Event) {
 	}
 }
 
-function onCompileButtonClick(_event: Event) {
-	const basicArea = document.getElementById("basicArea") as HTMLTextAreaElement;
-	const compiledArea = document.getElementById("compiledArea") as HTMLTextAreaElement;
-	const input = basicArea.value;
+function onCompileButtonClick(_event: Event) { // eslint-disable-line @typescript-eslint/no-unused-vars
+	const basicText = document.getElementById("basicText") as HTMLTextAreaElement;
+	const compiledText = document.getElementById("compiledText") as HTMLTextAreaElement;
+	//const input = basicText.value;
+	const input = compiledCm ? basicCm.getValue() : basicText.value;
 	const compiledScript = compileScript(input);
-	compiledArea.value = compiledScript;
+
+	if (compiledCm) {
+		compiledCm.setValue(compiledScript);
+	} else {
+		compiledText.value = compiledScript;
+	}
 
 	const autoExecuteInput = document.getElementById("autoExecuteInput") as HTMLInputElement;
 	if (autoExecuteInput.checked) {
 		const newEvent = new Event('change');
-		compiledArea.dispatchEvent(newEvent);
+		compiledText.dispatchEvent(newEvent);
 	}
 }
 
-function onBasicAreaChange(_event: Event) {
+function onbasicTextChange(_event: Event) { // eslint-disable-line @typescript-eslint/no-unused-vars
 	const autoCompileInput = document.getElementById("autoCompileInput") as HTMLInputElement;
 	if (autoCompileInput.checked) {
 		const compileButton = window.document.getElementById("compileButton") as HTMLButtonElement;
@@ -599,9 +675,16 @@ function onExampleSelectChange(event: Event) {
 	//const exampleSelect = document.getElementById("exampleSelect") as HTMLSelectElement;
 	const exampleSelect = event.target as HTMLSelectElement;
 
-	const basicArea = document.getElementById("basicArea") as HTMLTextAreaElement;
-	basicArea.value = examples[exampleSelect.value];
-	basicArea.dispatchEvent(new Event('change'));
+	const basicText = document.getElementById("basicText") as HTMLTextAreaElement;
+	const value = examples[exampleSelect.value];
+
+	if (basicCm) {
+		basicCm.setValue(value);
+	} else {
+		basicText.value = value;
+	}
+
+	basicText.dispatchEvent(new Event('change'));
 }
 
 
@@ -630,7 +713,7 @@ interface NodeFs {
 let fs: NodeFs;
 let modulePath: string;
 
-declare function require(name:string): any;
+declare function require(name: string): any;
 
 async function nodeReadFile(name: string): Promise<string> {
 	if (!fs) {
@@ -702,7 +785,7 @@ function fnParseUri(urlQuery: string, config: ConfigType) {
 function start(input: string) {
 	if (input !== "") {
 		const compiledScript = compileScript(input);
-	
+
 		console.log("INFO: Compiled:\n", compiledScript + "\n");
 
 		const output = executeScript(compiledScript);
@@ -724,17 +807,20 @@ function main(config: ConfigType) {
 			start(input);
 		})();
 	} else {
+		if (config.example) {
+			input += examples[config.example as string];
+		}
 		start(input);
 	}
 }
 
 if (typeof window !== "undefined") {
 	window.onload = () => {
-		const basicArea = window.document.getElementById("basicArea") as HTMLTextAreaElement;
-		basicArea.addEventListener('change', onBasicAreaChange);
+		const basicText = window.document.getElementById("basicText") as HTMLTextAreaElement;
+		basicText.addEventListener('change', onbasicTextChange);
 
-		const compiledArea = window.document.getElementById("compiledArea") as HTMLTextAreaElement;
-		compiledArea.addEventListener('change', onCompiledAreaChange);
+		const compiledText = window.document.getElementById("compiledText") as HTMLTextAreaElement;
+		compiledText.addEventListener('change', oncompiledTextChange);
 
 		const compileButton = window.document.getElementById("compileButton") as HTMLButtonElement;
 		compileButton.addEventListener('click', onCompileButtonClick, false);
@@ -745,10 +831,23 @@ if (typeof window !== "undefined") {
 		const exampleSelect = document.getElementById("exampleSelect") as HTMLSelectElement;
 		exampleSelect.addEventListener('change', onExampleSelectChange);
 
-		//const keys = Object.keys(examples);
-		//basicArea.value = examples[keys[0]]; // set first example
 		setExampleSelectOptions(examples);
 		exampleSelect.dispatchEvent(new Event('change'));
+
+		const WinCodeMirror = (window as any).CodeMirror;
+		if (WinCodeMirror) {
+			basicCm = WinCodeMirror.fromTextArea(basicText, {
+				lineNumbers: true,
+				mode: 'javascript'
+			});
+			basicCm.on('changes', onbasicTextChange);
+
+			compiledCm = WinCodeMirror.fromTextArea(compiledText, {
+				lineNumbers: true,
+				mode: 'javascript'
+			});
+			compiledCm.on('changes', oncompiledTextChange);
+		}
 
 		main(fnParseUri(window.location.search.substring(1), startConfig));
 	};
@@ -768,4 +867,20 @@ export const testParser = {
 30 ? "0 =" 10>5>4 "=" (10>5)>4, 10>(5>4)
 40 ? not 1234555
 50 ? 12 \ 5
+
+--
+Notes:
+- L...Basic is mainly used for calculations. It runs in a Browser or on the command line with node.js
+- Control structures like IF...ELSE, and FOR and WHILE loops are directly converted to JaveScript
+- GOTO or ON GOTO are not suppoered. Use GOSUB, ON GOSUB instead. The GOSUB line is interpreted as subroutine start.
+- Subroutine style: Line from GOSUB <line> starts a subroutine which is ended be a single RETURN in a line. Do not nest subroutines.
+- Variable types: No type checking: "$" to mark a string variable is optional; "!", "%" are not supported
+- No automatic rounding to integer for integer parameters
+- Computations are done with JavaScript precision; arity and precedence of operators follows Locomotive BASIC
+- Endless loops are not trapped, ypou may need to restart the browser window.
+- PRINT: output in the output window. Args can be separated by ";" or "," which behave the same. (No TAB(), SPC(), USING)
+- STOP, END: stop only on top level, not in subroutines (where they just return)
+- STRING$(): second parameter must be a character
+- TIME: *300/1000? (TODO)
+
 */
