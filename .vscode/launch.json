@@ -13,7 +13,11 @@
             ],
             "program": "${workspaceFolder}/dist/locobasic.js",
             "args": [
-                "input=for j=1 to 10:print j:next j"
+                //"input=for j=1 to 10:print j:next j",
+                "example=euler"
+                //"input=a=2:?a"
+                //"input=b=5:c=2:a=(b>c13+3.9)+7:?a;"
+                //"input=b=5:c=2:a=(b>c)+7:?a;"
                 //"input=?4\\n?6"
                 //"input=?5;4;"
                 //"input=f=2:if f=0 then print f+7 else ?f*7"

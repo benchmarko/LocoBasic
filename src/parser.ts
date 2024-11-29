@@ -10,7 +10,6 @@
 
 import { ActionDict, Grammar, grammar, Node, Semantics } from "ohm-js";
 import { arithmetic } from "./arithmetic";
-import { examples } from "./examples";
 
 export type ConfigEntryType = string | number | boolean;
 
@@ -24,23 +23,26 @@ const startConfig: ConfigType = {
 };
 
 
+const examples: Record<string, string> = {};
+
+
 type VariableValue = string | number | Function | [] | VariableValue[]; // eslint-disable-line @typescript-eslint/ban-types
 
 function dimArray(dims: number[], initVal: string | number = 0) {
 	const createRecursiveArray = function (depth: number) {
-			const length = dims[depth] + 1, // +1 because of 0-based index
-				array: VariableValue[] = new Array(length);
+		const length = dims[depth] + 1, // +1 because of 0-based index
+			array: VariableValue[] = new Array(length);
 
-			depth += 1;
-			if (depth < dims.length) { // more dimensions?
-				for (let i = 0; i < length; i += 1) {
-					array[i] = createRecursiveArray(depth); // recursive call
-				}
-			} else { // one dimension
-				array.fill(initVal);
+		depth += 1;
+		if (depth < dims.length) { // more dimensions?
+			for (let i = 0; i < length; i += 1) {
+				array[i] = createRecursiveArray(depth); // recursive call
 			}
-			return array;
-		};
+		} else { // one dimension
+			array.fill(initVal);
+		}
+		return array;
+	};
 	return createRecursiveArray(0);
 }
 
@@ -63,11 +65,11 @@ class Parser {
 	private readonly ohmGrammar: Grammar;
 	private readonly ohmSemantics: Semantics;
 
-	constructor(grammarString: string, semanticsMap: ActionDict<string|string[]>) {
+	constructor(grammarString: string, semanticsMap: ActionDict<string | string[]>) {
 		this.ohmGrammar = grammar(grammarString);
 		this.ohmSemantics = this.ohmGrammar
 			.createSemantics()
-			.addOperation<string|string[]>("eval", semanticsMap);
+			.addOperation<string | string[]>("eval", semanticsMap);
 	}
 
 	// Function to parse and evaluate an expression
@@ -77,7 +79,7 @@ class Parser {
 			if (matchResult.succeeded()) {
 				return this.ohmSemantics(matchResult).eval();
 			} else {
-			  	return 'ERROR: Parsing failed: ' + matchResult.message;
+				return 'ERROR: Parsing failed: ' + matchResult.message;
 			}
 		} catch (error) {
 			return 'ERROR: Parsing evaluator failed: ' + (error instanceof Error ? error.message : "unknown");
@@ -120,7 +122,7 @@ const definedLabels: DefinedLabelEntryType[] = [];
 const gosubLabels: Record<string, GosubLabelEntryType> = {};
 let lineIndex = 0;
 
-const dataList: (string|number)[] = [];
+const dataList: (string | number)[] = [];
 const restoreMap: Record<string, number> = {};
 
 function addDefinedLabel(label: string, line: number) {
@@ -158,12 +160,12 @@ function evalChildren(children: Node[]) {
 }
 
 // Semantics to evaluate an arithmetic expression
-const semantics: ActionDict<string|string[]> = {
+const semantics: ActionDict<string | string[]> = {
 	Program(lines: Node) {
 		const lineList = evalChildren(lines.children);
 
 		const variabeList = Object.keys(variables);
-		const varStr = variabeList.length ? "let " + variabeList.map((v) => v.endsWith("$") ? `${v} = ""`: `${v} = 0`).join(", ") + ";\n" : "";
+		const varStr = variabeList.length ? "let " + variabeList.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";\n" : "";
 
 		// find subroutines
 		let subFirst: DefinedLabelEntryType | undefined;
@@ -267,7 +269,7 @@ const semantics: ActionDict<string|string[]> = {
 
 	Bin(_binLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		const pad = n.child(0)?.eval();
-		const padStr = pad !== undefined ? `.padStart(${pad} || 0, "0")`: '';
+		const padStr = pad !== undefined ? `.padStart(${pad} || 0, "0")` : '';
 		return `(${e.eval()}).toString(2).toUpperCase()${padStr}`;
 	},
 
@@ -317,9 +319,9 @@ const semantics: ActionDict<string|string[]> = {
 		return `_o.cls()`;
 	},
 
-    Comparison(_iflit: Node, condExp: Node, _thenLit: Node, thenStat: Node, elseLit: Node, elseStat: Node) {
-        const cond = condExp.eval();
-        const thSt = thenStat.eval();
+	Comparison(_iflit: Node, condExp: Node, _thenLit: Node, thenStat: Node, elseLit: Node, elseStat: Node) {
+		const cond = condExp.eval();
+		const thSt = thenStat.eval();
 
 		let result = `if (${cond}) {\n${thSt}\n}`; // put in newlines to also allow line comments
 		if (elseLit.sourceString) {
@@ -343,10 +345,10 @@ const semantics: ActionDict<string|string[]> = {
 	},
 
 	ForLoop(_forLit: Node, variable: Node, _eqSign: Node, start: Node, _dirLit: Node, end: Node, _stepLit: Node, step: Node) {
-        const varExp = variable.eval();
-        const startExp = start.eval();
-        const endExp = end.eval();
-        const stepExp = step.child(0)?.eval() || "1";
+		const varExp = variable.eval();
+		const startExp = start.eval();
+		const endExp = end.eval();
+		const stepExp = step.child(0)?.eval() || "1";
 
 		const stepAsNum = Number(stepExp);
 
@@ -371,7 +373,7 @@ const semantics: ActionDict<string|string[]> = {
 
 	Hex(_hexLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		const pad = n.child(0)?.eval();
-		const padStr = pad !== undefined ? `.padStart(${pad} || 0, "0")`: '';
+		const padStr = pad !== undefined ? `.padStart(${pad} || 0, "0")` : '';
 		return `(${e.eval()}).toString(16).toUpperCase()${padStr}`;
 	},
 
@@ -406,7 +408,7 @@ const semantics: ActionDict<string|string[]> = {
 
 	Mid(_midLit: Node, _open: Node, e1: Node, _comma1: Node, e2: Node, _comma2: Node, e3: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		const length = e3.child(0)?.eval();
-		const lengthStr = length === undefined ? "" : `, ${length}`; 
+		const lengthStr = length === undefined ? "" : `, ${length}`;
 		return `(${e1.eval()}).substr(${e2.eval()} - 1${lengthStr})`;
 	},
 
@@ -647,16 +649,16 @@ const semantics: ActionDict<string|string[]> = {
 	},
 
 	decimalValue(value: Node) {
-        return value.sourceString;
-    },
+		return value.sourceString;
+	},
 
 	hexValue(_prefix: Node, value: Node) {
 		return `0x${value.sourceString}`;
-    },
+	},
 
-    binaryValue(_prefix: Node, value: Node) {
-        return `0b${value.sourceString}`;
-    },
+	binaryValue(_prefix: Node, value: Node) {
+		return `0b${value.sourceString}`;
+	},
 
 	string(_quote1: Node, e: Node, _quote2: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `"${e.sourceString}"`;
@@ -711,7 +713,7 @@ async function executeScript(compiledScript: string) {
 
 			if (lineNumber || columnNumber) {
 				const errLine = lineNumber - 2; // for some reason line 0 is 2
-				output += ` (line ${errLine}, column ${columnNumber})`; 
+				output += ` (line ${errLine}, column ${columnNumber})`;
 			}
 		} else {
 			output += "unknown";
@@ -725,7 +727,7 @@ let compiledCm: any;
 
 function getOutputText() {
 	const outputText = document.getElementById("outputText") as HTMLTextAreaElement;
-	return outputText.value; 
+	return outputText.value;
 }
 
 function setOutputText(value: string) {
@@ -812,14 +814,34 @@ function setExampleSelectOptions(examples: Record<string, string>) {
 
 function debounce<T extends Function>(func: T, delay: number): (...args: any[]) => void {
 	let timeoutId: ReturnType<typeof setTimeout>;
-	return function(this: any, ...args: any[]) {
-	  const context = this;
-	  clearTimeout(timeoutId);
-	  timeoutId = setTimeout(() => {
-		func.apply(context, args);
-	  }, delay);
+	return function (this: any, ...args: any[]) {
+		const context = this;
+		clearTimeout(timeoutId);
+		timeoutId = setTimeout(() => {
+			func.apply(context, args);
+		}, delay);
 	};
-  }
+}
+
+
+function fnHereDoc(fn: () => void) {
+	return String(fn).
+		replace(/^[^/]+\/\*\S*/, "").
+		replace(/\*\/[^/]+$/, "");
+}
+
+function addItem(key: string, input: string | (() => void)) {
+	let inputString = (typeof input !== "string") ? fnHereDoc(input) : input;
+	inputString = inputString.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
+	// beware of data files ending with newlines! (do not use trimEnd)
+
+	if (!key) { // maybe ""
+		const matches = inputString.match(/^\s*\d*\s*(?:REM|rem|')\s*(\w+)/);
+		key = matches ? matches[1] : "unknown";
+	}
+
+	examples[key] = inputString;
+}
 
 
 
@@ -872,7 +894,7 @@ function fnDecodeUri(s: string) {
 
 	try {
 		decoded = decodeURIComponent(s.replace(/\+/g, " "));
-	} catch	(err) {
+	} catch (err) {
 		if (err instanceof Error) {
 			err.message += ": " + s;
 		}
@@ -906,7 +928,7 @@ function start(input: string) {
 
 		console.log("INFO: Compiled:\n" + compiledScript + "\n");
 
-		const timer = setTimeout(() => {}, 5000);
+		const timer = setTimeout(() => { }, 5000);
 		(async () => {
 			const output = await executeScript(compiledScript);
 			clearTimeout(timer);
@@ -919,23 +941,45 @@ function start(input: string) {
 
 function main(config: ConfigType) {
 	let input = (config.input as string) || "";
+	let timer: ReturnType<typeof setTimeout> | undefined;
 
 	if (config.fileName) {
-		const timer = setTimeout(() => {}, 5000);
+		timer = setTimeout(() => { }, 5000);
 		(async () => {
-			input += await nodeReadFile(config.fileName as string);
+			input = await nodeReadFile(config.fileName as string);
 			clearTimeout(timer);
 			start(input);
 		})();
 	} else {
 		if (config.example) {
+			if (!Object.keys(examples).length) {
+				// ?? require('./examples/examples.js');
+				timer = setTimeout(() => { }, 5000);
+				(async () => {
+					const jsFile = await nodeReadFile("./dist/examples/examples.js");
+					const fnScript = new Function("cpcBasic", jsFile);
+					fnScript({
+						addItem: addItem
+					});
+
+					clearTimeout(timer);
+					input = examples[config.example as string];
+					start(input);
+				})();
+			}
 			input += examples[config.example as string];
 		}
-		start(input);
+		if (timer === undefined) {
+			console.log("start");
+			start(input);
+		}
 	}
 }
 
 if (typeof window !== "undefined") {
+	(window as any).cpcBasic = {
+		addItem: addItem
+	};
 	window.onload = () => {
 		const basicText = window.document.getElementById("basicText") as HTMLTextAreaElement;
 		basicText.addEventListener('change', onbasicTextChange);
@@ -982,89 +1026,3 @@ if (typeof window !== "undefined") {
 export const testParser = {
 	dimArray: dimArray
 };
-
-/*
-5 ' examples:
-10 ' associativity
-15 ? "7 =" 12 xor 5+6 "=" 12 xor (5+6), (12 xor 5)+6
-20 ? "3 =" 7 mod 5+1 "=" (7 mod 5)+1, 7 mod (5+1)
-30 ? "0 =" 10>5>4 "=" (10>5)>4, 10>(5>4)
-40 ? not 1234555
-50 ? 12 \ 5
-
---
-Notes:
-- L...Basic is mainly used for calculations. It runs in a Browser or on the command line with node.js
-- Control structures like IF...ELSE, and FOR and WHILE loops are directly converted to JaveScript
-- GOTO or ON GOTO are not suppoered. Use GOSUB, ON GOSUB instead. The GOSUB line is interpreted as subroutine start.
-- Subroutine style: Line from GOSUB <line> starts a subroutine which is ended be a single RETURN in a line. Do not nest subroutines.
-- Variable types: No type checking: "$" to mark a string variable is optional; "!", "%" are not supported
-- No automatic rounding to integer for integer parameters
-- Computations are done with JavaScript precision; arity and precedence of operators follows Locomotive BASIC
-- Endless loops are not trapped, ypou may need to restart the browser window.
-- PRINT: output in the output window. Args can be separated by ";" or "," which behave the same. (No TAB(), SPC(), USING)
-- STOP, END: stop only on top level, not in subroutines (where they just return)
-- STRING$(): second parameter must be a character
-- TIME: *300/1000? (TODO)
-
-TODO:
-- DIM, NEXT with multiple arguments: done
-- DATA, READ, RESTORE: done
-- comments in IF: 107 IF zoom<3 THEN zoom=3: 'zoom=12: done
-- numbers with exponential notation
-- No JS reserved word as variables: arguments, await, [break], case, catch, class, const, continue, debugger, default, delete, do,
- [else], enum, eval, export, extends, false, finally, [for], function, [if], implements, import, in, instanceof, interface, [let], [new], null,
-  package, private, protected, public, [return], static, super, switch, this, throw, true, try, typeof, var, void, [while], with, yield
-https://www.w3schools.com/js/js_reserved.asp
-- ERASE?
-- ?hex$("3") => array hex$["3"]  : fixed done
-- a$="abcde":mid$(a$,3,2)="w":?a$ ?
-
-return async function() {
-  _o.print(Date.now()+"\n");
-  return new Promise(resolve => setTimeout(() => resolve('Hello after 1 second!'), 1000));
-  //return await 'stop';
-}();
-
-return (async function() { return await Promise.resolve('Hello, Async World!'); })();
-
-
-Object.keys(allTests).forEach((c) => { console.log("' " + c + "\n" + Object.keys(allTests[c]).join(",\n")); });
-
-let ls = []; Object.keys(allTests).forEach((c) => { ls.push("' " + c + "\n" + Object.keys(allTests[c]).join("\n")); }); console.log(ls.join("\n"));
-
-// ---
-
-// https://github.com/ohmjs/ohm/blob/main/examples/math/index.html
-//
-// https://nextjournal.com/pangloss/ohm-parsing-made-easy
-//
-// https://stackoverflow.com/questions/60857610/grammar-for-expression-language
-// !
-// https://github.com/Gamadril/led-basic-vscode
-// !
-//
-
-// https://ohmjs.org/editor/
-// https://ohmjs.org/docs/releases/ohm-js-16.0#default-semantic-actions
-
-// https://stackoverflow.com/questions/69762570/rollup-umd-output-format-doesnt-work-however-es-does
-// ?
-
-// https://github.com/beautifier/js-beautify
-// https://jsonformatter.org/javascript-pretty-print
-// ?
-
-// https://dev.to/cantem/how-to-write-a-debounce-function-1bdf
-//
-
-**
-not implemented:
-after auto border break call cat chain clear cog closein closeout cos cont copychr
- creal cursor data dec def defint defreal defstr deg delete derr di draw drawr edit ei eof erase erl err error every fill fn frame fre
- gosub goto graphics himem ink inkey-$ inp input instr joy key let line list load locate mask memory merge mode move mover new
- on openin openout origin out paper peek pen plot plotr poke pos rad randomize read release remain renum restore resume return round run
- save sgn sound spc speed sq swap symbol tab tag tagoff test testr troff tron unt using vpos wait width window write xpos ypos zone
-**
-
-*/
