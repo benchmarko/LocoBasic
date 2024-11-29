@@ -31,26 +31,97 @@ class Parser {
 	}
 }
 
+const variables: Record<string, number> = {};
+
 // Semantics to evaluate an arithmetic expression
 const semantics = {
+	Program(lines: Node) {
+		return lines.children.map(c => c.eval());
+		// https://ohmjs.org/docs/releases/ohm-js-16.0#default-semantic-actions
+	},
+
+	Line(e: Node, _sep:Node, e2: Node, _comment: Node, _eol: Node): number | string {
+		return e.eval() + e2.children.map(c => c.eval());
+	},
+
+	Assign(ident: Node, _op: Node, e: Node): number {
+		const id = ident.sourceString;
+		const value = e.eval();
+		console.debug("DEBUG: assign:", id, "=", value);
+		variables[id] = value;
+		return value;
+	},
+	Print(_printLit: Node, params: Node): string {
+		const out = params.eval();
+		console.debug("DEBUG: print", out);
+
+		return out;
+	},
 	Exp(e: Node): number {
 		return e.eval();
 	},
+
+	XorExp_xor(a: Node, _op: Node, b: Node): number {
+		return a.eval() ^ b.eval();
+	},
+
+	OrExp_or(a: Node, _op: Node, b: Node): number {
+		return a.eval() | b.eval();
+	},
+
+	AndExp_and(a: Node, _op: Node, b: Node): number {
+		return a.eval() & b.eval();
+	},
+
+	NotExp_not(_op: Node, e: Node): number {
+		return ~e.eval();
+	},
+
+	CmpExp_eq(a: Node, _op: Node, b: Node): number {
+		return a.eval() === b.eval() ? -1 : 0;
+	},
+	CmpExp_ne(a: Node, _op: Node, b: Node): number {
+		return a.eval() !== b.eval() ? -1 : 0;
+	},
+	CmpExp_lt(a: Node, _op: Node, b: Node): number {
+		return a.eval() < b.eval() ? -1 : 0;
+	},
+	CmpExp_le(a: Node, _op: Node, b: Node): number {
+		return a.eval() <= b.eval() ? -1 : 0;
+	},
+	CmpExp_gt(a: Node, _op: Node, b: Node): number {
+		return a.eval() > b.eval() ? -1 : 0;
+	},
+	CmpExp_ge(a: Node, _op: Node, b: Node): number {
+		return a.eval() >= b.eval() ? -1 : 0;
+	},
+
 	AddExp_plus(a: Node, _op: Node, b: Node): number {
 		return a.eval() + b.eval();
 	},
 	AddExp_minus(a: Node, _op: Node, b: Node): number {
 		return a.eval() - b.eval();
 	},
+
+	ModExp_mod(a: Node, _op: Node, b: Node): number {
+		return a.eval() % b.eval();
+	},
+
+	DivExp_div(a: Node, _op: Node, b: Node): number {
+		return (a.eval() / b.eval()) | 0;
+	},
+
 	MulExp_times(a: Node, _op: Node, b: Node): number {
 		return a.eval() * b.eval();
 	},
 	MulExp_divide(a: Node, _op: Node, b: Node): number {
 		return a.eval() / b.eval();
 	},
+
 	ExpExp_power(a: Node, _: Node, b: Node) {
 		return Math.pow(a.eval(), b.eval());
 	},
+
 	PriExp_paren(_open: Node, e: Node, _close: Node): number {
 		return e.eval();
 	},
@@ -60,18 +131,41 @@ const semantics = {
 	PriExp_neg(_op: Node, e: Node) {
 		return -e.eval();
 	},
+
+	/*
 	number(chars: Node): number {
 		return parseFloat(chars.sourceString);
 	},
-	ident(first: Node, remain: Node): number {
-		const str = (first.sourceString + remain.sourceString).toLowerCase();
+	*/
+
+	decimalValue(value: Node) {
+        return parseFloat(value.sourceString);
+    },
+
+	hexValue(_prefix: Node, value: Node) {
+        return parseInt(value.sourceString, 16);
+    },
+
+    binaryValue(_prefix: Node, value: Node) {
+        return parseInt(value.sourceString, 2);
+    },
+
+	string(_quote1: Node, e: Node, _quote2: Node) {
+		return e.sourceString;
+	},
+
+	ident(first: Node, remain: Node): number | string {
+		const id = (first.sourceString + remain.sourceString);
+		/*
 		// we simply compute the sum of characters
 		let sum = 0;
     	for (let i = 0; i < str.length; i++) {
        		sum += str.charCodeAt(i) - 96;
     	}
 		return sum;
-	},
+		*/
+		return variables[id];
+	}
 };
 
 
@@ -118,4 +212,13 @@ if (typeof window !== "undefined") {
 } else {
 	main(process.argv);
 }
-//
+
+/*
+5 ' examples:
+10 ' associativity
+15 ? "7 =" 12 xor 5+6 "=" 12 xor (5+6), (12 xor 5)+6
+20 ? "3 =" 7 mod 5+1 "=" (7 mod 5)+1, 7 mod (5+1)
+30 ? "0 =" 10>5>4 "=" (10>5)>4, 10>(5>4)
+40 ? not 1234555
+50 ? 12 \ 5
+*/
