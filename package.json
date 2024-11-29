@@ -1,11 +1,11 @@
 {
   "name": "locobasic",
-  "version": "0.0.3",
+  "version": "0.0.5",
   "description": "# LocoBasic - Loco BASIC",
   "type": "commonjs",
   "scripts": {
     "lint": "eslint .",
-    "clean": "rm -rf dist/src/* && rm dist/ohmjstest.js",
+    "clean": "rm -rf dist/src/* && rm dist/locobasic.js",
     "copyXXX": "cp src/*.html dist/ && mkdirp -p dist/src && cp -r src/*.ts dist/src",
     "build": "tsc --build && npx rollup -c"
   },

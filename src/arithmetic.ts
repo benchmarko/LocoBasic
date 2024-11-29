@@ -15,21 +15,40 @@ export const arithmetic = {
       = Line*
 
     Line
-      = Statement (":" Statement)? comment? (eol | end)
+      = Statements comment? (eol | end)
+
+    Statements
+     = Statement (":" Statement)*
 
     Statement
-     = Assign
+     = Comparison
+     | Assign
+     | ForLoop
+     | Next
      | Print
 
     Assign
       = ident "=" Exp
       | ident "=" string
 
+    ForLoop
+      = "for" variable "=" Exp "to" Exp ("step" Exp)?
+
+    Next
+     = "next" variable
+
     Print
-      = ("print" | "?") PrintArg
-      
-    PrintArg = Exp
+      = ("print" | "?") PrintArgs (";")?
+    
+    PrintArgs
+      = PrintArg (("," | ";") PrintArg)*
+
+    PrintArg
+      = Exp
       | string
+
+    Comparison
+      = "if" Exp "then" Statements ("else" Statements)?
 
     Exp
       = XorExp
@@ -90,6 +109,8 @@ export const arithmetic = {
 
     ident  (an identifier)
       = letter alnum*
+
+    variable = ident
 
     binaryDigit = "0".."1"
 

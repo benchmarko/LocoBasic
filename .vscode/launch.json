@@ -1,0 +1,30 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch Program",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/dist/locobasic.js",
+            "args": [
+                "input=for j=1 to 10:print j:next j"
+                //"input=?4\\n?6"
+                //"input=?5;4;"
+                //"input=f=2:if f=0 then print f+7 else ?f*7"
+
+                //"input=f=2:if f=0 then print f+7 else ?f*7:'comment"
+                //"fileName=./dist/example.bas"
+                //"debug=0"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/**/*.js"
+            ]
+        }
+    ]
+}

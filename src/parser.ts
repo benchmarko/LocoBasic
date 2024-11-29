@@ -9,6 +9,21 @@
 import { Grammar, grammar, Node, Semantics } from "ohm-js";
 import { arithmetic } from "./arithmetic";
 
+
+// https://ohmjs.org/editor/
+// https://ohmjs.org/docs/releases/ohm-js-16.0#default-semantic-actions
+
+
+export type ConfigEntryType = string | number | boolean;
+
+export type ConfigType = Record<string, ConfigEntryType>;
+
+const startConfig: ConfigType = {
+	debug: 0,
+	input: ""
+};
+
+
 class Parser {
 	private readonly ohmGrammar: Grammar;
 	private readonly ohmSemantics: Semantics;
@@ -21,42 +36,94 @@ class Parser {
 	}
 
 	// Function to parse and evaluate an expression
-	parseAndEval(input: string): number {
+	parseAndEval(input: string): string {
 		const matchResult = this.ohmGrammar.match(input);
 		if (matchResult.succeeded()) {
 			return this.ohmSemantics(matchResult).eval();
 		} else {
-			throw new Error("Parsing failed");
+			//throw new Error("Parsing failed");
+			return 'Parsing failed: ' + matchResult.message; // or .shortMessage
 		}
 	}
 }
 
 const variables: Record<string, number> = {};
 
+function evalChildren(children: Node[]) {
+	return children.map(c => c.eval());
+}
+
 // Semantics to evaluate an arithmetic expression
 const semantics = {
 	Program(lines: Node) {
-		return lines.children.map(c => c.eval());
-		// https://ohmjs.org/docs/releases/ohm-js-16.0#default-semantic-actions
+		const lineList = evalChildren(lines.children);
+
+		return lineList.join('');
 	},
 
-	Line(e: Node, _sep:Node, e2: Node, _comment: Node, _eol: Node): number | string {
-		return e.eval() + e2.children.map(c => c.eval());
+	Line(stmts: Node, _comment: Node, _eol: Node): string {
+		return stmts.eval();
 	},
 
-	Assign(ident: Node, _op: Node, e: Node): number {
+	Statements(stmt: Node, _stmtSep: Node, stmts: Node): string {
+		return stmt.eval() + evalChildren(stmts.children).join('');
+	},
+
+	Assign(ident: Node, _op: Node, e: Node): string {
 		const id = ident.sourceString;
 		const value = e.eval();
-		console.debug("DEBUG: assign:", id, "=", value);
 		variables[id] = value;
-		return value;
+		return '';
 	},
-	Print(_printLit: Node, params: Node): string {
-		const out = params.eval();
-		console.debug("DEBUG: print", out);
 
-		return out;
+	PrintArgs(arg: Node, _printSep: Node, args: Node) {
+		return String(arg.eval()) + evalChildren(args.children).join('');
 	},
+	Print(_printLit: Node, params: Node, semi: Node): string {
+		return String(params.eval()) + (semi.sourceString ? "" : "\\n");
+	},
+
+    Comparison(_iflit: Node, condExp: Node, _thenLit: Node, thenStat: Node, elseLit: Node, elseStat: Node) {
+        const cond = condExp.eval();
+        const thSt = thenStat.eval();
+
+		let result = '';
+		if (cond !== 0) {
+			result = thSt;
+		} else if (elseLit.sourceString) {
+			result = evalChildren(elseStat.children).join('');
+		}
+		return result;
+	},
+
+	ForLoop(_forLit: Node, variable: Node, _eqSign: Node, start: Node, _dirLit: Node, end: Node, _stepLit: Node, step: Node) {
+        const varExp = variable.eval();
+        const startExp = start.eval();
+        const endExp = end.eval();
+        const stepExp = step.child(0)?.eval() || 1;
+
+		console.debug("for:", varExp, startExp, endExp, stepExp);
+
+		variables[varExp] = startExp;
+
+		if (stepExp >= 0) {
+			for (let i = startExp; i <= endExp; i += stepExp) {
+				//TODO
+			}
+		} else {
+			for (let i = startExp; i >= endExp; i += stepExp) {
+				//TODO
+			}
+		}
+		return '';
+	},
+
+	Next(_nextLit: Node, variable: Node) {
+        const varExp = variable.eval();
+		console.debug("next: " + varExp);
+		return '';
+	},
+
 	Exp(e: Node): number {
 		return e.eval();
 	},
@@ -132,12 +199,6 @@ const semantics = {
 		return -e.eval();
 	},
 
-	/*
-	number(chars: Node): number {
-		return parseFloat(chars.sourceString);
-	},
-	*/
-
 	decimalValue(value: Node) {
         return parseFloat(value.sourceString);
     },
@@ -156,15 +217,12 @@ const semantics = {
 
 	ident(first: Node, remain: Node): number | string {
 		const id = (first.sourceString + remain.sourceString);
-		/*
-		// we simply compute the sum of characters
-		let sum = 0;
-    	for (let i = 0; i < str.length; i++) {
-       		sum += str.charCodeAt(i) - 96;
-    	}
-		return sum;
-		*/
+
 		return variables[id];
+	},
+	variable(e: Node) {
+        const variableLit = e.sourceString;
+		return variableLit;
 	}
 };
 
@@ -173,7 +231,6 @@ const arithmeticParser = new Parser(arithmetic.grammar, semantics);
 
 
 function onInputChanged(event: Event) {
-	//const inputElement = document.getElementById("expressionInput") as HTMLInputElement;
 	const inputElement = event.target as HTMLInputElement;
 	const outputElement = document.getElementById("output") as HTMLInputElement;
 
@@ -191,26 +248,128 @@ function onInputChanged(event: Event) {
 	outputElement.value = result.toString();
 }
 
-function main(argv: string[]) {
-	// read command line options
-	const input = argv.length > 2 ? argv[2] : ""; // : "3 + 5 * (2 - 8)";
+/*
+function fnEval(code: string) {
+	return eval(code); // eslint-disable-line no-eval
+}
+*/
 
+interface NodeFs {
+	//readFile: (name: string, encoding: string, fn: (res: any) => void) => any
+	promises: any;
+}
+
+let fs: NodeFs;
+let modulePath: string;
+
+declare function require(name:string): any;
+
+async function nodeReadFile(name: string): Promise<string> {
+	if (!fs) {
+		//fnEval('fs = require("fs");'); // to trick TypeScript
+		//const fnRequire = new Function("name", `global[name] = require(name);`)
+		//fnRequire("fs");
+		fs = require("fs");
+	}
+
+	if (!module) {
+		//fnEval('module = require("module");'); // to trick TypeScript
+		//const fnRequire = new Function(name, `global.${name} = require("${name}");`)
+		//fnRequire("module");
+		module = require("module");
+
+		modulePath = (module as any).path || "";
+
+		if (!modulePath) {
+			console.warn("nodeReadFile: Cannot determine module path");
+		}
+	}
+	return fs.promises.readFile(name, "utf8");
+}
+
+function fnParseArgs(args: string[], config: ConfigType) {
+	for (let i = 0; i < args.length; i += 1) {
+		const [name, ...valueParts] = args[i].split("="),
+			nameType = typeof config[name];
+
+		let value: ConfigEntryType = valueParts.join("=");
+		if (value !== undefined) {
+			if (nameType === "boolean") {
+				value = (value === "true");
+			} else if (nameType === "number") {
+				value = Number(value);
+			}
+			config[name] = value;
+		}
+	}
+	return config;
+}
+
+function fnDecodeUri(s: string) {
+	let decoded = "";
+
+	try {
+		decoded = decodeURIComponent(s.replace(/\+/g, " "));
+	} catch	(err) {
+		if (err instanceof Error) {
+			err.message += ": " + s;
+		}
+		console.error(err);
+	}
+	return decoded;
+}
+
+// https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
+function fnParseUri(urlQuery: string, config: ConfigType) {
+	const rSearch = /([^&=]+)=?([^&]*)/g,
+		args: string[] = [];
+
+	let match: RegExpExecArray | null;
+
+	while ((match = rSearch.exec(urlQuery)) !== null) {
+		const name = fnDecodeUri(match[1]),
+			value = fnDecodeUri(match[2]);
+
+		if (value !== null && config[name]) {
+			args.push(name + "=" + value);
+		}
+	}
+	return fnParseArgs(args, config);
+}
+
+
+function start(input: string) {
 	if (input !== "") {
 		const result = arithmeticParser.parseAndEval(input);
-		console.log(`${input} = ${result}`);
+		console.log(result);
+	}
+}
+
+function main(config: ConfigType) {
+	let input = (config.input as string) || "";
+
+	if (config.fileName) {
+		const timer = setTimeout(() => {}, 5000);
+		(async () => {
+			input += await nodeReadFile(config.fileName as string);
+			clearTimeout(timer);
+			start(input);
+		})();
+	} else {
+		start(input);
 	}
 }
 
 if (typeof window !== "undefined") {
 	window.onload = () => {
-		main([]);
+		main(fnParseUri(window.location.search.substring(1), startConfig));
 		const element = window.document.getElementById("expressionInput");
 		if (element) {
 			element.onchange = onInputChanged;
 		}
 	};
 } else {
-	main(process.argv);
+	main(fnParseArgs(global.process.argv.slice(2), startConfig));
 }
 
 /*
