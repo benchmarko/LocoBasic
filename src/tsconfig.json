@@ -1,0 +1,40 @@
+{
+    "compilerOptions": {
+        "module": "amd",
+        "pretty": true,
+        "lib": [
+          "es2020",
+          "dom"
+        ],
+        "moduleResolution": "node",
+  
+        "declaration": true,
+        "declarationMap": true,
+        "sourceMap": true,
+        "composite": true,
+        "noEmitOnError": true,
+  
+        "strictNullChecks": true,
+        "noImplicitAny": true,
+        "noImplicitThis": true,
+        "strictPropertyInitialization": true,
+        "strictFunctionTypes": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+  
+        "skipLibCheck": true,
+  
+        "alwaysStrict": true,
+        "preserveConstEnums": true,
+        "newLine": "lf",
+  
+        "outDir": "../dist",
+        "types": ["node"],
+        "sourceRoot":"./src",
+        "target": "es6",
+        "outFile": "../dist/locobasic.js",
+    },
+    "include": [
+      "./*.ts"
+    ]
+  }

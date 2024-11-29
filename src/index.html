@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LocoBasic</title>
+
+  <script src="https://unpkg.com/ohm-js@17/dist/ohm.js"></script>
+
+  <script>
+    window.ohm._direct = true; // fast hack: use window.exports['ohm-js'] instead of windows.exports later
+    window.exports = {
+      "ohm-js": window.ohm
+    };
+  </script>
+
+  <script src="locobasic.js"></script>
+</head>
+<body>
+  <label for="expressionInput" title="Expression">Expression</label>
+  <input id="expressionInput" title="Expression" placeholder="some expression">
+
+  <br />
+
+  <label for="output" title="output">Output</label>
+  <input id="output" title="output" placeholder="">
+
+  <br />
+
+  <!--
+  <button id="parseButton">Parse</button>
+  <button id="matchButton">Match</button>
+  -->
+
+  <script>
+  </script>
+</body>
+</html>
