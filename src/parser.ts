@@ -2,7 +2,7 @@
 // A simple parser for arithmetic expressions using Ohm
 //
 // Usage:
-// node dist/locobasic.js "3 + 5 * (2 - 8)"
+// node dist/locobasic.js input="?3 + 5 * (2 - 8)"
 //
 // [ npx ts-node parser.ts "3 + 5 * (2 - 8)" ]
 
@@ -20,8 +20,20 @@ export type ConfigType = Record<string, ConfigEntryType>;
 
 const startConfig: ConfigType = {
 	debug: 0,
+	fileName: "",
 	input: ""
 };
+
+
+
+const vm = {
+	_output: "",
+	print: (...args: string[]) => vm._output += args.join(''),
+	
+	getOutput: () => vm._output,
+	setOutput: (str: string) => vm._output = str
+}
+
 
 
 class Parser {
@@ -36,18 +48,34 @@ class Parser {
 	}
 
 	// Function to parse and evaluate an expression
-	parseAndEval(input: string): string {
-		const matchResult = this.ohmGrammar.match(input);
-		if (matchResult.succeeded()) {
-			return this.ohmSemantics(matchResult).eval();
-		} else {
-			//throw new Error("Parsing failed");
-			return 'Parsing failed: ' + matchResult.message; // or .shortMessage
+	parseAndEval(input: string) {
+		try {
+			const matchResult = this.ohmGrammar.match(input);
+			if (matchResult.succeeded()) {
+				return this.ohmSemantics(matchResult).eval();
+			} else {
+			//throw new Error("Parsing failed: " + matchResult.message);
+			  	return 'ERROR: Parsing failed: ' + matchResult.message; // or .shortMessage
+			}
+		} catch (error) {
+			return 'ERROR: Parsing evaluator failed: ' + (error instanceof Error ? error.message : "unknown");
 		}
 	}
 }
 
 const variables: Record<string, number> = {};
+
+function getVariable(name: string) {
+	variables[name] = (variables[name] || 0) + 1;
+	return name;
+}
+
+function deleteAllVariables() {
+	for (const name in variables) { // eslint-disable-line guard-for-in
+		delete variables[name];
+	}
+}
+
 
 function evalChildren(children: Node[]) {
 	return children.map(c => c.eval());
@@ -58,41 +86,48 @@ const semantics = {
 	Program(lines: Node) {
 		const lineList = evalChildren(lines.children);
 
-		return lineList.join('');
+		const variabeList = Object.keys(variables);
+		const varStr = variabeList.length ? "var " + variabeList.join(", ") + ";\n" : "";
+
+		return varStr + lineList.join('\n');
 	},
 
-	Line(stmts: Node, _comment: Node, _eol: Node): string {
-		return stmts.eval();
+	Line(stmts: Node, comment: Node, _eol: Node) {
+		const commentStr = comment.sourceString ? `; //${comment.sourceString.substring(1)}` : "";
+		return stmts.eval() + commentStr;
 	},
 
-	Statements(stmt: Node, _stmtSep: Node, stmts: Node): string {
-		return stmt.eval() + evalChildren(stmts.children).join('');
+	Statements(stmt: Node, _stmtSep: Node, stmts: Node) {
+		//return stmt.eval() + ";" + (stmts.children ? evalChildren(stmts.children).join('; ') + "; " : "");
+		return [stmt.eval(), ...evalChildren(stmts.children)].join('; ');
 	},
 
 	Assign(ident: Node, _op: Node, e: Node): string {
-		const id = ident.sourceString;
+		const name = ident.sourceString;
+		const name2 = getVariable(name);
 		const value = e.eval();
-		variables[id] = value;
-		return '';
+		return `${name2} = ${value}`;
 	},
 
 	PrintArgs(arg: Node, _printSep: Node, args: Node) {
-		return String(arg.eval()) + evalChildren(args.children).join('');
+		return [arg.eval(), ...evalChildren(args.children)].join(', ');
 	},
-	Print(_printLit: Node, params: Node, semi: Node): string {
-		return String(params.eval()) + (semi.sourceString ? "" : "\\n");
+	Print(_printLit: Node, params: Node, semi: Node) {
+		const newline = semi.sourceString ? "" : ` + "\\n"`;
+		//return `console.log(${params.eval()}${newline})`;
+		return `o.print(${params.eval()}${newline})`;
 	},
 
     Comparison(_iflit: Node, condExp: Node, _thenLit: Node, thenStat: Node, elseLit: Node, elseStat: Node) {
         const cond = condExp.eval();
         const thSt = thenStat.eval();
 
-		let result = '';
-		if (cond !== 0) {
-			result = thSt;
-		} else if (elseLit.sourceString) {
-			result = evalChildren(elseStat.children).join('');
+		let result = `if (${cond}) { ${thSt} }`;
+		if (elseLit.sourceString) {
+			const elseSt = evalChildren(elseStat.children).join('; ');
+			result += ` else { ${elseSt} }`;
 		}
+
 		return result;
 	},
 
@@ -100,129 +135,131 @@ const semantics = {
         const varExp = variable.eval();
         const startExp = start.eval();
         const endExp = end.eval();
-        const stepExp = step.child(0)?.eval() || 1;
+        const stepExp = step.child(0)?.eval() || "1";
+		// TODO: if there are variables, it only works at runtime!!
 
-		console.debug("for:", varExp, startExp, endExp, stepExp);
-
-		variables[varExp] = startExp;
-
-		if (stepExp >= 0) {
-			for (let i = startExp; i <= endExp; i += stepExp) {
-				//TODO
-			}
+		const stepAsNum = Number(stepExp);
+		
+		let cmpSt = "";
+		if (isNaN(stepAsNum)) {
+			cmpSt = `${stepExp} >= 0 ? ${varExp} <= ${endExp} : ${varExp} >= ${endExp}`
 		} else {
-			for (let i = startExp; i >= endExp; i += stepExp) {
-				//TODO
-			}
+			cmpSt = stepExp >= 0 ? `${varExp} <= ${endExp}` : `${varExp} >= ${endExp}`;
 		}
-		return '';
+
+		const result = `for (${varExp} = ${startExp}; ${cmpSt}; ${varExp} += ${stepExp}) {`;
+
+		return result;
 	},
 
-	Next(_nextLit: Node, variable: Node) {
-        const varExp = variable.eval();
-		console.debug("next: " + varExp);
-		return '';
+	Next(_nextLit: Node, _variable: Node) {
+        //const varExp = variable.eval();
+		//console.debug("next: " + varExp);
+		return '}';
 	},
 
 	Exp(e: Node): number {
 		return e.eval();
 	},
 
-	XorExp_xor(a: Node, _op: Node, b: Node): number {
-		return a.eval() ^ b.eval();
+	XorExp_xor(a: Node, _op: Node, b: Node) {
+		return `${a.eval()} ^ ${b.eval()}`;
 	},
 
-	OrExp_or(a: Node, _op: Node, b: Node): number {
-		return a.eval() | b.eval();
+	OrExp_or(a: Node, _op: Node, b: Node) {
+		return `${a.eval()} | ${b.eval()}`;
 	},
 
-	AndExp_and(a: Node, _op: Node, b: Node): number {
-		return a.eval() & b.eval();
+	AndExp_and(a: Node, _op: Node, b: Node) {
+		return `${a.eval()} & ${b.eval()}`;
 	},
 
-	NotExp_not(_op: Node, e: Node): number {
-		return ~e.eval();
+	NotExp_not(_op: Node, e: Node) {
+		return `~(${e.eval()})`;
 	},
 
-	CmpExp_eq(a: Node, _op: Node, b: Node): number {
-		return a.eval() === b.eval() ? -1 : 0;
+	CmpExp_eq(a: Node, _op: Node, b: Node) {
+		return `${a.eval()} === ${b.eval()} ? -1 : 0`;
 	},
-	CmpExp_ne(a: Node, _op: Node, b: Node): number {
-		return a.eval() !== b.eval() ? -1 : 0;
+	CmpExp_ne(a: Node, _op: Node, b: Node) {
+		return `${a.eval()} !== ${b.eval()} ? -1 : 0`;
 	},
-	CmpExp_lt(a: Node, _op: Node, b: Node): number {
-		return a.eval() < b.eval() ? -1 : 0;
+	CmpExp_lt(a: Node, _op: Node, b: Node) {
+		return `${a.eval()} < ${b.eval()} ? -1 : 0`;
 	},
-	CmpExp_le(a: Node, _op: Node, b: Node): number {
-		return a.eval() <= b.eval() ? -1 : 0;
+	CmpExp_le(a: Node, _op: Node, b: Node) {
+		return `${a.eval()} <= ${b.eval()} ? -1 : 0`;
 	},
-	CmpExp_gt(a: Node, _op: Node, b: Node): number {
-		return a.eval() > b.eval() ? -1 : 0;
+	CmpExp_gt(a: Node, _op: Node, b: Node) {
+		return `${a.eval()} > ${b.eval()} ? -1 : 0`;
 	},
-	CmpExp_ge(a: Node, _op: Node, b: Node): number {
-		return a.eval() >= b.eval() ? -1 : 0;
-	},
-
-	AddExp_plus(a: Node, _op: Node, b: Node): number {
-		return a.eval() + b.eval();
-	},
-	AddExp_minus(a: Node, _op: Node, b: Node): number {
-		return a.eval() - b.eval();
+	CmpExp_ge(a: Node, _op: Node, b: Node) {
+		return `${a.eval()} >= ${b.eval()} ? -1 : 0`;
 	},
 
-	ModExp_mod(a: Node, _op: Node, b: Node): number {
-		return a.eval() % b.eval();
+	AddExp_plus(a: Node, _op: Node, b: Node) {
+		return `${a.eval()} + ${b.eval()}`;
+	},
+	AddExp_minus(a: Node, _op: Node, b: Node) {
+		return `${a.eval()} - ${b.eval()}`;
 	},
 
-	DivExp_div(a: Node, _op: Node, b: Node): number {
-		return (a.eval() / b.eval()) | 0;
+	ModExp_mod(a: Node, _op: Node, b: Node) {
+		return `${a.eval()} % ${b.eval()}`;
 	},
 
-	MulExp_times(a: Node, _op: Node, b: Node): number {
-		return a.eval() * b.eval();
+	DivExp_div(a: Node, _op: Node, b: Node) {
+		return `(${a.eval()} / ${b.eval()}) | 0`;
 	},
-	MulExp_divide(a: Node, _op: Node, b: Node): number {
-		return a.eval() / b.eval();
+
+	MulExp_times(a: Node, _op: Node, b: Node) {
+		return `${a.eval()} * ${b.eval()}`;
+	},
+	MulExp_divide(a: Node, _op: Node, b: Node) {
+		return `${a.eval()} / ${b.eval()}`;
 	},
 
 	ExpExp_power(a: Node, _: Node, b: Node) {
-		return Math.pow(a.eval(), b.eval());
+		return `Math.pow(${a.eval()}, ${b.eval()})`;
 	},
 
-	PriExp_paren(_open: Node, e: Node, _close: Node): number {
-		return e.eval();
+	PriExp_paren(_open: Node, e: Node, _close: Node) {
+		return `(${e.eval()})`;
 	},
 	PriExp_pos(_op: Node, e: Node) {
 		return e.eval();
 	},
 	PriExp_neg(_op: Node, e: Node) {
-		return -e.eval();
+		return `-${e.eval()}`;
 	},
 
 	decimalValue(value: Node) {
-        return parseFloat(value.sourceString);
+        return value.sourceString;
     },
 
 	hexValue(_prefix: Node, value: Node) {
-        return parseInt(value.sourceString, 16);
+		return `0x${value.sourceString}`;
     },
 
     binaryValue(_prefix: Node, value: Node) {
-        return parseInt(value.sourceString, 2);
+        return `0b${value.sourceString}`;
     },
 
 	string(_quote1: Node, e: Node, _quote2: Node) {
-		return e.sourceString;
+		return `"${e.sourceString}"`;
 	},
 
-	ident(first: Node, remain: Node): number | string {
-		const id = (first.sourceString + remain.sourceString);
+	ident(first: Node, remain: Node) {
+		const name = (first.sourceString + remain.sourceString);
 
-		return variables[id];
+		return getVariable(name); // do we need prefix? `v.${id}`;
 	},
 	variable(e: Node) {
-        const variableLit = e.sourceString;
-		return variableLit;
+        const name = e.sourceString;
+		return getVariable(name);
+	},
+	emptyLine(comment: Node, _eol: Node) {
+		return `//${comment.sourceString.substring(1)}`;
 	}
 };
 
@@ -230,22 +267,68 @@ const semantics = {
 const arithmeticParser = new Parser(arithmetic.grammar, semantics);
 
 
-function onInputChanged(event: Event) {
-	const inputElement = event.target as HTMLInputElement;
-	const outputElement = document.getElementById("output") as HTMLInputElement;
 
-	const input = inputElement.value;
-
-	let result: string;
+function compileScript(script: string) {
+	//let compiledScript: string;
+	deleteAllVariables();
+	/*
 	try {
-		result = String(arithmeticParser.parseAndEval(input));
+		compiledScript = arithmeticParser.parseAndEval(script);
 	} catch (error) {
-		result = error instanceof Error ? error.message : "unknown error";
+		compiledScript = "ERROR: " + ((error instanceof Error) ? error.message : "unknown"); 
+	}
+	*/
+	const compiledScript = arithmeticParser.parseAndEval(script);
+	return compiledScript;
+}
+
+function executeScript(compiledScript: string) {
+	vm.setOutput("");
+
+	if (compiledScript.startsWith("ERROR")) {
+		return "ERROR";
 	}
 
-	console.log(`${input} = ${result}`);
+	let output: string;
+	try {
+		const fnScript = new Function("o", compiledScript); // eslint-disable-line no-new-func
+		const result = fnScript(vm) || "";
+		output = vm.getOutput() + result;
 
-	outputElement.value = result.toString();
+	} catch (error) {
+		output = "ERROR: " + ((error instanceof Error) ? error.message : "unknown"); 
+	}
+	return output;
+}
+
+
+function onCompiledAreaChange(event: Event) {
+	const compiledArea = event.target as HTMLTextAreaElement;
+	const outputArea = document.getElementById("outputArea") as HTMLTextAreaElement;
+
+	const compiledScript = compiledArea.value;
+
+	const output = executeScript(compiledScript);
+
+	outputArea.value = output;
+}
+
+function onScriptAreaChange(event: Event) {
+	const scriptArea = event.target as HTMLTextAreaElement;
+	const compiledArea = document.getElementById("compiledArea") as HTMLTextAreaElement;
+	//const outputElement = document.getElementById("outputArea") as HTMLTextAreaElement;
+
+	const input = scriptArea.value;
+
+	const compiledScript = compileScript(input);
+	compiledArea.value = compiledScript;
+
+	const newEvent = new Event('change');
+	compiledArea.dispatchEvent(newEvent);
+	/*
+	const output = executeScript(compiledScript);
+	outputElement.value = output;
+	*/
 }
 
 /*
@@ -340,8 +423,15 @@ function fnParseUri(urlQuery: string, config: ConfigType) {
 
 function start(input: string) {
 	if (input !== "") {
-		const result = arithmeticParser.parseAndEval(input);
-		console.log(result);
+		const compiledScript = compileScript(input);
+	
+		console.log("INFO: Compiled:\n", compiledScript + "\n");
+
+		const output = executeScript(compiledScript);
+
+		console.log(output);
+	} else {
+		console.log("No input");
 	}
 }
 
@@ -362,11 +452,16 @@ function main(config: ConfigType) {
 
 if (typeof window !== "undefined") {
 	window.onload = () => {
-		main(fnParseUri(window.location.search.substring(1), startConfig));
-		const element = window.document.getElementById("expressionInput");
-		if (element) {
-			element.onchange = onInputChanged;
+		const scriptArea = window.document.getElementById("scriptArea");
+		if (scriptArea) {
+			scriptArea.addEventListener('change', onScriptAreaChange);
 		}
+
+		const compiledArea = window.document.getElementById("compiledArea");
+		if (compiledArea) {
+			compiledArea.addEventListener('change', onCompiledAreaChange);
+		}
+		main(fnParseUri(window.location.search.substring(1), startConfig));
 	};
 } else {
 	main(fnParseArgs(global.process.argv.slice(2), startConfig));

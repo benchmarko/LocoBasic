@@ -12,7 +12,9 @@ export const arithmetic = {
   `
     Arithmetic {
     Program
-      = Line*
+      = (emptyLine | Line)*
+
+    emptyLine = comment eol
 
     Line
       = Statements comment? (eol | end)
@@ -32,13 +34,13 @@ export const arithmetic = {
       | ident "=" string
 
     ForLoop
-      = "for" variable "=" Exp "to" Exp ("step" Exp)?
+      = caseInsensitive<"for"> variable "=" Exp caseInsensitive<"to"> Exp (caseInsensitive<"step"> Exp)?
 
     Next
-     = "next" variable
+     = caseInsensitive<"next"> variable?
 
     Print
-      = ("print" | "?") PrintArgs (";")?
+      = (caseInsensitive<"print"> | "?") PrintArgs (";")?
     
     PrintArgs
       = PrintArg (("," | ";") PrintArg)*
@@ -48,26 +50,34 @@ export const arithmetic = {
       | string
 
     Comparison
-      = "if" Exp "then" Statements ("else" Statements)?
+      = caseInsensitive<"if"> Exp caseInsensitive<"then"> Statements (caseInsensitive<"else"> Statements)?
 
     Exp
       = XorExp
 
     XorExp
-      = OrExp "xor" XorExp  -- xor
+      = OrExp caseInsensitive<"xor"> XorExp  -- xor
       | OrExp
 
     OrExp
-      = AndExp "or" OrExp  -- or
+      = AndExp caseInsensitive<"or"> OrExp  -- or
       | AndExp
 
     AndExp
-      = NotExp "and" AndExp  -- and
+      = NotExp caseInsensitive<"and"> AndExp  -- and
       | NotExp    
 
     NotExp
-      = "not" NotExp  -- not
+      = caseInsensitive<"not"> NotExp  -- not
       | CmpExp
+
+    /*
+    CpmOp = "=" | "<>" | "<" | "<=" | ">" | ">="
+
+    CmpExp
+      = CmpExp CpmOp AddExp  -- cmp
+      | AddExp
+    */
 
     CmpExp
       = CmpExp "=" AddExp  -- eq
@@ -84,7 +94,7 @@ export const arithmetic = {
       | ModExp
 
     ModExp
-      = ModExp "mod" DivExp -- mod
+      = ModExp caseInsensitive<"mod"> DivExp -- mod
       | DivExp
 
     DivExp
@@ -122,7 +132,7 @@ export const arithmetic = {
       = "&" hexDigit+
 
     binaryValue
-      = "&x" binaryDigit+
+      = caseInsensitive<"&x"> binaryDigit+
 
     number  (a number)
       = decimalValue
@@ -131,6 +141,7 @@ export const arithmetic = {
 
     string = "\\"" ("\\\\\\"" | (~"\\"" any))* "\\""
 
+    space := " " | "\t"
     comment = ("\\'" | "rem") (~eol any)*
     eol (end of line)
         = "\\n"
