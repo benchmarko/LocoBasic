@@ -3,16 +3,20 @@
 //
 // Usage:
 // node dist/locobasic.js input="?3 + 5 * (2 - 8)"
+// node dist/locobasic.js fileName=dist/example.bas
 //
-// [ npx ts-node parser.ts "3 + 5 * (2 - 8)" ]
+// [ npx ts-node parser.ts input="?3 + 5 * (2 - 8)" ]
 
 import { Grammar, grammar, Node, Semantics } from "ohm-js";
 import { arithmetic } from "./arithmetic";
 
-
 // https://ohmjs.org/editor/
 // https://ohmjs.org/docs/releases/ohm-js-16.0#default-semantic-actions
 
+// https://stackoverflow.com/questions/69762570/rollup-umd-output-format-doesnt-work-however-es-does
+// ?
+
+// not implemented: mode
 
 export type ConfigEntryType = string | number | boolean;
 
@@ -25,16 +29,34 @@ const startConfig: ConfigType = {
 };
 
 
+type VariableValue = string | number | Function | [] | VariableValue[]; // eslint-disable-line @typescript-eslint/ban-types
+
+function dimArray(dims: number[], initVal: string | number = 0) {
+	const createRecursiveArray = function (depth: number) {
+			const length = dims[depth] + 1, // +1 because of 0-based index
+				array: VariableValue[] = new Array(length);
+
+			depth += 1;
+			if (depth < dims.length) { // more dimensions?
+				for (let i = 0; i < length; i += 1) {
+					array[i] = createRecursiveArray(depth); // recursive call
+				}
+			} else { // one dimension
+				array.fill(initVal);
+			}
+			return array;
+		};
+	return createRecursiveArray(0);
+}
 
 const vm = {
 	_output: "",
 	print: (...args: string[]) => vm._output += args.join(''),
 	
+	dimArray: dimArray,
 	getOutput: () => vm._output,
 	setOutput: (str: string) => vm._output = str
 }
-
-
 
 class Parser {
 	private readonly ohmGrammar: Grammar;
@@ -76,7 +98,6 @@ function deleteAllVariables() {
 	}
 }
 
-
 function evalChildren(children: Node[]) {
 	return children.map(c => c.eval());
 }
@@ -98,8 +119,11 @@ const semantics = {
 	},
 
 	Statements(stmt: Node, _stmtSep: Node, stmts: Node) {
-		//return stmt.eval() + ";" + (stmts.children ? evalChildren(stmts.children).join('; ') + "; " : "");
 		return [stmt.eval(), ...evalChildren(stmts.children)].join('; ');
+	},
+
+	ArrayAssign(ident: Node, _op: Node, e: Node): string { // TODO
+		return `${ident.eval()} = ${e.eval()}`;
 	},
 
 	Assign(ident: Node, _op: Node, e: Node): string {
@@ -114,8 +138,44 @@ const semantics = {
 	},
 	Print(_printLit: Node, params: Node, semi: Node) {
 		const newline = semi.sourceString ? "" : ` + "\\n"`;
-		//return `console.log(${params.eval()}${newline})`;
 		return `o.print(${params.eval()}${newline})`;
+	},
+
+	Abs(_absLit: Node, _open: Node, e: Node, _close: Node) {
+		return `Math.abs(${e.eval()})`;
+	},
+
+	Asc(_ascLit: Node, _open: Node, e: Node, _close: Node) {
+		return `(${e.eval()}).charCodeAt(0)`;
+	},
+
+	Atn(_atnLit: Node, _open: Node, e: Node, _close: Node) {
+		return `Math.atan(${e.eval()})`;
+	},
+
+	Bin(_binLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) {
+		const pad = n.child(0)?.eval();
+		return `(${e.eval()}).toString(2).padStart(${pad} || 0, "0")`;
+	},
+	
+	Chr(_chrLit: Node, _open: Node, e: Node, _close: Node) {
+		return `String.fromCharCode(${e.eval()})`;
+	},
+
+	Cos(_cosLit: Node, _open: Node, e: Node, _close: Node) {
+		return `Math.cos(${e.eval()})`;
+	},
+
+	Dim(_dimLit: Node, arrayIdent: Node) {
+		const arrIdent = arrayIdent.eval(); // we need eval to process expressions (replace ( => [ and ) => ])
+
+		const index1 = String(arrIdent).indexOf("[");
+		const ident = arrIdent.substring(0, index1);
+		const dimStr = arrIdent.substring(index1 + 1, arrIdent.length - 1);
+
+		const result = `${ident} = o.dimArray([${dimStr}])`;
+
+		return result;
 	},
 
     Comparison(_iflit: Node, condExp: Node, _thenLit: Node, thenStat: Node, elseLit: Node, elseStat: Node) {
@@ -131,12 +191,15 @@ const semantics = {
 		return result;
 	},
 
+	Fix(_fixLit: Node, _open: Node, e: Node, _close: Node) {
+		return `Math.trunc(${e.eval()})`;
+	},
+
 	ForLoop(_forLit: Node, variable: Node, _eqSign: Node, start: Node, _dirLit: Node, end: Node, _stepLit: Node, step: Node) {
         const varExp = variable.eval();
         const startExp = start.eval();
         const endExp = end.eval();
         const stepExp = step.child(0)?.eval() || "1";
-		// TODO: if there are variables, it only works at runtime!!
 
 		const stepAsNum = Number(stepExp);
 		
@@ -152,10 +215,117 @@ const semantics = {
 		return result;
 	},
 
+	Hex(_hexLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) {
+		const pad = n.child(0)?.eval();
+		return `(${e.eval()}).toString(16).toUpperCase().padStart(${pad} || 0, "0")`;
+	},
+
+	Int(_intLit: Node, _open: Node, e: Node, _close: Node) {
+		return `Math.floor(${e.eval()})`;
+	},
+
+	Left(_leftLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) {
+		return `(${e1.eval()}).slice(0, ${e2.eval()})`;
+	},
+
+	Len(_lenLit: Node, _open: Node, e: Node, _close: Node) {
+		return `(${e.eval()}).length`;
+	},
+
+	Log(_logLit: Node, _open: Node, e: Node, _close: Node) {
+		return `Math.log(${e.eval()})`;
+	},
+
+	Log10(_log10Lit: Node, _open: Node, e: Node, _close: Node) {
+		return `Math.log10(${e.eval()})`;
+	},
+
+	Lower(_lowerLit: Node, _open: Node, e: Node, _close: Node) {
+		return `(${e.eval()}).toLowerCase()`;
+	},
+
+	Max(_maxLit: Node, _open: Node, args: Node, _close: Node) {
+		const argList = args.asIteration().children.map(c => c.eval()); // see also ArrayArgs
+		return `Math.max(${argList})`;
+	},
+
+	Mid(_midLit: Node, _open: Node, e1: Node, _comma1: Node, e2: Node, _comma2: Node, e3: Node, _close: Node) {
+		const length = e3.child(0)?.eval() || "0";
+		return `(${e1.eval()}).substr(${e2.eval()} - 1, ${length})`;
+	},
+
+	Min(_minLit: Node, _open: Node, args: Node, _close: Node) {
+		const argList = args.asIteration().children.map(c => c.eval()); // see also ArrayArgs
+		return `Math.min(${argList})`;
+	},
+
 	Next(_nextLit: Node, _variable: Node) {
-        //const varExp = variable.eval();
-		//console.debug("next: " + varExp);
 		return '}';
+	},
+
+	Pi(_piLit: Node) {
+		return "Math.PI";
+	},
+
+	Right(_rightLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) {
+		return `(${e1.eval()}).slice(-${e2.eval()})`;
+	},
+
+	Rnd(_rndLit: Node, _open: Node, _e: Node, _close: Node) {
+		// currently no args
+		return `Math.random()`;
+	},
+
+	Sin(_sinLit: Node, _open: Node, e: Node, _close: Node) {
+		return `Math.sin(${e.eval()})`;
+	},
+
+	Space2(_stringLit: Node, _open: Node, len: Node, _close: Node) {
+		return `" ".repeat(${len.eval()})`;
+	},
+
+	Sqr(_sqrLit: Node, _open: Node, e: Node, _close: Node) {
+		return `Math.sqrt(${e.eval()})`;
+	},
+
+	Str(_strLit: Node, _open: Node, e: Node, _close: Node) {
+		return `String(${e.eval()})`; // TODO: additional space for n>0?
+	},
+
+	String2(_stringLit: Node, _open: Node, len: Node, _commaLit: Node, chr: Node, _close: Node) {
+		// we just support the version second parameter as string; we do not use charAt(0) get just one char
+		return `(${chr.eval()}).repeat(${len.eval()})`;
+	},
+
+	Tan(_tanLit: Node, _open: Node, e: Node, _close: Node) {
+		return `Math.tan(${e.eval()})`;
+	},
+
+	Time(_timeLit: Node) {
+		return `Date.now()`; // TODO; or *300/1000
+	},
+
+	Upper(_upperLit: Node, _open: Node, e: Node, _close: Node) {
+		return `(${e.eval()}).toUpperCase()`;
+	},
+
+	Val(_upperLit: Node, _open: Node, e: Node, _close: Node) {
+		const numPattern = /^"[\\+\\-]?\d*\.?\d+(?:[Ee][\\+\\-]?\d+)?"$/;
+		const numStr = String(e.eval());
+
+		if (numPattern.test(numStr)) {
+			return `Number(${numStr})`; // for non-hex/bin number strings we can use this simple version
+		} 
+		return `Number((${numStr}).replace("&x", "0b").replace("&", "0x"))`;
+	},
+
+	Wend(_wendLit: Node) {
+		return '}';
+	},
+
+	WhileLoop(_whileLit: Node, e: Node) {
+		const cond = e.eval();
+		return `while (${cond}) {`;
 	},
 
 	Exp(e: Node): number {
@@ -233,6 +403,29 @@ const semantics = {
 		return `-${e.eval()}`;
 	},
 
+	StrCmpExp_eq(a: Node, _op: Node, b: Node) {
+		return `${a.eval()} === ${b.eval()} ? -1 : 0`;
+	},
+	StrCmpExp_ne(a: Node, _op: Node, b: Node) {
+		return `${a.eval()} !== ${b.eval()} ? -1 : 0`;
+	},
+
+	StrAddExp_plus(a: Node, _op: Node, b: Node) {
+		return `${a.eval()} + ${b.eval()}`;
+	},
+
+	StrPriExp_paren(_open: Node, e: Node, _close: Node) {
+		return `(${e.eval()})`;
+	},
+
+	ArrayArgs(args: Node) {
+		return args.asIteration().children.map(c => c.eval());
+	},
+
+	ArrayIdent(ident: Node, _open: Node, e: Node, _close: Node) {
+		return `${ident.eval()}[${e.eval()}]`;
+	},
+
 	decimalValue(value: Node) {
         return value.sourceString;
     },
@@ -249,10 +442,10 @@ const semantics = {
 		return `"${e.sourceString}"`;
 	},
 
-	ident(first: Node, remain: Node) {
-		const name = (first.sourceString + remain.sourceString);
+	identName(first: Node, remain: Node, typeSuffix: Node) {
+		const name = [first.sourceString, remain.sourceString, typeSuffix.sourceString].join("");
 
-		return getVariable(name); // do we need prefix? `v.${id}`;
+		return getVariable(name);
 	},
 	variable(e: Node) {
         const name = e.sourceString;
@@ -266,18 +459,9 @@ const semantics = {
 
 const arithmeticParser = new Parser(arithmetic.grammar, semantics);
 
-
-
 function compileScript(script: string) {
-	//let compiledScript: string;
 	deleteAllVariables();
-	/*
-	try {
-		compiledScript = arithmeticParser.parseAndEval(script);
-	} catch (error) {
-		compiledScript = "ERROR: " + ((error instanceof Error) ? error.message : "unknown"); 
-	}
-	*/
+
 	const compiledScript = arithmeticParser.parseAndEval(script);
 	return compiledScript;
 }
@@ -316,7 +500,6 @@ function onCompiledAreaChange(event: Event) {
 function onScriptAreaChange(event: Event) {
 	const scriptArea = event.target as HTMLTextAreaElement;
 	const compiledArea = document.getElementById("compiledArea") as HTMLTextAreaElement;
-	//const outputElement = document.getElementById("outputArea") as HTMLTextAreaElement;
 
 	const input = scriptArea.value;
 
@@ -325,17 +508,7 @@ function onScriptAreaChange(event: Event) {
 
 	const newEvent = new Event('change');
 	compiledArea.dispatchEvent(newEvent);
-	/*
-	const output = executeScript(compiledScript);
-	outputElement.value = output;
-	*/
 }
-
-/*
-function fnEval(code: string) {
-	return eval(code); // eslint-disable-line no-eval
-}
-*/
 
 interface NodeFs {
 	//readFile: (name: string, encoding: string, fn: (res: any) => void) => any
@@ -349,18 +522,11 @@ declare function require(name:string): any;
 
 async function nodeReadFile(name: string): Promise<string> {
 	if (!fs) {
-		//fnEval('fs = require("fs");'); // to trick TypeScript
-		//const fnRequire = new Function("name", `global[name] = require(name);`)
-		//fnRequire("fs");
 		fs = require("fs");
 	}
 
 	if (!module) {
-		//fnEval('module = require("module");'); // to trick TypeScript
-		//const fnRequire = new Function(name, `global.${name} = require("${name}");`)
-		//fnRequire("module");
 		module = require("module");
-
 		modulePath = (module as any).path || "";
 
 		if (!modulePath) {
@@ -466,6 +632,10 @@ if (typeof window !== "undefined") {
 } else {
 	main(fnParseArgs(global.process.argv.slice(2), startConfig));
 }
+
+export const testParser = {
+	dimArray: dimArray
+};
 
 /*
 5 ' examples:
