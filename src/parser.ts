@@ -12,16 +12,6 @@ import { ActionDict, Grammar, grammar, Node, Semantics } from "ohm-js";
 import { arithmetic } from "./arithmetic";
 import { examples } from "./examples";
 
-// https://ohmjs.org/editor/
-// https://ohmjs.org/docs/releases/ohm-js-16.0#default-semantic-actions
-
-// https://stackoverflow.com/questions/69762570/rollup-umd-output-format-doesnt-work-however-es-does
-// ?
-
-// https://github.com/beautifier/js-beautify
-// https://jsonformatter.org/javascript-pretty-print
-// ?
-
 export type ConfigEntryType = string | number | boolean;
 
 export type ConfigType = Record<string, ConfigEntryType>;
@@ -56,11 +46,17 @@ function dimArray(dims: number[], initVal: string | number = 0) {
 
 const vm = {
 	_output: "",
+	_fnOnCls: (() => undefined) as () => void,
+	dimArray: dimArray,
+	cls: () => {
+		vm._output = "";
+		vm._fnOnCls();
+	},
 	print: (...args: string[]) => vm._output += args.join(''),
 
-	dimArray: dimArray,
 	getOutput: () => vm._output,
-	setOutput: (str: string) => vm._output = str
+	setOutput: (str: string) => vm._output = str,
+	setOnCls: (fn: () => void) => vm._fnOnCls = fn
 }
 
 class Parser {
@@ -91,7 +87,14 @@ class Parser {
 
 const variables: Record<string, number> = {};
 
+const reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;
+
 function getVariable(name: string) {
+	name = name.toLowerCase();
+	if (reJsKeyword.test(name)) {
+		name = `_${name}`;
+	}
+
 	variables[name] = (variables[name] || 0) + 1;
 	return name;
 }
@@ -105,39 +108,49 @@ function deleteAllItems(items: Record<string, any>) {
 type DefinedLabelEntryType = {
 	label: string,
 	first: number,
-	last: number
+	last: number,
+	dataIndex: number
 }
 
-type UsedLabelEntryType = {
+type GosubLabelEntryType = {
 	count: number
 }
 
 const definedLabels: DefinedLabelEntryType[] = [];
-const usedLabels: Record<string, UsedLabelEntryType> = {};
-
+const gosubLabels: Record<string, GosubLabelEntryType> = {};
 let lineIndex = 0;
+
+const dataList: (string|number)[] = [];
+const restoreMap: Record<string, number> = {};
 
 function addDefinedLabel(label: string, line: number) {
 	definedLabels.push({
 		label,
 		first: line,
-		last: -1
+		last: -1,
+		dataIndex: -1
 	});
 }
 
-function addUsedLabel(label: string) {
-	usedLabels[label] = usedLabels[label] || {
+function addGosubLabel(label: string) {
+	gosubLabels[label] = gosubLabels[label] || {
 		count: 0
 	};
 
-	usedLabels[label].count = (usedLabels[label].count || 0) + 1;
+	gosubLabels[label].count = (gosubLabels[label].count || 0) + 1;
+}
+
+function addRestoreLabel(label: string) {
+	restoreMap[label] = -1;
 }
 
 function resetParser() {
 	deleteAllItems(variables);
 	definedLabels.length = 0;
-	deleteAllItems(usedLabels);
+	deleteAllItems(gosubLabels);
 	lineIndex = 0;
+	dataList.length = 0;
+	deleteAllItems(restoreMap);
 }
 
 function evalChildren(children: Node[]) {
@@ -156,7 +169,7 @@ const semantics: ActionDict<string|string[]> = {
 		let subFirst: DefinedLabelEntryType | undefined;
 		for (let index = 0; index < definedLabels.length; index += 1) {
 			const item = definedLabels[index];
-			if (usedLabels[item.label]) {
+			if (gosubLabels[item.label]) {
 				subFirst = item;
 			}
 
@@ -173,6 +186,16 @@ const semantics: ActionDict<string|string[]> = {
 				lineList[item.last] += `\n${indentStr}` + "}"; //TS issue when using the following? `\n${indentStr}};`
 				subFirst = undefined;
 			}
+
+			if (restoreMap[item.label] === -1) {
+				restoreMap[item.label] = item.dataIndex;
+			}
+		}
+
+		if (dataList.length) {
+			lineList.unshift(`const _data = _getData();\nconst _restoreMap = _getRestore();\nlet _dataPrt = 0;`);
+			lineList.push(`function _getData() {\nreturn [\n${dataList.join(",\n")}\n];\n}`);
+			lineList.push(`function _getRestore() {\nreturn [\n${JSON.stringify(restoreMap)}\n];\n}`);
 		}
 
 		const lineStr = lineList.join('\n');
@@ -196,7 +219,7 @@ const semantics: ActionDict<string|string[]> = {
 		}
 
 		const commentStr = comment.sourceString ? `; //${comment.sourceString.substring(1)}` : "";
-		const semi = lineStr.endsWith("{") || lineStr.startsWith("//") || commentStr ? "" : ";";
+		const semi = lineStr === "" || lineStr.endsWith("{") || lineStr.startsWith("//") || commentStr ? "" : ";";
 		lineIndex += 1;
 		return lineStr + commentStr + semi;
 	},
@@ -221,8 +244,13 @@ const semantics: ActionDict<string|string[]> = {
 		return [arg.eval(), ...evalChildren(args.children)].join(', ');
 	},
 	Print(_printLit: Node, params: Node, semi: Node) {
-		const newline = semi.sourceString ? "" : ` + "\\n"`;
-		return `_o.print(${params.eval()}${newline})`;
+		const paramStr = params.child(0)?.eval() || "";
+
+		let newlineStr = "";
+		if (!semi.sourceString) {
+			newlineStr = paramStr ? ` + "\\n"` : `"\\n"`;
+		}
+		return `_o.print(${paramStr}${newlineStr})`;
 	},
 
 	Abs(_absLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -239,7 +267,8 @@ const semantics: ActionDict<string|string[]> = {
 
 	Bin(_binLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		const pad = n.child(0)?.eval();
-		return `(${e.eval()}).toString(2).padStart(${pad} || 0, "0")`;
+		const padStr = pad !== undefined ? `.padStart(${pad} || 0, "0")`: '';
+		return `(${e.eval()}).toString(2).toUpperCase()${padStr}`;
 	},
 
 	Chr(_chrLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -254,20 +283,48 @@ const semantics: ActionDict<string|string[]> = {
 		return `Math.cos(${e.eval()})`;
 	},
 
-	Dim(_dimLit: Node, arrayIdent: Node) {
-		const [ident, ...indices] = arrayIdent.eval();
-		const initValStr = ident.endsWith("$") ? ', ""' : '';
-		return `${ident} = _o.dimArray([${indices}]${initValStr})`; // automatically joined with comma
+	Data(_datalit: Node, args: Node) {
+		const argList = args.asIteration().children.map(c => c.eval());
+		const dataIndex = dataList.length;
+
+		if (definedLabels.length) {
+			const currentLabel = definedLabels[definedLabels.length - 1];
+			currentLabel.dataIndex = dataIndex;
+		}
+
+		dataList.push(argList.join(", "));
+		return "";
+	},
+
+	Dim(_dimLit: Node, arrayIdents: Node) {
+		const argList = arrayIdents.asIteration().children.map(c => c.eval());
+		const results: string[] = [];
+
+		for (const arg of argList) {
+			const [ident, ...indices] = arg;
+			const initValStr = ident.endsWith("$") ? ', ""' : '';
+			results.push(`${ident} = _o.dimArray([${indices}]${initValStr})`);  // automatically joined with comma
+		}
+
+		return results.join("; ");
+	},
+
+	Cint(_cintLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		return `Math.round(${e.eval()})`;
+	},
+
+	Cls(_clsLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		return `_o.cls()`;
 	},
 
     Comparison(_iflit: Node, condExp: Node, _thenLit: Node, thenStat: Node, elseLit: Node, elseStat: Node) {
         const cond = condExp.eval();
         const thSt = thenStat.eval();
 
-		let result = `if (${cond}) { ${thSt} }`;
+		let result = `if (${cond}) {\n${thSt}\n}`; // put in newlines to also allow line comments
 		if (elseLit.sourceString) {
 			const elseSt = evalChildren(elseStat.children).join('; ');
-			result += ` else { ${elseSt} }`;
+			result += ` else {\n${elseSt}\n}`;
 		}
 
 		return result;
@@ -275,6 +332,10 @@ const semantics: ActionDict<string|string[]> = {
 
 	End(_endLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		return `return "end"`;
+	},
+
+	Exp(_expLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		return `Math.exp(${e.eval()})`;
 	},
 
 	Fix(_fixLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -303,14 +364,15 @@ const semantics: ActionDict<string|string[]> = {
 
 	Gosub(_gosubLit: Node, e: Node) {
 		const labelStr = e.sourceString;
-		addUsedLabel(labelStr);
+		addGosubLabel(labelStr);
 
 		return `_${labelStr}()`;
 	},
 
 	Hex(_hexLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		const pad = n.child(0)?.eval();
-		return `(${e.eval()}).toString(16).toUpperCase().padStart(${pad} || 0, "0")`;
+		const padStr = pad !== undefined ? `.padStart(${pad} || 0, "0")`: '';
+		return `(${e.eval()}).toString(16).toUpperCase()${padStr}`;
 	},
 
 	Int(_intLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -343,8 +405,9 @@ const semantics: ActionDict<string|string[]> = {
 	},
 
 	Mid(_midLit: Node, _open: Node, e1: Node, _comma1: Node, e2: Node, _comma2: Node, e3: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-		const length = e3.child(0)?.eval() || "0";
-		return `(${e1.eval()}).substr(${e2.eval()} - 1, ${length})`;
+		const length = e3.child(0)?.eval();
+		const lengthStr = length === undefined ? "" : `, ${length}`; 
+		return `(${e1.eval()}).substr(${e2.eval()} - 1${lengthStr})`;
 	},
 
 	Min(_minLit: Node, _open: Node, args: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -352,8 +415,12 @@ const semantics: ActionDict<string|string[]> = {
 		return `Math.min(${argList})`;
 	},
 
-	Next(_nextLit: Node, _variable: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-		return '}';
+	Next(_nextLit: Node, variables: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		const argList = variables.asIteration().children.map(c => c.eval());
+		if (!argList.length) {
+			argList.push("_any");
+		}
+		return '}'.repeat(argList.length);
 	},
 
 	On(_nLit: Node, e1: Node, _gosubLit: Node, args: Node) {
@@ -361,7 +428,7 @@ const semantics: ActionDict<string|string[]> = {
 		const argList = args.asIteration().children.map(c => c.sourceString);
 
 		for (let i = 0; i < argList.length; i += 1) {
-			addUsedLabel(argList[i]);
+			addGosubLabel(argList[i]);
 		}
 
 		return `[${argList.map((label) => `_${label}`).join(",")}]?.[${index} - 1]()`; // 1-based index
@@ -371,8 +438,24 @@ const semantics: ActionDict<string|string[]> = {
 		return "Math.PI";
 	},
 
+	Read(_readlit: Node, args: Node) {
+		const argList = args.asIteration().children.map(c => c.eval());
+		const results: string[] = [];
+		for (const ident of argList) {
+			results.push(`${ident} = _data[_dataPrt++]`);
+		}
+		return results.join("; ");
+	},
+
 	Rem(_remLit: Node, remain: Node) {
 		return `// ${remain.sourceString}`;
+	},
+
+	Restore(_restoreLit: Node, e: Node) {
+		const labelStr = e.sourceString || "0";
+		addRestoreLabel(labelStr);
+
+		return `_dataPtr = _restoreMap[${labelStr}]`;
 	},
 
 	Return(_returnLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -386,6 +469,19 @@ const semantics: ActionDict<string|string[]> = {
 	Rnd(_rndLit: Node, _open: Node, _e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		// args are ignored
 		return `Math.random()`;
+	},
+
+	Round(_roundLit: Node, _open: Node, e: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		const dec = e2.child(0)?.eval();
+		if (dec) {
+			return `(Math.round(${e.eval()} * Math.pow(10, ${dec})) / Math.pow(10, ${dec}))`;
+		}
+		return `Math.round(${e.eval()})`;
+		// A better way to avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
+	},
+
+	Sgn(_sgnLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		return `Math.sign(${e.eval()})`;
 	},
 
 	Sin(_sinLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -444,7 +540,7 @@ const semantics: ActionDict<string|string[]> = {
 		return `while (${cond}) {`;
 	},
 
-	Exp(e: Node) {
+	StrOrNumExp(e: Node) {
 		return String(e.eval());
 	},
 
@@ -574,17 +670,6 @@ const semantics: ActionDict<string|string[]> = {
 	strIdent(ident: Node, typeSuffix: Node) {
 		const name = ident.sourceString + typeSuffix.sourceString;
 		return getVariable(name);
-	},
-
-	identName(first: Node, remain: Node /*, typeSuffix: Node */) {
-		//const name = [first.sourceString, remain.sourceString, typeSuffix.sourceString].join("").toLowerCase();
-		const name = [first.sourceString, remain.sourceString].join("").toLowerCase();
-
-		return name; //return getVariable(name);
-	},
-	variable(e: Node) {
-        const name = e.sourceString.toLowerCase();
-		return getVariable(name);
 	}
 };
 
@@ -598,41 +683,64 @@ function compileScript(script: string) {
 	return compiledScript;
 }
 
-function executeScript(compiledScript: string) {
+async function executeScript(compiledScript: string) {
 	vm.setOutput("");
 
 	if (compiledScript.startsWith("ERROR")) {
-		return "ERROR";
+		return "ERROR" + "\n";
 	}
 
 	let output: string;
 	try {
 		const fnScript = new Function("_o", compiledScript); // eslint-disable-line no-new-func
 		const result = fnScript(vm) || "";
-		output = vm.getOutput() + result;
+		if (result instanceof Promise) {
+			output = vm.getOutput() + await result;
+		} else {
+			output = vm.getOutput() + result;
+		}
 
 	} catch (error) {
-		output = "ERROR: " + ((error instanceof Error) ? error.message : "unknown");
+		output = "ERROR: ";
+		if (error instanceof Error) {
+			output += error.message;
+
+			const anyErr = error as any;
+			const lineNumber = anyErr.lineNumber; // only on FireFox
+			const columnNumber = anyErr.columnNumber; // only on FireFox
+
+			if (lineNumber || columnNumber) {
+				const errLine = lineNumber - 2; // for some reason line 0 is 2
+				output += ` (line ${errLine}, column ${columnNumber})`; 
+			}
+		} else {
+			output += "unknown";
+		}
 	}
-	return output;
+	return output + "\n";
 }
 
 let basicCm: any;
 let compiledCm: any;
 
-function onExecuteButtonClick(_event: Event) { // eslint-disable-line @typescript-eslint/no-unused-vars
-	const compiledText = document.getElementById("compiledText") as HTMLTextAreaElement;
+function getOutputText() {
 	const outputText = document.getElementById("outputText") as HTMLTextAreaElement;
+	return outputText.value; 
+}
+
+function setOutputText(value: string) {
+	const outputText = document.getElementById("outputText") as HTMLTextAreaElement;
+	outputText.value = value;
+}
+
+async function onExecuteButtonClick(_event: Event) { // eslint-disable-line @typescript-eslint/no-unused-vars
+	const compiledText = document.getElementById("compiledText") as HTMLTextAreaElement;
 
 	const compiledScript = compiledCm ? compiledCm.getValue() : compiledText.value;
-	/*
-	if (compiledCm) {
-		compiledCm.save();
-	}
-	const compiledScript = compiledText.value;
-	*/
-	const output = executeScript(compiledScript);
-	outputText.value = output;
+
+	const output = await executeScript(compiledScript);
+
+	setOutputText(getOutputText() + output);
 }
 
 function oncompiledTextChange(_event: Event) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -646,7 +754,6 @@ function oncompiledTextChange(_event: Event) { // eslint-disable-line @typescrip
 function onCompileButtonClick(_event: Event) { // eslint-disable-line @typescript-eslint/no-unused-vars
 	const basicText = document.getElementById("basicText") as HTMLTextAreaElement;
 	const compiledText = document.getElementById("compiledText") as HTMLTextAreaElement;
-	//const input = basicText.value;
 	const input = compiledCm ? basicCm.getValue() : basicText.value;
 	const compiledScript = compileScript(input);
 
@@ -654,12 +761,11 @@ function onCompileButtonClick(_event: Event) { // eslint-disable-line @typescrip
 		compiledCm.setValue(compiledScript);
 	} else {
 		compiledText.value = compiledScript;
-	}
-
-	const autoExecuteInput = document.getElementById("autoExecuteInput") as HTMLInputElement;
-	if (autoExecuteInput.checked) {
-		const newEvent = new Event('change');
-		compiledText.dispatchEvent(newEvent);
+		const autoExecuteInput = document.getElementById("autoExecuteInput") as HTMLInputElement;
+		if (autoExecuteInput.checked) {
+			const newEvent = new Event('change');
+			compiledText.dispatchEvent(newEvent);
+		}
 	}
 }
 
@@ -672,19 +778,19 @@ function onbasicTextChange(_event: Event) { // eslint-disable-line @typescript-e
 }
 
 function onExampleSelectChange(event: Event) {
-	//const exampleSelect = document.getElementById("exampleSelect") as HTMLSelectElement;
 	const exampleSelect = event.target as HTMLSelectElement;
 
 	const basicText = document.getElementById("basicText") as HTMLTextAreaElement;
 	const value = examples[exampleSelect.value];
 
+	setOutputText("");
+
 	if (basicCm) {
 		basicCm.setValue(value);
 	} else {
 		basicText.value = value;
+		basicText.dispatchEvent(new Event('change'));
 	}
-
-	basicText.dispatchEvent(new Event('change'));
 }
 
 
@@ -702,6 +808,18 @@ function setExampleSelectOptions(examples: Record<string, string>) {
 		exampleSelect.add(option);
 	}
 }
+
+
+function debounce<T extends Function>(func: T, delay: number): (...args: any[]) => void {
+	let timeoutId: ReturnType<typeof setTimeout>;
+	return function(this: any, ...args: any[]) {
+	  const context = this;
+	  clearTimeout(timeoutId);
+	  timeoutId = setTimeout(() => {
+		func.apply(context, args);
+	  }, delay);
+	};
+  }
 
 
 
@@ -786,11 +904,14 @@ function start(input: string) {
 	if (input !== "") {
 		const compiledScript = compileScript(input);
 
-		console.log("INFO: Compiled:\n", compiledScript + "\n");
+		console.log("INFO: Compiled:\n" + compiledScript + "\n");
 
-		const output = executeScript(compiledScript);
-
-		console.log(output);
+		const timer = setTimeout(() => {}, 5000);
+		(async () => {
+			const output = await executeScript(compiledScript);
+			clearTimeout(timer);
+			console.log(output);
+		})();
 	} else {
 		console.log("No input");
 	}
@@ -836,18 +957,21 @@ if (typeof window !== "undefined") {
 
 		const WinCodeMirror = (window as any).CodeMirror;
 		if (WinCodeMirror) {
+			const debounceMs = 1000;
 			basicCm = WinCodeMirror.fromTextArea(basicText, {
 				lineNumbers: true,
 				mode: 'javascript'
 			});
-			basicCm.on('changes', onbasicTextChange);
+			basicCm.on('changes', debounce(onbasicTextChange, debounceMs));
 
 			compiledCm = WinCodeMirror.fromTextArea(compiledText, {
 				lineNumbers: true,
 				mode: 'javascript'
 			});
-			compiledCm.on('changes', oncompiledTextChange);
+			compiledCm.on('changes', debounce(oncompiledTextChange, debounceMs / 2));
 		}
+
+		vm.setOnCls(() => setOutputText(""));
 
 		main(fnParseUri(window.location.search.substring(1), startConfig));
 	};
@@ -882,5 +1006,65 @@ Notes:
 - STOP, END: stop only on top level, not in subroutines (where they just return)
 - STRING$(): second parameter must be a character
 - TIME: *300/1000? (TODO)
+
+TODO:
+- DIM, NEXT with multiple arguments: done
+- DATA, READ, RESTORE: done
+- comments in IF: 107 IF zoom<3 THEN zoom=3: 'zoom=12: done
+- numbers with exponential notation
+- No JS reserved word as variables: arguments, await, [break], case, catch, class, const, continue, debugger, default, delete, do,
+ [else], enum, eval, export, extends, false, finally, [for], function, [if], implements, import, in, instanceof, interface, [let], [new], null,
+  package, private, protected, public, [return], static, super, switch, this, throw, true, try, typeof, var, void, [while], with, yield
+https://www.w3schools.com/js/js_reserved.asp
+- ERASE?
+- ?hex$("3") => array hex$["3"]  : fixed done
+- a$="abcde":mid$(a$,3,2)="w":?a$ ?
+
+return async function() {
+  _o.print(Date.now()+"\n");
+  return new Promise(resolve => setTimeout(() => resolve('Hello after 1 second!'), 1000));
+  //return await 'stop';
+}();
+
+return (async function() { return await Promise.resolve('Hello, Async World!'); })();
+
+
+Object.keys(allTests).forEach((c) => { console.log("' " + c + "\n" + Object.keys(allTests[c]).join(",\n")); });
+
+let ls = []; Object.keys(allTests).forEach((c) => { ls.push("' " + c + "\n" + Object.keys(allTests[c]).join("\n")); }); console.log(ls.join("\n"));
+
+// ---
+
+// https://github.com/ohmjs/ohm/blob/main/examples/math/index.html
+//
+// https://nextjournal.com/pangloss/ohm-parsing-made-easy
+//
+// https://stackoverflow.com/questions/60857610/grammar-for-expression-language
+// !
+// https://github.com/Gamadril/led-basic-vscode
+// !
+//
+
+// https://ohmjs.org/editor/
+// https://ohmjs.org/docs/releases/ohm-js-16.0#default-semantic-actions
+
+// https://stackoverflow.com/questions/69762570/rollup-umd-output-format-doesnt-work-however-es-does
+// ?
+
+// https://github.com/beautifier/js-beautify
+// https://jsonformatter.org/javascript-pretty-print
+// ?
+
+// https://dev.to/cantem/how-to-write-a-debounce-function-1bdf
+//
+
+**
+not implemented:
+after auto border break call cat chain clear cog closein closeout cos cont copychr
+ creal cursor data dec def defint defreal defstr deg delete derr di draw drawr edit ei eof erase erl err error every fill fn frame fre
+ gosub goto graphics himem ink inkey-$ inp input instr joy key let line list load locate mask memory merge mode move mover new
+ on openin openout origin out paper peek pen plot plotr poke pos rad randomize read release remain renum restore resume return round run
+ save sgn sound spc speed sq swap symbol tab tag tagoff test testr troff tron unt using vpos wait width window write xpos ypos zone
+**
 
 */

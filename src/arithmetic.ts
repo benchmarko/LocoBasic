@@ -1,11 +1,4 @@
-// https://github.com/ohmjs/ohm/blob/main/examples/math/index.html
-//
-// https://nextjournal.com/pangloss/ohm-parsing-made-easy
-//
-// https://stackoverflow.com/questions/60857610/grammar-for-expression-language
-// !
-// https://github.com/Gamadril/led-basic-vscode
-// !
+// arithmetics.ts
 //
 export const arithmetic = {
   grammar:
@@ -26,6 +19,8 @@ export const arithmetic = {
     Statement
      = Comment
      | Comparison
+     | Cls
+     | Data
      | Dim
      | End
      | ForLoop
@@ -33,7 +28,9 @@ export const arithmetic = {
      | Next
      | On
      | Print
+     | Read
      | Rem
+     | Restore
      | Return
      | Stop
      | WhileLoop
@@ -64,17 +61,32 @@ export const arithmetic = {
     Chr
       = caseInsensitive<"chr$"> "(" NumExp ")"
 
+    Cint
+      = caseInsensitive<"cint"> "(" NumExp ")"
+
+    Cls
+      = caseInsensitive<"cls">
+
     Comment
       = "\\'" partToEol
 
     Cos
       = caseInsensitive<"cos"> "(" NumExp ")"
 
+    DataItem
+      = string | number
+
+    Data
+      = caseInsensitive<"data"> NonemptyListOf<DataItem, ",">  // TODO: also hex number?
+
     Dim
-      = caseInsensitive<"dim"> DimArrayIdent
+      = caseInsensitive<"dim"> NonemptyListOf<DimArrayIdent, ",">
 
     End
       = caseInsensitive<"end">
+
+    Exp
+      = caseInsensitive<"exp"> "(" NumExp ")"
 
     Fix
       = caseInsensitive<"fix"> "(" NumExp ")"
@@ -107,34 +119,46 @@ export const arithmetic = {
       = caseInsensitive<"lower$"> "(" StrExp ")"
 
     Max
-      = caseInsensitive<"max"> "(" ListOf<NumExp, ","> ")"
+      = caseInsensitive<"max"> "(" NonemptyListOf<NumExp, ","> ")"
 
     Mid
       = caseInsensitive<"mid$"> "(" StrExp "," NumExp ("," NumExp)? ")"
 
     Min
-      = caseInsensitive<"min"> "(" ListOf<NumExp, ","> ")"
+      = caseInsensitive<"min"> "(" NonemptyListOf<NumExp, ","> ")"
 
     Pi
       = caseInsensitive<"pi">
 
     Next
-     = caseInsensitive<"next"> variable?
+     = caseInsensitive<"next"> ListOf<variable, ",">
 
     On
-     = caseInsensitive<"on"> Exp caseInsensitive<"gosub"> ListOf<label, ",">
+     = caseInsensitive<"on"> NumExp caseInsensitive<"gosub"> NonemptyListOf<label, ",">
 
     Print
-      = (caseInsensitive<"print"> | "?") PrintArgs (";")?
+      = (caseInsensitive<"print"> | "?") PrintArgs? (";")?
 
     PrintArgs
       = PrintArg (("," | ";") PrintArg)*
 
     PrintArg
-      = Exp
+      = StrOrNumExp
+
+    ReadItem
+      = StrArrayIdent
+      | ArrayIdent
+      | strIdent
+      | ident
+
+    Read
+      = caseInsensitive<"read"> NonemptyListOf<ReadItem, ",">
 
     Rem
       = caseInsensitive<"Rem"> partToEol
+
+    Restore
+      = caseInsensitive<"Restore"> label?
 
     Return
       = caseInsensitive<"return">
@@ -144,6 +168,12 @@ export const arithmetic = {
 
     Rnd
       = caseInsensitive<"rnd"> "(" NumExp? ")"
+    
+    Round
+      = caseInsensitive<"round"> "(" NumExp ("," NumExp)? ")"
+
+    Sgn
+      = caseInsensitive<"sgn"> "(" NumExp ")"
 
     Sin
       = caseInsensitive<"sin"> "(" NumExp ")"
@@ -179,10 +209,10 @@ export const arithmetic = {
       = caseInsensitive<"wend">
 
     WhileLoop
-      = caseInsensitive<"while"> Exp
+      = caseInsensitive<"while"> StrOrNumExp
 
     Comparison
-      = caseInsensitive<"if"> Exp caseInsensitive<"then"> Statements (caseInsensitive<"else"> Statements)?
+      = caseInsensitive<"if"> StrOrNumExp caseInsensitive<"then"> Statements (caseInsensitive<"else"> Statements)?
 
     StrExp
       = StrOrExp
@@ -221,7 +251,7 @@ export const arithmetic = {
       | strIdent
       | string
 
-    Exp
+    StrOrNumExp
       = StrExp | NumExp
 
     NumExp
@@ -284,7 +314,9 @@ export const arithmetic = {
       | Abs
       | Asc
       | Atn
+      | Cint
       | Cos
+      | Exp
       | Fix
       | Int
       | Len
@@ -294,6 +326,8 @@ export const arithmetic = {
       | Min
       | Pi
       | Rnd
+      | Round
+      | Sgn
       | Sin
       | Sqr
       | Tan
@@ -302,7 +336,7 @@ export const arithmetic = {
 
 
     ArrayArgs
-      = ListOf<Exp, ",">
+      = NonemptyListOf<StrOrNumExp, ",">
 
     ArrayIdent
       = ident "(" ArrayArgs ")"
@@ -668,7 +702,8 @@ export const arithmetic = {
 
     variable = ident
 
-    strIdent = identName ("$")
+    strIdent
+     = ~keyword identName ("$")
 
     binaryDigit = "0".."1"
 
@@ -701,11 +736,3 @@ export const arithmetic = {
     }
   `
 };
-
-/* not implemented:
-after auto border break call cat chain cint clear cog closein closeout cos cont copychr
- creal cursor data dec def defint defreal defstr deg delete derr di draw drawr edit ei eof erase erl err error every exp fill fn frame fre
- gosub goto graphics himem ink inkey-$ inp input instr joy key let line list load locate mask memory merge mode move mover new
- on openin openout origin out paper peek pen plot plotr poke pos rad randomize read release remain renum restore resume return round run
- save sgn sound spc speed sq swap symbol tab tag tagoff test testr troff tron unt using vpos wait width window write xpos ypos zone
- */
