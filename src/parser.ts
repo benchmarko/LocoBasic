@@ -722,6 +722,34 @@ async function executeScript(compiledScript: string) {
 	return output + "\n";
 }
 
+
+function debounce<T extends Function>(func: T, delay: number): (...args: any[]) => void {
+	let timeoutId: ReturnType<typeof setTimeout>;
+	return function (this: any, ...args: any[]) {
+		const context = this;
+		clearTimeout(timeoutId);
+		timeoutId = setTimeout(() => {
+			func.apply(context, args);
+		}, delay);
+	};
+}
+
+function keepRunning(fn: Function, timeout: number) {
+	const timerId = setTimeout(() => { }, timeout);
+	return (async () => {
+		fn();
+		clearTimeout(timerId);
+	})();
+}
+
+function asyncDelay(fn: Function, timeout: number) {
+	return (async () => {
+		const timerId = setTimeout(fn, timeout);
+		return timerId;
+	})();
+}
+
+
 let basicCm: any;
 let compiledCm: any;
 
@@ -809,18 +837,6 @@ function setExampleSelectOptions(examples: Record<string, string>) {
 		option.selected = false;
 		exampleSelect.add(option);
 	}
-}
-
-
-function debounce<T extends Function>(func: T, delay: number): (...args: any[]) => void {
-	let timeoutId: ReturnType<typeof setTimeout>;
-	return function (this: any, ...args: any[]) {
-		const context = this;
-		clearTimeout(timeoutId);
-		timeoutId = setTimeout(() => {
-			func.apply(context, args);
-		}, delay);
-	};
 }
 
 
@@ -914,13 +930,12 @@ function fnParseUri(urlQuery: string, config: ConfigType) {
 		const name = fnDecodeUri(match[1]),
 			value = fnDecodeUri(match[2]);
 
-		if (value !== null && config[name]) {
+		if (value !== null && config[name] !== undefined) {
 			args.push(name + "=" + value);
 		}
 	}
 	return fnParseArgs(args, config);
 }
-
 
 function start(input: string) {
 	if (input !== "") {
@@ -928,12 +943,10 @@ function start(input: string) {
 
 		console.log("INFO: Compiled:\n" + compiledScript + "\n");
 
-		const timer = setTimeout(() => { }, 5000);
-		(async () => {
+		return keepRunning(async () => {
 			const output = await executeScript(compiledScript);
-			clearTimeout(timer);
 			console.log(output);
-		})();
+		}, 5000);
 	} else {
 		console.log("No input");
 	}
@@ -941,38 +954,31 @@ function start(input: string) {
 
 function main(config: ConfigType) {
 	let input = (config.input as string) || "";
-	let timer: ReturnType<typeof setTimeout> | undefined;
 
 	if (config.fileName) {
-		timer = setTimeout(() => { }, 5000);
-		(async () => {
+		return keepRunning(async () => {
 			input = await nodeReadFile(config.fileName as string);
-			clearTimeout(timer);
 			start(input);
-		})();
+		}, 5000);
 	} else {
 		if (config.example) {
 			if (!Object.keys(examples).length) {
-				// ?? require('./examples/examples.js');
-				timer = setTimeout(() => { }, 5000);
-				(async () => {
+				return keepRunning(async () => {
 					const jsFile = await nodeReadFile("./dist/examples/examples.js");
+					// ?? require('./examples/examples.js');
 					const fnScript = new Function("cpcBasic", jsFile);
 					fnScript({
 						addItem: addItem
 					});
 
-					clearTimeout(timer);
 					input = examples[config.example as string];
 					start(input);
-				})();
+				}, 5000);
 			}
 			input += examples[config.example as string];
 		}
-		if (timer === undefined) {
-			console.log("start");
-			start(input);
-		}
+		console.log("start");
+		start(input);
 	}
 }
 
@@ -996,8 +1002,6 @@ if (typeof window !== "undefined") {
 		const exampleSelect = document.getElementById("exampleSelect") as HTMLSelectElement;
 		exampleSelect.addEventListener('change', onExampleSelectChange);
 
-		setExampleSelectOptions(examples);
-		exampleSelect.dispatchEvent(new Event('change'));
 
 		const WinCodeMirror = (window as any).CodeMirror;
 		if (WinCodeMirror) {
@@ -1017,7 +1021,16 @@ if (typeof window !== "undefined") {
 
 		vm.setOnCls(() => setOutputText(""));
 
-		main(fnParseUri(window.location.search.substring(1), startConfig));
+		return asyncDelay(() => {
+			setExampleSelectOptions(examples);
+			const config = fnParseUri(window.location.search.substring(1), startConfig);
+			if (config.example) {
+				const exampleSelect = document.getElementById("exampleSelect") as HTMLSelectElement;
+				exampleSelect.value = config.example as string;
+			}
+			//const input = examples[config.example as string];
+			exampleSelect.dispatchEvent(new Event('change'));
+		}, 10);
 	};
 } else {
 	main(fnParseArgs(global.process.argv.slice(2), startConfig));
