@@ -1,8 +1,8 @@
 (function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('ohm-js')) :
-    typeof define === 'function' && define.amd ? define(['exports', 'ohm-js'], factory) :
-    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.locobasic = {}, global.ohmJs));
-})(this, (function (exports, ohmJs) { 'use strict';
+    typeof exports === 'object' && typeof module !== 'undefined' ? factory(require('ohm-js')) :
+    typeof define === 'function' && define.amd ? define(['ohm-js'], factory) :
+    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.ohmJs));
+})(this, (function (ohmJs) { 'use strict';
 
     /******************************************************************************
     Copyright (c) Microsoft Corporation.
@@ -35,6 +35,31 @@
         var e = new Error(message);
         return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
     };
+
+    // Parser.ts
+    class Parser {
+        constructor(grammarString, semanticsMap) {
+            this.ohmGrammar = ohmJs.grammar(grammarString);
+            this.ohmSemantics = this.ohmGrammar
+                .createSemantics()
+                .addOperation("eval", semanticsMap);
+        }
+        // Function to parse and evaluate an expression
+        parseAndEval(input) {
+            try {
+                const matchResult = this.ohmGrammar.match(input);
+                if (matchResult.succeeded()) {
+                    return this.ohmSemantics(matchResult).eval();
+                }
+                else {
+                    return 'ERROR: Parsing failed: ' + matchResult.message;
+                }
+            }
+            catch (error) {
+                return 'ERROR: Parsing evaluator failed: ' + (error instanceof Error ? error.message : "unknown");
+            }
+        }
+    }
 
     // arithmetics.ts
     //
@@ -774,77 +799,6 @@
   `
     };
 
-    // parser.ts
-    // A simple parser for arithmetic expressions using Ohm
-    //
-    // Usage:
-    // node dist/locobasic.js input="?3 + 5 * (2 - 8)"
-    // node dist/locobasic.js fileName=dist/examples/example.bas
-    // node dist/locobasic.js example=euler
-    //
-    // [ npx ts-node parser.ts input="?3 + 5 * (2 - 8)" ]
-    const startConfig = {
-        debug: 0,
-        example: "",
-        fileName: "",
-        input: "",
-        debounceCompile: 800,
-        debounceExecute: 400
-    };
-    const examples = {};
-    function dimArray(dims, initVal = 0) {
-        const createRecursiveArray = function (depth) {
-            const length = dims[depth] + 1, // +1 because of 0-based index
-            array = new Array(length);
-            depth += 1;
-            if (depth < dims.length) { // more dimensions?
-                for (let i = 0; i < length; i += 1) {
-                    array[i] = createRecursiveArray(depth); // recursive call
-                }
-            }
-            else { // one dimension
-                array.fill(initVal);
-            }
-            return array;
-        };
-        return createRecursiveArray(0);
-    }
-    const vm = {
-        _output: "",
-        _fnOnCls: (() => undefined),
-        dimArray: dimArray,
-        cls: () => {
-            vm._output = "";
-            vm._fnOnCls();
-        },
-        print: (...args) => vm._output += args.join(''),
-        getOutput: () => vm._output,
-        setOutput: (str) => vm._output = str,
-        setOnCls: (fn) => vm._fnOnCls = fn
-    };
-    class Parser {
-        constructor(grammarString, semanticsMap) {
-            this.ohmGrammar = ohmJs.grammar(grammarString);
-            this.ohmSemantics = this.ohmGrammar
-                .createSemantics()
-                .addOperation("eval", semanticsMap);
-        }
-        // Function to parse and evaluate an expression
-        parseAndEval(input) {
-            try {
-                const matchResult = this.ohmGrammar.match(input);
-                if (matchResult.succeeded()) {
-                    return this.ohmSemantics(matchResult).eval();
-                }
-                else {
-                    return 'ERROR: Parsing failed: ' + matchResult.message;
-                }
-            }
-            catch (error) {
-                return 'ERROR: Parsing evaluator failed: ' + (error instanceof Error ? error.message : "unknown");
-            }
-        }
-    }
     const variables = {};
     const reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;
     function getVariable(name) {
@@ -1307,149 +1261,296 @@
             return getVariable(name);
         }
     };
-    let arithmeticParser;
-    function compileScript(script) {
-        if (!arithmeticParser) {
-            arithmeticParser = new Parser(arithmetic.grammar, semantics);
+    class Semantics {
+        getSemantics() {
+            return semantics;
         }
-        resetParser();
-        const compiledScript = arithmeticParser.parseAndEval(script);
-        return compiledScript;
+        resetParser() {
+            resetParser();
+        }
     }
-    function executeScript(compiledScript) {
-        return __awaiter(this, void 0, void 0, function* () {
-            vm.setOutput("");
-            if (compiledScript.startsWith("ERROR")) {
-                return "ERROR" + "\n";
-            }
-            let output;
-            try {
-                const fnScript = new Function("_o", compiledScript); // eslint-disable-line no-new-func
-                const result = fnScript(vm) || "";
-                if (result instanceof Promise) {
-                    output = vm.getOutput() + (yield result);
-                }
-                else {
-                    output = vm.getOutput() + result;
-                }
-            }
-            catch (error) {
-                output = "ERROR: ";
-                if (error instanceof Error) {
-                    output += error.message;
-                    const anyErr = error;
-                    const lineNumber = anyErr.lineNumber; // only on FireFox
-                    const columnNumber = anyErr.columnNumber; // only on FireFox
-                    if (lineNumber || columnNumber) {
-                        const errLine = lineNumber - 2; // for some reason line 0 is 2
-                        output += ` (line ${errLine}, column ${columnNumber})`;
+
+    // core.ts
+    const vm = {
+        _output: "",
+        _fnOnCls: (() => undefined),
+        dimArray: (dims, initVal = 0) => {
+            const createRecursiveArray = function (depth) {
+                const length = dims[depth] + 1, // +1 because of 0-based index
+                array = new Array(length);
+                depth += 1;
+                if (depth < dims.length) { // more dimensions?
+                    for (let i = 0; i < length; i += 1) {
+                        array[i] = createRecursiveArray(depth); // recursive call
                     }
                 }
-                else {
-                    output += "unknown";
+                else { // one dimension
+                    array.fill(initVal);
                 }
+                return array;
+            };
+            return createRecursiveArray(0);
+        },
+        cls: () => {
+            vm._output = "";
+            vm._fnOnCls();
+        },
+        print: (...args) => vm._output += args.join(''),
+        getOutput: () => vm._output,
+        setOutput: (str) => vm._output = str,
+        setOnCls: (fn) => vm._fnOnCls = fn
+    };
+    class Core {
+        constructor() {
+            this.startConfig = {
+                debug: 0,
+                example: "",
+                fileName: "",
+                input: "",
+                debounceCompile: 800,
+                debounceExecute: 400
+            };
+            this.semantics = new Semantics();
+            this.examples = {};
+            this.vm = vm;
+        }
+        getConfigObject() {
+            return this.startConfig;
+        }
+        getConfig(name) {
+            return this.startConfig[name];
+        }
+        getExampleObject() {
+            return this.examples;
+        }
+        setExample(name, script) {
+            this.examples[name] = script;
+        }
+        getExample(name) {
+            return this.examples[name];
+        }
+        setOnCls(fn) {
+            vm.setOnCls(fn);
+        }
+        compileScript(script) {
+            if (!this.arithmeticParser) {
+                this.arithmeticParser = new Parser(arithmetic.grammar, this.semantics.getSemantics());
             }
-            return output + "\n";
-        });
-    }
-    function debounce(func, delayPara) {
-        let timeoutId;
-        return function (...args) {
-            const context = this;
-            const delay = startConfig[delayPara];
-            clearTimeout(timeoutId);
-            timeoutId = setTimeout(() => {
-                func.apply(context, args);
-            }, delay);
-        };
-    }
-    function keepRunning(fn, timeout) {
-        const timerId = setTimeout(() => { }, timeout);
-        return (() => __awaiter(this, void 0, void 0, function* () {
-            fn();
-            clearTimeout(timerId);
-        }))();
-    }
-    function asyncDelay(fn, timeout) {
-        return (() => __awaiter(this, void 0, void 0, function* () {
-            const timerId = setTimeout(fn, timeout);
-            return timerId;
-        }))();
-    }
-    let basicCm;
-    let compiledCm;
-    function getOutputText() {
-        const outputText = document.getElementById("outputText");
-        return outputText.value;
-    }
-    function setOutputText(value) {
-        const outputText = document.getElementById("outputText");
-        outputText.value = value;
-    }
-    function onExecuteButtonClick(_event) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const compiledText = document.getElementById("compiledText");
-            const compiledScript = compiledCm ? compiledCm.getValue() : compiledText.value;
-            const output = yield executeScript(compiledScript);
-            setOutputText(getOutputText() + output);
-        });
-    }
-    function oncompiledTextChange(_event) {
-        const autoExecuteInput = document.getElementById("autoExecuteInput");
-        if (autoExecuteInput.checked) {
-            const executeButton = window.document.getElementById("executeButton");
-            executeButton.dispatchEvent(new Event('click'));
+            this.semantics.resetParser();
+            const compiledScript = this.arithmeticParser.parseAndEval(script);
+            return compiledScript;
+        }
+        executeScript(compiledScript) {
+            return __awaiter(this, void 0, void 0, function* () {
+                this.vm.setOutput("");
+                if (compiledScript.startsWith("ERROR")) {
+                    return "ERROR" + "\n";
+                }
+                let output;
+                try {
+                    const fnScript = new Function("_o", compiledScript);
+                    const result = fnScript(this.vm) || "";
+                    if (result instanceof Promise) {
+                        output = this.vm.getOutput() + (yield result);
+                    }
+                    else {
+                        output = this.vm.getOutput() + result;
+                    }
+                }
+                catch (error) {
+                    output = "ERROR: ";
+                    if (error instanceof Error) {
+                        output += error.message;
+                        const anyErr = error;
+                        const lineNumber = anyErr.lineNumber; // only on FireFox
+                        const columnNumber = anyErr.columnNumber; // only on FireFox
+                        if (lineNumber || columnNumber) {
+                            const errLine = lineNumber - 2; // for some reason line 0 is 2
+                            output += ` (line ${errLine}, column ${columnNumber})`;
+                        }
+                    }
+                    else {
+                        output += "unknown";
+                    }
+                }
+                return output + "\n";
+            });
         }
     }
-    function onCompileButtonClick(_event) {
-        const basicText = document.getElementById("basicText");
-        const compiledText = document.getElementById("compiledText");
-        const input = compiledCm ? basicCm.getValue() : basicText.value;
-        const compiledScript = compileScript(input);
-        if (compiledCm) {
-            compiledCm.setValue(compiledScript);
+
+    // Ui.ts
+    class Ui {
+        constructor(core) {
+            this.core = core;
         }
-        else {
-            compiledText.value = compiledScript;
+        debounce(func, delayPara) {
+            let timeoutId;
+            const core = this.core;
+            return function (...args) {
+                const context = this;
+                const delay = core.getConfig(delayPara);
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => {
+                    func.apply(context, args);
+                }, delay);
+            };
+        }
+        static asyncDelay(fn, timeout) {
+            return (() => __awaiter(this, void 0, void 0, function* () {
+                const timerId = setTimeout(fn, timeout);
+                return timerId;
+            }))();
+        }
+        getOutputText() {
+            const outputText = document.getElementById("outputText");
+            return outputText.value;
+        }
+        setOutputText(value) {
+            const outputText = document.getElementById("outputText");
+            outputText.value = value;
+        }
+        onExecuteButtonClick(_event) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const compiledText = document.getElementById("compiledText");
+                const compiledScript = this.compiledCm ? this.compiledCm.getValue() : compiledText.value;
+                const output = yield this.core.executeScript(compiledScript);
+                this.setOutputText(this.getOutputText() + output);
+            });
+        }
+        oncompiledTextChange(_event) {
             const autoExecuteInput = document.getElementById("autoExecuteInput");
             if (autoExecuteInput.checked) {
-                const newEvent = new Event('change');
-                compiledText.dispatchEvent(newEvent);
+                const executeButton = window.document.getElementById("executeButton");
+                executeButton.dispatchEvent(new Event('click'));
             }
         }
-    }
-    function onbasicTextChange(_event) {
-        const autoCompileInput = document.getElementById("autoCompileInput");
-        if (autoCompileInput.checked) {
+        onCompileButtonClick(_event) {
+            const basicText = document.getElementById("basicText");
+            const compiledText = document.getElementById("compiledText");
+            const input = this.compiledCm ? this.basicCm.getValue() : basicText.value;
+            const compiledScript = this.core.compileScript(input);
+            if (this.compiledCm) {
+                this.compiledCm.setValue(compiledScript);
+            }
+            else {
+                compiledText.value = compiledScript;
+                const autoExecuteInput = document.getElementById("autoExecuteInput");
+                if (autoExecuteInput.checked) {
+                    const newEvent = new Event('change');
+                    compiledText.dispatchEvent(newEvent);
+                }
+            }
+        }
+        onbasicTextChange(_event) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const autoCompileInput = document.getElementById("autoCompileInput");
+                if (autoCompileInput.checked) {
+                    const compileButton = window.document.getElementById("compileButton");
+                    compileButton.dispatchEvent(new Event('click'));
+                }
+            });
+        }
+        setExampleSelect(name) {
+            const exampleSelect = document.getElementById("exampleSelect");
+            exampleSelect.value = name;
+        }
+        onExampleSelectChange(event) {
+            const exampleSelect = event.target;
+            const basicText = document.getElementById("basicText");
+            const value = this.core.getExample(exampleSelect.value);
+            this.setOutputText("");
+            if (this.basicCm) {
+                this.basicCm.setValue(value);
+            }
+            else {
+                basicText.value = value;
+                basicText.dispatchEvent(new Event('change'));
+            }
+        }
+        setExampleSelectOptions(examples) {
+            const exampleSelect = document.getElementById("exampleSelect");
+            for (const key of Object.keys(examples)) {
+                const script = examples[key];
+                const firstLine = script.slice(0, script.indexOf("\n"));
+                const option = window.document.createElement("option");
+                option.value = key;
+                option.text = key;
+                option.title = firstLine;
+                option.selected = false;
+                exampleSelect.add(option);
+            }
+        }
+        fnDecodeUri(s) {
+            let decoded = "";
+            try {
+                decoded = decodeURIComponent(s.replace(/\+/g, " "));
+            }
+            catch (err) {
+                if (err instanceof Error) {
+                    err.message += ": " + s;
+                }
+                console.error(err);
+            }
+            return decoded;
+        }
+        // https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
+        parseUri(urlQuery, config) {
+            const rSearch = /([^&=]+)=?([^&]*)/g, args = [];
+            let match;
+            while ((match = rSearch.exec(urlQuery)) !== null) {
+                const name = this.fnDecodeUri(match[1]), value = this.fnDecodeUri(match[2]);
+                if (value !== null && config[name] !== undefined) {
+                    args.push(name + "=" + value);
+                }
+            }
+            return args;
+        }
+        onWindowLoad(_event) {
+            const basicText = window.document.getElementById("basicText");
+            basicText.addEventListener('change', (event) => this.onbasicTextChange(event));
+            const compiledText = window.document.getElementById("compiledText");
+            compiledText.addEventListener('change', (event) => this.oncompiledTextChange(event));
             const compileButton = window.document.getElementById("compileButton");
-            compileButton.dispatchEvent(new Event('click'));
+            compileButton.addEventListener('click', (event) => this.onCompileButtonClick(event), false);
+            const executeButton = window.document.getElementById("executeButton");
+            executeButton.addEventListener('click', (event) => this.onExecuteButtonClick(event), false);
+            const exampleSelect = window.document.getElementById("exampleSelect");
+            exampleSelect.addEventListener('change', (event) => this.onExampleSelectChange(event));
+            const WinCodeMirror = window.CodeMirror;
+            if (WinCodeMirror) {
+                this.basicCm = WinCodeMirror.fromTextArea(basicText, {
+                    lineNumbers: true,
+                    mode: 'javascript'
+                });
+                this.basicCm.on('changes', this.debounce((event) => this.onbasicTextChange(event), "debounceCompile"));
+                this.compiledCm = WinCodeMirror.fromTextArea(compiledText, {
+                    lineNumbers: true,
+                    mode: 'javascript'
+                });
+                this.compiledCm.on('changes', this.debounce((event) => this.oncompiledTextChange(event), "debounceExecute"));
+            }
+            Ui.asyncDelay(() => {
+                const core = this.core;
+                this.setExampleSelectOptions(core.getExampleObject());
+                const example = this.core.getConfig("example");
+                if (example) {
+                    this.setExampleSelect(example);
+                }
+                exampleSelect.dispatchEvent(new Event('change'));
+            }, 10);
         }
     }
-    function onExampleSelectChange(event) {
-        const exampleSelect = event.target;
-        const basicText = document.getElementById("basicText");
-        const value = examples[exampleSelect.value];
-        setOutputText("");
-        if (basicCm) {
-            basicCm.setValue(value);
-        }
-        else {
-            basicText.value = value;
-            basicText.dispatchEvent(new Event('change'));
-        }
-    }
-    function setExampleSelectOptions(examples) {
-        const exampleSelect = document.getElementById("exampleSelect");
-        for (const key of Object.keys(examples)) {
-            const value = key; //examples[key];
-            const option = window.document.createElement("option");
-            option.value = value;
-            option.text = value;
-            option.title = value;
-            option.selected = false;
-            exampleSelect.add(option);
-        }
-    }
+
+    // main.ts
+    //
+    // Usage:
+    // node dist/locobasic.js input="?3 + 5 * (2 - 8)"
+    // node dist/locobasic.js fileName=dist/examples/example.bas
+    // node dist/locobasic.js example=euler
+    //
+    // [ npx ts-node parser.ts input="?3 + 5 * (2 - 8)" ]
+    const core = new Core();
+    let ui;
     function fnHereDoc(fn) {
         return String(fn).
             replace(/^[^/]+\/\*\S*/, "").
@@ -1460,10 +1561,11 @@
         inputString = inputString.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
         // beware of data files ending with newlines! (do not use trimEnd)
         if (!key) { // maybe ""
-            const matches = inputString.match(/^\s*\d*\s*(?:REM|rem|')\s*(\w+)/);
+            const firstLine = inputString.slice(0, inputString.indexOf("\n"));
+            const matches = firstLine.match(/^\s*\d*\s*(?:REM|rem|')\s*(\w+)/);
             key = matches ? matches[1] : "unknown";
         }
-        examples[key] = inputString;
+        core.setExample(key, inputString);
     }
     let fs;
     let modulePath;
@@ -1498,37 +1600,19 @@
         }
         return config;
     }
-    function fnDecodeUri(s) {
-        let decoded = "";
-        try {
-            decoded = decodeURIComponent(s.replace(/\+/g, " "));
-        }
-        catch (err) {
-            if (err instanceof Error) {
-                err.message += ": " + s;
-            }
-            console.error(err);
-        }
-        return decoded;
-    }
-    // https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
-    function fnParseUri(urlQuery, config) {
-        const rSearch = /([^&=]+)=?([^&]*)/g, args = [];
-        let match;
-        while ((match = rSearch.exec(urlQuery)) !== null) {
-            const name = fnDecodeUri(match[1]), value = fnDecodeUri(match[2]);
-            if (value !== null && config[name] !== undefined) {
-                args.push(name + "=" + value);
-            }
-        }
-        return fnParseArgs(args, config);
+    function keepRunning(fn, timeout) {
+        const timerId = setTimeout(() => { }, timeout);
+        return (() => __awaiter(this, void 0, void 0, function* () {
+            fn();
+            clearTimeout(timerId);
+        }))();
     }
     function start(input) {
         if (input !== "") {
-            const compiledScript = compileScript(input);
+            const compiledScript = core.compileScript(input);
             console.log("INFO: Compiled:\n" + compiledScript + "\n");
             return keepRunning(() => __awaiter(this, void 0, void 0, function* () {
-                const output = yield executeScript(compiledScript);
+                const output = yield core.executeScript(compiledScript);
                 console.log(output);
             }), 5000);
         }
@@ -1546,6 +1630,7 @@
         }
         else {
             if (config.example) {
+                const examples = core.getExampleObject();
                 if (!Object.keys(examples).length) {
                     return keepRunning(() => __awaiter(this, void 0, void 0, function* () {
                         const jsFile = yield nodeReadFile("./dist/examples/examples.js");
@@ -1564,56 +1649,22 @@
             start(input);
         }
     }
+    const config = core.getConfigObject();
     if (typeof window !== "undefined") {
         window.cpcBasic = {
             addItem: addItem
         };
         window.onload = () => {
-            const basicText = window.document.getElementById("basicText");
-            basicText.addEventListener('change', onbasicTextChange);
-            const compiledText = window.document.getElementById("compiledText");
-            compiledText.addEventListener('change', oncompiledTextChange);
-            const compileButton = window.document.getElementById("compileButton");
-            compileButton.addEventListener('click', onCompileButtonClick, false);
-            const executeButton = window.document.getElementById("executeButton");
-            executeButton.addEventListener('click', onExecuteButtonClick, false);
-            const exampleSelect = window.document.getElementById("exampleSelect");
-            exampleSelect.addEventListener('change', onExampleSelectChange);
-            const WinCodeMirror = window.CodeMirror;
-            if (WinCodeMirror) {
-                //const debounceMs = 800;
-                basicCm = WinCodeMirror.fromTextArea(basicText, {
-                    lineNumbers: true,
-                    mode: 'javascript'
-                });
-                basicCm.on('changes', debounce(onbasicTextChange, "debounceCompile"));
-                compiledCm = WinCodeMirror.fromTextArea(compiledText, {
-                    lineNumbers: true,
-                    mode: 'javascript'
-                });
-                compiledCm.on('changes', debounce(oncompiledTextChange, "debounceExecute"));
-            }
-            vm.setOnCls(() => setOutputText(""));
-            return asyncDelay(() => {
-                setExampleSelectOptions(examples);
-                const config = fnParseUri(window.location.search.substring(1), startConfig);
-                if (config.example) {
-                    const exampleSelect = document.getElementById("exampleSelect");
-                    exampleSelect.value = config.example;
-                }
-                //const input = examples[config.example as string];
-                exampleSelect.dispatchEvent(new Event('change'));
-            }, 10);
+            ui = new Ui(core);
+            const args = ui.parseUri(window.location.search.substring(1), config);
+            fnParseArgs(args, config);
+            core.setOnCls(() => ui.setOutputText(""));
+            ui.onWindowLoad(new Event("onload"));
         };
     }
     else {
-        main(fnParseArgs(global.process.argv.slice(2), startConfig));
+        main(fnParseArgs(global.process.argv.slice(2), config));
     }
-    const testParser = {
-        dimArray: dimArray
-    };
-
-    exports.testParser = testParser;
 
 }));
 //# sourceMappingURL=locobasic.js.map
