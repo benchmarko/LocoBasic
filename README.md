@@ -1,9 +1,9 @@
 # LocoBasic - Light version of Locomotive BASIC
 
-- L...Basic is mainly used for calculations. It runs in a Browser or on the command line with node.js
+- LocoBasic is mainly used for calculations. It runs in a Browser or on the command line with node.js
 - Control structures like IF...ELSE, and FOR and WHILE loops are directly converted to JaveScript
 - GOTO or ON GOTO are not suppoered. Use GOSUB, ON GOSUB instead. The GOSUB line is interpreted as subroutine start.
-- Subroutine style: Line from GOSUB <line> starts a subroutine which is ended be a single RETURN in a line. Do not nest subroutines.
+- Subroutine style: Line from GOSUB \<line> starts a subroutine which is ended be a single RETURN in a line. Do not nest subroutines.
 - Variable types: No type checking: "$" to mark a string variable is optional; "!", "%" are not supported
 - No automatic rounding to integer for integer parameters
 - Computations are done with JavaScript precision; arity and precedence of operators follows Locomotive BASIC
@@ -90,6 +90,20 @@ let ls = []; Object.keys(allTests).forEach((c) => { ls.push("' " + c + "\n" + Ob
 //<https://light-basic-interpreter.soft112.com/>
 
 <https://lume.ufrgs.br/bitstream/handle/10183/190184/001088757.pdf?sequence=1>
+
+<https://cdnjs.com/libraries/codemirror>
+<https://codemirror.net/5/doc/manual.html#operation>
+<https://codemirror.net/5/mode/>
+<https://codemirror.net/5/mode/diff/diff.js>
+<https://codemirror.net/5/demo/simplemode.html>
+<https://github.com/codemirror/legacy-modes/blob/main/mode/pascal.js>
+
+<https://github.com/dfreniche/amstradbasic-vscode/blob/master/syntaxes/amstradbasic.tmLanguage.json>
+<https://marketplace.visualstudio.com/items?itemName=CPCReady.basic-language-extension>
+<https://retroprogramming.iwashere.eu/ugbasic:user>
+<https://ugbasic.iwashere.eu/target/cpc#examples>
+
+<https://www.unpkg.com/browse/codemirror@6.65.7/lib/>
 
 ### Not implemented
 

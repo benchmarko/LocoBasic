@@ -19,7 +19,9 @@ const startConfig: ConfigType = {
 	debug: 0,
 	example: "",
 	fileName: "",
-	input: ""
+	input: "",
+	debounceCompile: 800,
+	debounceExecute: 400
 };
 
 
@@ -676,9 +678,12 @@ const semantics: ActionDict<string | string[]> = {
 };
 
 
-const arithmeticParser = new Parser(arithmetic.grammar, semantics);
+let arithmeticParser: Parser;
 
 function compileScript(script: string) {
+	if (!arithmeticParser) {
+		arithmeticParser = new Parser(arithmetic.grammar, semantics);
+	}
 	resetParser();
 
 	const compiledScript = arithmeticParser.parseAndEval(script);
@@ -723,10 +728,11 @@ async function executeScript(compiledScript: string) {
 }
 
 
-function debounce<T extends Function>(func: T, delay: number): (...args: any[]) => void {
+function debounce<T extends Function>(func: T, delayPara: string): (...args: any[]) => void {
 	let timeoutId: ReturnType<typeof setTimeout>;
 	return function (this: any, ...args: any[]) {
 		const context = this;
+		const delay = startConfig[delayPara] as number;
 		clearTimeout(timeoutId);
 		timeoutId = setTimeout(() => {
 			func.apply(context, args);
@@ -999,24 +1005,23 @@ if (typeof window !== "undefined") {
 		const executeButton = window.document.getElementById("executeButton") as HTMLButtonElement;
 		executeButton.addEventListener('click', onExecuteButtonClick, false);
 
-		const exampleSelect = document.getElementById("exampleSelect") as HTMLSelectElement;
+		const exampleSelect = window.document.getElementById("exampleSelect") as HTMLSelectElement;
 		exampleSelect.addEventListener('change', onExampleSelectChange);
-
 
 		const WinCodeMirror = (window as any).CodeMirror;
 		if (WinCodeMirror) {
-			const debounceMs = 1000;
+			//const debounceMs = 800;
 			basicCm = WinCodeMirror.fromTextArea(basicText, {
 				lineNumbers: true,
 				mode: 'javascript'
 			});
-			basicCm.on('changes', debounce(onbasicTextChange, debounceMs));
+			basicCm.on('changes', debounce(onbasicTextChange, "debounceCompile"));
 
 			compiledCm = WinCodeMirror.fromTextArea(compiledText, {
 				lineNumbers: true,
 				mode: 'javascript'
 			});
-			compiledCm.on('changes', debounce(oncompiledTextChange, debounceMs / 2));
+			compiledCm.on('changes', debounce(oncompiledTextChange, "debounceExecute"));
 		}
 
 		vm.setOnCls(() => setOutputText(""));
