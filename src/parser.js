@@ -22,7 +22,9 @@ const startConfig = {
     debug: 0,
     example: "",
     fileName: "",
-    input: ""
+    input: "",
+    debounceCompile: 800,
+    debounceExecute: 400
 };
 const examples = {};
 function dimArray(dims, initVal = 0) {
@@ -540,8 +542,11 @@ const semantics = {
         return getVariable(name);
     }
 };
-const arithmeticParser = new Parser(arithmetic.grammar, semantics);
+let arithmeticParser;
 function compileScript(script) {
+    if (!arithmeticParser) {
+        arithmeticParser = new Parser(arithmetic.grammar, semantics);
+    }
     resetParser();
     const compiledScript = arithmeticParser.parseAndEval(script);
     return compiledScript;
@@ -582,10 +587,11 @@ function executeScript(compiledScript) {
         return output + "\n";
     });
 }
-function debounce(func, delay) {
+function debounce(func, delayPara) {
     let timeoutId;
     return function (...args) {
         const context = this;
+        const delay = startConfig[delayPara];
         clearTimeout(timeoutId);
         timeoutId = setTimeout(() => {
             func.apply(context, args);
@@ -806,21 +812,21 @@ if (typeof window !== "undefined") {
         compileButton.addEventListener('click', onCompileButtonClick, false);
         const executeButton = window.document.getElementById("executeButton");
         executeButton.addEventListener('click', onExecuteButtonClick, false);
-        const exampleSelect = document.getElementById("exampleSelect");
+        const exampleSelect = window.document.getElementById("exampleSelect");
         exampleSelect.addEventListener('change', onExampleSelectChange);
         const WinCodeMirror = window.CodeMirror;
         if (WinCodeMirror) {
-            const debounceMs = 1000;
+            //const debounceMs = 800;
             basicCm = WinCodeMirror.fromTextArea(basicText, {
                 lineNumbers: true,
                 mode: 'javascript'
             });
-            basicCm.on('changes', debounce(onbasicTextChange, debounceMs));
+            basicCm.on('changes', debounce(onbasicTextChange, "debounceCompile"));
             compiledCm = WinCodeMirror.fromTextArea(compiledText, {
                 lineNumbers: true,
                 mode: 'javascript'
             });
-            compiledCm.on('changes', debounce(oncompiledTextChange, debounceMs / 2));
+            compiledCm.on('changes', debounce(oncompiledTextChange, "debounceExecute"));
         }
         vm.setOnCls(() => setOutputText(""));
         return asyncDelay(() => {
