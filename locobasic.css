@@ -1,0 +1,19 @@
+/* locobasic.css */
+
+/* for Safari (OS X) */
+textarea {
+  font-family: monospace;
+  }
+  
+.flexBox {
+  float: left;
+  padding: 2px;
+  margin: 2px;
+  background-color: LightGrey;
+  border: 1px solid grey;
+}
+
+.CodeMirror {
+  width: 60em;
+  /* height: auto; */
+}
