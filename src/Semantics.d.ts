@@ -1,28 +1,32 @@
 import type { ActionDict } from "ohm-js";
-type GosubLabelEntryType = {
-    count: number;
-};
 export declare class Semantics {
-    getSemantics(): ActionDict<string | string[]>;
+    private lineIndex;
+    private indent;
+    private indentAdd;
     private readonly variables;
+    private readonly definedLabels;
+    private readonly gosubLabels;
+    private readonly dataList;
+    private readonly restoreMap;
     private static readonly reJsKeyword;
+    private addIndent;
+    private setIndent;
+    private getIndent;
+    private getIndentStr;
+    private applyNextIndent;
+    private nextIndentAdd;
+    private addDefinedLabel;
+    private getDefinedLabels;
+    private addGosubLabel;
+    private getGosubLabels;
     private getVariables;
     private getVariable;
     private deleteAllItems;
-    private readonly definedLabels;
-    private readonly gosubLabels;
-    getGosubLabels(): Record<string, GosubLabelEntryType>;
-    private lineIndex;
-    private readonly dataList;
-    private readonly restoreMap;
     private incrementLineIndex;
-    private getDefinedLabels;
-    private addDefinedLabel;
-    private addGosubLabel;
     private getRestoreMap;
     private addRestoreLabel;
     private getDataList;
     resetParser(): void;
+    getSemantics(): ActionDict<string | string[]>;
 }
-export {};
 //# sourceMappingURL=Semantics.d.ts.map

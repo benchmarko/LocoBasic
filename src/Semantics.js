@@ -35,11 +35,14 @@ function getSemantics(semanticsHelper) {
             }
             const dataList = semanticsHelper.getDataList();
             if (dataList.length) {
-                lineList.unshift(`const _data = _getData();\nconst _restoreMap = _getRestore();\nlet _dataPrt = 0;`);
-                lineList.push(`function _getData() {\nreturn [\n${dataList.join(",\n")}\n];\n}`);
-                lineList.push(`function _getRestore() {\nreturn [\n${JSON.stringify(restoreMap)}\n];\n}`);
+                lineList.unshift(`const _data = _getData();\nlet _dataPrt = 0;`);
+                lineList.push(`function _getData() {\n  return [\n${dataList.join(",\n")}\n  ];\n}`);
             }
-            const lineStr = lineList.join('\n');
+            if (Object.keys(restoreMap).length) {
+                lineList.unshift(`const _restoreMap = _getRestore();`);
+                lineList.push(`function _getRestore() {\n  return [\n    ${JSON.stringify(restoreMap)}\n  ];\n}`);
+            }
+            const lineStr = lineList.filter((line) => line !== "").join('\n');
             return varStr + lineStr;
         },
         Line(label, stmts, comment, _eol) {
@@ -59,7 +62,9 @@ function getSemantics(semanticsHelper) {
             const commentStr = comment.sourceString ? `; //${comment.sourceString.substring(1)}` : "";
             const semi = lineStr === "" || lineStr.endsWith("{") || lineStr.endsWith("}") || lineStr.startsWith("//") || commentStr ? "" : ";";
             //lineIndex += 1;
-            return lineStr + commentStr + semi;
+            const indentStr = semanticsHelper.getIndentStr();
+            semanticsHelper.applyNextIndent();
+            return indentStr + lineStr + commentStr + semi;
         },
         Statements(stmt, _stmtSep, stmts) {
             // separate statements, use ";", if the last stmt does not end with "{"
@@ -150,15 +155,28 @@ function getSemantics(semanticsHelper) {
         Comparison(_iflit, condExp, _thenLit, thenStat, elseLit, elseStat) {
             const cond = condExp.eval();
             const thSt = thenStat.eval();
-            let result = `if (${cond}) {\n${thSt}\n}`; // put in newlines to also allow line comments
+            const indentStr = semanticsHelper.getIndentStr();
+            semanticsHelper.addIndent(2);
+            const indentStr2 = semanticsHelper.getIndentStr();
+            semanticsHelper.addIndent(-2);
+            let result = `if (${cond}) {\n${indentStr2}${thSt}\n${indentStr}}`; // put in newlines to also allow line comments
             if (elseLit.sourceString) {
                 const elseSt = evalChildren(elseStat.children).join('; ');
-                result += ` else {\n${elseSt}\n}`;
+                result += ` else {\n${indentStr2}${elseSt}\n${indentStr}}`;
             }
             return result;
         },
         End(_endLit) {
             return `return "end"`;
+        },
+        Erase(_eraseLit, arrayIdents) {
+            const argList = arrayIdents.asIteration().children.map(c => c.eval());
+            const results = [];
+            for (const ident of argList) {
+                const initValStr = ident.endsWith("$") ? '" "' : '0';
+                results.push(`${ident} = ${initValStr}`);
+            }
+            return results.join("; ");
         },
         Exp(_expLit, _open, e, _close) {
             return `Math.exp(${e.eval()})`;
@@ -180,6 +198,7 @@ function getSemantics(semanticsHelper) {
             else {
                 cmpSt = stepExp >= 0 ? `${varExp} <= ${endExp}` : `${varExp} >= ${endExp}`;
             }
+            semanticsHelper.nextIndentAdd(2);
             const result = `for (${varExp} = ${startExp}; ${cmpSt}; ${varExp} += ${stepExp}) {`;
             return result;
         },
@@ -231,7 +250,8 @@ function getSemantics(semanticsHelper) {
             if (!argList.length) {
                 argList.push("_any");
             }
-            return '}'.repeat(argList.length);
+            semanticsHelper.addIndent(-2 * argList.length);
+            return '} '.repeat(argList.length).slice(0, -1);
         },
         On(_nLit, e1, _gosubLit, args) {
             const index = e1.eval();
@@ -327,10 +347,12 @@ function getSemantics(semanticsHelper) {
             return `Number((${numStr}).replace("&x", "0b").replace("&", "0x"))`;
         },
         Wend(_wendLit) {
+            semanticsHelper.addIndent(-2);
             return '}';
         },
         WhileLoop(_whileLit, e) {
             const cond = e.eval();
+            semanticsHelper.nextIndentAdd(2);
             return `while (${cond}) {`;
         },
         StrOrNumExp(e) {
@@ -445,27 +467,61 @@ function getSemantics(semanticsHelper) {
 }
 export class Semantics {
     constructor() {
+        this.lineIndex = 0;
+        this.indent = 0;
+        this.indentAdd = 0;
         this.variables = {};
         this.definedLabels = [];
         this.gosubLabels = {};
-        this.lineIndex = 0;
         this.dataList = [];
         this.restoreMap = {};
     }
-    getSemantics() {
-        const semanticsHelper = {
-            addDefinedLabel: (label, line) => this.addDefinedLabel(label, line),
-            addGosubLabel: (label) => this.addGosubLabel(label),
-            addRestoreLabel: (label) => this.addRestoreLabel(label),
-            getDataList: () => this.getDataList(),
-            getDefinedLabels: () => this.getDefinedLabels(),
-            getGosubLabels: () => this.getGosubLabels(),
-            getRestoreMap: () => this.getRestoreMap(),
-            getVariable: (name) => this.getVariable(name),
-            getVariables: () => this.getVariables(),
-            incrementLineIndex: () => this.incrementLineIndex()
+    addIndent(num) {
+        if (num < 0) {
+            this.applyNextIndent();
+        }
+        this.indent += num;
+        return this.indent;
+    }
+    setIndent(indent) {
+        this.indent = indent;
+    }
+    getIndent() {
+        return this.indent;
+    }
+    getIndentStr() {
+        if (this.indent < 0) {
+            console.error("getIndentStr: lineIndex=", this.lineIndex, ", indent=", this.indent);
+            return "";
+        }
+        return " ".repeat(this.indent);
+    }
+    applyNextIndent() {
+        this.indent += this.indentAdd;
+        this.indentAdd = 0;
+    }
+    nextIndentAdd(num) {
+        this.indentAdd += num;
+    }
+    addDefinedLabel(label, line) {
+        this.definedLabels.push({
+            label,
+            first: line,
+            last: -1,
+            dataIndex: -1
+        });
+    }
+    getDefinedLabels() {
+        return this.definedLabels;
+    }
+    addGosubLabel(label) {
+        this.gosubLabels[label] = this.gosubLabels[label] || {
+            count: 0
         };
-        return getSemantics(semanticsHelper);
+        this.gosubLabels[label].count = (this.gosubLabels[label].count || 0) + 1;
+    }
+    getGosubLabels() {
+        return this.gosubLabels;
     }
     getVariables() {
         return Object.keys(this.variables);
@@ -483,29 +539,9 @@ export class Semantics {
             delete items[name];
         }
     }
-    getGosubLabels() {
-        return this.gosubLabels;
-    }
     incrementLineIndex() {
         this.lineIndex += 1;
         return this.lineIndex;
-    }
-    getDefinedLabels() {
-        return this.definedLabels;
-    }
-    addDefinedLabel(label, line) {
-        this.definedLabels.push({
-            label,
-            first: line,
-            last: -1,
-            dataIndex: -1
-        });
-    }
-    addGosubLabel(label) {
-        this.gosubLabels[label] = this.gosubLabels[label] || {
-            count: 0
-        };
-        this.gosubLabels[label].count = (this.gosubLabels[label].count || 0) + 1;
     }
     getRestoreMap() {
         return this.restoreMap;
@@ -517,12 +553,35 @@ export class Semantics {
         return this.dataList;
     }
     resetParser() {
+        this.lineIndex = 0;
+        this.indent = 0;
+        this.indentAdd = 0;
         this.deleteAllItems(this.variables);
         this.definedLabels.length = 0;
         this.deleteAllItems(this.gosubLabels);
-        this.lineIndex = 0;
         this.dataList.length = 0;
         this.deleteAllItems(this.restoreMap);
+    }
+    getSemantics() {
+        const semanticsHelper = {
+            addDefinedLabel: (label, line) => this.addDefinedLabel(label, line),
+            addGosubLabel: (label) => this.addGosubLabel(label),
+            addIndent: (num) => this.addIndent(num),
+            addRestoreLabel: (label) => this.addRestoreLabel(label),
+            applyNextIndent: () => this.applyNextIndent(),
+            getDataList: () => this.getDataList(),
+            getDefinedLabels: () => this.getDefinedLabels(),
+            getGosubLabels: () => this.getGosubLabels(),
+            getIndent: () => this.getIndent(),
+            getIndentStr: () => this.getIndentStr(),
+            getRestoreMap: () => this.getRestoreMap(),
+            getVariable: (name) => this.getVariable(name),
+            getVariables: () => this.getVariables(),
+            incrementLineIndex: () => this.incrementLineIndex(),
+            nextIndentAdd: (num) => this.nextIndentAdd(num),
+            setIndent: (indent) => this.setIndent(indent)
+        };
+        return getSemantics(semanticsHelper);
     }
 }
 Semantics.reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;
