@@ -23,6 +23,7 @@ export const arithmetic = {
      | Data
      | Dim
      | End
+     | Erase
      | ForLoop
      | Gosub
      | Next
@@ -84,6 +85,9 @@ export const arithmetic = {
 
     End
       = caseInsensitive<"end">
+
+    Erase
+      = caseInsensitive<"erase"> NonemptyListOf<EraseIdent, ",">
 
     Exp
       = caseInsensitive<"exp"> "(" NumExp ")"
@@ -347,6 +351,10 @@ export const arithmetic = {
     DimArrayIdent
       = ident "(" ArrayArgs ")"
       | strIdent "(" ArrayArgs ")"
+
+    EraseIdent
+      = strIdent
+      | ident
 
     keyword
       = abs | after | and | asc | atn | auto | bin | border | break

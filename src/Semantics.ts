@@ -16,14 +16,20 @@ type GosubLabelEntryType = {
 interface SemanticsHelper {
 	addDefinedLabel(label: string, line: number): void,
 	addGosubLabel(label: string): void,
+	addIndent(num: number): number,
 	addRestoreLabel(label: string): void,
+	applyNextIndent(): void,
 	getDataList(): (string | number)[],
 	getDefinedLabels(): DefinedLabelEntryType[],
 	getGosubLabels(): Record<string, GosubLabelEntryType>,
+	getIndent(): number,
+	getIndentStr(): string,
 	getRestoreMap(): Record<string, number>,
 	getVariable(name: string): string,
 	getVariables(): string[],
-	incrementLineIndex(): number
+	incrementLineIndex(): number,
+	nextIndentAdd(num: number): void,
+	setIndent(indent: number): void
 }
 
 function evalChildren(children: Node[]) {
@@ -72,12 +78,15 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 
 			const dataList = semanticsHelper.getDataList();
 			if (dataList.length) {
-				lineList.unshift(`const _data = _getData();\nconst _restoreMap = _getRestore();\nlet _dataPrt = 0;`);
-				lineList.push(`function _getData() {\nreturn [\n${dataList.join(",\n")}\n];\n}`);
-				lineList.push(`function _getRestore() {\nreturn [\n${JSON.stringify(restoreMap)}\n];\n}`);
+				lineList.unshift(`const _data = _getData();\nlet _dataPrt = 0;`);
+				lineList.push(`function _getData() {\n  return [\n${dataList.join(",\n")}\n  ];\n}`);
+			}
+			if (Object.keys(restoreMap).length) {
+				lineList.unshift(`const _restoreMap = _getRestore();`);
+				lineList.push(`function _getRestore() {\n  return [\n    ${JSON.stringify(restoreMap)}\n  ];\n}`);
 			}
 
-			const lineStr = lineList.join('\n');
+			const lineStr = lineList.filter((line) => line !== "").join('\n');
 			return varStr + lineStr;
 		},
 
@@ -103,7 +112,11 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			const commentStr = comment.sourceString ? `; //${comment.sourceString.substring(1)}` : "";
 			const semi = lineStr === "" || lineStr.endsWith("{") || lineStr.endsWith("}") || lineStr.startsWith("//") || commentStr ? "" : ";";
 			//lineIndex += 1;
-			return lineStr + commentStr + semi;
+
+			const indentStr = semanticsHelper.getIndentStr();
+			semanticsHelper.applyNextIndent();
+
+			return indentStr + lineStr + commentStr + semi;
 		},
 
 		Statements(stmt: Node, _stmtSep: Node, stmts: Node) {
@@ -213,12 +226,18 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 
 		Comparison(_iflit: Node, condExp: Node, _thenLit: Node, thenStat: Node, elseLit: Node, elseStat: Node) {
 			const cond = condExp.eval();
+
 			const thSt = thenStat.eval();
 
-			let result = `if (${cond}) {\n${thSt}\n}`; // put in newlines to also allow line comments
+			const indentStr = semanticsHelper.getIndentStr();
+			semanticsHelper.addIndent(2);
+			const indentStr2 = semanticsHelper.getIndentStr();
+			semanticsHelper.addIndent(-2);
+
+			let result = `if (${cond}) {\n${indentStr2}${thSt}\n${indentStr}}`; // put in newlines to also allow line comments
 			if (elseLit.sourceString) {
 				const elseSt = evalChildren(elseStat.children).join('; ');
-				result += ` else {\n${elseSt}\n}`;
+				result += ` else {\n${indentStr2}${elseSt}\n${indentStr}}`;
 			}
 
 			return result;
@@ -226,6 +245,18 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 
 		End(_endLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `return "end"`;
+		},
+
+		Erase(_eraseLit: Node, arrayIdents: Node) { // erase not really needed
+			const argList = arrayIdents.asIteration().children.map(c => c.eval());
+			const results: string[] = [];
+			
+			for (const ident of argList) {
+				const initValStr = ident.endsWith("$") ? '" "' : '0';
+				results.push(`${ident} = ${initValStr}`);
+			}
+
+			return results.join("; ");
 		},
 
 		Exp(_expLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -251,6 +282,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 				cmpSt = stepExp >= 0 ? `${varExp} <= ${endExp}` : `${varExp} >= ${endExp}`;
 			}
 
+			semanticsHelper.nextIndentAdd(2);
 			const result = `for (${varExp} = ${startExp}; ${cmpSt}; ${varExp} += ${stepExp}) {`;
 
 			return result;
@@ -314,7 +346,8 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			if (!argList.length) {
 				argList.push("_any");
 			}
-			return '}'.repeat(argList.length);
+			semanticsHelper.addIndent(-2 * argList.length);
+			return '} '.repeat(argList.length).slice(0, -1);
 		},
 
 		On(_nLit: Node, e1: Node, _gosubLit: Node, args: Node) {
@@ -434,11 +467,13 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		Wend(_wendLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addIndent(-2);
 			return '}';
 		},
 
 		WhileLoop(_whileLit: Node, e: Node) {
 			const cond = e.eval();
+			semanticsHelper.nextIndentAdd(2);
 			return `while (${cond}) {`;
 		},
 
@@ -579,25 +614,77 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 
 
 export class Semantics {
-	public getSemantics() {
-		const semanticsHelper: SemanticsHelper = {
-			addDefinedLabel: (label: string, line: number) => this.addDefinedLabel(label, line),
-			addGosubLabel: (label: string) => this.addGosubLabel(label),
-			addRestoreLabel: (label: string) => this.addRestoreLabel(label),
-			getDataList: () => this.getDataList(),
-			getDefinedLabels: () => this.getDefinedLabels(),
-			getGosubLabels: () => this.getGosubLabels(),
-			getRestoreMap: () => this.getRestoreMap(),
-			getVariable: (name: string) => this.getVariable(name),
-			getVariables: () => this.getVariables(),
-			incrementLineIndex: () => this.incrementLineIndex()
-		};
-		return getSemantics(semanticsHelper);
-	}
+	private lineIndex = 0;
+
+	private indent = 0;
+	private indentAdd = 0;
 
 	private readonly variables: Record<string, number> = {};
 
+	private readonly definedLabels: DefinedLabelEntryType[] = [];
+	private readonly gosubLabels: Record<string, GosubLabelEntryType> = {};
+
+	private readonly dataList: (string | number)[] = [];
+	private readonly restoreMap: Record<string, number> = {};
+
 	private static readonly reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;
+
+	private addIndent(num: number) {
+		if (num < 0) {
+			this.applyNextIndent();
+		}
+		this.indent += num;
+		return this.indent;
+	}
+
+	private setIndent(indent: number) {
+		this.indent = indent;
+	}
+
+	private getIndent() {
+		return this.indent;
+	}
+
+	private getIndentStr() {
+		if (this.indent < 0) {
+			console.error("getIndentStr: lineIndex=", this.lineIndex, ", indent=", this.indent);
+			return "";
+		}
+		return " ".repeat(this.indent);
+	}
+
+	private applyNextIndent() {
+		this.indent += this.indentAdd;
+		this.indentAdd = 0;
+	}
+
+	private nextIndentAdd(num: number) {
+		this.indentAdd += num;
+	}
+
+	private addDefinedLabel(label: string, line: number) {
+		this.definedLabels.push({
+			label,
+			first: line,
+			last: -1,
+			dataIndex: -1
+		});
+	}
+	
+	private getDefinedLabels() {
+		return this.definedLabels;
+	}
+
+	private addGosubLabel(label: string) {
+		this.gosubLabels[label] = this.gosubLabels[label] || {
+			count: 0
+		};
+		this.gosubLabels[label].count = (this.gosubLabels[label].count || 0) + 1;
+	}
+
+	private getGosubLabels() { 
+		return this.gosubLabels;
+	}
 
 	private getVariables() {
 		return Object.keys(this.variables);
@@ -619,41 +706,9 @@ export class Semantics {
 		}
 	}
 
-	private readonly definedLabels: DefinedLabelEntryType[] = [];
-	private readonly gosubLabels: Record<string, GosubLabelEntryType> = {};
-
-	getGosubLabels() { 
-		return this.gosubLabels;
-	}
-
-	private lineIndex = 0;
-
-	private readonly dataList: (string | number)[] = [];
-	private readonly restoreMap: Record<string, number> = {};
-
 	private incrementLineIndex() {
 		this.lineIndex += 1;
 		return this.lineIndex;
-	}
-
-	private getDefinedLabels() {
-		return this.definedLabels;
-	}
-
-	private addDefinedLabel(label: string, line: number) {
-		this.definedLabels.push({
-			label,
-			first: line,
-			last: -1,
-			dataIndex: -1
-		});
-	}
-
-	private addGosubLabel(label: string) {
-		this.gosubLabels[label] = this.gosubLabels[label] || {
-			count: 0
-		};
-		this.gosubLabels[label].count = (this.gosubLabels[label].count || 0) + 1;
 	}
 
 	private getRestoreMap() {
@@ -669,11 +724,35 @@ export class Semantics {
 	}
 
 	public resetParser() {
+		this.lineIndex = 0;
+		this.indent = 0;
+		this.indentAdd = 0;
 		this.deleteAllItems(this.variables);
 		this.definedLabels.length = 0;
 		this.deleteAllItems(this.gosubLabels);
-		this.lineIndex = 0;
 		this.dataList.length = 0;
 		this.deleteAllItems(this.restoreMap);
+	}
+
+	public getSemantics() {
+		const semanticsHelper: SemanticsHelper = {
+			addDefinedLabel: (label: string, line: number) => this.addDefinedLabel(label, line),
+			addGosubLabel: (label: string) => this.addGosubLabel(label),
+			addIndent: (num: number) => this.addIndent(num),
+			addRestoreLabel: (label: string) => this.addRestoreLabel(label),
+			applyNextIndent: () => this.applyNextIndent(),
+			getDataList: () => this.getDataList(),
+			getDefinedLabels: () => this.getDefinedLabels(),
+			getGosubLabels: () => this.getGosubLabels(),
+			getIndent: () => this.getIndent(),
+			getIndentStr: () => this.getIndentStr(),
+			getRestoreMap: () => this.getRestoreMap(),
+			getVariable: (name: string) => this.getVariable(name),
+			getVariables: () => this.getVariables(),
+			incrementLineIndex: () => this.incrementLineIndex(),
+			nextIndentAdd: (num: number) => this.nextIndentAdd(num),
+			setIndent: (indent: number) => this.setIndent(indent)
+		};
+		return getSemantics(semanticsHelper);
 	}
 }

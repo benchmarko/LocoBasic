@@ -35,13 +35,10 @@
 
 - DATA lines are compiled to empty lines, remove them?
 - numbers with exponential notation
-- load examples.js separately (not as examples.ts in the package)
-- separate UI from core (UI not neded for node), maybe two packages
 - command line tool should output a stand alone running JS file for node, so include dimArray() on-demand in the compiled source?
 - TIME: *300/1000 ?
-- ERASE ?
 - mid$ as assing? a$="abcde":mid$(a$,3,2)="w":?a$ ?
-- Do we want keywards all uppercase? And variables all lowercase?
+- Do we want keywords all uppercase? And variables all lowercase?
   And maybe new features with capital letter? E.g. If...Then...Else...Endif on multiple lines?
 
 ### DONE
@@ -54,10 +51,13 @@
   package, private, protected, public, [return], static, super, switch, this, throw, true, try, typeof, var, void, [while], with, yield
 <https://www.w3schools.com/js/js_reserved.asp>
 - ?hex$("3") => array hex$["3"]
+- load examples.js separately (not as examples.ts in the package)
+- separate UI from core (UI not needed for node), maybe two packages
+- ERASE <var> or <strVar> sets var=0, strVar=" ", not really needed, just to run such programs
 
 ### Resources (unsorted)
 
-```
+```javaScript
 return async function() {
   _o.print(Date.now()+"\n");
   return new Promise(resolve => setTimeout(() => resolve('Hello after 1 second!'), 1000));
@@ -65,11 +65,17 @@ return async function() {
 }();
 
 return (async function() { return await Promise.resolve('Hello, Async World!'); })();
+
+async function _input(msg) {
+  return new Promise(resolve => setTimeout(() => resolve(prompt(msg)), 0));
+}
+
+var name = await _input("What is your name?");
 ```
 
-```
+```javaScript
 let ls = []; Object.keys(allTests).forEach((c) => { ls.push("' " + c + "\n" + Object.keys(allTests[c]).join("\n")); }); console.log(ls.join("\n"));
-````
+```
 
 <https://github.com/ohmjs/ohm/blob/main/examples/math/index.html>
 
@@ -112,7 +118,7 @@ let ls = []; Object.keys(allTests).forEach((c) => { ls.push("' " + c + "\n" + Ob
 ### Not implemented
 
 after auto border break call cat chain clear cog closein closeout cos cont copychr
- creal cursor data dec def defint defreal defstr deg delete derr di draw drawr edit ei eof erase erl err error every fill fn frame fre
+ creal cursor data dec def defint defreal defstr deg delete derr di draw drawr edit ei eof erl err error every fill fn frame fre
  gosub goto graphics himem ink inkey-$ inp input instr joy key let line list load locate mask memory merge mode move mover new
  on openin openout origin out paper peek pen plot plotr poke pos rad randomize read release remain renum restore resume return round run
  save sgn sound spc speed sq swap symbol tab tag tagoff test testr troff tron unt using vpos wait width window write xpos ypos zone
