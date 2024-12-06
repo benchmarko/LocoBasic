@@ -9,6 +9,7 @@ export declare class Semantics {
     private readonly dataList;
     private readonly restoreMap;
     private static readonly reJsKeyword;
+    private readonly instrMap;
     private addIndent;
     private setIndent;
     private getIndent;
@@ -19,6 +20,8 @@ export declare class Semantics {
     private getDefinedLabels;
     private addGosubLabel;
     private getGosubLabels;
+    private getInstr;
+    private addInstr;
     private getVariables;
     private getVariable;
     private deleteAllItems;

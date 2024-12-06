@@ -7,7 +7,7 @@ function getSemantics(semanticsHelper) {
         Program(lines) {
             const lineList = evalChildren(lines.children);
             const variableList = semanticsHelper.getVariables();
-            const varStr = variableList.length ? "let " + variableList.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";\n" : "";
+            const varStr = variableList.length ? "let " + variableList.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
             // find subroutines
             const definedLabels = semanticsHelper.getDefinedLabels();
             const gosubLabels = semanticsHelper.getGosubLabels();
@@ -42,8 +42,16 @@ function getSemantics(semanticsHelper) {
                 lineList.unshift(`const _restoreMap = _getRestore();`);
                 lineList.push(`function _getRestore() {\n  return [\n    ${JSON.stringify(restoreMap)}\n  ];\n}`);
             }
+            if (varStr) {
+                lineList.unshift(varStr);
+            }
+            if (semanticsHelper.getInstr("input")) {
+                lineList.push(`async function _input(msg, isNum) {\n  return new Promise(resolve => setTimeout(() => resolve(isNum ? Number(prompt(msg)) : prompt(msg)), 0));\n}`);
+                lineList.unshift(`return async function() {`);
+                lineList.push('}();');
+            }
             const lineStr = lineList.filter((line) => line !== "").join('\n');
-            return varStr + lineStr;
+            return lineStr;
         },
         Line(label, stmts, comment, _eol) {
             const labelStr = label.sourceString;
@@ -78,18 +86,6 @@ function getSemantics(semanticsHelper) {
             const name2 = semanticsHelper.getVariable(name);
             const value = e.eval();
             return `${name2} = ${value}`;
-        },
-        PrintArgs(arg, _printSep, args) {
-            return [arg.eval(), ...evalChildren(args.children)].join(', ');
-        },
-        Print(_printLit, params, semi) {
-            var _a;
-            const paramStr = ((_a = params.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
-            let newlineStr = "";
-            if (!semi.sourceString) {
-                newlineStr = paramStr ? `, "\\n"` : `"\\n"`;
-            }
-            return `_o.print(${paramStr}${newlineStr})`;
         },
         Abs(_absLit, _open, e, _close) {
             return `Math.abs(${e.eval()})`;
@@ -135,11 +131,11 @@ function getSemantics(semanticsHelper) {
                 const [ident, ...indices] = arg;
                 let createArrStr;
                 if (indices.length > 1) { // multi-dimensional?
-                    const initValStr = ident.endsWith("$") ? ', " "' : '';
+                    const initValStr = ident.endsWith("$") ? ', ""' : '';
                     createArrStr = `_o.dimArray([${indices}]${initValStr})`; // automatically joined with comma
                 }
                 else {
-                    const fillStr = ident.endsWith("$") ? `" "` : "0";
+                    const fillStr = ident.endsWith("$") ? `""` : "0";
                     createArrStr = `new Array(${indices[0]} + 1).fill(${fillStr})`; // +1 because of 0-based index
                 }
                 results.push(`${ident} = ${createArrStr}`);
@@ -173,7 +169,7 @@ function getSemantics(semanticsHelper) {
             const argList = arrayIdents.asIteration().children.map(c => c.eval());
             const results = [];
             for (const ident of argList) {
-                const initValStr = ident.endsWith("$") ? '" "' : '0';
+                const initValStr = ident.endsWith("$") ? '""' : '0';
                 results.push(`${ident} = ${initValStr}`);
             }
             return results.join("; ");
@@ -212,6 +208,13 @@ function getSemantics(semanticsHelper) {
             const pad = (_a = n.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
             const padStr = pad !== undefined ? `.padStart(${pad} || 0, "0")` : '';
             return `(${e.eval()}).toString(16).toUpperCase()${padStr}`;
+        },
+        Input(_inputLit, message, _semi, e) {
+            semanticsHelper.addInstr("input");
+            const msgStr = message.sourceString.replace(/\s*[;,]$/, "");
+            const ident = e.eval();
+            const isNumStr = ident.includes("$") ? "" : ", true";
+            return `${ident} = await _input(${msgStr}${isNumStr})`;
         },
         Int(_intLit, _open, e, _close) {
             return `Math.floor(${e.eval()})`;
@@ -263,6 +266,18 @@ function getSemantics(semanticsHelper) {
         },
         Pi(_piLit) {
             return "Math.PI";
+        },
+        PrintArgs(arg, _printSep, args) {
+            return [arg.eval(), ...evalChildren(args.children)].join(', ');
+        },
+        Print(_printLit, params, semi) {
+            var _a;
+            const paramStr = ((_a = params.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+            let newlineStr = "";
+            if (!semi.sourceString) {
+                newlineStr = paramStr ? `, "\\n"` : `"\\n"`;
+            }
+            return `_o.print(${paramStr}${newlineStr})`;
         },
         Read(_readlit, args) {
             const argList = args.asIteration().children.map(c => c.eval());
@@ -320,7 +335,7 @@ function getSemantics(semanticsHelper) {
             if (isNaN(Number(arg))) {
                 argStr = `(((${arg}) >= 0) ? " " : "") + String(${arg})`;
             }
-            else {
+            else { // simplify if we know at compile time that arg is a positive number
                 argStr = arg >= 0 ? `" " + String(${arg})` : `String(${arg})`;
             }
             return argStr;
@@ -398,7 +413,7 @@ function getSemantics(semanticsHelper) {
             return `${a.eval()} % ${b.eval()}`;
         },
         DivExp_div(a, _op, b) {
-            return `(${a.eval()} / ${b.eval()}) | 0`;
+            return `((${a.eval()} / ${b.eval()}) | 0)`;
         },
         MulExp_times(a, _op, b) {
             return `${a.eval()} * ${b.eval()}`;
@@ -475,6 +490,7 @@ export class Semantics {
         this.gosubLabels = {};
         this.dataList = [];
         this.restoreMap = {};
+        this.instrMap = {};
     }
     addIndent(num) {
         if (num < 0) {
@@ -523,6 +539,13 @@ export class Semantics {
     getGosubLabels() {
         return this.gosubLabels;
     }
+    getInstr(name) {
+        return this.instrMap[name] || 0;
+    }
+    addInstr(name) {
+        this.instrMap[name] = (this.instrMap[name] || 0) + 1;
+        return this.instrMap[name];
+    }
     getVariables() {
         return Object.keys(this.variables);
     }
@@ -567,6 +590,7 @@ export class Semantics {
             addDefinedLabel: (label, line) => this.addDefinedLabel(label, line),
             addGosubLabel: (label) => this.addGosubLabel(label),
             addIndent: (num) => this.addIndent(num),
+            addInstr: (name) => this.addInstr(name),
             addRestoreLabel: (label) => this.addRestoreLabel(label),
             applyNextIndent: () => this.applyNextIndent(),
             getDataList: () => this.getDataList(),
@@ -574,6 +598,7 @@ export class Semantics {
             getGosubLabels: () => this.getGosubLabels(),
             getIndent: () => this.getIndent(),
             getIndentStr: () => this.getIndentStr(),
+            getInstr: (name) => this.getInstr(name),
             getRestoreMap: () => this.getRestoreMap(),
             getVariable: (name) => this.getVariable(name),
             getVariables: () => this.getVariables(),
