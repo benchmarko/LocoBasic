@@ -104,7 +104,8 @@ export class Core implements ICore {
 			const fnScript = new Function("_o", compiledScript);
 			const result = fnScript(this.vm) || "";
 			if (result instanceof Promise) {
-				output = this.vm.getOutput() + await result;
+				output = await result;
+				output = this.vm.getOutput() + output;
 			} else {
 				output = this.vm.getOutput() + result;
 			}

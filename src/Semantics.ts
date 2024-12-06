@@ -17,6 +17,7 @@ interface SemanticsHelper {
 	addDefinedLabel(label: string, line: number): void,
 	addGosubLabel(label: string): void,
 	addIndent(num: number): number,
+	addInstr(name: string): number,
 	addRestoreLabel(label: string): void,
 	applyNextIndent(): void,
 	getDataList(): (string | number)[],
@@ -24,6 +25,7 @@ interface SemanticsHelper {
 	getGosubLabels(): Record<string, GosubLabelEntryType>,
 	getIndent(): number,
 	getIndentStr(): string,
+	getInstr(name: string): number,
 	getRestoreMap(): Record<string, number>,
 	getVariable(name: string): string,
 	getVariables(): string[],
@@ -43,7 +45,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			const lineList = evalChildren(lines.children);
 
 			const variableList = semanticsHelper.getVariables();
-			const varStr = variableList.length ? "let " + variableList.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";\n" : "";
+			const varStr = variableList.length ? "let " + variableList.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
 
 			// find subroutines
 			const definedLabels = semanticsHelper.getDefinedLabels();
@@ -86,8 +88,19 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 				lineList.push(`function _getRestore() {\n  return [\n    ${JSON.stringify(restoreMap)}\n  ];\n}`);
 			}
 
+			if (varStr) {
+				lineList.unshift(varStr);
+			}
+
+			if (semanticsHelper.getInstr("input")) {
+				lineList.push(`async function _input(msg, isNum) {\n  return new Promise(resolve => setTimeout(() => resolve(isNum ? Number(prompt(msg)) : prompt(msg)), 0));\n}`);
+
+				lineList.unshift(`return async function() {`);
+				lineList.push('}();');
+			}
+
 			const lineStr = lineList.filter((line) => line !== "").join('\n');
-			return varStr + lineStr;
+			return lineStr;
 		},
 
 		Line(label: Node, stmts: Node, comment: Node, _eol: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -133,19 +146,6 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			const name2 = semanticsHelper.getVariable(name);
 			const value = e.eval();
 			return `${name2} = ${value}`;
-		},
-
-		PrintArgs(arg: Node, _printSep: Node, args: Node) {
-			return [arg.eval(), ...evalChildren(args.children)].join(', ');
-		},
-		Print(_printLit: Node, params: Node, semi: Node) {
-			const paramStr = params.child(0)?.eval() || "";
-
-			let newlineStr = "";
-			if (!semi.sourceString) {
-				newlineStr = paramStr ? `, "\\n"` : `"\\n"`;
-			}
-			return `_o.print(${paramStr}${newlineStr})`;
 		},
 
 		Abs(_absLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -204,10 +204,10 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 				const [ident, ...indices] = arg;
 				let createArrStr: string;
 				if (indices.length > 1) { // multi-dimensional?
-					const initValStr = ident.endsWith("$") ? ', " "' : '';
+					const initValStr = ident.endsWith("$") ? ', ""' : '';
 					createArrStr = `_o.dimArray([${indices}]${initValStr})`; // automatically joined with comma
 				} else {
-					const fillStr = ident.endsWith("$") ? `" "` : "0";
+					const fillStr = ident.endsWith("$") ? `""` : "0";
 					createArrStr = `new Array(${indices[0]} + 1).fill(${fillStr})`; // +1 because of 0-based index
 				}
 				results.push(`${ident} = ${createArrStr}`);
@@ -252,7 +252,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			const results: string[] = [];
 			
 			for (const ident of argList) {
-				const initValStr = ident.endsWith("$") ? '" "' : '0';
+				const initValStr = ident.endsWith("$") ? '""' : '0';
 				results.push(`${ident} = ${initValStr}`);
 			}
 
@@ -299,6 +299,16 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			const pad = n.child(0)?.eval();
 			const padStr = pad !== undefined ? `.padStart(${pad} || 0, "0")` : '';
 			return `(${e.eval()}).toString(16).toUpperCase()${padStr}`;
+		},
+
+		Input(_inputLit: Node, message: Node, _semi: Node, e: Node) {
+			semanticsHelper.addInstr("input");
+
+			const msgStr = message.sourceString.replace(/\s*[;,]$/, "");
+			const ident = e.eval();
+			const isNumStr = ident.includes("$") ? "" : ", true";
+
+			return `${ident} = await _input(${msgStr}${isNumStr})`;
 		},
 
 		Int(_intLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -363,6 +373,19 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 
 		Pi(_piLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return "Math.PI";
+		},
+
+		PrintArgs(arg: Node, _printSep: Node, args: Node) {
+			return [arg.eval(), ...evalChildren(args.children)].join(', ');
+		},
+		Print(_printLit: Node, params: Node, semi: Node) {
+			const paramStr = params.child(0)?.eval() || "";
+
+			let newlineStr = "";
+			if (!semi.sourceString) {
+				newlineStr = paramStr ? `, "\\n"` : `"\\n"`;
+			}
+			return `_o.print(${paramStr}${newlineStr})`;
 		},
 
 		Read(_readlit: Node, args: Node) {
@@ -433,7 +456,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			let argStr: string;
 			if (isNaN(Number(arg))) {
 				argStr = `(((${arg}) >= 0) ? " " : "") + String(${arg})`;
-			} else {
+			} else { // simplify if we know at compile time that arg is a positive number
 				argStr = arg >= 0 ? `" " + String(${arg})` : `String(${arg})`;
 			}
 			return argStr;
@@ -528,7 +551,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		DivExp_div(a: Node, _op: Node, b: Node) {
-			return `(${a.eval()} / ${b.eval()}) | 0`;
+			return `((${a.eval()} / ${b.eval()}) | 0)`;
 		},
 
 		MulExp_times(a: Node, _op: Node, b: Node) {
@@ -629,6 +652,8 @@ export class Semantics {
 
 	private static readonly reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;
 
+	private readonly instrMap: Record<string, number> = {};
+
 	private addIndent(num: number) {
 		if (num < 0) {
 			this.applyNextIndent();
@@ -686,6 +711,15 @@ export class Semantics {
 		return this.gosubLabels;
 	}
 
+	private getInstr(name: string) {
+		return this.instrMap[name] || 0;
+	}
+
+	private addInstr(name: string) {
+		this.instrMap[name] = (this.instrMap[name] || 0) + 1;
+		return this.instrMap[name];
+	}
+
 	private getVariables() {
 		return Object.keys(this.variables);
 	}
@@ -739,6 +773,7 @@ export class Semantics {
 			addDefinedLabel: (label: string, line: number) => this.addDefinedLabel(label, line),
 			addGosubLabel: (label: string) => this.addGosubLabel(label),
 			addIndent: (num: number) => this.addIndent(num),
+			addInstr: (name: string) => this.addInstr(name),
 			addRestoreLabel: (label: string) => this.addRestoreLabel(label),
 			applyNextIndent: () => this.applyNextIndent(),
 			getDataList: () => this.getDataList(),
@@ -746,6 +781,7 @@ export class Semantics {
 			getGosubLabels: () => this.getGosubLabels(),
 			getIndent: () => this.getIndent(),
 			getIndentStr: () => this.getIndentStr(),
+			getInstr: (name: string) => this.getInstr(name),
 			getRestoreMap: () => this.getRestoreMap(),
 			getVariable: (name: string) => this.getVariable(name),
 			getVariables: () => this.getVariables(),

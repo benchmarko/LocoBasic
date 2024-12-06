@@ -26,6 +26,7 @@ export const arithmetic = {
      | Erase
      | ForLoop
      | Gosub
+     | Input
      | Next
      | On
      | Print
@@ -87,7 +88,7 @@ export const arithmetic = {
       = caseInsensitive<"end">
 
     Erase
-      = caseInsensitive<"erase"> NonemptyListOf<EraseIdent, ",">
+      = caseInsensitive<"erase"> NonemptyListOf<SimpleIdent, ",">
 
     Exp
       = caseInsensitive<"exp"> "(" NumExp ")"
@@ -103,6 +104,9 @@ export const arithmetic = {
 
     Hex
       = caseInsensitive<"hex$"> "(" NumExp ("," NumExp)? ")"
+
+    Input
+      = caseInsensitive<"input"> (string (";" | ","))? AnyIdent  // or NonemptyListOf?
 
     Int
       = caseInsensitive<"int"> "(" NumExp ")"
@@ -149,14 +153,8 @@ export const arithmetic = {
     PrintArg
       = StrOrNumExp
 
-    ReadItem
-      = StrArrayIdent
-      | ArrayIdent
-      | strIdent
-      | ident
-
     Read
-      = caseInsensitive<"read"> NonemptyListOf<ReadItem, ",">
+      = caseInsensitive<"read"> NonemptyListOf<AnyIdent, ",">
 
     Rem
       = caseInsensitive<"Rem"> partToEol
@@ -352,8 +350,14 @@ export const arithmetic = {
       = ident "(" ArrayArgs ")"
       | strIdent "(" ArrayArgs ")"
 
-    EraseIdent
+    SimpleIdent
       = strIdent
+      | ident
+
+    AnyIdent
+      = StrArrayIdent
+      | ArrayIdent
+      | strIdent
       | ident
 
     keyword

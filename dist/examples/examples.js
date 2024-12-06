@@ -461,6 +461,15 @@ NEXT
 `);
 
 cpcBasic.addItem("", `
+10 rem inputest - Input Test
+20 cls
+30 ?"Name"
+40 input n$
+50 ? "Name is: ";n$
+60 stop
+`);
+
+cpcBasic.addItem("", `
 REM lifegame - Game of Life
 ze=10:sp=10:DIM al(ze,sp+1):DIM ne(ze,sp+1)
 PRINT"L I F E G A M E"
@@ -589,6 +598,49 @@ WHILE m <= n
   m = m + 2
 WEND
 PRINT "Number of primes below ";n;": ";x
+`);
+
+cpcBasic.addItem("", `
+REM sievebe - Sieve Benchmark
+CLS
+loops=10
+n=10000
+DIM sieve1(INT(n / 2) + 1)
+t=TIME
+FOR l = 1 TO loops
+  GOSUB 1000
+NEXT
+t=TIME-t
+PRINT "Number of primes below ";n;": ";x
+PRINT "Loops:";loops;"; Time:";t
+STOP
+'
+1000 'compute number of primes below n
+nHalf = INT(n / 2)
+REM initialize sieve
+FOR i = 0 TO nHalf: sieve1(i) = 0: NEXT i
+REM compute primes
+i = 0
+m = 3
+x = 1
+WHILE m * m <= n
+  IF sieve1(i) = 0 THEN x = x + 1
+  j = INT((m * m - 3) / 2)
+  WHILE j < nHalf
+    sieve1(j) = 1
+    j = j + m
+  WEND
+  i = i + 1
+  m = m + 2
+WEND
+REM count remaining primes
+WHILE m <= n
+  IF sieve1(i) = 0 THEN x = x + 1
+  i = i + 1
+  m = m + 2
+WEND
+RETURN
+'
 `);
 
 cpcBasic.addItem("", `
@@ -828,7 +880,7 @@ dim a(1)
 ''dim a!(1)
 ''dim a%(1)
 dim a$(1)
-dim a(2,13)
+dim b(2,13)
 x=1: dim a(2,13+7),b$(3),c(2*x,7)
 ''dim a[2,13)
 ''draw 10,20
@@ -857,9 +909,9 @@ x=1: dim a(2,13+7),b$(3),c(2*x,7)
 ''env num,steps,dist,ti,steps2,dist2,ti2
 ''env num,=reg,period,=reg2,period2
 ''a=eof
-''erase a
-''erase b$
-''erase a,b$,c!,d%
+dim e(1): erase e
+dim e$(1): erase e$
+dim e(1),e$(1): erase e,e$
 ''1 erase 5
 ''a=erl
 ''a=err
