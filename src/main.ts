@@ -93,11 +93,11 @@ function start(input: string) {
 	if (input !== "") {
 		const compiledScript = core.compileScript(input);
 
-		console.log("INFO: Compiled:\n" + compiledScript + "\n");
+		console.log("INFO: Compiled:\n" + compiledScript + "\n---");
 
 		return keepRunning(async () => {
 			const output = await core.executeScript(compiledScript);
-			console.log(output);
+			console.log(output.replace(/\n$/, ""));
 		}, 5000);
 	} else {
 		console.log("No input");

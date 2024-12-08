@@ -108,6 +108,9 @@ export const arithmetic = {
     Input
       = caseInsensitive<"input"> (string (";" | ","))? AnyIdent  // or NonemptyListOf?
 
+    Instr
+      = caseInsensitive<"instr"> "(" StrExp "," StrExp ")"
+
     Int
       = caseInsensitive<"int"> "(" NumExp ")"
 
@@ -320,6 +323,7 @@ export const arithmetic = {
       | Cos
       | Exp
       | Fix
+      | Instr
       | Int
       | Len
       | Log

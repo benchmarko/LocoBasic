@@ -124,7 +124,6 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 
 			const commentStr = comment.sourceString ? `; //${comment.sourceString.substring(1)}` : "";
 			const semi = lineStr === "" || lineStr.endsWith("{") || lineStr.endsWith("}") || lineStr.startsWith("//") || commentStr ? "" : ";";
-			//lineIndex += 1;
 
 			const indentStr = semanticsHelper.getIndentStr();
 			semanticsHelper.applyNextIndent();
@@ -192,7 +191,6 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			}
 
 			dataList.push(argList.join(", "));
-			//defineData(argList);
 			return "";
 		},
 
@@ -309,6 +307,10 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			const isNumStr = ident.includes("$") ? "" : ", true";
 
 			return `${ident} = await _input(${msgStr}${isNumStr})`;
+		},
+
+		Instr(_instrLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `((${e1.eval()}).indexOf(${e2.eval()}) + 1)`;
 		},
 
 		Int(_intLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -734,7 +736,7 @@ export class Semantics {
 		return name;
 	}
 
-	private deleteAllItems(items: Record<string, any>) {
+	private static deleteAllItems(items: Record<string, any>) {
 		for (const name in items) { // eslint-disable-line guard-for-in
 			delete items[name];
 		}
@@ -761,11 +763,12 @@ export class Semantics {
 		this.lineIndex = 0;
 		this.indent = 0;
 		this.indentAdd = 0;
-		this.deleteAllItems(this.variables);
+		Semantics.deleteAllItems(this.variables);
 		this.definedLabels.length = 0;
-		this.deleteAllItems(this.gosubLabels);
+		Semantics.deleteAllItems(this.gosubLabels);
 		this.dataList.length = 0;
-		this.deleteAllItems(this.restoreMap);
+		Semantics.deleteAllItems(this.restoreMap);
+		Semantics.deleteAllItems(this.instrMap);
 	}
 
 	public getSemantics() {

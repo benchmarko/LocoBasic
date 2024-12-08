@@ -49,7 +49,7 @@ export class Ui implements IUi {
 
 		const output = await this.core.executeScript(compiledScript);
 
-		this.setOutputText(this.getOutputText() + output);
+		this.setOutputText(this.getOutputText() + output + (output.endsWith("\n") ? "" : "\n"));
 	}
 
 	private oncompiledTextChange(_event: Event) { // eslint-disable-line @typescript-eslint/no-unused-vars
