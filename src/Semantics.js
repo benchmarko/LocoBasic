@@ -69,7 +69,6 @@ function getSemantics(semanticsHelper) {
             }
             const commentStr = comment.sourceString ? `; //${comment.sourceString.substring(1)}` : "";
             const semi = lineStr === "" || lineStr.endsWith("{") || lineStr.endsWith("}") || lineStr.startsWith("//") || commentStr ? "" : ";";
-            //lineIndex += 1;
             const indentStr = semanticsHelper.getIndentStr();
             semanticsHelper.applyNextIndent();
             return indentStr + lineStr + commentStr + semi;
@@ -121,7 +120,6 @@ function getSemantics(semanticsHelper) {
                 currentLabel.dataIndex = dataIndex;
             }
             dataList.push(argList.join(", "));
-            //defineData(argList);
             return "";
         },
         Dim(_dimLit, arrayIdents) {
@@ -215,6 +213,9 @@ function getSemantics(semanticsHelper) {
             const ident = e.eval();
             const isNumStr = ident.includes("$") ? "" : ", true";
             return `${ident} = await _input(${msgStr}${isNumStr})`;
+        },
+        Instr(_instrLit, _open, e1, _comma, e2, _close) {
+            return `((${e1.eval()}).indexOf(${e2.eval()}) + 1)`;
         },
         Int(_intLit, _open, e, _close) {
             return `Math.floor(${e.eval()})`;
@@ -557,7 +558,7 @@ export class Semantics {
         this.variables[name] = (this.variables[name] || 0) + 1;
         return name;
     }
-    deleteAllItems(items) {
+    static deleteAllItems(items) {
         for (const name in items) { // eslint-disable-line guard-for-in
             delete items[name];
         }
@@ -579,11 +580,12 @@ export class Semantics {
         this.lineIndex = 0;
         this.indent = 0;
         this.indentAdd = 0;
-        this.deleteAllItems(this.variables);
+        Semantics.deleteAllItems(this.variables);
         this.definedLabels.length = 0;
-        this.deleteAllItems(this.gosubLabels);
+        Semantics.deleteAllItems(this.gosubLabels);
         this.dataList.length = 0;
-        this.deleteAllItems(this.restoreMap);
+        Semantics.deleteAllItems(this.restoreMap);
+        Semantics.deleteAllItems(this.instrMap);
     }
     getSemantics() {
         const semanticsHelper = {

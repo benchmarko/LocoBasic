@@ -78,10 +78,10 @@ function keepRunning(fn, timeout) {
 function start(input) {
     if (input !== "") {
         const compiledScript = core.compileScript(input);
-        console.log("INFO: Compiled:\n" + compiledScript + "\n");
+        console.log("INFO: Compiled:\n" + compiledScript + "\n---");
         return keepRunning(() => __awaiter(this, void 0, void 0, function* () {
             const output = yield core.executeScript(compiledScript);
-            console.log(output);
+            console.log(output.replace(/\n$/, ""));
         }), 5000);
     }
     else {

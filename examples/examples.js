@@ -1005,8 +1005,8 @@ if a=1 then a=2 else a=1
 ''input ;"para noCRLF";a$,b
 ''input#2,;"para noCRLF";a$,b
 ''input#stream,;"string";a$,b
-''a=instr("key","ey")
-''a=instr(s$,find$)
+a=instr("key","ey")
+a=instr(s$,find$)
 ''a=instr(start,s$,find$)
 a=int(-2.3)
 a=int(b+2.3)

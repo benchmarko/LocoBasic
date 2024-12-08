@@ -24,7 +24,7 @@ export declare class Semantics {
     private addInstr;
     private getVariables;
     private getVariable;
-    private deleteAllItems;
+    private static deleteAllItems;
     private incrementLineIndex;
     private getRestoreMap;
     private addRestoreLabel;

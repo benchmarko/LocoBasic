@@ -43,7 +43,7 @@ export class Ui {
             const compiledText = document.getElementById("compiledText");
             const compiledScript = this.compiledCm ? this.compiledCm.getValue() : compiledText.value;
             const output = yield this.core.executeScript(compiledScript);
-            this.setOutputText(this.getOutputText() + output);
+            this.setOutputText(this.getOutputText() + output + (output.endsWith("\n") ? "" : "\n"));
         });
     }
     oncompiledTextChange(_event) {

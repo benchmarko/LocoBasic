@@ -85,7 +85,7 @@ export class Core {
         return __awaiter(this, void 0, void 0, function* () {
             this.vm.setOutput("");
             if (compiledScript.startsWith("ERROR")) {
-                return "ERROR" + "\n";
+                return "ERROR";
             }
             let output;
             try {
@@ -115,7 +115,7 @@ export class Core {
                     output += "unknown";
                 }
             }
-            return output + "\n";
+            return output;
         });
     }
 }

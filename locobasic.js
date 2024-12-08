@@ -170,6 +170,9 @@
     Input
       = caseInsensitive<"input"> (string (";" | ","))? AnyIdent  // or NonemptyListOf?
 
+    Instr
+      = caseInsensitive<"instr"> "(" StrExp "," StrExp ")"
+
     Int
       = caseInsensitive<"int"> "(" NumExp ")"
 
@@ -382,6 +385,7 @@
       | Cos
       | Exp
       | Fix
+      | Instr
       | Int
       | Len
       | Log
@@ -882,7 +886,6 @@
                 }
                 const commentStr = comment.sourceString ? `; //${comment.sourceString.substring(1)}` : "";
                 const semi = lineStr === "" || lineStr.endsWith("{") || lineStr.endsWith("}") || lineStr.startsWith("//") || commentStr ? "" : ";";
-                //lineIndex += 1;
                 const indentStr = semanticsHelper.getIndentStr();
                 semanticsHelper.applyNextIndent();
                 return indentStr + lineStr + commentStr + semi;
@@ -934,7 +937,6 @@
                     currentLabel.dataIndex = dataIndex;
                 }
                 dataList.push(argList.join(", "));
-                //defineData(argList);
                 return "";
             },
             Dim(_dimLit, arrayIdents) {
@@ -1028,6 +1030,9 @@
                 const ident = e.eval();
                 const isNumStr = ident.includes("$") ? "" : ", true";
                 return `${ident} = await _input(${msgStr}${isNumStr})`;
+            },
+            Instr(_instrLit, _open, e1, _comma, e2, _close) {
+                return `((${e1.eval()}).indexOf(${e2.eval()}) + 1)`;
             },
             Int(_intLit, _open, e, _close) {
                 return `Math.floor(${e.eval()})`;
@@ -1370,7 +1375,7 @@
             this.variables[name] = (this.variables[name] || 0) + 1;
             return name;
         }
-        deleteAllItems(items) {
+        static deleteAllItems(items) {
             for (const name in items) { // eslint-disable-line guard-for-in
                 delete items[name];
             }
@@ -1392,11 +1397,12 @@
             this.lineIndex = 0;
             this.indent = 0;
             this.indentAdd = 0;
-            this.deleteAllItems(this.variables);
+            Semantics.deleteAllItems(this.variables);
             this.definedLabels.length = 0;
-            this.deleteAllItems(this.gosubLabels);
+            Semantics.deleteAllItems(this.gosubLabels);
             this.dataList.length = 0;
-            this.deleteAllItems(this.restoreMap);
+            Semantics.deleteAllItems(this.restoreMap);
+            Semantics.deleteAllItems(this.instrMap);
         }
         getSemantics() {
             const semanticsHelper = {
@@ -1499,7 +1505,7 @@
             return __awaiter(this, void 0, void 0, function* () {
                 this.vm.setOutput("");
                 if (compiledScript.startsWith("ERROR")) {
-                    return "ERROR" + "\n";
+                    return "ERROR";
                 }
                 let output;
                 try {
@@ -1529,7 +1535,7 @@
                         output += "unknown";
                     }
                 }
-                return output + "\n";
+                return output;
             });
         }
     }
@@ -1570,7 +1576,7 @@
                 const compiledText = document.getElementById("compiledText");
                 const compiledScript = this.compiledCm ? this.compiledCm.getValue() : compiledText.value;
                 const output = yield this.core.executeScript(compiledScript);
-                this.setOutputText(this.getOutputText() + output);
+                this.setOutputText(this.getOutputText() + output + (output.endsWith("\n") ? "" : "\n"));
             });
         }
         oncompiledTextChange(_event) {
@@ -1766,10 +1772,10 @@
     function start(input) {
         if (input !== "") {
             const compiledScript = core.compileScript(input);
-            console.log("INFO: Compiled:\n" + compiledScript + "\n");
+            console.log("INFO: Compiled:\n" + compiledScript + "\n---");
             return keepRunning(() => __awaiter(this, void 0, void 0, function* () {
                 const output = yield core.executeScript(compiledScript);
-                console.log(output);
+                console.log(output.replace(/\n$/, ""));
             }), 5000);
         }
         else {
