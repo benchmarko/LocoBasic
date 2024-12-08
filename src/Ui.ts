@@ -2,10 +2,55 @@
 
 import { ICore, IUi, ConfigType } from "./Interfaces";
 
+// Worker:
+type PlainErrorEventType = {
+	lineno: number,
+	colno: number,
+	message: string
+};
+
+type ProcessingQueueType = {
+	resolve: (value: PlainErrorEventType) => void,
+	jsText: string
+};
+
+// based on: https://stackoverflow.com/questions/35252731/find-details-of-syntaxerror-thrown-by-javascript-new-function-constructor
+// https://stackoverflow.com/a/55555357
+const workerFn = () => {
+	const doEvalAndReply = (jsText: string) => {
+		self.addEventListener(
+			'error',
+			(errorEvent) => {
+				// Don't pollute the browser console:
+				errorEvent.preventDefault();
+				// The properties we want are actually getters on the prototype;
+				// they won't be retrieved when just stringifying so, extract them manually, and put them into a new object:
+				const { lineno, colno, message } = errorEvent;
+				const plainErrorEventObj: PlainErrorEventType = { lineno, colno, message };
+				self.postMessage(JSON.stringify(plainErrorEventObj));
+			},
+			{ once: true }
+		);
+		/* const fn = */ new Function("_o", jsText);
+		const plainErrorEventObj: PlainErrorEventType = {
+			lineno: -1,
+			colno: -1,
+			message: 'No Error: Parsing successful!'
+		};
+		self.postMessage(JSON.stringify(plainErrorEventObj));
+	};
+	self.addEventListener('message', (e) => {
+		doEvalAndReply(e.data);
+	});
+};
+
+
 export class Ui implements IUi {
 	private readonly core: ICore;
 	private basicCm: any;
 	private compiledCm: any;
+	//private static worker?: Worker;
+	private static getErrorEvent?: (s: string) => Promise<PlainErrorEventType>;
 
 	constructor(core: ICore) {
 		this.core = core;
@@ -52,7 +97,7 @@ export class Ui implements IUi {
 		this.setOutputText(this.getOutputText() + output + (output.endsWith("\n") ? "" : "\n"));
 	}
 
-	private oncompiledTextChange(_event: Event) { // eslint-disable-line @typescript-eslint/no-unused-vars
+	private onCompiledTextChange(_event: Event) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		const autoExecuteInput = document.getElementById("autoExecuteInput") as HTMLInputElement;
 		if (autoExecuteInput.checked) {
 			const executeButton = window.document.getElementById("executeButton") as HTMLButtonElement;
@@ -107,7 +152,6 @@ export class Ui implements IUi {
 		}
 	}
 
-
 	private setExampleSelectOptions(examples: Record<string, string>) {
 		const exampleSelect = document.getElementById("exampleSelect") as HTMLSelectElement;
 
@@ -122,6 +166,69 @@ export class Ui implements IUi {
 			option.selected = false;
 			exampleSelect.add(option);
 		}
+	}
+
+	private static getErrorEventFn() {
+		if (Ui.getErrorEvent) {
+			return Ui.getErrorEvent;
+		}
+
+		const blob = new Blob(
+			[`(${workerFn})();`],
+			{ type: "text/javascript" }
+		);
+
+		const worker = new Worker(window.URL.createObjectURL(blob));
+		// Use a queue to ensure processNext only calls the worker once the worker is idle
+		const processingQueue: ProcessingQueueType[] = [];
+		let processing = false;
+
+		const processNext = () => {
+			processing = true;
+			const { resolve, jsText } = processingQueue.shift() as ProcessingQueueType;
+			worker.addEventListener(
+				'message',
+				({ data }) => {
+					resolve(JSON.parse(data));
+					if (processingQueue.length) {
+						processNext();
+					} else {
+						processing = false;
+					}
+				},
+				{ once: true }
+			);
+			worker.postMessage(jsText);
+		};
+
+		const getErrorEvent = (jsText: string) => new Promise<PlainErrorEventType>((resolve) => {
+			processingQueue.push({ resolve, jsText });
+			if (!processing) {
+				processNext();
+			}
+		});
+
+		Ui.getErrorEvent = getErrorEvent;
+		return getErrorEvent;
+	}
+
+	private static describeError(stringToEval: string, lineno: number, colno: number) {
+		const lines = stringToEval.split('\n');
+		const line = lines[lineno - 1];
+		return `${line}\n${' '.repeat(colno - 1) + '^'}`;
+	}
+
+	public async checkSyntax(str: string) {
+		const getErrorEvent = Ui.getErrorEventFn();
+
+		let output = "";
+		const { lineno, colno, message } = await getErrorEvent(str);
+		if (message === 'No Error: Parsing successful!') {
+			return "";
+		}
+		output += `Syntax error thrown at: Line ${lineno - 2}, col: ${colno}\n`; // lineNo -2 because of anonymous function added by new Function() constructor
+		output += Ui.describeError(str, lineno - 2, colno);
+		return output;
 	}
 
 	private fnDecodeUri(s: string) {
@@ -161,7 +268,7 @@ export class Ui implements IUi {
 		basicText.addEventListener('change', (event) => this.onbasicTextChange(event));
 
 		const compiledText = window.document.getElementById("compiledText") as HTMLTextAreaElement;
-		compiledText.addEventListener('change', (event) => this.oncompiledTextChange(event));
+		compiledText.addEventListener('change', (event) => this.onCompiledTextChange(event));
 
 		const compileButton = window.document.getElementById("compileButton") as HTMLButtonElement;
 		compileButton.addEventListener('click', (event) => this.onCompileButtonClick(event), false);
@@ -184,7 +291,7 @@ export class Ui implements IUi {
 				lineNumbers: true,
 				mode: 'javascript'
 			});
-			this.compiledCm.on('changes', this.debounce((event: Event) => this.oncompiledTextChange(event), "debounceExecute"));
+			this.compiledCm.on('changes', this.debounce((event: Event) => this.onCompiledTextChange(event), "debounceExecute"));
 		}
 
 		Ui.asyncDelay(() => {

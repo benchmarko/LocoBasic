@@ -56,6 +56,8 @@ export class Core implements ICore {
 
 	private vm = vm;
 
+	private onCheckSyntax = async (_s: string) => ""; // eslint-disable-line @typescript-eslint/no-unused-vars
+
 	public getConfigObject() {
 		return this.startConfig;
 	}
@@ -80,6 +82,10 @@ export class Core implements ICore {
 		vm.setOnCls(fn);
 	}
 
+	setOnCheckSyntax(fn: (s: string) => Promise<string>) {
+		this.onCheckSyntax = fn;
+	}
+
 	private arithmeticParser: Parser | undefined;
 
 	public compileScript(script: string) {
@@ -100,6 +106,12 @@ export class Core implements ICore {
 		}
 
 		let output: string;
+		output = await this.onCheckSyntax(compiledScript);
+		if (output) {
+			vm.cls();
+			return "ERROR: " + output;
+		}
+
 		try {
 			const fnScript = new Function("_o", compiledScript);
 			const result = fnScript(this.vm) || "";
@@ -111,17 +123,18 @@ export class Core implements ICore {
 			}
 
 		} catch (error) {
+			vm.cls();
 			output = "ERROR: ";
 			if (error instanceof Error) {
-				output += error.message;
+				output += String(error);
 
 				const anyErr = error as any;
 				const lineNumber = anyErr.lineNumber; // only on FireFox
 				const columnNumber = anyErr.columnNumber; // only on FireFox
 
 				if (lineNumber || columnNumber) {
-					const errLine = lineNumber - 2; // for some reason line 0 is 2
-					output += ` (line ${errLine}, column ${columnNumber})`;
+					const errLine = lineNumber - 2; // lineNumber -2 because of anonymous function added by new Function() constructor
+					output += ` (Line ${errLine}, column ${columnNumber})`;
 				}
 			} else {
 				output += "unknown";

@@ -148,6 +148,7 @@ if (typeof window !== "undefined") {
 		fnParseArgs(args, config);
 
 		core.setOnCls(() => ui.setOutputText(""));
+		core.setOnCheckSyntax((s: string) => Promise.resolve(ui.checkSyntax(s)));
 		ui.onWindowLoad(new Event("onload"));
 	}
 
