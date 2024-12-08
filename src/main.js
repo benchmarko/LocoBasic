@@ -127,6 +127,7 @@ if (typeof window !== "undefined") {
         const args = ui.parseUri(window.location.search.substring(1), config);
         fnParseArgs(args, config);
         core.setOnCls(() => ui.setOutputText(""));
+        core.setOnCheckSyntax((s) => Promise.resolve(ui.checkSyntax(s)));
         ui.onWindowLoad(new Event("onload"));
     };
 }

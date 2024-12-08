@@ -54,6 +54,7 @@ export class Core {
         this.semantics = new Semantics();
         this.examples = {};
         this.vm = vm;
+        this.onCheckSyntax = (_s) => __awaiter(this, void 0, void 0, function* () { return ""; }); // eslint-disable-line @typescript-eslint/no-unused-vars
     }
     getConfigObject() {
         return this.startConfig;
@@ -73,6 +74,9 @@ export class Core {
     setOnCls(fn) {
         vm.setOnCls(fn);
     }
+    setOnCheckSyntax(fn) {
+        this.onCheckSyntax = fn;
+    }
     compileScript(script) {
         if (!this.arithmeticParser) {
             this.arithmeticParser = new Parser(arithmetic.grammar, this.semantics.getSemantics());
@@ -88,6 +92,11 @@ export class Core {
                 return "ERROR";
             }
             let output;
+            output = yield this.onCheckSyntax(compiledScript);
+            if (output) {
+                vm.cls();
+                return "ERROR: " + output;
+            }
             try {
                 const fnScript = new Function("_o", compiledScript);
                 const result = fnScript(this.vm) || "";
@@ -100,15 +109,16 @@ export class Core {
                 }
             }
             catch (error) {
+                vm.cls();
                 output = "ERROR: ";
                 if (error instanceof Error) {
-                    output += error.message;
+                    output += String(error);
                     const anyErr = error;
                     const lineNumber = anyErr.lineNumber; // only on FireFox
                     const columnNumber = anyErr.columnNumber; // only on FireFox
                     if (lineNumber || columnNumber) {
-                        const errLine = lineNumber - 2; // for some reason line 0 is 2
-                        output += ` (line ${errLine}, column ${columnNumber})`;
+                        const errLine = lineNumber - 2; // lineNumber -2 because of anonymous function added by new Function() constructor
+                        output += ` (Line ${errLine}, column ${columnNumber})`;
                     }
                 }
                 else {

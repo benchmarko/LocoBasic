@@ -8,6 +8,31 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+// based on: https://stackoverflow.com/questions/35252731/find-details-of-syntaxerror-thrown-by-javascript-new-function-constructor
+// https://stackoverflow.com/a/55555357
+const workerFn = () => {
+    const doEvalAndReply = (jsText) => {
+        self.addEventListener('error', (errorEvent) => {
+            // Don't pollute the browser console:
+            errorEvent.preventDefault();
+            // The properties we want are actually getters on the prototype;
+            // they won't be retrieved when just stringifying so, extract them manually, and put them into a new object:
+            const { lineno, colno, message } = errorEvent;
+            const plainErrorEventObj = { lineno, colno, message };
+            self.postMessage(JSON.stringify(plainErrorEventObj));
+        }, { once: true });
+        /* const fn = */ new Function("_o", jsText);
+        const plainErrorEventObj = {
+            lineno: -1,
+            colno: -1,
+            message: 'No Error: Parsing successful!'
+        };
+        self.postMessage(JSON.stringify(plainErrorEventObj));
+    };
+    self.addEventListener('message', (e) => {
+        doEvalAndReply(e.data);
+    });
+};
 export class Ui {
     constructor(core) {
         this.core = core;
@@ -46,7 +71,7 @@ export class Ui {
             this.setOutputText(this.getOutputText() + output + (output.endsWith("\n") ? "" : "\n"));
         });
     }
-    oncompiledTextChange(_event) {
+    onCompiledTextChange(_event) {
         const autoExecuteInput = document.getElementById("autoExecuteInput");
         if (autoExecuteInput.checked) {
             const executeButton = window.document.getElementById("executeButton");
@@ -109,6 +134,56 @@ export class Ui {
             exampleSelect.add(option);
         }
     }
+    static getErrorEventFn() {
+        if (Ui.getErrorEvent) {
+            return Ui.getErrorEvent;
+        }
+        const blob = new Blob([`(${workerFn})();`], { type: "text/javascript" });
+        const worker = new Worker(window.URL.createObjectURL(blob));
+        // Use a queue to ensure processNext only calls the worker once the worker is idle
+        const processingQueue = [];
+        let processing = false;
+        const processNext = () => {
+            processing = true;
+            const { resolve, jsText } = processingQueue.shift();
+            worker.addEventListener('message', ({ data }) => {
+                resolve(JSON.parse(data));
+                if (processingQueue.length) {
+                    processNext();
+                }
+                else {
+                    processing = false;
+                }
+            }, { once: true });
+            worker.postMessage(jsText);
+        };
+        const getErrorEvent = (jsText) => new Promise((resolve) => {
+            processingQueue.push({ resolve, jsText });
+            if (!processing) {
+                processNext();
+            }
+        });
+        Ui.getErrorEvent = getErrorEvent;
+        return getErrorEvent;
+    }
+    static describeError(stringToEval, lineno, colno) {
+        const lines = stringToEval.split('\n');
+        const line = lines[lineno - 1];
+        return `${line}\n${' '.repeat(colno - 1) + '^'}`;
+    }
+    checkSyntax(str) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const getErrorEvent = Ui.getErrorEventFn();
+            let output = "";
+            const { lineno, colno, message } = yield getErrorEvent(str);
+            if (message === 'No Error: Parsing successful!') {
+                return "";
+            }
+            output += `Syntax error thrown at: Line ${lineno - 2}, col: ${colno}\n`; // lineNo -2 because of anonymous function added by new Function() constructor
+            output += Ui.describeError(str, lineno - 2, colno);
+            return output;
+        });
+    }
     fnDecodeUri(s) {
         let decoded = "";
         try {
@@ -138,7 +213,7 @@ export class Ui {
         const basicText = window.document.getElementById("basicText");
         basicText.addEventListener('change', (event) => this.onbasicTextChange(event));
         const compiledText = window.document.getElementById("compiledText");
-        compiledText.addEventListener('change', (event) => this.oncompiledTextChange(event));
+        compiledText.addEventListener('change', (event) => this.onCompiledTextChange(event));
         const compileButton = window.document.getElementById("compileButton");
         compileButton.addEventListener('click', (event) => this.onCompileButtonClick(event), false);
         const executeButton = window.document.getElementById("executeButton");
@@ -156,7 +231,7 @@ export class Ui {
                 lineNumbers: true,
                 mode: 'javascript'
             });
-            this.compiledCm.on('changes', this.debounce((event) => this.oncompiledTextChange(event), "debounceExecute"));
+            this.compiledCm.on('changes', this.debounce((event) => this.onCompiledTextChange(event), "debounceExecute"));
         }
         Ui.asyncDelay(() => {
             const core = this.core;
