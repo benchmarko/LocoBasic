@@ -7,6 +7,7 @@ export declare class Semantics {
     private readonly definedLabels;
     private readonly gosubLabels;
     private readonly dataList;
+    private dataIndex;
     private readonly restoreMap;
     private static readonly reJsKeyword;
     private readonly instrMap;
@@ -16,11 +17,13 @@ export declare class Semantics {
     private getIndentStr;
     private applyNextIndent;
     private nextIndentAdd;
+    private addDataIndex;
+    private getDataIndex;
     private addDefinedLabel;
     private getDefinedLabels;
     private addGosubLabel;
     private getGosubLabels;
-    private getInstr;
+    private getInstrKeys;
     private addInstr;
     private getVariables;
     private getVariable;

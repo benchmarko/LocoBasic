@@ -1,3 +1,34 @@
+function getCodeSnippets() {
+    let _data = [];
+    let _dataPtr = 0;
+    let _restoreMap = {};
+    //let dataList: (string|number)[] = []; // eslint-disable-line prefer-const
+    const codeSnippets = {
+        _dataDefine: function _dataDefine() {
+            _data = [];
+            _dataPtr = 0;
+            _restoreMap = {};
+        },
+        _dim: function _dim(dims, initVal = 0) {
+            const createRecursiveArray = (depth) => {
+                const length = dims[depth] + 1; // +1 because of 0-based index
+                const array = Array.from({ length }, () => depth + 1 < dims.length ? createRecursiveArray(depth + 1) : initVal);
+                return array;
+            };
+            return createRecursiveArray(0);
+        },
+        _input: function _input(msg, isNum) {
+            return new Promise(resolve => setTimeout(() => resolve(isNum ? Number(prompt(msg)) : prompt(msg)), 0));
+        },
+        _read: function _read() {
+            return _data[_dataPtr++];
+        },
+        _restore: function _restore(label) {
+            _dataPtr = _restoreMap[label];
+        }
+    };
+    return codeSnippets;
+}
 function evalChildren(children) {
     return children.map(c => c.eval());
 }
@@ -35,18 +66,27 @@ function getSemantics(semanticsHelper) {
             }
             const dataList = semanticsHelper.getDataList();
             if (dataList.length) {
-                lineList.unshift(`const _data = _getData();\nlet _dataPrt = 0;`);
-                lineList.push(`function _getData() {\n  return [\n${dataList.join(",\n")}\n  ];\n}`);
+                //let startIdx = 0;
+                for (const key of Object.keys(restoreMap)) {
+                    let index = restoreMap[key];
+                    if (index < 0) {
+                        index = 0;
+                        restoreMap[key] = index; //TODO
+                    }
+                }
+                lineList.unshift(`const {_data, _restoreMap} = _defineData();\nlet _dataPrt = 0;`);
+                lineList.push(`function _defineData() {\n  const _data = [\n${dataList.join(",\n")}\n  ];\nconst _restoreMap =\n    ${JSON.stringify(restoreMap)};\nreturn {_data, _restoreMap}\n}`);
             }
-            if (Object.keys(restoreMap).length) {
-                lineList.unshift(`const _restoreMap = _getRestore();`);
-                lineList.push(`function _getRestore() {\n  return [\n    ${JSON.stringify(restoreMap)}\n  ];\n}`);
+            lineList.push("// library");
+            const instrKeys = semanticsHelper.getInstrKeys();
+            const codeSnippets = getCodeSnippets();
+            for (const key of instrKeys) {
+                lineList.push(String(codeSnippets[key]));
             }
             if (varStr) {
                 lineList.unshift(varStr);
             }
-            if (semanticsHelper.getInstr("input")) {
-                lineList.push(`async function _input(msg, isNum) {\n  return new Promise(resolve => setTimeout(() => resolve(isNum ? Number(prompt(msg)) : prompt(msg)), 0));\n}`);
+            if (instrKeys.includes("_input")) {
                 lineList.unshift(`return async function() {`);
                 lineList.push('}();');
             }
@@ -112,14 +152,15 @@ function getSemantics(semanticsHelper) {
         },
         Data(_datalit, args) {
             const argList = args.asIteration().children.map(c => c.eval());
-            const dataList = semanticsHelper.getDataList();
             const definedLabels = semanticsHelper.getDefinedLabels();
-            const dataIndex = dataList.length;
             if (definedLabels.length) {
+                const dataIndex = semanticsHelper.getDataIndex();
                 const currentLabel = definedLabels[definedLabels.length - 1];
                 currentLabel.dataIndex = dataIndex;
             }
+            const dataList = semanticsHelper.getDataList();
             dataList.push(argList.join(", "));
+            semanticsHelper.addDataIndex(argList.length);
             return "";
         },
         Dim(_dimLit, arrayIdents) {
@@ -130,7 +171,8 @@ function getSemantics(semanticsHelper) {
                 let createArrStr;
                 if (indices.length > 1) { // multi-dimensional?
                     const initValStr = ident.endsWith("$") ? ', ""' : '';
-                    createArrStr = `_o.dimArray([${indices}]${initValStr})`; // automatically joined with comma
+                    createArrStr = `_dim([${indices}]${initValStr})`; // indices are automatically joined with comma
+                    semanticsHelper.addInstr("_dim");
                 }
                 else {
                     const fillStr = ident.endsWith("$") ? `""` : "0";
@@ -208,7 +250,7 @@ function getSemantics(semanticsHelper) {
             return `(${e.eval()}).toString(16).toUpperCase()${padStr}`;
         },
         Input(_inputLit, message, _semi, e) {
-            semanticsHelper.addInstr("input");
+            semanticsHelper.addInstr("_input");
             const msgStr = message.sourceString.replace(/\s*[;,]$/, "");
             const ident = e.eval();
             const isNumStr = ident.includes("$") ? "" : ", true";
@@ -281,10 +323,12 @@ function getSemantics(semanticsHelper) {
             return `_o.print(${paramStr}${newlineStr})`;
         },
         Read(_readlit, args) {
+            semanticsHelper.addInstr("_read");
             const argList = args.asIteration().children.map(c => c.eval());
             const results = [];
             for (const ident of argList) {
-                results.push(`${ident} = _data[_dataPrt++]`);
+                //results.push(`${ident} = _data[_dataPrt++]`);
+                results.push(`${ident} = _read()`);
             }
             return results.join("; ");
         },
@@ -294,7 +338,8 @@ function getSemantics(semanticsHelper) {
         Restore(_restoreLit, e) {
             const labelStr = e.sourceString || "0";
             semanticsHelper.addRestoreLabel(labelStr);
-            return `_dataPtr = _restoreMap[${labelStr}]`;
+            semanticsHelper.addInstr("_restore");
+            return `_restore(${labelStr})`;
         },
         Return(_returnLit) {
             return "return";
@@ -490,6 +535,7 @@ export class Semantics {
         this.definedLabels = [];
         this.gosubLabels = {};
         this.dataList = [];
+        this.dataIndex = 0;
         this.restoreMap = {};
         this.instrMap = {};
     }
@@ -520,6 +566,12 @@ export class Semantics {
     nextIndentAdd(num) {
         this.indentAdd += num;
     }
+    addDataIndex(count) {
+        return this.dataIndex += count;
+    }
+    getDataIndex() {
+        return this.dataIndex;
+    }
     addDefinedLabel(label, line) {
         this.definedLabels.push({
             label,
@@ -540,8 +592,8 @@ export class Semantics {
     getGosubLabels() {
         return this.gosubLabels;
     }
-    getInstr(name) {
-        return this.instrMap[name] || 0;
+    getInstrKeys() {
+        return Object.keys(this.instrMap);
     }
     addInstr(name) {
         this.instrMap[name] = (this.instrMap[name] || 0) + 1;
@@ -584,23 +636,27 @@ export class Semantics {
         this.definedLabels.length = 0;
         Semantics.deleteAllItems(this.gosubLabels);
         this.dataList.length = 0;
+        this.dataIndex = 0;
         Semantics.deleteAllItems(this.restoreMap);
         Semantics.deleteAllItems(this.instrMap);
     }
     getSemantics() {
         const semanticsHelper = {
+            addDataIndex: (count) => this.addDataIndex(count),
             addDefinedLabel: (label, line) => this.addDefinedLabel(label, line),
             addGosubLabel: (label) => this.addGosubLabel(label),
             addIndent: (num) => this.addIndent(num),
             addInstr: (name) => this.addInstr(name),
             addRestoreLabel: (label) => this.addRestoreLabel(label),
             applyNextIndent: () => this.applyNextIndent(),
+            getDataIndex: () => this.getDataIndex(),
             getDataList: () => this.getDataList(),
             getDefinedLabels: () => this.getDefinedLabels(),
             getGosubLabels: () => this.getGosubLabels(),
             getIndent: () => this.getIndent(),
             getIndentStr: () => this.getIndentStr(),
-            getInstr: (name) => this.getInstr(name),
+            //getInstr: (name: string) => this.getInstr(name),
+            getInstrKeys: () => this.getInstrKeys(),
             getRestoreMap: () => this.getRestoreMap(),
             getVariable: (name) => this.getVariable(name),
             getVariables: () => this.getVariables(),

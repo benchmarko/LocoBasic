@@ -14,23 +14,6 @@ import { Semantics } from "./Semantics";
 const vm = {
     _output: "",
     _fnOnCls: (() => undefined),
-    dimArray: (dims, initVal = 0) => {
-        const createRecursiveArray = function (depth) {
-            const length = dims[depth] + 1, // +1 because of 0-based index
-            array = new Array(length);
-            depth += 1;
-            if (depth < dims.length) { // more dimensions?
-                for (let i = 0; i < length; i += 1) {
-                    array[i] = createRecursiveArray(depth); // recursive call
-                }
-            }
-            else { // one dimension
-                array.fill(initVal);
-            }
-            return array;
-        };
-        return createRecursiveArray(0);
-    },
     cls: () => {
         vm._output = "";
         vm._fnOnCls();
