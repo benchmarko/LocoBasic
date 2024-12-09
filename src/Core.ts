@@ -5,28 +5,9 @@ import { Parser } from "./Parser";
 import { arithmetic } from "./arithmetic";
 import { Semantics } from "./Semantics";
 
-type VariableValue = string | number | [] | VariableValue[];
-
 const vm = {
 	_output: "",
 	_fnOnCls: (() => undefined) as () => void,
-	dimArray: (dims: number[], initVal: string | number = 0) => {
-		const createRecursiveArray = function (depth: number) {
-			const length = dims[depth] + 1, // +1 because of 0-based index
-				array: VariableValue[] = new Array(length);
-
-			depth += 1;
-			if (depth < dims.length) { // more dimensions?
-				for (let i = 0; i < length; i += 1) {
-					array[i] = createRecursiveArray(depth); // recursive call
-				}
-			} else { // one dimension
-				array.fill(initVal);
-			}
-			return array;
-		};
-		return createRecursiveArray(0);
-	},
 	cls: () => {
 		vm._output = "";
 		vm._fnOnCls();

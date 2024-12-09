@@ -37,7 +37,7 @@
 - numbers with exponential notation
 - command line tool should output a stand alone running JS file for node, so include dimArray() on-demand in the compiled source?
 - TIME: *300/1000 ?
-- mid$ as assing? a$="abcde":mid$(a$,3,2)="w":?a$ ?
+- mid$ as assign? a$="abcde":mid$(a$,3,2)="w":?a$ ?
 - Do we want keywords all uppercase? And variables all lowercase?
   And maybe new features with capital letter? E.g. If...Then...Else...Endif on multiple lines?
 

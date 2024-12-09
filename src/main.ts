@@ -38,23 +38,24 @@ function addItem(key: string, input: string | (() => void)) {
 
 
 interface NodeFs {
-	//readFile: (name: string, encoding: string, fn: (res: any) => void) => any
-	promises: any;
+	promises: {
+		readFile(name: string, encoding: string): Promise<string>
+	};
 }
 
 let fs: NodeFs;
 let modulePath: string;
 
-declare function require(name: string): any;
+declare function require(name: string): NodeModule | NodeFs;
 
 async function nodeReadFile(name: string): Promise<string> {
 	if (!fs) {
-		fs = require("fs");
+		fs = require("fs") as NodeFs;
 	}
 
 	if (!module) {
-		module = require("module");
-		modulePath = (module as any).path || "";
+		module = require("module") as NodeModule;
+		modulePath = module.path || "";
 
 		if (!modulePath) {
 			console.warn("nodeReadFile: Cannot determine module path");

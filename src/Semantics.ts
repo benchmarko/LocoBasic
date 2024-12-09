@@ -14,18 +14,20 @@ type GosubLabelEntryType = {
 }
 
 interface SemanticsHelper {
+	addDataIndex(count: number): void,
 	addDefinedLabel(label: string, line: number): void,
 	addGosubLabel(label: string): void,
 	addIndent(num: number): number,
 	addInstr(name: string): number,
 	addRestoreLabel(label: string): void,
 	applyNextIndent(): void,
+	getDataIndex(): number,
 	getDataList(): (string | number)[],
 	getDefinedLabels(): DefinedLabelEntryType[],
 	getGosubLabels(): Record<string, GosubLabelEntryType>,
 	getIndent(): number,
 	getIndentStr(): string,
-	getInstr(name: string): number,
+	getInstrKeys(): string[],
 	getRestoreMap(): Record<string, number>,
 	getVariable(name: string): string,
 	getVariables(): string[],
@@ -33,6 +35,42 @@ interface SemanticsHelper {
 	nextIndentAdd(num: number): void,
 	setIndent(indent: number): void
 }
+
+function getCodeSnippets() {
+	let _data: (string | number)[] = [];
+	let _dataPtr = 0;
+	let _restoreMap: Record<string, number> = {};
+	//let dataList: (string|number)[] = []; // eslint-disable-line prefer-const
+
+	const codeSnippets: Record<string, Function> = {
+		_dataDefine: function _dataDefine() { // not really used
+			_data = [ ];
+			_dataPtr = 0;
+			_restoreMap = {};
+		},
+		_dim: function _dim(dims: number[], initVal: string | number = 0): any[] {
+			const createRecursiveArray = (depth: number): any[] => {
+				const length = dims[depth] + 1; // +1 because of 0-based index
+				const array = Array.from({ length }, () =>
+					depth + 1 < dims.length ? createRecursiveArray(depth + 1) : initVal
+				);
+				return array;
+			};
+			return createRecursiveArray(0);
+		},
+		_input: function _input(msg: string, isNum: boolean) {
+			return new Promise(resolve => setTimeout(() => resolve(isNum ? Number(prompt(msg)) : prompt(msg)), 0));
+		},
+		_read: function _read() {
+			return _data[_dataPtr++];
+		},
+		_restore: function _restore(label: string) {
+			_dataPtr = _restoreMap[label];
+		}
+	};
+	return codeSnippets;
+}
+
 
 function evalChildren(children: Node[]) {
 	return children.map(c => c.eval());
@@ -80,21 +118,31 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 
 			const dataList = semanticsHelper.getDataList();
 			if (dataList.length) {
-				lineList.unshift(`const _data = _getData();\nlet _dataPrt = 0;`);
-				lineList.push(`function _getData() {\n  return [\n${dataList.join(",\n")}\n  ];\n}`);
+				//let startIdx = 0;
+				for (const key of Object.keys(restoreMap)) {
+					let index = restoreMap[key];
+					if (index < 0) {
+						index = 0;
+						restoreMap[key] = index; //TODO
+					}
+				}
+				lineList.unshift(`const {_data, _restoreMap} = _defineData();\nlet _dataPrt = 0;`);
+				lineList.push(`function _defineData() {\n  const _data = [\n${dataList.join(",\n")}\n  ];\nconst _restoreMap =\n    ${JSON.stringify(restoreMap)};\nreturn {_data, _restoreMap}\n}`);
 			}
-			if (Object.keys(restoreMap).length) {
-				lineList.unshift(`const _restoreMap = _getRestore();`);
-				lineList.push(`function _getRestore() {\n  return [\n    ${JSON.stringify(restoreMap)}\n  ];\n}`);
+
+			lineList.push("// library");
+
+			const instrKeys = semanticsHelper.getInstrKeys();
+			const codeSnippets = getCodeSnippets();
+			for (const key of instrKeys) {
+				lineList.push(String(codeSnippets[key]));
 			}
 
 			if (varStr) {
 				lineList.unshift(varStr);
 			}
 
-			if (semanticsHelper.getInstr("input")) {
-				lineList.push(`async function _input(msg, isNum) {\n  return new Promise(resolve => setTimeout(() => resolve(isNum ? Number(prompt(msg)) : prompt(msg)), 0));\n}`);
-
+			if (instrKeys.includes("_input")) {
 				lineList.unshift(`return async function() {`);
 				lineList.push('}();');
 			}
@@ -133,7 +181,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 
 		Statements(stmt: Node, _stmtSep: Node, stmts: Node) {
 			// separate statements, use ";", if the last stmt does not end with "{"
-			return [stmt.eval(), ...evalChildren(stmts.children)].reduce((str, st) => str.endsWith("{") ? `${str} ${st}`: `${str}; ${st}` );
+			return [stmt.eval(), ...evalChildren(stmts.children)].reduce((str, st) => str.endsWith("{") ? `${str} ${st}` : `${str}; ${st}`);
 		},
 
 		ArrayAssign(ident: Node, _op: Node, e: Node): string {
@@ -180,17 +228,17 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		Data(_datalit: Node, args: Node) {
 			const argList = args.asIteration().children.map(c => c.eval());
 
-			const dataList = semanticsHelper.getDataList();
 			const definedLabels = semanticsHelper.getDefinedLabels();
 
-			const dataIndex = dataList.length;
-
 			if (definedLabels.length) {
+				const dataIndex = semanticsHelper.getDataIndex();
 				const currentLabel = definedLabels[definedLabels.length - 1];
 				currentLabel.dataIndex = dataIndex;
 			}
 
+			const dataList = semanticsHelper.getDataList();
 			dataList.push(argList.join(", "));
+			semanticsHelper.addDataIndex(argList.length);
 			return "";
 		},
 
@@ -203,7 +251,8 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 				let createArrStr: string;
 				if (indices.length > 1) { // multi-dimensional?
 					const initValStr = ident.endsWith("$") ? ', ""' : '';
-					createArrStr = `_o.dimArray([${indices}]${initValStr})`; // automatically joined with comma
+					createArrStr = `_dim([${indices}]${initValStr})`; // indices are automatically joined with comma
+					semanticsHelper.addInstr("_dim");
 				} else {
 					const fillStr = ident.endsWith("$") ? `""` : "0";
 					createArrStr = `new Array(${indices[0]} + 1).fill(${fillStr})`; // +1 because of 0-based index
@@ -248,7 +297,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		Erase(_eraseLit: Node, arrayIdents: Node) { // erase not really needed
 			const argList = arrayIdents.asIteration().children.map(c => c.eval());
 			const results: string[] = [];
-			
+
 			for (const ident of argList) {
 				const initValStr = ident.endsWith("$") ? '""' : '0';
 				results.push(`${ident} = ${initValStr}`);
@@ -300,7 +349,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		Input(_inputLit: Node, message: Node, _semi: Node, e: Node) {
-			semanticsHelper.addInstr("input");
+			semanticsHelper.addInstr("_input");
 
 			const msgStr = message.sourceString.replace(/\s*[;,]$/, "");
 			const ident = e.eval();
@@ -391,10 +440,12 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		Read(_readlit: Node, args: Node) {
+			semanticsHelper.addInstr("_read");
 			const argList = args.asIteration().children.map(c => c.eval());
 			const results: string[] = [];
 			for (const ident of argList) {
-				results.push(`${ident} = _data[_dataPrt++]`);
+				//results.push(`${ident} = _data[_dataPrt++]`);
+				results.push(`${ident} = _read()`);
 			}
 			return results.join("; ");
 		},
@@ -407,7 +458,8 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			const labelStr = e.sourceString || "0";
 			semanticsHelper.addRestoreLabel(labelStr);
 
-			return `_dataPtr = _restoreMap[${labelStr}]`;
+			semanticsHelper.addInstr("_restore");
+			return `_restore(${labelStr})`;
 		},
 
 		Return(_returnLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -650,6 +702,7 @@ export class Semantics {
 	private readonly gosubLabels: Record<string, GosubLabelEntryType> = {};
 
 	private readonly dataList: (string | number)[] = [];
+	private dataIndex = 0;
 	private readonly restoreMap: Record<string, number> = {};
 
 	private static readonly reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;
@@ -689,6 +742,14 @@ export class Semantics {
 		this.indentAdd += num;
 	}
 
+	private addDataIndex(count: number) {
+		return this.dataIndex += count;
+	}
+
+	private getDataIndex() {
+		return this.dataIndex;
+	}
+
 	private addDefinedLabel(label: string, line: number) {
 		this.definedLabels.push({
 			label,
@@ -697,7 +758,7 @@ export class Semantics {
 			dataIndex: -1
 		});
 	}
-	
+
 	private getDefinedLabels() {
 		return this.definedLabels;
 	}
@@ -709,12 +770,12 @@ export class Semantics {
 		this.gosubLabels[label].count = (this.gosubLabels[label].count || 0) + 1;
 	}
 
-	private getGosubLabels() { 
+	private getGosubLabels() {
 		return this.gosubLabels;
 	}
 
-	private getInstr(name: string) {
-		return this.instrMap[name] || 0;
+	private getInstrKeys() {
+		return Object.keys(this.instrMap);
 	}
 
 	private addInstr(name: string) {
@@ -767,24 +828,28 @@ export class Semantics {
 		this.definedLabels.length = 0;
 		Semantics.deleteAllItems(this.gosubLabels);
 		this.dataList.length = 0;
+		this.dataIndex = 0;
 		Semantics.deleteAllItems(this.restoreMap);
 		Semantics.deleteAllItems(this.instrMap);
 	}
 
 	public getSemantics() {
 		const semanticsHelper: SemanticsHelper = {
+			addDataIndex: (count: number) => this.addDataIndex(count),
 			addDefinedLabel: (label: string, line: number) => this.addDefinedLabel(label, line),
 			addGosubLabel: (label: string) => this.addGosubLabel(label),
 			addIndent: (num: number) => this.addIndent(num),
 			addInstr: (name: string) => this.addInstr(name),
 			addRestoreLabel: (label: string) => this.addRestoreLabel(label),
 			applyNextIndent: () => this.applyNextIndent(),
+			getDataIndex: () => this.getDataIndex(),
 			getDataList: () => this.getDataList(),
 			getDefinedLabels: () => this.getDefinedLabels(),
 			getGosubLabels: () => this.getGosubLabels(),
 			getIndent: () => this.getIndent(),
 			getIndentStr: () => this.getIndentStr(),
-			getInstr: (name: string) => this.getInstr(name),
+			//getInstr: (name: string) => this.getInstr(name),
+			getInstrKeys: () => this.getInstrKeys(),
 			getRestoreMap: () => this.getRestoreMap(),
 			getVariable: (name: string) => this.getVariable(name),
 			getVariables: () => this.getVariables(),
