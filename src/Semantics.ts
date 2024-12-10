@@ -58,6 +58,9 @@ function getCodeSnippets() {
 			};
 			return createRecursiveArray(0);
 		},
+		_frame: function _frame() {
+			return new Promise<void>(resolve => setTimeout(() => resolve(), Date.now() % 50)); //TODO
+		},
 		_input: function _input(msg: string, isNum: boolean) {
 			return new Promise(resolve => setTimeout(() => resolve(isNum ? Number(prompt(msg)) : prompt(msg)), 0));
 		},
@@ -66,6 +69,12 @@ function getCodeSnippets() {
 		},
 		_restore: function _restore(label: string) {
 			_dataPtr = _restoreMap[label];
+		},
+		_round: function _round(num: number, dec: number) {
+			return (Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec))
+		},
+		_time: function _time() {
+			return (Date.now() * 3 / 10) | 0;
 		}
 	};
 	return codeSnippets;
@@ -126,7 +135,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 						restoreMap[key] = index; //TODO
 					}
 				}
-				lineList.unshift(`const {_data, _restoreMap} = _defineData();\nlet _dataPrt = 0;`);
+				lineList.unshift(`const {_data, _restoreMap} = _defineData();\nlet _dataPtr = 0;`);
 				lineList.push(`function _defineData() {\n  const _data = [\n${dataList.join(",\n")}\n  ];\nconst _restoreMap =\n    ${JSON.stringify(restoreMap)};\nreturn {_data, _restoreMap}\n}`);
 			}
 
@@ -142,10 +151,12 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 				lineList.unshift(varStr);
 			}
 
-			if (instrKeys.includes("_input")) {
+			if (instrKeys.includes("_frame") || instrKeys.includes("_input")) {
 				lineList.unshift(`return async function() {`);
 				lineList.push('}();');
 			}
+
+			lineList.unshift(`"use strict"`);
 
 			const lineStr = lineList.filter((line) => line !== "").join('\n');
 			return lineStr;
@@ -335,6 +346,11 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return result;
 		},
 
+		Frame(_frameLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addInstr("_frame");
+			return `await _frame()`;
+		},
+
 		Gosub(_gosubLit: Node, e: Node) {
 			const labelStr = e.sourceString;
 			semanticsHelper.addGosubLabel(labelStr);
@@ -444,7 +460,6 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			const argList = args.asIteration().children.map(c => c.eval());
 			const results: string[] = [];
 			for (const ident of argList) {
-				//results.push(`${ident} = _data[_dataPrt++]`);
 				results.push(`${ident} = _read()`);
 			}
 			return results.join("; ");
@@ -478,9 +493,11 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		Round(_roundLit: Node, _open: Node, e: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			const dec = e2.child(0)?.eval();
 			if (dec) {
-				return `(Math.round(${e.eval()} * Math.pow(10, ${dec})) / Math.pow(10, ${dec}))`;
+				//return `(Math.round(${e.eval()} * Math.pow(10, ${dec})) / Math.pow(10, ${dec}))`;
+				semanticsHelper.addInstr("_round");
+				return `_round(${e.eval()}, ${dec})`;
 			}
-			return `Math.round(${e.eval()})`;
+			return `Math.round(${e.eval()})`; // common round without decimals places
 			// A better way to avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
 		},
 
@@ -526,7 +543,8 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		Time(_timeLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Date.now()`; // TODO; or *300/1000
+			semanticsHelper.addInstr("_time");
+			return `_time()`;
 		},
 
 		Upper(_upperLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
