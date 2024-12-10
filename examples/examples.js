@@ -420,10 +420,10 @@ DIM r(5)
 ms=100/10:mxcpc=90/10
 '
 FOR i=0 TO 4
-c=0:t1=INT(TIME*300/1000)
-t=t1: WHILE t=t1:t=INT(TIME*300/1000):c=c+1:WEND
+c=0:t1=TIME
+t=t1: WHILE t=t1:t=TIME:c=c+1:WEND
 c=0:t1=t+ms
-WHILE t<t1:t=INT(TIME*300/1000):c=c+1:WEND
+WHILE t<t1:t=TIME:c=c+1:WEND
 r(i)=c
 NEXT
 PRINT "In";ms;"ms we can count to:";
@@ -568,6 +568,30 @@ cpcBasic.addItem("", `
 380 PRINT z,z/300
 390 RETURN
 400 '
+`);
+
+cpcBasic.addItem("", `
+100 REM seconds - Seconds Test
+110 REM Marco Vieth, 2019
+115 cls
+120 print"Timing 1 (FRAME):"
+125 for cnt=1 to 3
+130 t1=time
+140 for i=1 to 50:FRAME:next
+150 t1=time-t1
+160 print int(1000*t1/300)/1000
+170 next
+190 '
+200 print"Timing 2 (check time):"
+210 for cnt=1 to 3
+220 t1=time
+230 civ=50:ct=time+civ*6:while time<ct:FRAME:wend
+240 t1=time-t1
+250 print int(1000*t1/300)/1000
+260 next
+270 '
+300 print"Timing 3 (after):"
+310 stop
 `);
 
 cpcBasic.addItem("", `
@@ -949,7 +973,7 @@ for a=2 to 1 step -&x1: next
 ''1 for a$=1 to 2: next
 for abc=1 to 10 step 3:next abc
 ''for a=b to c step s:a=0:next
-''frame
+frame
 ''a=fre(0)
 ''a=fre("")
 ''a=fre(b-2)

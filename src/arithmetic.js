@@ -24,6 +24,7 @@ export const arithmetic = {
      | End
      | Erase
      | ForLoop
+     | Frame
      | Gosub
      | Input
      | Next
@@ -97,6 +98,9 @@ export const arithmetic = {
 
     ForLoop
       = caseInsensitive<"for"> variable "=" NumExp caseInsensitive<"to"> NumExp (caseInsensitive<"step"> NumExp)?
+
+    Frame
+      = caseInsensitive<"frame">
 
     Gosub
       = caseInsensitive<"gosub"> label
