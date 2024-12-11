@@ -695,7 +695,7 @@ on a gosub 200, 300
 
 cpcBasic.addItem("", `
 REM testpage - Test Page
-cls
+CLS
 ?"testpage"
 ' numbers
 a=1
@@ -707,11 +707,11 @@ a=&A7
 a=-&A7
 a=&7FFF
 a=&8000
-a=&FFff
+a=&FFFF
 a=&E123
 a=&X0
 a=&X10100111
-a=-&x111111111111111
+a=-&X111111111111111
 a=255
 a=-255
 a=256
@@ -725,8 +725,8 @@ a=65536
 ''a=&x2
 ' strings
 a$="a12"
-''a$="\\"
-2 newline=7
+''a$="\"
+newline=7
 ' variables
 ''a!=1.4
 ''a%=1.4
@@ -738,14 +738,14 @@ CaSe=cAsE
 ''in.ser.t.lin.e=2
 ''a!(2)=1.4
 ''a%(2)=1.4
-dim a$(2): a$(2)="1.4"
+DIM a$(2):a$(2)="1.4"
 ''a$[2]="1.4"
-dim a(9), b(1,2): a(9)=b(1,2)
+DIM a(9),b(1,2):a(9)=b(1,2)
 ''a[9]=b[1,2]
-dim a(10,10,10), b(10,9): a(10,10,10)=b(10,9)
-dim a(1), b(2,2,1): a(round(1.4))=b(round(1.5),round(2.4),1)
-x=1:a(x+1)=b(x,x*2,round(x+1.5))
-a(x+1)=b(int(x),x*2,x-1+&d)
+DIM a(10,10,10),b(10,9):a(10,10,10)=b(10,9)
+DIM a(1),b(2,2,1):a(ROUND(1.4))=b(ROUND(1.5),ROUND(2.4),1)
+x=1:a(x+1)=b(x,x*2,ROUND(x+1.5))
+a(x+1)=b(INT(x),x*2,x-1+&D)
 ''1 a$=a%
 ''1 a$=a!
 ''1 abc=def
@@ -769,28 +769,28 @@ a=(b>=c)*(d<=e)
 a=1=1=-1
 a=1>=1>1
 ' Line numbers
-0 c=1
-65535 c=1
-65536 c=1
-2 c=1
-1 c=1
+''0 c=1
+''65535 c=1
+''65536 c=1
+''2 c=1
+''1 c=1
 ' special
 ' abs, after gosub, and, asc, atn, auto
-a=abs(2.3)
-''10 after 2 gosub 10
-''10 after 3,1 gosub 10
-''1 after gosub 1
-''1 after 1,2,3 gosub 1
-a=b and c
-a=asc("A")
-a=asc(b$) and c
-a=atn(2.3)
+a=ABS(2.3)
+''10 after 2 gosub 10010
+''10 after 3,1 gosub 10010
+''1 after gosub 10010
+''1 after 1,2,3 gosub 10010
+a=b AND c
+a=ASC("A")
+b$="B":a=ASC(b$) AND c
+a=ATN(2.3)
 ''auto
 ''auto 100
 ' bin$, border
-a$=bin$(3)
-a$=bin$(3,8)
-a$=bin$(&x1001)
+a$=BIN$(3)
+a$=BIN$(3,8)
+a$=BIN$(&X1001)
 ''border 5
 ''border 5,a
 ' call, cat, chain, chain merge, chr$, cint, clg, closein, closeout, cls, cont, copychr$, cos, creal, cursor
@@ -807,8 +807,8 @@ a$=bin$(&x1001)
 ''chain merge "f3" , 10+3
 ''chain merge "f4" , 10+3, delete 100-200
 ''chain merge "f5" , , delete 100-200
-a$=chr$(65)
-a=cint(2.3)
+a$=CHR$(65)
+a=CINT(2.3)
 ''clear
 ''clear input
 ''clg
@@ -821,7 +821,7 @@ a=cint(2.3)
 ''cont
 ''a$=copychr$(#0)
 ''a$=copychr$(#a+1)
-a=cos(2.3)
+a=COS(2.3)
 ''a=creal(2.3+a)
 ''cursor
 ''cursor 0
@@ -835,12 +835,11 @@ a=cos(2.3)
 ' data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr
 ''data
 ''data ,
-''data \
-data 1,2,3
-data "item1"," item2","item3 "
+''data data 1,2,3
+DATA "item1"," item2","item3 "
 ''data item1,item2,item3
-data &a3,4 '',abc,
-data " " '',!"#$%&'()*+,","
+DATA &a3,&x001,4,-7,"abc"
+DATA " ","#$%&'()*+,"
 ''data "string in data with ... newline"
 ''a$=dec$(3,"##.##")
 ''def fnclk=10
@@ -900,12 +899,12 @@ data " " '',!"#$%&'()*+,","
 ''1 delete a
 ''a=derr
 ''di
-dim a(1)
+DIM a(1)
 ''dim a!(1)
 ''dim a%(1)
-dim a$(1)
-dim b(2,13)
-x=1: dim a(2,13+7),b$(3),c(2*x,7)
+DIM a$(1)
+DIM b(2,13)
+x=1:DIM a(2,13+7),b$(3),c(2*x,7)
 ''dim a[2,13)
 ''draw 10,20
 ''draw -10,-20,7
@@ -933,21 +932,21 @@ x=1: dim a(2,13+7),b$(3),c(2*x,7)
 ''env num,steps,dist,ti,steps2,dist2,ti2
 ''env num,=reg,period,=reg2,period2
 ''a=eof
-dim e(1): erase e
-dim e$(1): erase e$
-dim e(1),e$(1): erase e,e$
+DIM e(1):ERASE e
+DIM e$(1):ERASE e$
+DIM e(1),e$(1):ERASE e,e$
 ''1 erase 5
 ''a=erl
 ''a=err
 ''error 7
 ''error 5+a
-''10 every 50 gosub 10
-''10 every 25.2,1 gosub 10
-''10 every 10+a,b gosub 10
-a=exp(2.3)
+''10 every 50 gosub 10010
+''10 every 25.2,1 gosub 10010
+''10 every 10+a,b gosub 10010
+a=EXP(2.3)
 ' fill, fix, fn, for, frame, fre
 ''fill 7
-a=fix(2.3)
+a=FIX(2.3)
 '' x=fnclk 'TODO?
 '' x=fnclk(a) 'TODO?
 '' x=fnclk(a,b) 'TODO?
@@ -956,32 +955,32 @@ a=fix(2.3)
 ''x=fn clk(a)
 ''x=fn clk(a,b)
 ''x$=fn clk$(a$,b$)
-for a=1 to 10: next
+FOR a=1 TO 10:NEXT
 ''for a%=1.5 to 9.5: next
 ''for a!=1.5 to 9.5: next
-for a=1 to 10 step 3: next
-b=1: for a=5+b to -4 step -2.3: next
-b=1:c=5:d=2: for a=b to c step d: next
-b=1:c=3: for a=b to c: next
-for a=1 to 1 step 0+1: next
-b=1:c=3:s=1: for a=b to c step s: next
-for a=1 to 2 step 0+1: next
-for a=-1 to -2 step 0-1: next
-for a=&a000 TO &a00b step &x101: next
-for a=2 to 1 step -&1: next
-for a=2 to 1 step -&x1: next
+FOR a=1 TO 10 STEP 3:NEXT
+b=1:FOR a=5+b TO -4 STEP -2.3:NEXT
+b=1:c=5:d=2:FOR a=b TO c STEP d:NEXT
+b=1:c=3:FOR a=b TO c:NEXT
+FOR a=1 TO 1 STEP 0+1:NEXT
+b=1:c=3:s=1:FOR a=b TO c STEP s:NEXT
+FOR a=1 TO 2 STEP 0+1:NEXT
+FOR a=-1 TO -2 STEP 0-1:NEXT
+FOR a=&A000 TO &A00B STEP &X101:NEXT
+FOR a=2 TO 1 STEP -&1:NEXT
+FOR a=2 TO 1 STEP -&X1:NEXT
 ''1 for a$=1 to 2: next
-for abc=1 to 10 step 3:next abc
+FOR abc=1 TO 10 STEP 3:NEXT abc
 ''for a=b to c step s:a=0:next
-frame
+FRAME
 ''a=fre(0)
 ''a=fre("")
 ''a=fre(b-2)
 ''a=fre(a$)
 ' gosub, goto, graphics paper, graphics pen
-5 gosub 10
+GOSUB 10010
 ''1 gosub a
-''10 goto 10
+''10 goto 10010
 ''1 goto a
 ''graphics paper 5
 ''graphics paper 2.3*a
@@ -990,31 +989,31 @@ frame
 ''graphics pen ,0
 ''graphics pen 2.3*a,1+b
 ' hex$, himem
-a$=hex$(16)
-a$=hex$(16,4)
-a$=hex$(a,b)
+a$=HEX$(16)
+a$=HEX$(16,4)
+a$=HEX$(a,b)
 ''a=himem
 ' if, ink, inkey, inkey$, inp, input, instr, int
-if a=1 then a=2
-if a=1 then a=2 else a=1
+IF a=1 THEN a=2
+IF a=1 THEN a=2 ELSE a=1
 ''if a=1 then
 ''if a=1 then else
 ''if a=1 then a=2 else
 ''if a=1 then else a=1
 ''if a=1 then if b=1 then else else a=1
-''10 if a=1 then goto 10
-''10 if a=1 then 10
-''10 if a=1 goto 10
+''10 if a=1 then goto 10010
+''10 if a=1 then 10010
+''10 if a=1 goto 10010
 ''10 if a=1 then a=a+1:goto 10
-10 if a=1 then gosub 10
+IF a=1 THEN GOSUB 10010
 ''10 if a=1 then 10:a=never1
 ''10 if a=1 then 10 else 20 '20 rem
 ''10 if a=1 then 10 else goto 20 '20 rem
 ''10 if a=b+5*c then a=a+1: goto 10 else a=a-1:goto 20
-10 if a=b+5*c then a=a+1: gosub 10 else a=a-1:gosub 20
-20 rem
-10 if a<>3 then gosub 10
-10 if a$<>"3" then gosub 10
+IF a=b+5*c THEN a=a+1:GOSUB 10010 ELSE a=a-1:GOSUB 10020
+REM
+IF a<>3 THEN GOSUB 10010
+IF a$<>"3" THEN GOSUB 10010
 ''ink 2,19
 ''ink 2,19,22
 ''ink a*2,b-1,c
@@ -1029,11 +1028,11 @@ if a=1 then a=2 else a=1
 ''input ;"para noCRLF";a$,b
 ''input#2,;"para noCRLF";a$,b
 ''input#stream,;"string";a$,b
-a=instr("key","ey")
-a=instr(s$,find$)
+a=INSTR("key","ey")
+a=INSTR(s$,find$)
 ''a=instr(start,s$,find$)
-a=int(-2.3)
-a=int(b+2.3)
+a=INT(-2.3)
+a=INT(b+2.3)
 ' joy
 ''a=joy(0)
 ''a=joy(b+1)
@@ -1046,8 +1045,8 @@ a=int(b+2.3)
 ''key def 68,1,159,160,161
 ''key def num,fire,normal,shift,ctrl
 ' left$, len, let, line input, list, load, locate, log, log10, lower$
-a$=left$(b$,n)
-a=len(a$)
+a$=LEFT$(b$,n)
+a=LEN(a$)
 ''let a=a+1
 ''line input a$
 ''line input ;a$
@@ -1077,38 +1076,38 @@ a=len(a$)
 ''locate 10,20
 ''locate#2,10,20
 ''locate#stream,x,y
-a=log(10)
-a=log10(10)
-b$="AbC": a$=lower$(b$)
-a$=lower$("String")
+a=LOG(10)
+a=LOG10(10)
+b$="AbC":a$=LOWER$(b$)
+a$=LOWER$("String")
 ' mask, max, memory, merge, mid$, min, mod, mode, move, mover
 ''mask &x10101011
 ''mask 2^(8-x),1
 ''mask a,b
 ''mask ,b
-a=max(1)
-a=max(1,5)
-a=max(b,c,d)
+a=MAX(1)
+a=MAX(1,5)
+a=MAX(b,c,d)
 ''a$=max("abc")
 ''1 a$=max("abc","d")
 ''memory &3fff
 ''memory adr
 ''merge "file"
 ''merge f$
-a$=mid$("string",3)
-a$=mid$("string",3,2)
-a$=mid$(b$,p)
-a$=mid$(b$,p,lg)
+a$=MID$("string",3)
+a$=MID$("string",3,2)
+p=1:a$=MID$(b$,p)
+a$=MID$(b$,p,lg)
 ''mid$(a$,2)=b$
 ''mid$(a$,2,2)=b$
 ''mid$(a$,b%,c!)="string"
-a=min(1)
-a=min(1,5)
-a=min(b,c,d)
+a=MIN(1)
+a=MIN(1,5)
+a=MIN(b,c,d)
 ''a$=min("abc")
 ''1 a$=min("abc","d")
-a=10 mod 3
-a=b mod -c
+a=10 MOD 3
+a=b MOD -c
 ''mode 0
 ''mode n+1
 ''move 10,20
@@ -1123,14 +1122,14 @@ a=b mod -c
 ''mover x,y,m,g1
 ' new, next, not
 ''new
-for a=1 to 2: next
-for i=1 to 2: next i
-for j=1 to 2:for i=3 to 4: next i,j
-a=not 2
-a=not -b
+FOR a=1 TO 2:NEXT
+FOR i=1 TO 2:NEXT i
+FOR j=1 TO 2:FOR i=3 TO 4:NEXT i,j
+a=NOT 2
+a=NOT -b
 ' on break ..., on error goto, on gosub, on goto, on sq gosub, openin, openout, or, origin, out
 ''on break cont
-''10 on break gosub 10
+''10 on break gosub 10010
 ''on break stop
 ''10 on error goto 0
 ''10 on error goto 10
@@ -1138,24 +1137,24 @@ a=not -b
 ''1 on error goto 2:a=asc(0) '2 rem
 ''1 on error goto 0:?chr$("A")
 ''1 on error goto 2:?chr$("A") '2 rem
-''1 on error goto 0:a$=dec$(b$,"\\    \\")
-''1 on error goto 2:a$=dec$(b$,"\\    \\") '2 rem
+''1 on error goto 0:a$=dec$(b$,"\    \")
+''1 on error goto 2:a$=dec$(b$,"\    \") '2 rem
 ''1 on error goto 0:mask ,
 ''1 on error goto 2:mask , '2 rem
-10 on 1 gosub 10
-10 on x gosub 10,20 '20 rem
-10 on x+1 gosub 10,20,20 '20 rem
+ON 1 GOSUB 10010
+ON x GOSUB 10010,10020 '20 rem
+ON x+1 GOSUB 10010,10020,10020 '20 rem
 ''10 on 1 goto 10
 ''10 on x goto 10,20 '20 rem
 ''10 on x+1 goto 10,20,20 '20 rem
-''10 on sq(1) gosub 10
-''10 on sq(channel) gosub 10
+''10 on sq(1) gosub 10010
+''10 on sq(channel) gosub 10010
 ''openin "file"
 ''openin f$
 ''openout "file"
 ''openout f$
-a=1 or &1a0
-a=b or c
+a=1 OR &1A0
+a=b OR c
 ''origin 10,20
 ''origin 10,20,5,200,50,15
 ''origin x,y,left,right,top,bottom
@@ -1170,7 +1169,7 @@ a=b or c
 ''pen 2,1
 ''pen#3,2,1
 ''pen#stream,p,trans
-a=pi
+a=PI
 ''plot 10,20
 ''plot -10,-20,7
 ''plot 10,20,7,3
@@ -1185,23 +1184,23 @@ a=pi
 ''poke adr,by
 ''a=pos(#0)
 ''a=pos(#stream)
-print
+PRINT
 ''print ,
-print ;
+PRINT ;
 ''print #2
 ''print #2,
-print "string"
-print 999999999;
+PRINT "string"
+PRINT 999999999;
 ''print 1e9;
 ''print 2.5e10;
-print 1.234567846;
-print a$
-print a$,b
+PRINT 1.234567846;
+PRINT a$
+PRINT a$,b
 ''print#2,a$,b
 ''print using"####";ri;
 ''print using "##.##";-1.2
 ''print using"### ########";a,b
-''print using "\\   \\";"n1";"n2";" xx3";
+''print using "\   \";"n1";"n2";" xx3";
 ''print using "!";"a1";"a2";
 ''print using "&";"a1";"a2";
 ''print#9,tab(t);t$;i;"h1"
@@ -1211,36 +1210,34 @@ print a$,b
 ''rad
 ''randomize
 ''randomize 123.456
-read a$
-read b
-read a$,b,c$
+READ a$
+READ b
+READ a$,b,c$
 ''release 1
 ''release n+1
-rem
-rem comment until EOL
-rem \
-'
+REM
+REM comment until EOL
+REM '
 'comment until EOL
-'\
-a=1 'comment
+'a=1 'comment
 ''a=remain(0)
 ''a=remain(ti)
 ''renum
 ''renum 100
 ''renum 100,50
 ''renum 100,50,2
-restore
-10 restore 10
+RESTORE
+RESTORE 10
 ''resume
 ''10 resume 10
 ''resume next
-return
-a$=right$(b$,n)
+''return
+a$=RIGHT$(b$,n)
 ''a=rnd
-a=rnd(0)
-a=rnd(-1*b)
-a=round(2.335)
-a=round(2.335,2)
+a=RND(0)
+a=RND(-1*b)
+a=ROUND(2.335)
+a=ROUND(2.335,2)
 ''run
 ''10 run 10
 ''run "file"
@@ -1252,10 +1249,10 @@ a=round(2.335,2)
 ''save "file.scr",b,&c000,&4000
 ''save "file.bin",b,&8000,&100,&8010
 ''save f$,b,adr,lg,entry
-a=sgn(5)
-a=sgn(0)
-a=sgn(-5)
-a=sin(2.3)
+a=SGN(5)
+a=SGN(0)
+a=SGN(-5)
+a=SIN(2.3)
 ''sound 1,100
 ''sound 1,100,400
 ''sound 1,100,400,15
@@ -1264,8 +1261,8 @@ a=sin(2.3)
 ''sound 1,100,400,15,1,1,4
 ''sound ch,period,duration,,,,noise
 ''sound ch,period,duration,vol,env1,ent1,noise
-a$=space$(9)
-a$=space$(9+b)
+a$=SPACE$(9)
+a$=SPACE$(9+b)
 ''speed ink 10,5
 ''speed ink a,b
 ''speed key 10,5
@@ -1275,13 +1272,13 @@ a$=space$(9+b)
 ''1 speed mode 2
 ''a=sq(1)
 ''a=sq(channel)
-a=sqr(9)
+a=SQR(9)
 '' below: stop
-a$=str$(123)
-a$=str$(a+b)
-a$=string$(40,"*")
+a$=STR$(123)
+a$=STR$(a+b)
+a$=STRING$(40,"*")
 ''a$=string$(40,42)
-a$=string$(lg,char$)
+a$=STRING$(lg,char$)
 ''symbol 255,1,2,3,4,5,6,7,&x10110011
 ''symbol 255,1
 ''symbol after 255
@@ -1292,28 +1289,28 @@ a$=string$(lg,char$)
 ''tagoff
 ''tagoff#2
 ''tagoff#stream
-a=tan(45)
+a=TAN(45)
 ''a=test(10,20)
 ''a=test(x,y)
 ''a=testr(10,-20)
 ''a=testr(xm,ym)
-t=time
+t=TIME
 ''troff
 ''tron
 ' unt, upper$
 ''a=unt(&ff66)
-a$=upper$("String")
-a$=upper$(b$)
+a$=UPPER$("String")
+a$=UPPER$(b$)
 ' val, vpos
-a=val("-2.3")
-a=val(b$)
+a=VAL("-2.3")
+a=VAL(b$)
 ''a=vpos(#0)
 ''a=vpos(#stream)
 ' wait, wend, while, width, window, window swap, write
 ''wait &ff34,20
 ''wait &ff34,20,25
-while a=10: wend
-while a>0: wend
+WHILE a=10:WEND
+WHILE a>0:WEND
 ''width 40
 ''window 10,30,5,20
 ''window#1,10,30,5,20
@@ -1336,8 +1333,8 @@ while a>0: wend
 ''write ,
 ''write ;
 ' xor, xpos
-a=&x1001 xor &x0110
-a=b xor c
+a=&X1001 XOR &X0110
+a=b XOR c
 ''a=xpos
 ' ypos
 ''a=ypos
@@ -1367,8 +1364,10 @@ a=b xor c
 ' keepSpaces
 ' PRG
 '
-stop
-end
-10 return
-20 return
+STOP
+END
+'
+10010 RETURN
+10020 RETURN
+65535 c=1
 `);
