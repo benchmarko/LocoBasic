@@ -76,7 +76,7 @@ export const arithmetic = {
       = caseInsensitive<"cos"> "(" NumExp ")"
 
     DataItem
-      = string | number
+      = string | number | negativeNumber
 
     Data
       = caseInsensitive<"data"> NonemptyListOf<DataItem, ",">  // TODO: also hex number?
@@ -740,6 +740,9 @@ export const arithmetic = {
       = decimalValue
       | hexValue
       | binaryValue
+
+    negativeNumber
+      = "-" decimalValue
 
     partToEol
       = (~eol any)*

@@ -18,8 +18,7 @@ const vm = {
         vm._output = "";
         vm._fnOnCls();
     },
-    _convertPrintArg: (arg) => typeof arg !== "number" ? arg : arg >= 0 ? ` ${arg} ` : `${arg} `, // pad numbers with spaces
-    print: (...args) => vm._output += args.map((arg) => vm._convertPrintArg(arg)).join(''),
+    print: (...args) => vm._output += args.join(''),
     getOutput: () => vm._output,
     setOutput: (str) => vm._output = str,
     setOnCls: (fn) => vm._fnOnCls = fn

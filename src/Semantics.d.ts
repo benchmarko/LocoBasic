@@ -23,7 +23,7 @@ export declare class Semantics {
     private getDefinedLabels;
     private addGosubLabel;
     private getGosubLabels;
-    private getInstrKeys;
+    private getInstrMap;
     private addInstr;
     private getVariables;
     private getVariable;

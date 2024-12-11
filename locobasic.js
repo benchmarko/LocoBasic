@@ -139,7 +139,7 @@
       = caseInsensitive<"cos"> "(" NumExp ")"
 
     DataItem
-      = string | number
+      = string | number | negativeNumber
 
     Data
       = caseInsensitive<"data"> NonemptyListOf<DataItem, ",">  // TODO: also hex number?
@@ -804,6 +804,9 @@
       | hexValue
       | binaryValue
 
+    negativeNumber
+      = "-" decimalValue
+
     partToEol
       = (~eol any)*
 
@@ -820,6 +823,7 @@
     };
 
     function getCodeSnippets() {
+        const _o = {};
         let _data = [];
         let _dataPtr = 0;
         let _restoreMap = {};
@@ -830,6 +834,12 @@
                 _dataPtr = 0;
                 _restoreMap = {};
             },
+            _bin$: function _bin$(num, pad) {
+                return num.toString(2).toUpperCase().padStart(pad || 0, "0");
+            },
+            _cls: function _cls() {
+                _o.cls();
+            },
             _dim: function _dim(dims, initVal = 0) {
                 const createRecursiveArray = (depth) => {
                     const length = dims[depth] + 1; // +1 because of 0-based index
@@ -839,10 +849,17 @@
                 return createRecursiveArray(0);
             },
             _frame: function _frame() {
-                return new Promise(resolve => setTimeout(() => resolve(), Date.now() % 50)); //TODO
+                return new Promise(resolve => setTimeout(() => resolve(), Date.now() % 50));
+            },
+            _hex$: function _hex$(num, pad) {
+                return num.toString(16).toUpperCase().padStart(pad || 0, "0");
             },
             _input: function _input(msg, isNum) {
                 return new Promise(resolve => setTimeout(() => resolve(isNum ? Number(prompt(msg)) : prompt(msg)), 0));
+            },
+            _print: function _print(...args) {
+                const _printNumber = (arg) => (arg >= 0) ? ` ${arg} ` : `${arg} `;
+                _o.print(args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg).join(""));
             },
             _read: function _read() {
                 return _data[_dataPtr++];
@@ -851,13 +868,30 @@
                 _dataPtr = _restoreMap[label];
             },
             _round: function _round(num, dec) {
-                return (Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec));
+                return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
+            },
+            _str$: function _str$(num) {
+                return num >= 0 ? ` ${num}` : String(num);
             },
             _time: function _time() {
                 return (Date.now() * 3 / 10) | 0;
-            }
+            },
+            _val: function _val(str) {
+                return Number(str.replace("&x", "0b").replace("&", "0x"));
+            },
         };
         return codeSnippets;
+    }
+    function trimIndent(code) {
+        const lines = code.split("\n");
+        const lastLine = lines[lines.length - 1];
+        const match = lastLine.match(/^(\s+)}$/);
+        if (match) {
+            const indent = match[1];
+            const lines2 = lines.map((l) => l.replace(indent, ""));
+            return lines2.join("\n");
+        }
+        return code;
     }
     function evalChildren(children) {
         return children.map(c => c.eval());
@@ -905,18 +939,21 @@
                         }
                     }
                     lineList.unshift(`const {_data, _restoreMap} = _defineData();\nlet _dataPtr = 0;`);
-                    lineList.push(`function _defineData() {\n  const _data = [\n${dataList.join(",\n")}\n  ];\nconst _restoreMap =\n    ${JSON.stringify(restoreMap)};\nreturn {_data, _restoreMap}\n}`);
+                    lineList.push(`function _defineData() {\n  const _data = [\n${dataList.join(",\n")}\n  ];\n  const _restoreMap = ${JSON.stringify(restoreMap)};\n  return {_data, _restoreMap};\n}`);
                 }
                 lineList.push("// library");
-                const instrKeys = semanticsHelper.getInstrKeys();
+                const instrMap = semanticsHelper.getInstrMap();
                 const codeSnippets = getCodeSnippets();
-                for (const key of instrKeys) {
-                    lineList.push(String(codeSnippets[key]));
+                for (const key of Object.keys(codeSnippets)) {
+                    if (instrMap[key]) {
+                        const code = String(codeSnippets[key]);
+                        lineList.push(trimIndent(code));
+                    }
                 }
                 if (varStr) {
                     lineList.unshift(varStr);
                 }
-                if (instrKeys.includes("_frame") || instrKeys.includes("_input")) {
+                if (instrMap["_frame"] || instrMap["_input"]) {
                     lineList.unshift(`return async function() {`);
                     lineList.push('}();');
                 }
@@ -968,9 +1005,9 @@
             },
             Bin(_binLit, _open, e, _comma, n, _close) {
                 var _a;
+                semanticsHelper.addInstr("_bin$");
                 const pad = (_a = n.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
-                const padStr = pad !== undefined ? `.padStart(${pad} || 0, "0")` : '';
-                return `(${e.eval()}).toString(2).toUpperCase()${padStr}`;
+                return pad !== undefined ? `_bin$(${e.eval()}, ${pad})` : `_bin$(${e.eval()})`;
             },
             Chr(_chrLit, _open, e, _close) {
                 return `String.fromCharCode(${e.eval()})`;
@@ -1017,7 +1054,8 @@
                 return `Math.round(${e.eval()})`;
             },
             Cls(_clsLit) {
-                return `_o.cls()`;
+                semanticsHelper.addInstr("_cls");
+                return `_cls()`;
             },
             Comparison(_iflit, condExp, _thenLit, thenStat, elseLit, elseStat) {
                 const cond = condExp.eval();
@@ -1080,9 +1118,9 @@
             },
             Hex(_hexLit, _open, e, _comma, n, _close) {
                 var _a;
+                semanticsHelper.addInstr("_hex$");
                 const pad = (_a = n.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
-                const padStr = pad !== undefined ? `.padStart(${pad} || 0, "0")` : '';
-                return `(${e.eval()}).toString(16).toUpperCase()${padStr}`;
+                return pad !== undefined ? `_hex$(${e.eval()}, ${pad})` : `_hex$(${e.eval()})`;
             },
             Input(_inputLit, message, _semi, e) {
                 semanticsHelper.addInstr("_input");
@@ -1150,12 +1188,13 @@
             },
             Print(_printLit, params, semi) {
                 var _a;
+                semanticsHelper.addInstr("_print");
                 const paramStr = ((_a = params.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
                 let newlineStr = "";
                 if (!semi.sourceString) {
                     newlineStr = paramStr ? `, "\\n"` : `"\\n"`;
                 }
-                return `_o.print(${paramStr}${newlineStr})`;
+                return `_print(${paramStr}${newlineStr})`;
             },
             Read(_readlit, args) {
                 semanticsHelper.addInstr("_read");
@@ -1189,7 +1228,6 @@
                 var _a;
                 const dec = (_a = e2.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
                 if (dec) {
-                    //return `(Math.round(${e.eval()} * Math.pow(10, ${dec})) / Math.pow(10, ${dec}))`;
                     semanticsHelper.addInstr("_round");
                     return `_round(${e.eval()}, ${dec})`;
                 }
@@ -1213,14 +1251,12 @@
             },
             Str(_strLit, _open, e, _close) {
                 const arg = e.eval();
-                let argStr;
                 if (isNaN(Number(arg))) {
-                    argStr = `(((${arg}) >= 0) ? " " : "") + String(${arg})`;
+                    semanticsHelper.addInstr("_str$");
+                    return `_str$(${arg})`;
                 }
-                else { // simplify if we know at compile time that arg is a positive number
-                    argStr = arg >= 0 ? `" " + String(${arg})` : `String(${arg})`;
-                }
-                return argStr;
+                // simplify if we know at compile time that arg is a positive number
+                return arg >= 0 ? `(" " + String(${arg}))` : `String(${arg})`;
             },
             String2(_stringLit, _open, len, _commaLit, chr, _close) {
                 // Note: String$: we only support second parameter as string; we do not use charAt(0) to get just one char
@@ -1242,7 +1278,8 @@
                 if (numPattern.test(numStr)) {
                     return `Number(${numStr})`; // for non-hex/bin number strings we can use this simple version
                 }
-                return `Number((${numStr}).replace("&x", "0b").replace("&", "0x"))`;
+                semanticsHelper.addInstr("_val");
+                return `_val(${numStr})`;
             },
             Wend(_wendLit) {
                 semanticsHelper.addIndent(-2);
@@ -1349,6 +1386,9 @@
             binaryValue(_prefix, value) {
                 return `0b${value.sourceString}`;
             },
+            negativeNumber(_sign, value) {
+                return `-${value.sourceString}`;
+            },
             string(_quote1, e, _quote2) {
                 return `"${e.sourceString}"`;
             },
@@ -1429,8 +1469,8 @@
         getGosubLabels() {
             return this.gosubLabels;
         }
-        getInstrKeys() {
-            return Object.keys(this.instrMap);
+        getInstrMap() {
+            return this.instrMap;
         }
         addInstr(name) {
             this.instrMap[name] = (this.instrMap[name] || 0) + 1;
@@ -1493,7 +1533,7 @@
                 getIndent: () => this.getIndent(),
                 getIndentStr: () => this.getIndentStr(),
                 //getInstr: (name: string) => this.getInstr(name),
-                getInstrKeys: () => this.getInstrKeys(),
+                getInstrMap: () => this.getInstrMap(),
                 getRestoreMap: () => this.getRestoreMap(),
                 getVariable: (name) => this.getVariable(name),
                 getVariables: () => this.getVariables(),
@@ -1514,8 +1554,7 @@
             vm._output = "";
             vm._fnOnCls();
         },
-        _convertPrintArg: (arg) => typeof arg !== "number" ? arg : arg >= 0 ? ` ${arg} ` : `${arg} `, // pad numbers with spaces
-        print: (...args) => vm._output += args.map((arg) => vm._convertPrintArg(arg)).join(''),
+        print: (...args) => vm._output += args.join(''),
         getOutput: () => vm._output,
         setOutput: (str) => vm._output = str,
         setOnCls: (fn) => vm._fnOnCls = fn
