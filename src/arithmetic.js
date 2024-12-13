@@ -20,9 +20,11 @@ export const arithmetic = {
      | Comparison
      | Cls
      | Data
+     | Def
      | Dim
      | End
      | Erase
+     | Error
      | ForLoop
      | Frame
      | Gosub
@@ -76,10 +78,20 @@ export const arithmetic = {
       = caseInsensitive<"cos"> "(" NumExp ")"
 
     DataItem
-      = string | number | negativeNumber
+      = string | number | signedDecimal
 
     Data
-      = caseInsensitive<"data"> NonemptyListOf<DataItem, ",">  // TODO: also hex number?
+      = caseInsensitive<"data"> NonemptyListOf<DataItem, ",">
+
+    Def
+      = caseInsensitive<"def"> caseInsensitive<"fn"> DefAssign
+    
+    DefArgs
+      = "(" ListOf<SimpleIdent, ","> ")"
+
+    DefAssign
+      = ident DefArgs? "=" NumExp
+      | strIdent DefArgs? "=" StrExp
 
     Dim
       = caseInsensitive<"dim"> NonemptyListOf<DimArrayIdent, ",">
@@ -89,6 +101,9 @@ export const arithmetic = {
 
     Erase
       = caseInsensitive<"erase"> NonemptyListOf<SimpleIdent, ",">
+
+    Error
+      = caseInsensitive<"error"> NumExp
 
     Exp
       = caseInsensitive<"exp"> "(" NumExp ")"
@@ -255,6 +270,7 @@ export const arithmetic = {
       | Str
       | String2
       | Upper
+      | StrFnIdent
       | StrArrayIdent
       | strIdent
       | string
@@ -316,6 +332,7 @@ export const arithmetic = {
       = "(" NumExp ")"  -- paren
       | "+" PriExp   -- pos
       | "-" PriExp   -- neg
+      | FnIdent
       | ArrayIdent
       | ident
       | number
@@ -343,9 +360,8 @@ export const arithmetic = {
       | Time
       | Val
 
-
     ArrayArgs
-      = NonemptyListOf<StrOrNumExp, ",">
+      = NonemptyListOf<NumExp, ",">
 
     ArrayIdent
       = ident "(" ArrayArgs ")"
@@ -366,6 +382,15 @@ export const arithmetic = {
       | ArrayIdent
       | strIdent
       | ident
+
+    FnIdent
+      = fnIdent FnArgs
+
+    StrFnIdent
+     = strFnIdent FnArgs
+
+    FnArgs
+     = "(" ListOf<StrOrNumExp, ","> ")"
 
     keyword
       = abs | after | and | asc | atn | auto | bin | border | break
@@ -709,9 +734,11 @@ export const arithmetic = {
     zone
     = caseInsensitive<"zone"> ~identPart
 
+    ident (an identifier)
+     = ~keyword identName
 
-    ident (an identifier) =
-      ~keyword identName
+    fnIdent
+     = caseInsensitive<"fn"> ~keyword identName
 
     identName = identStart identPart*
 
@@ -724,11 +751,16 @@ export const arithmetic = {
     strIdent
      = ~keyword identName ("$")
 
+    strFnIdent
+     = caseInsensitive<"fn"> ~keyword identName ("$")
+
     binaryDigit = "0".."1"
 
+    exponentPart = ("e" | "E") signedDecimal
+
     decimalValue  (decimal number)
-      = digit* "." digit+  -- fract
-      | digit+             -- whole
+      = digit* "." digit+ exponentPart* -- fract
+      | digit+            exponentPart* -- whole
 
     hexValue
       = "&" hexDigit+
@@ -741,8 +773,8 @@ export const arithmetic = {
       | hexValue
       | binaryValue
 
-    negativeNumber
-      = "-" decimalValue
+    signedDecimal
+      = ("+" | "-")? decimalValue
 
     partToEol
       = (~eol any)*

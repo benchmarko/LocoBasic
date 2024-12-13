@@ -91,10 +91,9 @@ export class Core {
                 }
             }
             catch (error) {
-                vm.cls();
                 output = "ERROR: ";
                 if (error instanceof Error) {
-                    output += String(error);
+                    output += this.vm.getOutput() + "\n" + String(error);
                     const anyErr = error;
                     const lineNumber = anyErr.lineNumber; // only on FireFox
                     const columnNumber = anyErr.columnNumber; // only on FireFox

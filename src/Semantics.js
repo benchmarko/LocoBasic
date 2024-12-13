@@ -194,6 +194,27 @@ function getSemantics(semanticsHelper) {
         Cos(_cosLit, _open, e, _close) {
             return `Math.cos(${e.eval()})`;
         },
+        Cint(_cintLit, _open, e, _close) {
+            return `Math.round(${e.eval()})`;
+        },
+        Cls(_clsLit) {
+            semanticsHelper.addInstr("_cls");
+            return `_cls()`;
+        },
+        Comparison(_iflit, condExp, _thenLit, thenStat, elseLit, elseStat) {
+            const indentStr = semanticsHelper.getIndentStr();
+            semanticsHelper.addIndent(2);
+            const indentStr2 = semanticsHelper.getIndentStr();
+            const cond = condExp.eval();
+            const thSt = thenStat.eval();
+            let result = `if (${cond}) {\n${indentStr2}${thSt}\n${indentStr}}`; // put in newlines to also allow line comments
+            if (elseLit.sourceString) {
+                const elseSt = evalChildren(elseStat.children).join('; ');
+                result += ` else {\n${indentStr2}${elseSt}\n${indentStr}}`;
+            }
+            semanticsHelper.addIndent(-2);
+            return result;
+        },
         Data(_datalit, args) {
             const argList = args.asIteration().children.map(c => c.eval());
             const definedLabels = semanticsHelper.getDefinedLabels();
@@ -206,6 +227,19 @@ function getSemantics(semanticsHelper) {
             dataList.push(argList.join(", "));
             semanticsHelper.addDataIndex(argList.length);
             return "";
+        },
+        Def(_defLit, _fnLit, assign) {
+            return `${assign.eval()}`;
+        },
+        DefArgs(_open, arrayIdents, _close) {
+            const argList = arrayIdents.asIteration().children.map(c => c.eval());
+            return `(${argList.join(", ")})`;
+        },
+        DefAssign(ident, args, _equal, e) {
+            const argStr = args.children.map(c => c.eval()).join(", ") || "()";
+            const fnIdent = `fn${ident.sourceString}`;
+            semanticsHelper.getVariable(fnIdent);
+            return `fn${ident.sourceString} = ${argStr} => ${e.eval()}`;
         },
         Dim(_dimLit, arrayIdents) {
             const argList = arrayIdents.asIteration().children.map(c => c.eval());
@@ -226,27 +260,6 @@ function getSemantics(semanticsHelper) {
             }
             return results.join("; ");
         },
-        Cint(_cintLit, _open, e, _close) {
-            return `Math.round(${e.eval()})`;
-        },
-        Cls(_clsLit) {
-            semanticsHelper.addInstr("_cls");
-            return `_cls()`;
-        },
-        Comparison(_iflit, condExp, _thenLit, thenStat, elseLit, elseStat) {
-            const cond = condExp.eval();
-            const thSt = thenStat.eval();
-            const indentStr = semanticsHelper.getIndentStr();
-            semanticsHelper.addIndent(2);
-            const indentStr2 = semanticsHelper.getIndentStr();
-            semanticsHelper.addIndent(-2);
-            let result = `if (${cond}) {\n${indentStr2}${thSt}\n${indentStr}}`; // put in newlines to also allow line comments
-            if (elseLit.sourceString) {
-                const elseSt = evalChildren(elseStat.children).join('; ');
-                result += ` else {\n${indentStr2}${elseSt}\n${indentStr}}`;
-            }
-            return result;
-        },
         End(_endLit) {
             return `return "end"`;
         },
@@ -259,11 +272,24 @@ function getSemantics(semanticsHelper) {
             }
             return results.join("; ");
         },
+        Error(_errorLit, e) {
+            return `throw new Error(${e.eval()})`;
+        },
         Exp(_expLit, _open, e, _close) {
             return `Math.exp(${e.eval()})`;
         },
         Fix(_fixLit, _open, e, _close) {
             return `Math.trunc(${e.eval()})`;
+        },
+        FnArgs(_open, args, _close) {
+            const argList = args.asIteration().children.map(c => c.eval());
+            return `(${argList.join(", ")})`;
+        },
+        FnIdent(fnIdent, args) {
+            return `${fnIdent.eval()}${args.eval()}`;
+        },
+        StrFnIdent(fnIdent, args) {
+            return `${fnIdent.eval()}${args.eval()}`;
         },
         ForLoop(_forLit, variable, _eqSign, start, _dirLit, end, _stepLit, step) {
             var _a;
@@ -394,7 +420,7 @@ function getSemantics(semanticsHelper) {
             return "return";
         },
         Right(_rightLit, _open, e1, _comma, e2, _close) {
-            return `(${e1.eval()}).slice(-${e2.eval()})`;
+            return `(${e1.eval()}).slice(-(${e2.eval()}))`;
         },
         Rnd(_rndLit, _open, _e, _close) {
             // args are ignored
@@ -524,7 +550,7 @@ function getSemantics(semanticsHelper) {
             return `(${e.eval()})`;
         },
         PriExp_pos(_op, e) {
-            return String(e.eval());
+            return `+${e.eval()}`;
         },
         PriExp_neg(_op, e) {
             return `-${e.eval()}`;
@@ -562,8 +588,8 @@ function getSemantics(semanticsHelper) {
         binaryValue(_prefix, value) {
             return `0b${value.sourceString}`;
         },
-        negativeNumber(_sign, value) {
-            return `-${value.sourceString}`;
+        signedDecimal(sign, value) {
+            return `${sign.sourceString}${value.sourceString}`;
         },
         string(_quote1, e, _quote2) {
             return `"${e.sourceString}"`;
@@ -572,8 +598,16 @@ function getSemantics(semanticsHelper) {
             const name = ident.sourceString;
             return semanticsHelper.getVariable(name);
         },
+        fnIdent(fn, ident) {
+            const name = fn.sourceString + ident.sourceString;
+            return semanticsHelper.getVariable(name);
+        },
         strIdent(ident, typeSuffix) {
             const name = ident.sourceString + typeSuffix.sourceString;
+            return semanticsHelper.getVariable(name);
+        },
+        strFnIdent(fn, ident, typeSuffix) {
+            const name = fn.sourceString + ident.sourceString + typeSuffix.sourceString;
             return semanticsHelper.getVariable(name);
         }
     };
