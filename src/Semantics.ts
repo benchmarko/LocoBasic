@@ -273,6 +273,33 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `Math.cos(${e.eval()})`;
 		},
 
+		Cint(_cintLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `Math.round(${e.eval()})`;
+		},
+
+		Cls(_clsLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addInstr("_cls");
+			return `_cls()`;
+		},
+
+		Comparison(_iflit: Node, condExp: Node, _thenLit: Node, thenStat: Node, elseLit: Node, elseStat: Node) {
+			const indentStr = semanticsHelper.getIndentStr();
+			semanticsHelper.addIndent(2);
+			const indentStr2 = semanticsHelper.getIndentStr();
+
+			const cond = condExp.eval();
+			const thSt = thenStat.eval();
+
+			let result = `if (${cond}) {\n${indentStr2}${thSt}\n${indentStr}}`; // put in newlines to also allow line comments
+			if (elseLit.sourceString) {
+				const elseSt = evalChildren(elseStat.children).join('; ');
+				result += ` else {\n${indentStr2}${elseSt}\n${indentStr}}`;
+			}
+
+			semanticsHelper.addIndent(-2);
+			return result;
+		},
+
 		Data(_datalit: Node, args: Node) {
 			const argList = args.asIteration().children.map(c => c.eval());
 
@@ -288,6 +315,24 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			dataList.push(argList.join(", "));
 			semanticsHelper.addDataIndex(argList.length);
 			return "";
+		},
+
+		Def(_defLit: Node, _fnLit: Node, assign: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `${assign.eval()}`;
+		},
+
+		DefArgs(_open: Node, arrayIdents: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			const argList = arrayIdents.asIteration().children.map(c => c.eval());
+
+			return `(${argList.join(", ")})`;
+		},
+
+		DefAssign(ident: Node, args: Node, _equal: Node, e: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			const argStr = args.children.map(c => c.eval()).join(", ") || "()";
+			const fnIdent = `fn${ident.sourceString}`;
+			semanticsHelper.getVariable(fnIdent);
+
+			return `fn${ident.sourceString} = ${argStr} => ${e.eval()}`;
 		},
 
 		Dim(_dimLit: Node, arrayIdents: Node) {
@@ -311,34 +356,6 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return results.join("; ");
 		},
 
-		Cint(_cintLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.round(${e.eval()})`;
-		},
-
-		Cls(_clsLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			semanticsHelper.addInstr("_cls");
-			return `_cls()`;
-		},
-
-		Comparison(_iflit: Node, condExp: Node, _thenLit: Node, thenStat: Node, elseLit: Node, elseStat: Node) {
-			const cond = condExp.eval();
-
-			const thSt = thenStat.eval();
-
-			const indentStr = semanticsHelper.getIndentStr();
-			semanticsHelper.addIndent(2);
-			const indentStr2 = semanticsHelper.getIndentStr();
-			semanticsHelper.addIndent(-2);
-
-			let result = `if (${cond}) {\n${indentStr2}${thSt}\n${indentStr}}`; // put in newlines to also allow line comments
-			if (elseLit.sourceString) {
-				const elseSt = evalChildren(elseStat.children).join('; ');
-				result += ` else {\n${indentStr2}${elseSt}\n${indentStr}}`;
-			}
-
-			return result;
-		},
-
 		End(_endLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `return "end"`;
 		},
@@ -355,12 +372,30 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return results.join("; ");
 		},
 
+		Error(_errorLit: Node, e: Node) {
+			return `throw new Error(${e.eval()})`;
+		},
+
 		Exp(_expLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `Math.exp(${e.eval()})`;
 		},
 
 		Fix(_fixLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `Math.trunc(${e.eval()})`;
+		},
+
+		FnArgs(_open: Node, args: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			const argList = args.asIteration().children.map(c => c.eval());
+
+			return `(${argList.join(", ")})`;
+		},
+
+		FnIdent(fnIdent: Node, args: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `${fnIdent.eval()}${args.eval()}`;
+		},
+
+		StrFnIdent(fnIdent: Node, args: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `${fnIdent.eval()}${args.eval()}`;
 		},
 
 		ForLoop(_forLit: Node, variable: Node, _eqSign: Node, start: Node, _dirLit: Node, end: Node, _stepLit: Node, step: Node) {
@@ -521,7 +556,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		Right(_rightLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `(${e1.eval()}).slice(-${e2.eval()})`;
+			return `(${e1.eval()}).slice(-(${e2.eval()}))`;
 		},
 
 		Rnd(_rndLit: Node, _open: Node, _e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -679,7 +714,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `(${e.eval()})`;
 		},
 		PriExp_pos(_op: Node, e: Node) {
-			return String(e.eval());
+			return `+${e.eval()}`;
 		},
 		PriExp_neg(_op: Node, e: Node) {
 			return `-${e.eval()}`;
@@ -728,8 +763,8 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `0b${value.sourceString}`;
 		},
 
-		negativeNumber(_sign: Node, value: Node) {
-			return `-${value.sourceString}`;
+		signedDecimal(sign: Node, value: Node) {
+			return `${sign.sourceString}${value.sourceString}`;
 		},
 
 		string(_quote1: Node, e: Node, _quote2: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -741,8 +776,18 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return semanticsHelper.getVariable(name);
 		},
 
+		fnIdent(fn: Node, ident: Node) {
+			const name = fn.sourceString + ident.sourceString;
+			return semanticsHelper.getVariable(name);
+		},
+
 		strIdent(ident: Node, typeSuffix: Node) {
 			const name = ident.sourceString + typeSuffix.sourceString;
+			return semanticsHelper.getVariable(name);
+		},
+
+		strFnIdent(fn: Node, ident: Node, typeSuffix: Node) {
+			const name = fn.sourceString + ident.sourceString + typeSuffix.sourceString;
 			return semanticsHelper.getVariable(name);
 		}
 	};

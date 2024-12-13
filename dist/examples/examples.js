@@ -461,6 +461,34 @@ NEXT
 `);
 
 cpcBasic.addItem("", `
+100 REM factorials - Big Factorials
+110 CLS
+120 PRINT "    Big Factorials"
+130 PRINT:INPUT"Which number (up to 252):";n
+140 PRINT:PRINT n;"!="
+150 DIM r(100)
+160 'number of 5-digit-blocks
+170 l=1:r(1)=1
+180 FOR i=2 TO n:l=l+LOG(i):NEXT
+190 l=l*0.434295:ri=INT(l/5+1)
+200 'Multi-Schleife
+210 l=1:FOR i=n TO 2 STEP -1
+220 l=l+LOG(i)*0.434294575:li=l/5+1:u=0
+230 FOR j=1 TO li
+240 h=r(j)*i+u
+250 IF h<-100000 THEN u=0 ELSE u=INT(h/100000):h=h-u*100000
+270 r(j)=h:NEXT j,i
+280 'Output
+290 WHILE r(ri)=0:ri=ri-1:WEND
+300 FOR i=ri TO 1 STEP -1
+310 r$=STR$(r(i)):r$=RIGHT$(r$,LEN(r$)-1)
+320 PRINT RIGHT$("0000"+r$,5);" ";
+330 IF (ri-i+1) MOD 10=0 THEN PRINT
+340 NEXT
+350 STOP
+`);
+
+cpcBasic.addItem("", `
 10 rem inputest - Input Test
 20 cls
 30 ?"Name"
@@ -696,8 +724,9 @@ on a gosub 200, 300
 cpcBasic.addItem("", `
 REM testpage - Test Page
 CLS
-?"testpage"
-' numbers
+PRINT "Test Page"
+'
+PRINT "Numbers"
 a=1
 a=1.2
 a=-1.2
@@ -721,11 +750,67 @@ a=-32767
 a=32768
 a=-32768
 a=65536
-''a=1.2e+9
+a=1.2e+9
+a=-1.2e-3
 ''a=&x2
-' strings
-a$="a12"
-''a$="\"
+a=1:IF a<>1 THEN ERROR 33
+a=1.2:IF a<>1.2 THEN ERROR 33
+a=-1.2:IF a<>-1.2 THEN ERROR 33
+a=1200:IF a<>1200 THEN ERROR 33
+a=-7.2:IF a<>-7.2 THEN ERROR 33
+a=ROUND(-7.2):IF a<>-7 THEN ERROR 33
+a=+7.2:IF a<>7.2 THEN ERROR 33
+a=0.2:IF a<>0.2 THEN ERROR 33
+a=2:IF a<>2 THEN ERROR 33
+a=10000:IF a<>10000 THEN ERROR 33
+a=0.0001:IF a<>0.0001 THEN ERROR 33
+a=1E+09-1:IF a<>1E+09-1 OR a<>999999999 THEN ERROR 33
+'
+PRINT"hex number: &"
+a=&A7:IF a<>167 THEN ERROR 33
+a=-&A7:IF a<>-167 THEN ERROR 33
+a=&7FFF:IF a<>32767 THEN ERROR 33
+'
+PRINT"bin number: &x"
+a=&0:IF a<>0 THEN ERROR 33
+a=&X10100111:IF a<>167 THEN ERROR 33
+a=&X111111111111111:IF a<>32767 THEN ERROR 33
+a=-&X111111111111111:IF a<>-32767 THEN ERROR 33
+'
+PRINT"Strings"
+a$="a12":IF a$<>"a12" THEN ERROR 33
+a$="7.1":IF a$<>"7.1" THEN ERROR 33
+''a$="\\"
+'
+PRINT"Variable types"
+a=1.4:IF a<>1.4 THEN ERROR 33
+a$="1.4":IF a$<>"1.4" THEN ERROR 33
+'
+PRINT"Array Variables"
+dim a(2), a$(2)
+a(2)=1.4:IF a(2)<>1.4 THEN ERROR 33
+a(2)=1.5:IF a(2)<>1.5 THEN ERROR 33
+a$(2)="1.4":IF a$(2)<>"1.4" THEN ERROR 33
+'
+PRINT"expressions, operators +-*..."
+a=1+2+3:IF a<>6 THEN ERROR 33
+a=3-2-1:IF a<>0 THEN ERROR 33
+a=&A7+&X10100111-(123-27):IF a<>238 THEN ERROR 33
+a=3+2*3-7:IF a<>2 THEN ERROR 33
+a=(3+2)*(3-7):IF a<>-20 THEN ERROR 33
+a=-(10-7)-(-6-2):IF a<>5 THEN ERROR 33
+a=20/2.5:IF a<>8 THEN ERROR 33
+a=20\\3:IF a<>6 THEN ERROR 33
+a=3^2:IF a<>9 THEN ERROR 33
+a=&X1001 AND &X1110:IF a<>&X1000 THEN ERROR 33
+a=&X1001 OR &X110:IF a<>&X1111 THEN ERROR 33
+a=&X1001 XOR &X1010:IF a<>&X11 THEN ERROR 33
+a=NOT &X1001:IF a<>-10 THEN ERROR 33
+a=+-9:IF a<>-9 THEN ERROR 33
+a=(1=0):IF a<>0 THEN ERROR 33
+a=(1>0)*(0<1):IF a<>1 THEN ERROR 33
+a=1=1=-1:IF a<>-1 THEN ERROR 33
+'
 newline=7
 ' variables
 ''a!=1.4
@@ -775,7 +860,25 @@ a=1>=1>1
 ''2 c=1
 ''1 c=1
 ' special
+'
 ' abs, after gosub, and, asc, atn, auto
+PRINT"ABS(positive number)"
+a=ABS(+67.98):IF a<>67.98 THEN ERROR 33
+PRINT"ABS(negative number)"
+a=ABS(-67.98):IF a<>67.98 THEN ERROR 33
+PRINT"ABS(0)"
+a=ABS(0):IF a<>0 THEN ERROR 33
+'
+PRINT"AND (and OR)"
+a=4 OR 7 AND 2:IF a<>6 THEN ERROR 33
+'
+PRINT"ASC"
+a=ASC("a"):IF a<>97 THEN ERROR 33
+a=ASC("ab"):IF a<>97 THEN ERROR 33
+'
+PRINT "ATN"
+a=INT(ATN(1)*100000000)/100000000:IF a<>0.78539816 THEN ERROR 33
+'
 a=ABS(2.3)
 ''10 after 2 gosub 10010
 ''10 after 3,1 gosub 10010
@@ -788,9 +891,16 @@ a=ATN(2.3)
 ''auto
 ''auto 100
 ' bin$, border
+PRINT "BIN$"
 a$=BIN$(3)
 a$=BIN$(3,8)
 a$=BIN$(&X1001)
+b$=BIN$(0):IF b$<>"0" THEN ERROR 33
+b$=BIN$(255):IF b$<>"11111111" THEN ERROR 33
+b$=BIN$(255,10):IF b$<>"0011111111" THEN ERROR 33
+b$=BIN$(170,6):IF b$<>"10101010" THEN ERROR 33
+b$=BIN$(32767,16):IF b$<>"0111111111111111" THEN ERROR 33
+b$=BIN$(65535):IF b$<>"1111111111111111" THEN ERROR 33
 ''border 5
 ''border 5,a
 ' call, cat, chain, chain merge, chr$, cint, clg, closein, closeout, cls, cont, copychr$, cos, creal, cursor
@@ -837,15 +947,30 @@ a=COS(2.3)
 ''data ,
 ''data data 1,2,3
 DATA "item1"," item2","item3 "
+READ a$:IF a$<>"item1" THEN ERROR 33
+READ a$:IF a$<>" item2" THEN ERROR 33
+READ a$:IF a$<>"item3 " THEN ERROR 33
 ''data item1,item2,item3
 DATA &a3,&x001,4,-7,"abc"
+READ a,b:IF a<>&a3 THEN ERROR 33
+IF b<>&x001 THEN ERROR 33
+READ a,b:IF a<>4 THEN ERROR 33
+IF b<>-7 THEN ERROR 33
+READ a$:IF a$<>"abc" THEN ERROR 33
 DATA " ","#$%&'()*+,"
+READ a$:IF a$<>" " THEN ERROR 33
+READ a$:IF a$<>"#$%&'()*+," THEN ERROR 33
 ''data "string in data with ... newline"
+DATA &a7, &x10100111
+READ a:IF a<>&A7 THEN ERROR 33
+READ a:IF a<>&A7 THEN ERROR 33
+'
 ''a$=dec$(3,"##.##")
-''def fnclk=10
-''def fnclk(a)=a*10
-''def fnclk(a,b)=a*10+b
-''def fnclk$(a$,b$)=a$+b$
+PRINT"DEF FN"
+def fnclk=10
+def fnclk(a)=a*10
+def fnclk(a,b)=a*10+b
+def fnclk$(a$,b$)=a$+b$
 ''def fn clk=10
 ''def fn clk(a)=a*10
 ''def fn clk(a,b)=a*10+b
@@ -854,6 +979,17 @@ DATA " ","#$%&'()*+,"
 ''def fncls1(x+1)=1
 ''def fx=1
 ''def fx y=1
+DEF FNf1(x)=x*x
+a=FNf1(2.5):IF a<>6.25 THEN ERROR 33
+''a=FN f1(2.5):IF a<>6.25 THEN ERROR 33
+DEF FN f1$(x$)=x$+x$
+a$=FNf1$("a"):IF a$<>"aa" THEN ERROR 33
+''a$=FN f1$("a"):IF a$<>"aa" THEN ERROR 33
+DEF FNf2=2.5*2.5
+a=FNf2():IF a<>6.25 THEN ERROR 33
+DEF FNf1(o,v,t)=o+v+t
+a=FNf1(1,2,3):IF a<>6 THEN ERROR 33
+'
 ''defint a
 ''defint a-t
 ''defint a-T
@@ -906,6 +1042,10 @@ DIM a$(1)
 DIM b(2,13)
 x=1:DIM a(2,13+7),b$(3),c(2*x,7)
 ''dim a[2,13)
+''DIM a(4):FOR i=0 TO 4:a(i)=i:NEXT
+''a=0:FOR i=0 TO 4:a=a+a(i):NEXT:IF a<>10 THEN ERROR 33
+DIM a(4):FOR i=0 TO 4:a(i)=i:NEXT
+x=0:FOR i=0 TO 4:x=x+a(i):NEXT:IF x<>10 THEN ERROR 33
 ''draw 10,20
 ''draw -10,-20,7
 ''draw 10,20,7,3
@@ -948,9 +1088,9 @@ a=EXP(2.3)
 ''fill 7
 a=FIX(2.3)
 '' x=fnclk 'TODO?
-'' x=fnclk(a) 'TODO?
-'' x=fnclk(a,b) 'TODO?
-'' x$=fnclk$(a$,b$) 'TODO?
+x=fnclk(a)
+x=fnclk(a,b)
+x$=fnclk$(a$,b$)
 ''x=fn clk
 ''x=fn clk(a)
 ''x=fn clk(a,b)
@@ -1001,6 +1141,7 @@ IF a=1 THEN a=2 ELSE a=1
 ''if a=1 then a=2 else
 ''if a=1 then else a=1
 ''if a=1 then if b=1 then else else a=1
+if a=1 then if b=1 then a=2 else a=3 else b=2
 ''10 if a=1 then goto 10010
 ''10 if a=1 then 10010
 ''10 if a=1 goto 10010
@@ -1031,6 +1172,13 @@ IF a$<>"3" THEN GOSUB 10010
 a=INSTR("key","ey")
 a=INSTR(s$,find$)
 ''a=instr(start,s$,find$)
+PRINT"INSTR"
+a=INSTR("Amstrad", "m"):IF a<>2 THEN ERROR 33
+a=INSTR("Amstrad", "sr"):IF a<>0 THEN ERROR 33
+''a=INSTR(6,"amstrad", "a"):IF a<>6 THEN ERROR 33
+''a=INSTR("", ""):IF a<>0 THEN ERROR 33
+''a=INSTR(1, "", ""):IF a<>0 THEN ERROR 33
+''a=INSTR(1, "ab", ""):IF a<>1 THEN ERROR 33
 a=INT(-2.3)
 a=INT(b+2.3)
 ' joy
@@ -1076,8 +1224,12 @@ a=LEN(a$)
 ''locate 10,20
 ''locate#2,10,20
 ''locate#stream,x,y
+PRINT"LOG"
 a=LOG(10)
+a=LOG(1000)/LOG(10): IF INT(a+1E-9)<>3 THEN ERROR 33
+PRINT"LOG10"
 a=LOG10(10)
+a=LOG10(1000):IF a<>3 THEN ERROR 33
 b$="AbC":a$=LOWER$(b$)
 a$=LOWER$("String")
 ' mask, max, memory, merge, mid$, min, mod, mode, move, mover
@@ -1085,15 +1237,20 @@ a$=LOWER$("String")
 ''mask 2^(8-x),1
 ''mask a,b
 ''mask ,b
+PRINT "MAX"
 a=MAX(1)
 a=MAX(1,5)
 a=MAX(b,c,d)
 ''a$=max("abc")
 ''1 a$=max("abc","d")
+a=MAX(7):IF a<>7 THEN ERROR 33
+a=MAX(1.5,2.1,2.0):IF a<>2.1 THEN ERROR 33
+''a$=MAX("abc"):IF a$<>"abc" THEN ERROR 33
 ''memory &3fff
 ''memory adr
 ''merge "file"
 ''merge f$
+PRINT"MID$"
 a$=MID$("string",3)
 a$=MID$("string",3,2)
 p=1:a$=MID$(b$,p)
@@ -1101,11 +1258,20 @@ a$=MID$(b$,p,lg)
 ''mid$(a$,2)=b$
 ''mid$(a$,2,2)=b$
 ''mid$(a$,b%,c!)="string"
+a$="abcd":b$=mid$(a$,2):IF b$<>"bcd" THEN ERROR 33
+a$="abcd":b$=mid$(a$,2,2):IF b$<>"bc" THEN ERROR 33
+''PRINT"MID$ as assign"
+''a$="abcd":b$="xyz":MID$(a$,2)=b$:IF a$<>"axyz" OR b$<>"xyz" THEN ERROR 33
+''a$="abcd":b$="xyz":MID$(a$,2,2)=b$:IF a$<>"axyd" THEN ERROR 33
+PRINT "MIN"
 a=MIN(1)
 a=MIN(1,5)
 a=MIN(b,c,d)
 ''a$=min("abc")
 ''1 a$=min("abc","d")
+a=MIN(7):IF a<>7 THEN ERROR 33
+a=MIN(1.5,2.1,2.0):IF a<>1.5 THEN ERROR 33
+''a$=MIN("abc"):IF a$<>"abc" THEN ERROR 33
 a=10 MOD 3
 a=b MOD -c
 ''mode 0
@@ -1142,8 +1308,8 @@ a=NOT -b
 ''1 on error goto 0:mask ,
 ''1 on error goto 2:mask , '2 rem
 ON 1 GOSUB 10010
-ON x GOSUB 10010,10020 '20 rem
-ON x+1 GOSUB 10010,10020,10020 '20 rem
+x=1:ON x GOSUB 10010,10020 '20 rem
+x=2:ON x+1 GOSUB 10010,10020,10020 '20 rem
 ''10 on 1 goto 10
 ''10 on x goto 10,20 '20 rem
 ''10 on x+1 goto 10,20,20 '20 rem
@@ -1158,7 +1324,7 @@ a=b OR c
 ''origin 10,20
 ''origin 10,20,5,200,50,15
 ''origin x,y,left,right,top,bottom
-''ut &bc12,&12
+''out &bc12,&12
 ''out adr,by
 ' paper, peek, pen, pi, plot, plotr, poke, pos, print
 ''paper 2
@@ -1184,6 +1350,8 @@ a=PI
 ''poke adr,by
 ''a=pos(#0)
 ''a=pos(#stream)
+'
+PRINT "PRINT"
 PRINT
 ''print ,
 PRINT ;
@@ -1233,11 +1401,25 @@ RESTORE 10
 ''resume next
 ''return
 a$=RIGHT$(b$,n)
+a$=" 204":a$=RIGHT$(a$,LEN(a$)-1): IF a$<>"204" then error 33
 ''a=rnd
 a=RND(0)
 a=RND(-1*b)
+'
+PRINT"ROUND"
 a=ROUND(2.335)
 a=ROUND(2.335,2)
+a=ROUND(PI):IF a<>3 THEN ERROR 33
+a=ROUND(PI,0):IF a<>3 THEN ERROR 33
+''a=ROUND(PI,0.4):IF a<>3 THEN ERROR 33
+a=ROUND(PI,2):IF a<>3.14 THEN ERROR 33
+''a=ROUND(PI,2.4):IF a<>3.14 THEN ERROR 33
+a=ROUND(1234.5678,-2):IF a<>1200 THEN ERROR 33
+''a=ROUND(8.575,2):IF a<>8.58 THEN ERROR 33
+''a=ROUND(-8.575,2):IF a<>-8.58 THEN ERROR 33
+''a=ROUND(1.005,2):IF a<>1.01 THEN ERROR 33
+''a=ROUND(-1.005,2):IF a<>-1.01 THEN ERROR 33
+'
 ''run
 ''10 run 10
 ''run "file"
@@ -1275,7 +1457,11 @@ a$=SPACE$(9+b)
 a=SQR(9)
 '' below: stop
 a$=STR$(123)
+'
+PRINT "STR$"
 a$=STR$(a+b)
+a=1: s$="": WHILE a<=5: s$=s$+STR$(a)+":": a=a+1: b=0: WHILE b<3: b=b+1: s$=s$+STR$(b): WEND: s$=s$+" ": WEND: s$=s$+"#"
+IF s$<>" 1: 1 2 3  2: 1 2 3  3: 1 2 3  4: 1 2 3  5: 1 2 3 #" THEN ERROR 33
 a$=STRING$(40,"*")
 ''a$=string$(40,42)
 a$=STRING$(lg,char$)
@@ -1289,7 +1475,9 @@ a$=STRING$(lg,char$)
 ''tagoff
 ''tagoff#2
 ''tagoff#stream
+PRINT "TAN"
 a=TAN(45)
+a=INT(TAN(0.7853981635)*100000000)/100000000:IF a<>1 THEN ERROR 33
 ''a=test(10,20)
 ''a=test(x,y)
 ''a=testr(10,-20)
@@ -1302,15 +1490,21 @@ t=TIME
 a$=UPPER$("String")
 a$=UPPER$(b$)
 ' val, vpos
+PRINT"VAL"
 a=VAL("-2.3")
 a=VAL(b$)
+a=VAL(""):IF a<>0 THEN ERROR 33
+''a=VAL("4r"):IF a<>4 THEN ERROR 33
+a=VAL("&ff"):IF a<>&FF THEN ERROR 33
+a=VAL("&7A00"):IF a<>31232 or a<>&7A00 THEN ERROR 33
+'
 ''a=vpos(#0)
 ''a=vpos(#stream)
 ' wait, wend, while, width, window, window swap, write
 ''wait &ff34,20
 ''wait &ff34,20,25
-WHILE a=10:WEND
-WHILE a>0:WEND
+a=9:WHILE a=10:WEND:if a<>9 then error 33
+a=3:WHILE a>0:a=a-1:WEND:if a<>0 then error 33
 ''width 40
 ''window 10,30,5,20
 ''window#1,10,30,5,20

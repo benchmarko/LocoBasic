@@ -103,10 +103,9 @@ export class Core implements ICore {
 			}
 
 		} catch (error) {
-			vm.cls();
 			output = "ERROR: ";
 			if (error instanceof Error) {
-				output += String(error);
+				output += this.vm.getOutput() + "\n" + String(error);
 
 				const anyErr = error as any;
 				const lineNumber = anyErr.lineNumber; // only on FireFox
