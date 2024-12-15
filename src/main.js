@@ -1,11 +1,21 @@
 // main.ts
 //
 // Usage:
-// node dist/locobasic.js input="?3 + 5 * (2 - 8)"
-// node dist/locobasic.js fileName=dist/examples/example.bas
-// node dist/locobasic.js example=euler
+// node dist/locobasic.js [action='compile,run'] [input=<statements>] [example=<name>]
 //
-// [ npx ts-node parser.ts input="?3 + 5 * (2 - 8)" ]
+// - Examples for compile and run:
+// node dist/locobasic.js input='print "Hello!"'
+// npx ts-node dist/locobasic.js input='print "Hello!"'
+// node dist/locobasic.js input="?3 + 5 * (2 - 8)"
+// node dist/locobasic.js example=euler
+// node dist/locobasic.js fileName=dist/examples/example.bas
+//
+// - Example for compile only:
+// node dist/locobasic.js action='compile' input='print "Hello!";' > hello1.js
+//   [Windows: Use node.exe when redirecting into a file; or npx ts-node ...]
+// node hello1.js
+// [When using async functions like FRAME or INPUT, redirect to hello1.mjs]
+//
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -75,13 +85,23 @@ function keepRunning(fn, timeout) {
     }))();
 }
 function start(input) {
+    const actionConfig = core.getConfig("action");
     if (input !== "") {
-        const compiledScript = core.compileScript(input);
-        console.log("INFO: Compiled:\n" + compiledScript + "\n---");
-        return keepRunning(() => __awaiter(this, void 0, void 0, function* () {
-            const output = yield core.executeScript(compiledScript);
-            console.log(output.replace(/\n$/, ""));
-        }), 5000);
+        const compiledScript = actionConfig.includes("compile") ? core.compileScript(input) : input;
+        //console.log("INFO: Compiled:\n" + compiledScript + "\n---");
+        if (actionConfig.includes("run")) {
+            core.setOnPrint((msg) => {
+                console.log(msg.replace(/\n$/, ""));
+            });
+            return keepRunning(() => __awaiter(this, void 0, void 0, function* () {
+                const output = yield core.executeScript(compiledScript);
+                console.log(output.replace(/\n$/, ""));
+            }), 5000);
+        }
+        else {
+            const inFrame = core.putScriptInFrame(compiledScript);
+            console.log(inFrame);
+        }
     }
     else {
         console.log("No input");
@@ -112,7 +132,6 @@ function main(config) {
             }
             input += examples[config.example];
         }
-        console.log("start");
         start(input);
     }
 }
@@ -127,6 +146,7 @@ if (typeof window !== "undefined") {
         const args = ui.parseUri(window.location.search.substring(1), config);
         fnParseArgs(args, config);
         core.setOnCls(() => ui.setOutputText(""));
+        core.setOnPrint((msg) => ui.addOutputText(msg));
         core.setOnPrompt((msg) => window.prompt(msg));
         core.setOnCheckSyntax((s) => Promise.resolve(ui.checkSyntax(s)));
         ui.onWindowLoad(new Event("onload"));

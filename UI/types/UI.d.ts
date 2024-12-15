@@ -7,7 +7,7 @@ export declare class UI implements IUI {
     constructor(core: ICore);
     private debounce;
     private static asyncDelay;
-    private getOutputText;
+    addOutputText(value: string): void;
     setOutputText(value: string): void;
     private onExecuteButtonClick;
     private onCompiledTextChange;

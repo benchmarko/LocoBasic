@@ -84,9 +84,9 @@
                 return timerId;
             }))();
         }
-        getOutputText() {
+        addOutputText(value) {
             const outputText = document.getElementById("outputText");
-            return outputText.value;
+            outputText.value += value;
         }
         setOutputText(value) {
             const outputText = document.getElementById("outputText");
@@ -97,7 +97,7 @@
                 const compiledText = document.getElementById("compiledText");
                 const compiledScript = this.compiledCm ? this.compiledCm.getValue() : compiledText.value;
                 const output = yield this.core.executeScript(compiledScript);
-                this.setOutputText(this.getOutputText() + output + (output.endsWith("\n") ? "" : "\n"));
+                this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
             });
         }
         onCompiledTextChange(_event) {

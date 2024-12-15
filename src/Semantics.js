@@ -10,13 +10,13 @@ function getCodeSnippets() {
             _dataPtr = 0;
             _restoreMap = {};
         },
-        _bin$: function _bin$(num, pad) {
-            return num.toString(2).toUpperCase().padStart(pad || 0, "0");
+        bin$: function bin$(num, pad = 0) {
+            return num.toString(2).toUpperCase().padStart(pad, "0");
         },
-        _cls: function _cls() {
+        cls: function cls() {
             _o.cls();
         },
-        _dim: function _dim(dims, initVal = 0) {
+        dim: function dim(dims, initVal = 0) {
             const createRecursiveArray = (depth) => {
                 const length = dims[depth] + 1; // +1 because of 0-based index
                 const array = Array.from({ length }, () => depth + 1 < dims.length ? createRecursiveArray(depth + 1) : initVal);
@@ -24,35 +24,35 @@ function getCodeSnippets() {
             };
             return createRecursiveArray(0);
         },
-        _frame: function _frame() {
+        frame: function frame() {
             return new Promise(resolve => setTimeout(() => resolve(), Date.now() % 50));
         },
-        _hex$: function _hex$(num, pad) {
+        hex$: function hex$(num, pad) {
             return num.toString(16).toUpperCase().padStart(pad || 0, "0");
         },
-        _input: function _input(msg, isNum) {
+        input: function input(msg, isNum) {
             return new Promise(resolve => setTimeout(() => resolve(isNum ? Number(_o.prompt(msg)) : _o.prompt(msg)), 0));
         },
-        _print: function _print(...args) {
+        print: function print(...args) {
             const _printNumber = (arg) => (arg >= 0) ? ` ${arg} ` : `${arg} `;
             _o.print(args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg).join(""));
         },
-        _read: function _read() {
+        read: function read() {
             return _data[_dataPtr++];
         },
-        _restore: function _restore(label) {
+        restore: function restore(label) {
             _dataPtr = _restoreMap[label];
         },
-        _round: function _round(num, dec) {
+        round: function round(num, dec) {
             return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
         },
-        _str$: function _str$(num) {
+        str$: function str$(num) {
             return num >= 0 ? ` ${num}` : String(num);
         },
-        _time: function _time() {
+        time: function time() {
             return (Date.now() * 3 / 10) | 0;
         },
-        _val: function _val(str) {
+        val: function val(str) {
             return Number(str.replace("&x", "0b").replace("&", "0x"));
         },
     };
@@ -120,16 +120,25 @@ function getSemantics(semanticsHelper) {
             lineList.push("// library");
             const instrMap = semanticsHelper.getInstrMap();
             const codeSnippets = getCodeSnippets();
+            let needsAsync = false;
             for (const key of Object.keys(codeSnippets)) {
                 if (instrMap[key]) {
                     const code = String(codeSnippets[key]);
-                    lineList.push(trimIndent(code));
+                    const adaptedCode = trimIndent(code);
+                    if (adaptedCode.includes("Promise") || adaptedCode.includes("await")) {
+                        lineList.push("async " + adaptedCode);
+                        needsAsync = true;
+                    }
+                    else {
+                        lineList.push(adaptedCode);
+                    }
                 }
             }
             if (varStr) {
                 lineList.unshift(varStr);
             }
-            if (instrMap["_frame"] || instrMap["_input"]) {
+            //if (instrMap["frame"] || instrMap["input"]) {
+            if (needsAsync) {
                 lineList.unshift(`return async function() {`);
                 lineList.push('}();');
             }
@@ -181,9 +190,9 @@ function getSemantics(semanticsHelper) {
         },
         Bin(_binLit, _open, e, _comma, n, _close) {
             var _a;
-            semanticsHelper.addInstr("_bin$");
+            semanticsHelper.addInstr("bin$");
             const pad = (_a = n.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
-            return pad !== undefined ? `_bin$(${e.eval()}, ${pad})` : `_bin$(${e.eval()})`;
+            return pad !== undefined ? `bin$(${e.eval()}, ${pad})` : `bin$(${e.eval()})`;
         },
         Chr(_chrLit, _open, e, _close) {
             return `String.fromCharCode(${e.eval()})`;
@@ -198,8 +207,8 @@ function getSemantics(semanticsHelper) {
             return `Math.round(${e.eval()})`;
         },
         Cls(_clsLit) {
-            semanticsHelper.addInstr("_cls");
-            return `_cls()`;
+            semanticsHelper.addInstr("cls");
+            return `cls()`;
         },
         Comparison(_iflit, condExp, _thenLit, thenStat, elseLit, elseStat) {
             const indentStr = semanticsHelper.getIndentStr();
@@ -219,9 +228,11 @@ function getSemantics(semanticsHelper) {
             const argList = args.asIteration().children.map(c => c.eval());
             const definedLabels = semanticsHelper.getDefinedLabels();
             if (definedLabels.length) {
-                const dataIndex = semanticsHelper.getDataIndex();
                 const currentLabel = definedLabels[definedLabels.length - 1];
-                currentLabel.dataIndex = dataIndex;
+                if (currentLabel.dataIndex === -1) {
+                    const dataIndex = semanticsHelper.getDataIndex();
+                    currentLabel.dataIndex = dataIndex;
+                }
             }
             const dataList = semanticsHelper.getDataList();
             dataList.push(argList.join(", "));
@@ -237,9 +248,8 @@ function getSemantics(semanticsHelper) {
         },
         DefAssign(ident, args, _equal, e) {
             const argStr = args.children.map(c => c.eval()).join(", ") || "()";
-            const fnIdent = `fn${ident.sourceString}`;
-            semanticsHelper.getVariable(fnIdent);
-            return `fn${ident.sourceString} = ${argStr} => ${e.eval()}`;
+            const fnIdent = semanticsHelper.getVariable(`fn${ident.sourceString}`);
+            return `${fnIdent} = ${argStr} => ${e.eval()}`;
         },
         Dim(_dimLit, arrayIdents) {
             const argList = arrayIdents.asIteration().children.map(c => c.eval());
@@ -249,8 +259,8 @@ function getSemantics(semanticsHelper) {
                 let createArrStr;
                 if (indices.length > 1) { // multi-dimensional?
                     const initValStr = ident.endsWith("$") ? ', ""' : '';
-                    createArrStr = `_dim([${indices}]${initValStr})`; // indices are automatically joined with comma
-                    semanticsHelper.addInstr("_dim");
+                    createArrStr = `dim([${indices}]${initValStr})`; // indices are automatically joined with comma
+                    semanticsHelper.addInstr("dim");
                 }
                 else {
                     const fillStr = ident.endsWith("$") ? `""` : "0";
@@ -286,10 +296,14 @@ function getSemantics(semanticsHelper) {
             return `(${argList.join(", ")})`;
         },
         FnIdent(fnIdent, args) {
-            return `${fnIdent.eval()}${args.eval()}`;
+            var _a;
+            const argStr = ((_a = args.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "()";
+            return `${fnIdent.eval()}${argStr}`;
         },
         StrFnIdent(fnIdent, args) {
-            return `${fnIdent.eval()}${args.eval()}`;
+            var _a;
+            const argStr = ((_a = args.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "()";
+            return `${fnIdent.eval()}${argStr}`;
         },
         ForLoop(_forLit, variable, _eqSign, start, _dirLit, end, _stepLit, step) {
             var _a;
@@ -310,8 +324,8 @@ function getSemantics(semanticsHelper) {
             return result;
         },
         Frame(_frameLit) {
-            semanticsHelper.addInstr("_frame");
-            return `await _frame()`;
+            semanticsHelper.addInstr("frame");
+            return `await frame()`;
         },
         Gosub(_gosubLit, e) {
             const labelStr = e.sourceString;
@@ -320,16 +334,16 @@ function getSemantics(semanticsHelper) {
         },
         Hex(_hexLit, _open, e, _comma, n, _close) {
             var _a;
-            semanticsHelper.addInstr("_hex$");
+            semanticsHelper.addInstr("hex$");
             const pad = (_a = n.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
-            return pad !== undefined ? `_hex$(${e.eval()}, ${pad})` : `_hex$(${e.eval()})`;
+            return pad !== undefined ? `hex$(${e.eval()}, ${pad})` : `hex$(${e.eval()})`;
         },
         Input(_inputLit, message, _semi, e) {
-            semanticsHelper.addInstr("_input");
+            semanticsHelper.addInstr("input");
             const msgStr = message.sourceString.replace(/\s*[;,]$/, "");
             const ident = e.eval();
             const isNumStr = ident.includes("$") ? "" : ", true";
-            return `${ident} = await _input(${msgStr}${isNumStr})`;
+            return `${ident} = await input(${msgStr}${isNumStr})`;
         },
         Instr(_instrLit, _open, e1, _comma, e2, _close) {
             return `((${e1.eval()}).indexOf(${e2.eval()}) + 1)`;
@@ -366,6 +380,10 @@ function getSemantics(semanticsHelper) {
             const argList = args.asIteration().children.map(c => c.eval()); // see also: ArrayArgs
             return `Math.min(${argList})`;
         },
+        Mode(_clsLit, _num) {
+            semanticsHelper.addInstr("cls"); // currently MODE is the same as CLS
+            return `cls()`;
+        },
         Next(_nextLit, variables) {
             const argList = variables.asIteration().children.map(c => c.eval());
             if (!argList.length) {
@@ -390,20 +408,20 @@ function getSemantics(semanticsHelper) {
         },
         Print(_printLit, params, semi) {
             var _a;
-            semanticsHelper.addInstr("_print");
+            semanticsHelper.addInstr("print");
             const paramStr = ((_a = params.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
             let newlineStr = "";
             if (!semi.sourceString) {
                 newlineStr = paramStr ? `, "\\n"` : `"\\n"`;
             }
-            return `_print(${paramStr}${newlineStr})`;
+            return `print(${paramStr}${newlineStr})`;
         },
         Read(_readlit, args) {
-            semanticsHelper.addInstr("_read");
+            semanticsHelper.addInstr("read");
             const argList = args.asIteration().children.map(c => c.eval());
             const results = [];
             for (const ident of argList) {
-                results.push(`${ident} = _read()`);
+                results.push(`${ident} = read()`);
             }
             return results.join("; ");
         },
@@ -413,8 +431,8 @@ function getSemantics(semanticsHelper) {
         Restore(_restoreLit, e) {
             const labelStr = e.sourceString || "0";
             semanticsHelper.addRestoreLabel(labelStr);
-            semanticsHelper.addInstr("_restore");
-            return `_restore(${labelStr})`;
+            semanticsHelper.addInstr("restore");
+            return `restore(${labelStr})`;
         },
         Return(_returnLit) {
             return "return";
@@ -430,8 +448,8 @@ function getSemantics(semanticsHelper) {
             var _a;
             const dec = (_a = e2.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
             if (dec) {
-                semanticsHelper.addInstr("_round");
-                return `_round(${e.eval()}, ${dec})`;
+                semanticsHelper.addInstr("round");
+                return `round(${e.eval()}, ${dec})`;
             }
             return `Math.round(${e.eval()})`; // common round without decimals places
             // A better way to avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
@@ -454,8 +472,8 @@ function getSemantics(semanticsHelper) {
         Str(_strLit, _open, e, _close) {
             const arg = e.eval();
             if (isNaN(Number(arg))) {
-                semanticsHelper.addInstr("_str$");
-                return `_str$(${arg})`;
+                semanticsHelper.addInstr("str$");
+                return `str$(${arg})`;
             }
             // simplify if we know at compile time that arg is a positive number
             return arg >= 0 ? `(" " + String(${arg}))` : `String(${arg})`;
@@ -468,8 +486,8 @@ function getSemantics(semanticsHelper) {
             return `Math.tan(${e.eval()})`;
         },
         Time(_timeLit) {
-            semanticsHelper.addInstr("_time");
-            return `_time()`;
+            semanticsHelper.addInstr("time");
+            return `time()`;
         },
         Upper(_upperLit, _open, e, _close) {
             return `(${e.eval()}).toUpperCase()`;
@@ -480,8 +498,8 @@ function getSemantics(semanticsHelper) {
             if (numPattern.test(numStr)) {
                 return `Number(${numStr})`; // for non-hex/bin number strings we can use this simple version
             }
-            semanticsHelper.addInstr("_val");
-            return `_val(${numStr})`;
+            semanticsHelper.addInstr("val");
+            return `val(${numStr})`;
         },
         Wend(_wendLit) {
             semanticsHelper.addIndent(-2);

@@ -14,23 +14,32 @@ import { Semantics } from "./Semantics";
 const vm = {
     _output: "",
     _fnOnCls: (() => undefined),
-    _fnOnPrompt: ((_msg) => ""),
+    _fnOnPrint: ((_msg) => undefined), // eslint-disable-line @typescript-eslint/no-unused-vars
+    _fnOnPrompt: ((_msg) => ""), // eslint-disable-line @typescript-eslint/no-unused-vars
     cls: () => {
         vm._output = "";
         vm._fnOnCls();
     },
-    print: (...args) => vm._output += args.join(''),
+    print(...args) {
+        this._output += args.join('');
+        if (this._output.endsWith("\n")) {
+            this._fnOnPrint(this._output);
+            this._output = "";
+        }
+    },
     prompt: (msg) => {
         return vm._fnOnPrompt(msg);
     },
     getOutput: () => vm._output,
     setOutput: (str) => vm._output = str,
     setOnCls: (fn) => vm._fnOnCls = fn,
+    setOnPrint: (fn) => vm._fnOnPrint = fn,
     setOnPrompt: (fn) => vm._fnOnPrompt = fn
 };
 export class Core {
     constructor() {
         this.startConfig = {
+            action: "compile,run",
             debug: 0,
             example: "",
             fileName: "",
@@ -61,6 +70,9 @@ export class Core {
     setOnCls(fn) {
         vm.setOnCls(fn);
     }
+    setOnPrint(fn) {
+        vm.setOnPrint(fn);
+    }
     setOnPrompt(fn) {
         vm.setOnPrompt(fn);
     }
@@ -72,8 +84,7 @@ export class Core {
             this.arithmeticParser = new Parser(arithmetic.grammar, this.semantics.getSemantics());
         }
         this.semantics.resetParser();
-        const compiledScript = this.arithmeticParser.parseAndEval(script);
-        return compiledScript;
+        return this.arithmeticParser.parseAndEval(script);
     }
     executeScript(compiledScript) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -116,6 +127,17 @@ export class Core {
             }
             return output;
         });
+    }
+    putScriptInFrame(script) {
+        const result = `(function(_o) {
+	${script}
+})({
+	_output: "",
+	cls: () => undefined,
+	print(...args: string[]) { this._output += args.join(''); },
+	prompt: (msg) => { console.log(msg); return ""; }
+});`;
+        return result;
     }
 }
 //# sourceMappingURL=Core.js.map
