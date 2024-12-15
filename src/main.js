@@ -16,7 +16,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 import { Core } from "./Core";
-import { Ui } from "./Ui";
 const core = new Core();
 let ui;
 function fnHereDoc(fn) {
@@ -123,10 +122,12 @@ if (typeof window !== "undefined") {
         addItem: addItem
     };
     window.onload = () => {
-        ui = new Ui(core);
+        const UI = window.locobasicUI.UI;
+        ui = new UI(core);
         const args = ui.parseUri(window.location.search.substring(1), config);
         fnParseArgs(args, config);
         core.setOnCls(() => ui.setOutputText(""));
+        core.setOnPrompt((msg) => window.prompt(msg));
         core.setOnCheckSyntax((s) => Promise.resolve(ui.checkSyntax(s)));
         ui.onWindowLoad(new Event("onload"));
     };

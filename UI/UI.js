@@ -1,4 +1,4 @@
-// Ui.ts
+// UI.ts
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -33,7 +33,7 @@ const workerFn = () => {
         doEvalAndReply(e.data);
     });
 };
-export class Ui {
+export class UI {
     constructor(core) {
         this.core = core;
     }
@@ -135,8 +135,8 @@ export class Ui {
         }
     }
     static getErrorEventFn() {
-        if (Ui.getErrorEvent) {
-            return Ui.getErrorEvent;
+        if (UI.getErrorEvent) {
+            return UI.getErrorEvent;
         }
         const blob = new Blob([`(${workerFn})();`], { type: "text/javascript" });
         const worker = new Worker(window.URL.createObjectURL(blob));
@@ -163,7 +163,7 @@ export class Ui {
                 processNext();
             }
         });
-        Ui.getErrorEvent = getErrorEvent;
+        UI.getErrorEvent = getErrorEvent;
         return getErrorEvent;
     }
     static describeError(stringToEval, lineno, colno) {
@@ -173,14 +173,14 @@ export class Ui {
     }
     checkSyntax(str) {
         return __awaiter(this, void 0, void 0, function* () {
-            const getErrorEvent = Ui.getErrorEventFn();
+            const getErrorEvent = UI.getErrorEventFn();
             let output = "";
             const { lineno, colno, message } = yield getErrorEvent(str);
             if (message === 'No Error: Parsing successful!') {
                 return "";
             }
             output += `Syntax error thrown at: Line ${lineno - 2}, col: ${colno}\n`; // lineNo -2 because of anonymous function added by new Function() constructor
-            output += Ui.describeError(str, lineno - 2, colno);
+            output += UI.describeError(str, lineno - 2, colno);
             return output;
         });
     }
@@ -233,7 +233,7 @@ export class Ui {
             });
             this.compiledCm.on('changes', this.debounce((event) => this.onCompiledTextChange(event), "debounceExecute"));
         }
-        Ui.asyncDelay(() => {
+        UI.asyncDelay(() => {
             const core = this.core;
             this.setExampleSelectOptions(core.getExampleObject());
             const example = this.core.getConfig("example");
@@ -244,4 +244,4 @@ export class Ui {
         }, 10);
     }
 }
-//# sourceMappingURL=Ui.js.map
+//# sourceMappingURL=UI.js.map

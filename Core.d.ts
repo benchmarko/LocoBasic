@@ -11,6 +11,7 @@ export declare class Core implements ICore {
     setExample(name: string, script: string): void;
     getExample(name: string): string;
     setOnCls(fn: () => void): void;
+    setOnPrompt(fn: (msg: string) => string): void;
     setOnCheckSyntax(fn: (s: string) => Promise<string>): void;
     private arithmeticParser;
     compileScript(script: string): any;

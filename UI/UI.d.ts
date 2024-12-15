@@ -1,5 +1,5 @@
-import { ICore, IUi, ConfigType } from "./Interfaces";
-export declare class Ui implements IUi {
+import { ICore, IUI, ConfigType } from "../Interfaces";
+export declare class UI implements IUI {
     private readonly core;
     private basicCm;
     private compiledCm;
@@ -23,4 +23,4 @@ export declare class Ui implements IUi {
     parseUri(urlQuery: string, config: ConfigType): string[];
     onWindowLoad(_event: Event): void;
 }
-//# sourceMappingURL=Ui.d.ts.map
+//# sourceMappingURL=UI.d.ts.map

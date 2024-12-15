@@ -14,14 +14,19 @@ import { Semantics } from "./Semantics";
 const vm = {
     _output: "",
     _fnOnCls: (() => undefined),
+    _fnOnPrompt: ((_msg) => ""),
     cls: () => {
         vm._output = "";
         vm._fnOnCls();
     },
     print: (...args) => vm._output += args.join(''),
+    prompt: (msg) => {
+        return vm._fnOnPrompt(msg);
+    },
     getOutput: () => vm._output,
     setOutput: (str) => vm._output = str,
-    setOnCls: (fn) => vm._fnOnCls = fn
+    setOnCls: (fn) => vm._fnOnCls = fn,
+    setOnPrompt: (fn) => vm._fnOnPrompt = fn
 };
 export class Core {
     constructor() {
@@ -55,6 +60,9 @@ export class Core {
     }
     setOnCls(fn) {
         vm.setOnCls(fn);
+    }
+    setOnPrompt(fn) {
+        vm.setOnPrompt(fn);
     }
     setOnCheckSyntax(fn) {
         this.onCheckSyntax = fn;
