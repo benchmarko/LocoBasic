@@ -49,13 +49,13 @@ function getCodeSnippets() {
 			_dataPtr = 0;
 			_restoreMap = {};
 		},
-		_bin$: function _bin$(num: number, pad?: number) {
-			return num.toString(2).toUpperCase().padStart(pad || 0, "0");
+		bin$: function bin$(num: number, pad: number = 0) {
+			return num.toString(2).toUpperCase().padStart(pad, "0");
 		},
-		_cls: function _cls() {
+		cls: function cls() {
 			_o.cls();
 		},
-		_dim: function _dim(dims: number[], initVal: string | number = 0): any[] {
+		dim: function dim(dims: number[], initVal: string | number = 0) {
 			const createRecursiveArray = (depth: number): any[] => {
 				const length = dims[depth] + 1; // +1 because of 0-based index
 				const array = Array.from({ length }, () =>
@@ -65,35 +65,35 @@ function getCodeSnippets() {
 			};
 			return createRecursiveArray(0);
 		},
-		_frame: function _frame() {
+		frame: function frame() {
 			return new Promise<void>(resolve => setTimeout(() => resolve(), Date.now() % 50));
 		},
-		_hex$: function _hex$(num: number, pad?: number) {
+		hex$: function hex$(num: number, pad?: number) {
 			return num.toString(16).toUpperCase().padStart(pad || 0, "0");
 		},
-		_input: function _input(msg: string, isNum: boolean) {
+		input: function input(msg: string, isNum: boolean) { // async
 			return new Promise(resolve => setTimeout(() => resolve(isNum ? Number(_o.prompt(msg)) : _o.prompt(msg)), 0));
 		},
-		_print: function _print(...args: (string | number)[]) {
+		print: function print(...args: (string | number)[]) {
 			const _printNumber = (arg: number) => (arg >= 0) ? ` ${arg} ` : `${arg} `;
 			_o.print(args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg).join(""));
 		},
-		_read: function _read() {
+		read: function read() {
 			return _data[_dataPtr++];
 		},
-		_restore: function _restore(label: string) {
+		restore: function restore(label: string) {
 			_dataPtr = _restoreMap[label];
 		},
-		_round: function _round(num: number, dec: number) {
+		round: function round(num: number, dec: number) {
 			return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
 		},
-		_str$: function _str$(num: number) {
+		str$: function str$(num: number) {
 			return num >= 0 ? ` ${num}`: String(num);
 		},
-		_time: function _time() {
+		time: function time() {
 			return (Date.now() * 3 / 10) | 0;
 		},
-		_val: function _val(str: string) {
+		val: function val(str: string) {
 			return Number(str.replace("&x", "0b").replace("&", "0x"));
 		},
 	};
@@ -177,10 +177,17 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			const instrMap = semanticsHelper.getInstrMap();
 			const codeSnippets = getCodeSnippets();
 
+			let needsAsync = false;
 			for (const key of Object.keys(codeSnippets)) {
 				if (instrMap[key]) {
 					const code = String(codeSnippets[key]);
-					lineList.push(trimIndent(code));
+					const adaptedCode = trimIndent(code);
+					if (adaptedCode.includes("Promise") || adaptedCode.includes("await")) {
+						lineList.push("async " + adaptedCode);
+						needsAsync = true;
+					} else {
+						lineList.push(adaptedCode);
+					}
 				}
 			}
 
@@ -188,7 +195,8 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 				lineList.unshift(varStr);
 			}
 
-			if (instrMap["_frame"] || instrMap["_input"]) {
+			//if (instrMap["frame"] || instrMap["input"]) {
+			if (needsAsync) {
 				lineList.unshift(`return async function() {`);
 				lineList.push('}();');
 			}
@@ -256,9 +264,9 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		Bin(_binLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			semanticsHelper.addInstr("_bin$");
+			semanticsHelper.addInstr("bin$");
 			const pad = n.child(0)?.eval();
-			return pad !== undefined ? `_bin$(${e.eval()}, ${pad})` : `_bin$(${e.eval()})`
+			return pad !== undefined ? `bin$(${e.eval()}, ${pad})` : `bin$(${e.eval()})`
 		},
 
 		Chr(_chrLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -278,8 +286,8 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		Cls(_clsLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			semanticsHelper.addInstr("_cls");
-			return `_cls()`;
+			semanticsHelper.addInstr("cls");
+			return `cls()`;
 		},
 
 		Comparison(_iflit: Node, condExp: Node, _thenLit: Node, thenStat: Node, elseLit: Node, elseStat: Node) {
@@ -306,9 +314,11 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			const definedLabels = semanticsHelper.getDefinedLabels();
 
 			if (definedLabels.length) {
-				const dataIndex = semanticsHelper.getDataIndex();
 				const currentLabel = definedLabels[definedLabels.length - 1];
-				currentLabel.dataIndex = dataIndex;
+				if (currentLabel.dataIndex === -1) {
+					const dataIndex = semanticsHelper.getDataIndex();
+					currentLabel.dataIndex = dataIndex;
+				}
 			}
 
 			const dataList = semanticsHelper.getDataList();
@@ -329,10 +339,9 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 
 		DefAssign(ident: Node, args: Node, _equal: Node, e: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			const argStr = args.children.map(c => c.eval()).join(", ") || "()";
-			const fnIdent = `fn${ident.sourceString}`;
-			semanticsHelper.getVariable(fnIdent);
+			const fnIdent = semanticsHelper.getVariable(`fn${ident.sourceString}`);
 
-			return `fn${ident.sourceString} = ${argStr} => ${e.eval()}`;
+			return `${fnIdent} = ${argStr} => ${e.eval()}`;
 		},
 
 		Dim(_dimLit: Node, arrayIdents: Node) {
@@ -344,8 +353,8 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 				let createArrStr: string;
 				if (indices.length > 1) { // multi-dimensional?
 					const initValStr = ident.endsWith("$") ? ', ""' : '';
-					createArrStr = `_dim([${indices}]${initValStr})`; // indices are automatically joined with comma
-					semanticsHelper.addInstr("_dim");
+					createArrStr = `dim([${indices}]${initValStr})`; // indices are automatically joined with comma
+					semanticsHelper.addInstr("dim");
 				} else {
 					const fillStr = ident.endsWith("$") ? `""` : "0";
 					createArrStr = `new Array(${indices[0]} + 1).fill(${fillStr})`; // +1 because of 0-based index
@@ -390,12 +399,14 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `(${argList.join(", ")})`;
 		},
 
-		FnIdent(fnIdent: Node, args: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `${fnIdent.eval()}${args.eval()}`;
+		FnIdent(fnIdent: Node, args: Node) {
+			const argStr = args.child(0)?.eval() || "()";
+			return `${fnIdent.eval()}${argStr}`;
 		},
 
-		StrFnIdent(fnIdent: Node, args: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `${fnIdent.eval()}${args.eval()}`;
+		StrFnIdent(fnIdent: Node, args: Node) {
+			const argStr = args.child(0)?.eval() || "()";
+			return `${fnIdent.eval()}${argStr}`;
 		},
 
 		ForLoop(_forLit: Node, variable: Node, _eqSign: Node, start: Node, _dirLit: Node, end: Node, _stepLit: Node, step: Node) {
@@ -420,8 +431,8 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		Frame(_frameLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			semanticsHelper.addInstr("_frame");
-			return `await _frame()`;
+			semanticsHelper.addInstr("frame");
+			return `await frame()`;
 		},
 
 		Gosub(_gosubLit: Node, e: Node) {
@@ -432,19 +443,19 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		Hex(_hexLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			semanticsHelper.addInstr("_hex$");
+			semanticsHelper.addInstr("hex$");
 			const pad = n.child(0)?.eval();
-			return pad !== undefined ? `_hex$(${e.eval()}, ${pad})` : `_hex$(${e.eval()})`
+			return pad !== undefined ? `hex$(${e.eval()}, ${pad})` : `hex$(${e.eval()})`
 		},
 
 		Input(_inputLit: Node, message: Node, _semi: Node, e: Node) {
-			semanticsHelper.addInstr("_input");
+			semanticsHelper.addInstr("input");
 
 			const msgStr = message.sourceString.replace(/\s*[;,]$/, "");
 			const ident = e.eval();
 			const isNumStr = ident.includes("$") ? "" : ", true";
 
-			return `${ident} = await _input(${msgStr}${isNumStr})`;
+			return `${ident} = await input(${msgStr}${isNumStr})`;
 		},
 
 		Instr(_instrLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -491,6 +502,11 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `Math.min(${argList})`;
 		},
 
+		Mode(_clsLit: Node, _num: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addInstr("cls"); // currently MODE is the same as CLS
+			return `cls()`;
+		},
+
 		Next(_nextLit: Node, variables: Node) {
 			const argList = variables.asIteration().children.map(c => c.eval());
 			if (!argList.length) {
@@ -519,22 +535,22 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return [arg.eval(), ...evalChildren(args.children)].join(', ');
 		},
 		Print(_printLit: Node, params: Node, semi: Node) {
-			semanticsHelper.addInstr("_print");
+			semanticsHelper.addInstr("print");
 			const paramStr = params.child(0)?.eval() || "";
 
 			let newlineStr = "";
 			if (!semi.sourceString) {
 				newlineStr = paramStr ? `, "\\n"` : `"\\n"`;
 			}
-			return `_print(${paramStr}${newlineStr})`;
+			return `print(${paramStr}${newlineStr})`;
 		},
 
 		Read(_readlit: Node, args: Node) {
-			semanticsHelper.addInstr("_read");
+			semanticsHelper.addInstr("read");
 			const argList = args.asIteration().children.map(c => c.eval());
 			const results: string[] = [];
 			for (const ident of argList) {
-				results.push(`${ident} = _read()`);
+				results.push(`${ident} = read()`);
 			}
 			return results.join("; ");
 		},
@@ -547,8 +563,8 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			const labelStr = e.sourceString || "0";
 			semanticsHelper.addRestoreLabel(labelStr);
 
-			semanticsHelper.addInstr("_restore");
-			return `_restore(${labelStr})`;
+			semanticsHelper.addInstr("restore");
+			return `restore(${labelStr})`;
 		},
 
 		Return(_returnLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -567,8 +583,8 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		Round(_roundLit: Node, _open: Node, e: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			const dec = e2.child(0)?.eval();
 			if (dec) {
-				semanticsHelper.addInstr("_round");
-				return `_round(${e.eval()}, ${dec})`;
+				semanticsHelper.addInstr("round");
+				return `round(${e.eval()}, ${dec})`;
 			}
 			return `Math.round(${e.eval()})`; // common round without decimals places
 			// A better way to avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
@@ -598,8 +614,8 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			const arg = e.eval();
 
 			if (isNaN(Number(arg))) {
-				semanticsHelper.addInstr("_str$");
-				return `_str$(${arg})`;
+				semanticsHelper.addInstr("str$");
+				return `str$(${arg})`;
 			}
 			// simplify if we know at compile time that arg is a positive number
 			return arg >= 0 ? `(" " + String(${arg}))` : `String(${arg})`;
@@ -615,8 +631,8 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		Time(_timeLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			semanticsHelper.addInstr("_time");
-			return `_time()`;
+			semanticsHelper.addInstr("time");
+			return `time()`;
 		},
 
 		Upper(_upperLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -630,8 +646,8 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			if (numPattern.test(numStr)) {
 				return `Number(${numStr})`; // for non-hex/bin number strings we can use this simple version
 			}
-			semanticsHelper.addInstr("_val");
-			return `_val(${numStr})`;
+			semanticsHelper.addInstr("val");
+			return `val(${numStr})`;
 		},
 
 		Wend(_wendLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars

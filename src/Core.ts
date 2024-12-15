@@ -1,6 +1,6 @@
 // core.ts
 
-import type { ICore, ConfigType } from "./Interfaces";
+import type { ICore, ConfigType, ConfigEntryType } from "./Interfaces";
 import { Parser } from "./Parser";
 import { arithmetic } from "./arithmetic";
 import { Semantics } from "./Semantics";
@@ -8,12 +8,19 @@ import { Semantics } from "./Semantics";
 const vm = {
 	_output: "",
 	_fnOnCls: (() => undefined) as () => void,
-	_fnOnPrompt: ((_msg: string) => "") as (msg: string) => string,
+	_fnOnPrint: ((_msg: string) => undefined) as (msg: string) => void, // eslint-disable-line @typescript-eslint/no-unused-vars
+	_fnOnPrompt: ((_msg: string) => "") as (msg: string) => string, // eslint-disable-line @typescript-eslint/no-unused-vars
 	cls: () => {
 		vm._output = "";
 		vm._fnOnCls();
 	},
-	print: (...args: string[]) => vm._output += args.join(''),
+	print(...args: string[]) {
+		this._output += args.join('');
+		if (this._output.endsWith("\n")) {
+			this._fnOnPrint(this._output);
+			this._output = "";
+		}
+	},
 	prompt: (msg: string) => {
 		return vm._fnOnPrompt(msg);
 	},
@@ -21,12 +28,14 @@ const vm = {
 	getOutput: () => vm._output,
 	setOutput: (str: string) => vm._output = str,
 	setOnCls: (fn: () => void) => vm._fnOnCls = fn,
+	setOnPrint: (fn: (msg: string) => void) => vm._fnOnPrint = fn,
 	setOnPrompt: (fn: (msg: string) => string) => vm._fnOnPrompt = fn
 };
 
 
 export class Core implements ICore {
 	private readonly startConfig: ConfigType = {
+		action: "compile,run",
 		debug: 0,
 		example: "",
 		fileName: "",
@@ -47,8 +56,8 @@ export class Core implements ICore {
 		return this.startConfig;
 	}
 
-	public getConfig(name: string) {
-		return this.startConfig[name];
+	public getConfig<T extends ConfigEntryType>(name: string) {
+		return this.startConfig[name] as T;
 	}
 
 	public getExampleObject() {
@@ -67,6 +76,10 @@ export class Core implements ICore {
 		vm.setOnCls(fn);
 	}
 
+	public setOnPrint(fn: (msg: string) => void) {
+		vm.setOnPrint(fn);
+	}
+
 	public setOnPrompt(fn: (msg: string) => string) {
 		vm.setOnPrompt(fn);
 	}
@@ -83,8 +96,7 @@ export class Core implements ICore {
 		}
 		this.semantics.resetParser();
 
-		const compiledScript = this.arithmeticParser.parseAndEval(script);
-		return compiledScript;
+		return this.arithmeticParser.parseAndEval(script);
 	}
 
 	async executeScript(compiledScript: string) {
@@ -129,5 +141,18 @@ export class Core implements ICore {
 			}
 		}
 		return output;
+	}
+
+	public putScriptInFrame(script: string) {
+		const result =
+`(function(_o) {
+	${script}
+})({
+	_output: "",
+	cls: () => undefined,
+	print(...args: string[]) { this._output += args.join(''); },
+	prompt: (msg) => { console.log(msg); return ""; }
+});`
+		return result;
 	}
 }

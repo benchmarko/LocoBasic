@@ -30,6 +30,7 @@ export const arithmetic = {
      | Frame
      | Gosub
      | Input
+     | Mode
      | Next
      | On
      | Print
@@ -156,6 +157,9 @@ export const arithmetic = {
 
     Min
       = caseInsensitive<"min"> "(" NonemptyListOf<NumExp, ","> ")"
+
+    Mode
+      = caseInsensitive<"mode"> NumExp
 
     Pi
       = caseInsensitive<"pi">
@@ -385,10 +389,10 @@ export const arithmetic = {
       | ident
 
     FnIdent
-      = fnIdent FnArgs
+      = fnIdent FnArgs?
 
     StrFnIdent
-     = strFnIdent FnArgs
+     = strFnIdent FnArgs?
 
     FnArgs
      = "(" ListOf<StrOrNumExp, ","> ")"

@@ -61,7 +61,7 @@ export class UI implements IUI {
 		const core = this.core;
 		return function (this: any, ...args: any[]) {
 			const context = this;
-			const delay = core.getConfig(delayPara) as number;
+			const delay = core.getConfig<number>(delayPara);
 			clearTimeout(timeoutId);
 			timeoutId = setTimeout(() => {
 				func.apply(context, args);
@@ -76,10 +76,9 @@ export class UI implements IUI {
 		})();
 	}
 
-
-	private getOutputText() {
+	public addOutputText(value: string) {
 		const outputText = document.getElementById("outputText") as HTMLTextAreaElement;
-		return outputText.value;
+		outputText.value += value;
 	}
 
 	public setOutputText(value: string) {
@@ -94,7 +93,7 @@ export class UI implements IUI {
 
 		const output = await this.core.executeScript(compiledScript);
 
-		this.setOutputText(this.getOutputText() + output + (output.endsWith("\n") ? "" : "\n"));
+		this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
 	}
 
 	private onCompiledTextChange(_event: Event) { // eslint-disable-line @typescript-eslint/no-unused-vars
