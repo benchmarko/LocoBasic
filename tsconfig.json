@@ -2,35 +2,18 @@
   "compilerOptions": {
       "module": "ESNext",
       "target": "ES6",
-      "outDir": "./dist",
       "moduleResolution": "node",
       "esModuleInterop": true,
       "strict": true,
-  
-      "pretty": true,
-      "lib": [
-        "es2020",
-        "dom"
-      ],
       "declaration": true,
       "declarationMap": true,
       "sourceMap": true,
-      "composite": true,
-      "noEmitOnError": true,
-      "strictNullChecks": true,
-      "noImplicitAny": true,
-      "noImplicitThis": true,
-      "strictPropertyInitialization": true,
-      "strictFunctionTypes": true,
-      "noUnusedLocals": true,
-      "noUnusedParameters": true,
-      "skipLibCheck": true,
-
-      "alwaysStrict": true,
-      "preserveConstEnums": true,
-      "newLine": "lf",
-      "types": ["node"],
-      //"sourceRoot":"./src"
   },
-  "include": ["src/**/*"]
+
+  "files": [],
+  "include": [],
+  "references": [
+    { "path": "./src" },
+    { "path": "./src/UI" }
+ ]
 }

@@ -1,6 +1,9 @@
 node_modules/
 dist/src/
+dist/types/
+dist/UI/
 dist/*.js
+dist/*.ts
 dist/*.map
 dist/tsconfig.tsbuildinfo
 !dist/index.html

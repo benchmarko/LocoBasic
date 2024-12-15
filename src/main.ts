@@ -7,13 +7,14 @@
 //
 // [ npx ts-node parser.ts input="?3 + 5 * (2 - 8)" ]
 
-import type { ConfigEntryType, ConfigType, ICore, IUi } from "./Interfaces";
+declare const window: any;
+
+import type { ConfigEntryType, ConfigType, ICore, IUI } from "./Interfaces";
 import { Core } from "./Core";
-import { Ui } from "./Ui";
 
 const core: ICore = new Core();
 
-let ui: IUi;
+let ui: IUI;
 
 
 function fnHereDoc(fn: () => void) {
@@ -143,12 +144,14 @@ if (typeof window !== "undefined") {
 		addItem: addItem
 	};
 	window.onload = () => {
-		ui = new Ui(core);
+		const UI = (window as any).locobasicUI.UI; 
+		ui = new UI(core);
 
 		const args = ui.parseUri(window.location.search.substring(1), config);
 		fnParseArgs(args, config);
 
 		core.setOnCls(() => ui.setOutputText(""));
+		core.setOnPrompt((msg) => window.prompt(msg));
 		core.setOnCheckSyntax((s: string) => Promise.resolve(ui.checkSyntax(s)));
 		ui.onWindowLoad(new Event("onload"));
 	}

@@ -8,15 +8,20 @@ import { Semantics } from "./Semantics";
 const vm = {
 	_output: "",
 	_fnOnCls: (() => undefined) as () => void,
+	_fnOnPrompt: ((_msg: string) => "") as (msg: string) => string,
 	cls: () => {
 		vm._output = "";
 		vm._fnOnCls();
 	},
 	print: (...args: string[]) => vm._output += args.join(''),
+	prompt: (msg: string) => {
+		return vm._fnOnPrompt(msg);
+	},
 
 	getOutput: () => vm._output,
 	setOutput: (str: string) => vm._output = str,
-	setOnCls: (fn: () => void) => vm._fnOnCls = fn
+	setOnCls: (fn: () => void) => vm._fnOnCls = fn,
+	setOnPrompt: (fn: (msg: string) => string) => vm._fnOnPrompt = fn
 };
 
 
@@ -60,6 +65,10 @@ export class Core implements ICore {
 
 	public setOnCls(fn: () => void) {
 		vm.setOnCls(fn);
+	}
+
+	public setOnPrompt(fn: (msg: string) => string) {
+		vm.setOnPrompt(fn);
 	}
 
 	setOnCheckSyntax(fn: (s: string) => Promise<string>) {

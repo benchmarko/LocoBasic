@@ -72,7 +72,7 @@ function getCodeSnippets() {
 			return num.toString(16).toUpperCase().padStart(pad || 0, "0");
 		},
 		_input: function _input(msg: string, isNum: boolean) {
-			return new Promise(resolve => setTimeout(() => resolve(isNum ? Number(prompt(msg)) : prompt(msg)), 0));
+			return new Promise(resolve => setTimeout(() => resolve(isNum ? Number(_o.prompt(msg)) : _o.prompt(msg)), 0));
 		},
 		_print: function _print(...args: (string | number)[]) {
 			const _printNumber = (arg: number) => (arg >= 0) ? ` ${arg} ` : `${arg} `;

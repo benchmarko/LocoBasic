@@ -1,6 +1,6 @@
-// Ui.ts
+// UI.ts
 
-import { ICore, IUi, ConfigType } from "./Interfaces";
+import { ICore, IUI, ConfigType } from "../Interfaces";
 
 // Worker:
 type PlainErrorEventType = {
@@ -45,7 +45,7 @@ const workerFn = () => {
 };
 
 
-export class Ui implements IUi {
+export class UI implements IUI {
 	private readonly core: ICore;
 	private basicCm: any;
 	private compiledCm: any;
@@ -169,8 +169,8 @@ export class Ui implements IUi {
 	}
 
 	private static getErrorEventFn() {
-		if (Ui.getErrorEvent) {
-			return Ui.getErrorEvent;
+		if (UI.getErrorEvent) {
+			return UI.getErrorEvent;
 		}
 
 		const blob = new Blob(
@@ -208,7 +208,7 @@ export class Ui implements IUi {
 			}
 		});
 
-		Ui.getErrorEvent = getErrorEvent;
+		UI.getErrorEvent = getErrorEvent;
 		return getErrorEvent;
 	}
 
@@ -219,7 +219,7 @@ export class Ui implements IUi {
 	}
 
 	public async checkSyntax(str: string) {
-		const getErrorEvent = Ui.getErrorEventFn();
+		const getErrorEvent = UI.getErrorEventFn();
 
 		let output = "";
 		const { lineno, colno, message } = await getErrorEvent(str);
@@ -227,7 +227,7 @@ export class Ui implements IUi {
 			return "";
 		}
 		output += `Syntax error thrown at: Line ${lineno - 2}, col: ${colno}\n`; // lineNo -2 because of anonymous function added by new Function() constructor
-		output += Ui.describeError(str, lineno - 2, colno);
+		output += UI.describeError(str, lineno - 2, colno);
 		return output;
 	}
 
@@ -294,7 +294,7 @@ export class Ui implements IUi {
 			this.compiledCm.on('changes', this.debounce((event: Event) => this.onCompiledTextChange(event), "debounceExecute"));
 		}
 
-		Ui.asyncDelay(() => {
+		UI.asyncDelay(() => {
 			const core = this.core;
 			this.setExampleSelectOptions(core.getExampleObject());
 

@@ -13,11 +13,12 @@ export interface ICore {
 	setExample(key: string, script: string): void,
 	compileScript(script: string): string,
 	executeScript(compiledScript: string): Promise<string>,
-	setOnCls(fn: () => void): void
+	setOnCls(fn: () => void): void,
+	setOnPrompt(fn: (msg: string) => string): void,
 	setOnCheckSyntax(fn: (s: string) => Promise<string>): void
 }
 
-export interface IUi {
+export interface IUI {
 	parseUri(urlQuery: string, config: ConfigType): string[],
 	onWindowLoad(event: Event): void,
 	setOutputText(value: string): void,

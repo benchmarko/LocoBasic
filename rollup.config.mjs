@@ -1,7 +1,8 @@
 // rollup.config.js
 import typescript from 'rollup-plugin-typescript2';
 
-export default {
+export default [
+  {
   input: 'src/main.ts',  // main entry
   output: {
     file: 'dist/locobasic.js',
@@ -13,4 +14,16 @@ export default {
     }
   },
   plugins: [typescript()],
-};
+},
+{
+  input: "./src/UI/UI.ts", // main entry
+  output: {
+    file: "dist/locobasicUI.js",
+    format: "umd", // "es" ECMAScript-Module
+    sourcemap: true,
+    name: "locobasicUI"
+  },
+  plugins: [typescript()]
+}
+
+];
