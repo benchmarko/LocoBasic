@@ -682,22 +682,22 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		CmpExp_eq(a: Node, _op: Node, b: Node) {
-			return `${a.eval()} === ${b.eval()} ? -1 : 0`;
+			return `${a.eval()} === ${b.eval()}`;
 		},
 		CmpExp_ne(a: Node, _op: Node, b: Node) {
-			return `${a.eval()} !== ${b.eval()} ? -1 : 0`;
+			return `${a.eval()} !== ${b.eval()}`;
 		},
 		CmpExp_lt(a: Node, _op: Node, b: Node) {
-			return `${a.eval()} < ${b.eval()} ? -1 : 0`;
+			return `${a.eval()} < ${b.eval()}`;
 		},
 		CmpExp_le(a: Node, _op: Node, b: Node) {
-			return `${a.eval()} <= ${b.eval()} ? -1 : 0`;
+			return `${a.eval()} <= ${b.eval()}`;
 		},
 		CmpExp_gt(a: Node, _op: Node, b: Node) {
-			return `${a.eval()} > ${b.eval()} ? -1 : 0`;
+			return `${a.eval()} > ${b.eval()}`;
 		},
 		CmpExp_ge(a: Node, _op: Node, b: Node) {
-			return `${a.eval()} >= ${b.eval()} ? -1 : 0`;
+			return `${a.eval()} >= ${b.eval()}`;
 		},
 
 		AddExp_plus(a: Node, _op: Node, b: Node) {
@@ -737,10 +737,10 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		StrCmpExp_eq(a: Node, _op: Node, b: Node) {
-			return `${a.eval()} === ${b.eval()} ? -1 : 0`;
+			return `${a.eval()} === ${b.eval()}`;
 		},
 		StrCmpExp_ne(a: Node, _op: Node, b: Node) {
-			return `${a.eval()} !== ${b.eval()} ? -1 : 0`;
+			return `${a.eval()} !== ${b.eval()}`;
 		},
 
 		StrAddExp_plus(a: Node, _op: Node, b: Node) {
