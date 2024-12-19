@@ -907,22 +907,30 @@ cpcBasic.addItem("", `
 REM funcspec - Functional Spectrum
 REM
 m=2
-xd=2^(2-MIN(m,2)):yd=((m=3)+2)
+xd=2^(2-MIN(m,2)):yd=2
 cols=80/xd-1:rows=50/yd
 MODE m
+xoff=0:yoff=0
 'example
 k=6:GOSUB 260:FRAME
 'choice
-k=0 'while k<1 or k>16
+k=0
 INPUT "Functional Spectrum choice (1-16)";k
-'wend
 IF k<1 OR k>16 THEN STOP
-CLS
-GOSUB 260
+for xoff=-30 to 30 step 10
+  CLS
+  GOSUB 260
+  t=time+40:while time<t:frame:wend
+next
+for xoff=30 to 0 step -10
+  CLS
+  GOSUB 260
+  t=time+40:while time<t:frame:wend
+next
 END
 '
 260 'output
-fchar=65+32:xoff=0:yoff=0
+fchar=65+32
 FOR z=1 TO rows
   FOR s=1 TO cols
     x=s-cols\\2+xoff:y=z-(rows\\2+1)+yoff
@@ -974,11 +982,20 @@ RETURN
 cpcBasic.addItem("", `
 REM lifegame - Game of Life
 ze=10:sp=10:DIM al(ze,sp+1):DIM ne(ze,sp+1)
-PRINT"L I F E G A M E"
 FOR w=1 TO 18
   x=INT(7*RND(1)+1):y=INT(7*RND(1)+1):IF al(x,y)<>1 THEN al(x,y)=1
 NEXT w
 al(5,4)=1:al(5,5)=1:al(5,6)=1
+for lp=1 to 15
+  cls
+  PRINT"L I F E G A M E"
+  gosub 1000
+  t=time+50:while time<t:frame:wend
+  if sum=0 then ?:stop
+next
+print
+stop
+1000 'output
 FOR i=1 TO ze-1:FOR j=1 TO sp
     IF al(i,j)=0 THEN PRINT " "; ELSE PRINT "*";
 NEXT j: PRINT: NEXT i
@@ -987,7 +1004,59 @@ FOR i=1 TO ze-1:FOR j=1 TO sp:an=0:ne(i,j)=0
     IF al(i,j)<>0 THEN IF an=2 THEN ne(i,j)=1
     IF an=3 THEN ne(i,j)=1
 NEXT j:NEXT i
-FOR i=1 TO ze-1:FOR j=1 TO sp:al(i,j)=ne(i,j):NEXT j:NEXT i
+sum=0
+FOR i=1 TO ze-1:FOR j=1 TO sp:al(i,j)=ne(i,j):sum=sum+ne(i,j):NEXT j:NEXT i
+return
+`);
+
+cpcBasic.addItem("", `
+rem manspri - Man Sprite
+rem Sample from http://www.cpcwiki.eu/forum/programming/silly-programming-ideas-turning-text-into-graphics/msg33246/#msg33246
+rem
+MODE 2
+for ind = 1 to 20 step 2
+cls
+indent$=space$(ind)
+GOSUB 2000
+t=time+30:while time<t:frame:wend
+next
+STOP
+'
+2000 'output
+restore 3000
+FOR y=1 TO 22
+  print indent$;
+  FOR x=1 TO 11
+    READ p
+    IF p>0 THEN PRINT STRING$(4,CHR$(65+p)); ELSE PRINT STRING$(4," ");
+  NEXT x
+  ?
+NEXT y
+RETURN
+'
+3000 DATA 0,4,4,4,4,4,4,0,0,0,0
+DATA 0,4,4,4,4,4,4,4,4,4,0
+DATA 0,4,4,4,4,4,4,9,4,4,0
+DATA 4,4,4,4,4,4,4,9,4,4,0
+DATA 4,4,4,4,4,4,9,9,9,4,4
+DATA 4,4,4,4,1,0,9,0,1,4,4
+DATA 4,9,4,9,1,0,9,0,1,4,4
+DATA 0,9,4,9,1,0,9,0,1,4,4
+DATA 0,9,9,9,1,0,9,0,1,4,0
+DATA 0,4,9,9,1,1,9,1,9,9,0
+DATA 0,4,9,9,9,1,9,1,9,9,0
+DATA 0,4,9,9,9,9,9,9,9,9,0
+DATA 0,7,4,9,9,9,0,9,9,9,0
+DATA 7,7,7,9,9,9,9,9,9,8,0
+DATA 7,7,7,8,7,7,7,8,7,8,0
+DATA 7,7,9,8,7,7,7,8,9,9,0
+DATA 7,9,9,9,8,8,8,8,9,9,0
+DATA 0,9,9,8,6,1,6,1,8,9,0
+DATA 0,8,8,8,8,6,6,6,6,8,0
+DATA 0,8,8,8,8,8,8,8,8,8,8
+DATA 0,4,6,6,6,0,6,6,6,6,4
+DATA 0,4,4,4,4,0,4,4,4,4,4
+'
 `);
 
 cpcBasic.addItem("", `
@@ -1223,9 +1292,9 @@ a=&X1001 OR &X110:IF a<>&X1111 THEN ERROR 33
 a=&X1001 XOR &X1010:IF a<>&X11 THEN ERROR 33
 a=NOT &X1001:IF a<>-10 THEN ERROR 33
 a=+-9:IF a<>-9 THEN ERROR 33
-a=(1=0):IF a<>0 THEN ERROR 33
+''a=(1=0):IF a<>0 THEN ERROR 33
 a=(1>0)*(0<1):IF a<>1 THEN ERROR 33
-a=1=1=-1:IF a<>-1 THEN ERROR 33
+''a=1=1=-1:IF a<>-1 THEN ERROR 33
 '
 newline=7
 ' variables

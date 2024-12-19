@@ -526,22 +526,22 @@ function getSemantics(semanticsHelper) {
             return `~(${e.eval()})`;
         },
         CmpExp_eq(a, _op, b) {
-            return `${a.eval()} === ${b.eval()} ? -1 : 0`;
+            return `${a.eval()} === ${b.eval()}`;
         },
         CmpExp_ne(a, _op, b) {
-            return `${a.eval()} !== ${b.eval()} ? -1 : 0`;
+            return `${a.eval()} !== ${b.eval()}`;
         },
         CmpExp_lt(a, _op, b) {
-            return `${a.eval()} < ${b.eval()} ? -1 : 0`;
+            return `${a.eval()} < ${b.eval()}`;
         },
         CmpExp_le(a, _op, b) {
-            return `${a.eval()} <= ${b.eval()} ? -1 : 0`;
+            return `${a.eval()} <= ${b.eval()}`;
         },
         CmpExp_gt(a, _op, b) {
-            return `${a.eval()} > ${b.eval()} ? -1 : 0`;
+            return `${a.eval()} > ${b.eval()}`;
         },
         CmpExp_ge(a, _op, b) {
-            return `${a.eval()} >= ${b.eval()} ? -1 : 0`;
+            return `${a.eval()} >= ${b.eval()}`;
         },
         AddExp_plus(a, _op, b) {
             return `${a.eval()} + ${b.eval()}`;
@@ -574,10 +574,10 @@ function getSemantics(semanticsHelper) {
             return `-${e.eval()}`;
         },
         StrCmpExp_eq(a, _op, b) {
-            return `${a.eval()} === ${b.eval()} ? -1 : 0`;
+            return `${a.eval()} === ${b.eval()}`;
         },
         StrCmpExp_ne(a, _op, b) {
-            return `${a.eval()} !== ${b.eval()} ? -1 : 0`;
+            return `${a.eval()} !== ${b.eval()}`;
         },
         StrAddExp_plus(a, _op, b) {
             return `${a.eval()} + ${b.eval()}`;
