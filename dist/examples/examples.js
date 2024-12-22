@@ -907,7 +907,7 @@ cpcBasic.addItem("", `
 REM funcspec - Functional Spectrum
 REM
 m=2
-xd=2^(2-MIN(m,2)):yd=2
+xd=2^(2-MIN(m,2)):yd=((m=3)+2)
 cols=80/xd-1:rows=50/yd
 MODE m
 xoff=0:yoff=0
@@ -1292,9 +1292,9 @@ a=&X1001 OR &X110:IF a<>&X1111 THEN ERROR 33
 a=&X1001 XOR &X1010:IF a<>&X11 THEN ERROR 33
 a=NOT &X1001:IF a<>-10 THEN ERROR 33
 a=+-9:IF a<>-9 THEN ERROR 33
-''a=(1=0):IF a<>0 THEN ERROR 33
+a=(1=0):IF a<>0 THEN ERROR 33
 a=(1>0)*(0<1):IF a<>1 THEN ERROR 33
-''a=1=1=-1:IF a<>-1 THEN ERROR 33
+a=1=1=-1:IF a<>-1 THEN ERROR 33
 '
 newline=7
 ' variables
