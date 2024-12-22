@@ -348,6 +348,7 @@ tEsti = 0
 throughput = 0
 PRINT "Calibrating benchmark"; bench; "with loops ="; loops; ", n ="; n; ", check ="; check
 WHILE throughput = 0
+'FRAME: 'TODO
 GOSUB 2320: REM getPrecMs
 t0m = t1
 GOSUB 2260: REM run_bench
@@ -981,19 +982,23 @@ RETURN
 
 cpcBasic.addItem("", `
 REM lifegame - Game of Life
+maxlp=20
 ze=10:sp=10:DIM al(ze,sp+1):DIM ne(ze,sp+1)
 FOR w=1 TO 18
   x=INT(7*RND(1)+1):y=INT(7*RND(1)+1):IF al(x,y)<>1 THEN al(x,y)=1
 NEXT w
 al(5,4)=1:al(5,5)=1:al(5,6)=1
-for lp=1 to 15
+lp=1:changed=1
+while lp<=maxlp and changed<>0
   cls
   PRINT"L I F E G A M E"
   gosub 1000
   t=time+50:while time<t:frame:wend
-  if sum=0 then ?:stop
-next
+  lp=lp+1
+wend
 print
+print "Stop after";lp;"generations"
+if changed=0 then ?" No change any more"
 stop
 1000 'output
 FOR i=1 TO ze-1:FOR j=1 TO sp
@@ -1004,8 +1009,14 @@ FOR i=1 TO ze-1:FOR j=1 TO sp:an=0:ne(i,j)=0
     IF al(i,j)<>0 THEN IF an=2 THEN ne(i,j)=1
     IF an=3 THEN ne(i,j)=1
 NEXT j:NEXT i
-sum=0
-FOR i=1 TO ze-1:FOR j=1 TO sp:al(i,j)=ne(i,j):sum=sum+ne(i,j):NEXT j:NEXT i
+'
+changed=0
+FOR i=1 TO ze-1
+  FOR j=1 TO sp
+    if al(i,j)<>ne(i,j) then al(i,j)=ne(i,j):changed=-1
+'sum=sum+ne(i,j)
+  NEXT j
+NEXT i
 return
 `);
 
@@ -1098,17 +1109,20 @@ cpcBasic.addItem("", `
 350 z=TIME-z
 360 PRINT"The solution:":PRINT
 370 PRINT a*10+b;"*";c;"=";de;" / ";de;"+";f*10+g;"=";hi
-380 PRINT z,z/300
-390 RETURN
-400 '
+380 PRINT z;z/300
+390 if (a*10+b)*c<>de or de<>68 then ?"a,b,c,de not ok": error 33
+400 if de+f*10+g<>hi or hi<>93 then ?"f,g,hi not ok": error 33
+450 RETURN
+460 '
 `);
 
 cpcBasic.addItem("", `
 100 REM seconds - Seconds Test
 110 REM Marco Vieth, 2019
 115 CLS
+116 loops=2
 120 PRINT "Timing 1 (FRAME):"
-125 FOR cnt=1 TO 3
+125 FOR cnt=1 TO loops
 130   t1=TIME
 140   FOR i=1 TO 50:FRAME:NEXT
 150   t1=TIME-t1
@@ -1116,7 +1130,7 @@ cpcBasic.addItem("", `
 170 NEXT
 190 '
 200 PRINT "Timing 2 (check time):"
-210 FOR cnt=1 TO 3
+210 FOR cnt=1 TO loops
 220   t1=TIME
 230   civ=50:ct=TIME+civ*6:WHILE TIME<ct:FRAME:WEND
 240   t1=TIME-t1
@@ -1236,20 +1250,20 @@ a=32768
 a=-32768
 a=65536
 a=1.2e+9
-a=-1.2e-3
+a=-1.2e-3: IF a<>-0.0012 THEN ERROR 33
 ''a=&x2
-a=1:IF a<>1 THEN ERROR 33
-a=1.2:IF a<>1.2 THEN ERROR 33
-a=-1.2:IF a<>-1.2 THEN ERROR 33
-a=1200:IF a<>1200 THEN ERROR 33
-a=-7.2:IF a<>-7.2 THEN ERROR 33
-a=ROUND(-7.2):IF a<>-7 THEN ERROR 33
-a=+7.2:IF a<>7.2 THEN ERROR 33
-a=0.2:IF a<>0.2 THEN ERROR 33
-a=2:IF a<>2 THEN ERROR 33
-a=10000:IF a<>10000 THEN ERROR 33
-a=0.0001:IF a<>0.0001 THEN ERROR 33
-a=1E+09-1:IF a<>1E+09-1 OR a<>999999999 THEN ERROR 33
+a=1: IF a<>1 THEN ERROR 33
+a=1.2: IF a<>1.2 THEN ERROR 33
+a=-1.2: IF a<>-1.2 THEN ERROR 33
+a=1200: IF a<>1200 THEN ERROR 33
+a=-7.2: IF a<>-7.2 THEN ERROR 33
+a=ROUND(-7.2): IF a<>-7 THEN ERROR 33
+a=+7.2: IF a<>7.2 THEN ERROR 33
+a=0.2: IF a<>0.2 THEN ERROR 33
+a=2: IF a<>2 THEN ERROR 33
+a=10000: IF a<>10000 THEN ERROR 33
+a=0.0001: IF a<>0.0001 THEN ERROR 33
+a=1E+09-1: IF a<>1E+09-1 OR a<>999999999 THEN ERROR 33
 '
 PRINT"hex number: &"
 a=&A7:IF a<>167 THEN ERROR 33
@@ -1297,7 +1311,9 @@ a=(1>0)*(0<1):IF a<>1 THEN ERROR 33
 a=1=1=-1:IF a<>-1 THEN ERROR 33
 '
 newline=7
+'
 ' variables
+'
 ''a!=1.4
 ''a%=1.4
 a$="1.4"
@@ -1313,37 +1329,53 @@ DIM a$(2):a$(2)="1.4"
 DIM a(9),b(1,2):a(9)=b(1,2)
 ''a[9]=b[1,2]
 DIM a(10,10,10),b(10,9):a(10,10,10)=b(10,9)
-DIM a(1),b(2,2,1):a(ROUND(1.4))=b(ROUND(1.5),ROUND(2.4),1)
-x=1:a(x+1)=b(x,x*2,ROUND(x+1.5))
-a(x+1)=b(INT(x),x*2,x-1+&D)
+DIM a(2),b(2,2,1)
+b(2,2,1)=4:a(ROUND(1.4))=b(ROUND(1.5),ROUND(2.4),1): IF a(1)<>4 THEN ERROR 33
+x=1:b(1,2,1)=5:a(x+1)=b(x,x*2,ROUND(x-0.5)): IF a(x+1)<>5 THEN ERROR 33
+x=1:b(1,2,0)=6:a(x-1)=b(INT(x),x*2,(x-1+&C) MOD 2): IF a(x-1)<>6 THEN ERROR 33
 ''1 a$=a%
 ''1 a$=a!
 ''1 abc=def
+'
 ' expressions
-a=1+2+3
-a=3-2-1
-a=&A7+&X10100111-(123-27)
-a=(3+2)*(3-7)
-a=-(10-7)-(-6-2)
-a=20/2.5
-a=20\\3
-a=3^2
-a=&X1001 AND &X1110
-a=&X1001 OR &X110
-a=&X1001 XOR &X1010
-a=NOT &X1001
+'
+a=1+2+3: IF a<>6 THEN ERROR 33
+a=3-2-1: IF a<>0 THEN ERROR 33
+a=&A7+&X10100111-(123-27): IF a<>238 THEN ERROR 33
+a=(3+2)*(3-7): IF a<>-20 THEN ERROR 33
+a=-(10-7)-(-6-2): IF a<>5 THEN ERROR 33
+a=20/2.5: IF a<>8 THEN ERROR 33
+a=20\\3: IF a<>6 THEN ERROR 33
+a=3^2: IF a<>9 THEN ERROR 33
+a=&X1001 AND &X1110: IF a<>8 THEN ERROR 33
+a=&X1001 OR &X110: IF a<>15 THEN ERROR 33
+a=&X1001 XOR &X1010: IF a<>3 THEN ERROR 33
+a=NOT &X1001: IF a<>-10 THEN ERROR 33
 ''a=+++++++++---9
 a=(1=0)
 a=(1>0)*(0<1)
 a=(b>=c)*(d<=e)
 a=1=1=-1
 a=1>=1>1
+'
 ' Line numbers
 ''0 c=1
 ''65535 c=1
 ''65536 c=1
 ''2 c=1
 ''1 c=1
+a=(29+1) MOD 10=0 and 5=7 :' num num
+a=(29+1) MOD 10=9 and "5"+"6"="56" :' num str
+a="5"+"6"="56" and (29+1) MOD 10=9 :' str num
+a="5"+"6"="56" and space$(1)=" " :' str str
+'
+a=(29+1) MOD 10=0 or 5=7 :' num num
+a=(29+1) MOD 10=9 or "5"+"6"="56" :' num str
+a="5"+"6"="56" or (29+1) MOD 10=9 :' str num
+a="5"+"6"="56" or space$(1)=" " :' str str
+a=a$<>"a2" OR b$<>"2"
+a=a<>2 OR b<>2 or b$<>"5"
+'
 ' special
 '
 ' abs, after gosub, and, asc, atn, auto
@@ -1471,7 +1503,8 @@ DEF FN f1$(x$)=x$+x$
 a$=FNf1$("a"):IF a$<>"aa" THEN ERROR 33
 ''a$=FN f1$("a"):IF a$<>"aa" THEN ERROR 33
 DEF FNf2=2.5*2.5
-a=FNf2():IF a<>6.25 THEN ERROR 33
+a=FNf2:IF a<>6.25 THEN ERROR 33
+''a=FNf2(): 'this should not work
 DEF FNf1(o,v,t)=o+v+t
 a=FNf1(1,2,3):IF a<>6 THEN ERROR 33
 '
@@ -1788,8 +1821,8 @@ a=NOT -b
 ''1 on error goto 2:a=asc(0) '2 rem
 ''1 on error goto 0:?chr$("A")
 ''1 on error goto 2:?chr$("A") '2 rem
-''1 on error goto 0:a$=dec$(b$,"\    \")
-''1 on error goto 2:a$=dec$(b$,"\    \") '2 rem
+''1 on error goto 0:a$=dec$(b$,"\\    \\")
+''1 on error goto 2:a$=dec$(b$,"\\    \\") '2 rem
 ''1 on error goto 0:mask ,
 ''1 on error goto 2:mask , '2 rem
 ON 1 GOSUB 10010
@@ -1844,11 +1877,11 @@ PRINT ;
 ''print #2,
 PRINT "string"
 PRINT 999999999;
-''print 1e9;
-''print 2.5e10;
+print 1e9;
+print 2.5e10;
 PRINT 1.234567846;
 PRINT a$
-PRINT a$,b
+PRINT a$;b
 ''print#2,a$,b
 ''print using"####";ri;
 ''print using "##.##";-1.2
@@ -1857,15 +1890,19 @@ PRINT a$,b
 ''print using "!";"a1";"a2";
 ''print using "&";"a1";"a2";
 ''print#9,tab(t);t$;i;"h1"
+PRINT a=(29+1) MOD 10=0 and 5=7; a$<>"a2" OR b$<>"2"
 ?
+?a$;b
 ''?#2,ti-t0!;spc(5);
 ' rad, randomize, read, release, rem, remain, renum, restore, resume, return, right$, rnd, round, run
 ''rad
 ''randomize
 ''randomize 123.456
-READ a$
-READ b
-READ a$,b,c$
+data "a1", 1, "a2"
+data 2, "c1"
+READ a$: IF a$<>"a1" THEN ERROR 33
+READ b: IF b<>1 THEN ERROR 33
+READ a$,b,c$: IF a$<>"a2" OR b<>2 OR c$<>"c1" THEN ERROR 33
 ''release 1
 ''release n+1
 REM

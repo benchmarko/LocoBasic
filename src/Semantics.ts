@@ -41,7 +41,6 @@ function getCodeSnippets() {
 	let _data: (string | number)[] = [];
 	let _dataPtr = 0;
 	let _restoreMap: Record<string, number> = {};
-	//let dataList: (string|number)[] = []; // eslint-disable-line prefer-const
 
 	const codeSnippets: Record<string, Function> = {
 		_dataDefine: function _dataDefine() { // not really used
@@ -160,12 +159,11 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 
 			const dataList = semanticsHelper.getDataList();
 			if (dataList.length) {
-				//let startIdx = 0;
 				for (const key of Object.keys(restoreMap)) {
 					let index = restoreMap[key];
 					if (index < 0) {
 						index = 0;
-						restoreMap[key] = index; //TODO
+						restoreMap[key] = index;
 					}
 				}
 				lineList.unshift(`const {_data, _restoreMap} = _defineData();\nlet _dataPtr = 0;`);
@@ -195,7 +193,6 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 				lineList.unshift(varStr);
 			}
 
-			//if (instrMap["frame"] || instrMap["input"]) {
 			if (needsAsync) {
 				lineList.unshift(`return async function() {`);
 				lineList.push('}();');
@@ -399,6 +396,12 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `(${argList.join(", ")})`;
 		},
 
+		StrFnArgs(_open: Node, args: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			const argList = args.asIteration().children.map(c => c.eval());
+
+			return `(${argList.join(", ")})`;
+		},
+
 		FnIdent(fnIdent: Node, args: Node) {
 			const argStr = args.child(0)?.eval() || "()";
 			return `${fnIdent.eval()}${argStr}`;
@@ -531,12 +534,15 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return "Math.PI";
 		},
 
-		PrintArgs(arg: Node, _printSep: Node, args: Node) {
-			return [arg.eval(), ...evalChildren(args.children)].join(', ');
+		PrintArg_strCmp(_cmp: Node, args: Node) {
+			const paramStr = args.children[0].eval();
+			return paramStr;
 		},
-		Print(_printLit: Node, params: Node, semi: Node) {
+
+		Print(_printLit: Node, args: Node, semi: Node) {
 			semanticsHelper.addInstr("print");
-			const paramStr = params.child(0)?.eval() || "";
+			const argList = args.asIteration().children.map(c => c.eval());
+			const paramStr = argList.join(', ') || "";
 
 			let newlineStr = "";
 			if (!semi.sourceString) {
@@ -661,10 +667,6 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `while (${cond}) {`;
 		},
 
-		StrOrNumExp(e: Node) {
-			return String(e.eval());
-		},
-
 		XorExp_xor(a: Node, _op: Node, b: Node) {
 			return `${a.eval()} ^ ${b.eval()}`;
 		},
@@ -742,6 +744,18 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		StrCmpExp_ne(a: Node, _op: Node, b: Node) {
 			return `-(${a.eval()} !== ${b.eval()})`;
 		},
+		StrCmpExp_lt(a: Node, _op: Node, b: Node) {
+			return `-(${a.eval()} < ${b.eval()})`;
+		},
+		StrCmpExp_le(a: Node, _op: Node, b: Node) {
+			return `-(${a.eval()} <= ${b.eval()})`;
+		},
+		StrCmpExp_gt(a: Node, _op: Node, b: Node) {
+			return `-(${a.eval()} > ${b.eval()})`;
+		},
+		StrCmpExp_ge(a: Node, _op: Node, b: Node) {
+			return `-(${a.eval()} >= ${b.eval()})`;
+		},
 
 		StrAddExp_plus(a: Node, _op: Node, b: Node) {
 			return `${a.eval()} + ${b.eval()}`;
@@ -764,7 +778,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		DimArrayIdent(ident: Node, _open: Node, indices: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return [ident.eval(), ...indices.eval()]; //TTT
+			return [ident.eval(), ...indices.eval()];
 		},
 
 		decimalValue(value: Node) {
@@ -969,7 +983,6 @@ export class Semantics {
 			getGosubLabels: () => this.getGosubLabels(),
 			getIndent: () => this.getIndent(),
 			getIndentStr: () => this.getIndentStr(),
-			//getInstr: (name: string) => this.getInstr(name),
 			getInstrMap: () => this.getInstrMap(),
 			getRestoreMap: () => this.getRestoreMap(),
 			getVariable: (name: string) => this.getVariable(name),

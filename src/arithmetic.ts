@@ -170,14 +170,13 @@ export const arithmetic = {
     On
      = caseInsensitive<"on"> NumExp caseInsensitive<"gosub"> NonemptyListOf<label, ",">
 
-    Print
-      = (caseInsensitive<"print"> | "?") PrintArgs? (";")?
-
-    PrintArgs
-      = PrintArg (("," | ";") PrintArg)*
-
     PrintArg
-      = StrOrNumExp
+      = &StrCmpExp NumExp -- strCmp
+      | StrExp
+      | NumExp
+
+    Print
+      = (caseInsensitive<"print"> | "?") ListOf<PrintArg,";"> (";")?
 
     Read
       = caseInsensitive<"read"> NonemptyListOf<AnyIdent, ",">
@@ -237,26 +236,13 @@ export const arithmetic = {
       = caseInsensitive<"wend">
 
     WhileLoop
-      = caseInsensitive<"while"> StrOrNumExp
+      = caseInsensitive<"while"> NumExp
 
     Comparison
-      = caseInsensitive<"if"> StrOrNumExp caseInsensitive<"then"> Statements (caseInsensitive<"else"> Statements)?
+      = caseInsensitive<"if"> NumExp caseInsensitive<"then"> Statements (caseInsensitive<"else"> Statements)?
 
     StrExp
-      = StrOrExp
-
-    StrOrExp
-      = StrAndExp caseInsensitive<"or"> StrOrExp  -- or
-      | StrAndExp
-
-    StrAndExp
-      = StrCmpExp caseInsensitive<"and"> StrAndExp  -- and
-      | StrCmpExp
-
-    StrCmpExp
-      = StrCmpExp "=" StrAddExp  -- eq
-      | StrCmpExp "<>" StrAddExp  -- ne
-      | StrAddExp
+      = StrAddExp
 
     StrAddExp
       = StrAddExp "+" StrPriExp  -- plus
@@ -280,8 +266,6 @@ export const arithmetic = {
       | strIdent
       | string
 
-    StrOrNumExp
-      = StrExp | NumExp
 
     NumExp
       = XorExp
@@ -300,7 +284,16 @@ export const arithmetic = {
 
     NotExp
       = caseInsensitive<"not"> NotExp  -- not
+      | StrCmpExp
       | CmpExp
+
+    StrCmpExp
+      = StrAddExp "=" StrAddExp  -- eq
+      | StrAddExp "<>" StrAddExp  -- ne
+      | StrAddExp "<" StrAddExp  -- lt
+      | StrAddExp "<=" StrAddExp  -- le
+      | StrAddExp ">" StrAddExp  -- gt
+      | StrAddExp ">=" StrAddExp  -- ge
 
     CmpExp
       = CmpExp "=" AddExp  -- eq
@@ -392,10 +385,13 @@ export const arithmetic = {
       = fnIdent FnArgs?
 
     StrFnIdent
-     = strFnIdent FnArgs?
+     = strFnIdent StrFnArgs?
 
     FnArgs
-     = "(" ListOf<StrOrNumExp, ","> ")"
+     = "(" ListOf<NumExp, ","> ")"
+
+    StrFnArgs
+     = "(" ListOf<StrExp, ","> ")"
 
     keyword
       = abs | after | and | asc | atn | auto | bin | border | break
@@ -409,7 +405,6 @@ export const arithmetic = {
       | save | sgn | sin | sound | space2 | spc | speed | sq | sqr | step | stop | str | string2 | swap | symbol
       | tab | tag | tagoff | tan | test | testr | then | time | to | troff | tron | unt | upper2 | using
       | val | vpos | wait | wend | while | width | window | write | xor | xpos | ypos | zone
-
 
     abs
        = caseInsensitive<"abs"> ~identPart
