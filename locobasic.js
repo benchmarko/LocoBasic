@@ -232,14 +232,13 @@
     On
      = caseInsensitive<"on"> NumExp caseInsensitive<"gosub"> NonemptyListOf<label, ",">
 
-    Print
-      = (caseInsensitive<"print"> | "?") PrintArgs? (";")?
-
-    PrintArgs
-      = PrintArg (("," | ";") PrintArg)*
-
     PrintArg
-      = StrOrNumExp
+      = &StrCmpExp NumExp -- strCmp
+      | StrExp
+      | NumExp
+
+    Print
+      = (caseInsensitive<"print"> | "?") ListOf<PrintArg,";"> (";")?
 
     Read
       = caseInsensitive<"read"> NonemptyListOf<AnyIdent, ",">
@@ -299,26 +298,13 @@
       = caseInsensitive<"wend">
 
     WhileLoop
-      = caseInsensitive<"while"> StrOrNumExp
+      = caseInsensitive<"while"> NumExp
 
     Comparison
-      = caseInsensitive<"if"> StrOrNumExp caseInsensitive<"then"> Statements (caseInsensitive<"else"> Statements)?
+      = caseInsensitive<"if"> NumExp caseInsensitive<"then"> Statements (caseInsensitive<"else"> Statements)?
 
     StrExp
-      = StrOrExp
-
-    StrOrExp
-      = StrAndExp caseInsensitive<"or"> StrOrExp  -- or
-      | StrAndExp
-
-    StrAndExp
-      = StrCmpExp caseInsensitive<"and"> StrAndExp  -- and
-      | StrCmpExp
-
-    StrCmpExp
-      = StrCmpExp "=" StrAddExp  -- eq
-      | StrCmpExp "<>" StrAddExp  -- ne
-      | StrAddExp
+      = StrAddExp
 
     StrAddExp
       = StrAddExp "+" StrPriExp  -- plus
@@ -342,8 +328,6 @@
       | strIdent
       | string
 
-    StrOrNumExp
-      = StrExp | NumExp
 
     NumExp
       = XorExp
@@ -362,7 +346,16 @@
 
     NotExp
       = caseInsensitive<"not"> NotExp  -- not
+      | StrCmpExp
       | CmpExp
+
+    StrCmpExp
+      = StrAddExp "=" StrAddExp  -- eq
+      | StrAddExp "<>" StrAddExp  -- ne
+      | StrAddExp "<" StrAddExp  -- lt
+      | StrAddExp "<=" StrAddExp  -- le
+      | StrAddExp ">" StrAddExp  -- gt
+      | StrAddExp ">=" StrAddExp  -- ge
 
     CmpExp
       = CmpExp "=" AddExp  -- eq
@@ -454,10 +447,13 @@
       = fnIdent FnArgs?
 
     StrFnIdent
-     = strFnIdent FnArgs?
+     = strFnIdent StrFnArgs?
 
     FnArgs
-     = "(" ListOf<StrOrNumExp, ","> ")"
+     = "(" ListOf<NumExp, ","> ")"
+
+    StrFnArgs
+     = "(" ListOf<StrExp, ","> ")"
 
     keyword
       = abs | after | and | asc | atn | auto | bin | border | break
@@ -471,7 +467,6 @@
       | save | sgn | sin | sound | space2 | spc | speed | sq | sqr | step | stop | str | string2 | swap | symbol
       | tab | tag | tagoff | tan | test | testr | then | time | to | troff | tron | unt | upper2 | using
       | val | vpos | wait | wend | while | width | window | write | xor | xpos | ypos | zone
-
 
     abs
        = caseInsensitive<"abs"> ~identPart
@@ -863,7 +858,6 @@
         let _data = [];
         let _dataPtr = 0;
         let _restoreMap = {};
-        //let dataList: (string|number)[] = []; // eslint-disable-line prefer-const
         const codeSnippets = {
             _dataDefine: function _dataDefine() {
                 _data = [];
@@ -966,12 +960,11 @@
                 }
                 const dataList = semanticsHelper.getDataList();
                 if (dataList.length) {
-                    //let startIdx = 0;
                     for (const key of Object.keys(restoreMap)) {
                         let index = restoreMap[key];
                         if (index < 0) {
                             index = 0;
-                            restoreMap[key] = index; //TODO
+                            restoreMap[key] = index;
                         }
                     }
                     lineList.unshift(`const {_data, _restoreMap} = _defineData();\nlet _dataPtr = 0;`);
@@ -997,7 +990,6 @@
                 if (varStr) {
                     lineList.unshift(varStr);
                 }
-                //if (instrMap["frame"] || instrMap["input"]) {
                 if (needsAsync) {
                     lineList.unshift(`return async function() {`);
                     lineList.push('}();');
@@ -1155,6 +1147,10 @@
                 const argList = args.asIteration().children.map(c => c.eval());
                 return `(${argList.join(", ")})`;
             },
+            StrFnArgs(_open, args, _close) {
+                const argList = args.asIteration().children.map(c => c.eval());
+                return `(${argList.join(", ")})`;
+            },
             FnIdent(fnIdent, args) {
                 var _a;
                 const argStr = ((_a = args.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "()";
@@ -1263,13 +1259,14 @@
             Pi(_piLit) {
                 return "Math.PI";
             },
-            PrintArgs(arg, _printSep, args) {
-                return [arg.eval(), ...evalChildren(args.children)].join(', ');
+            PrintArg_strCmp(_cmp, args) {
+                const paramStr = args.children[0].eval();
+                return paramStr;
             },
-            Print(_printLit, params, semi) {
-                var _a;
+            Print(_printLit, args, semi) {
                 semanticsHelper.addInstr("print");
-                const paramStr = ((_a = params.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+                const argList = args.asIteration().children.map(c => c.eval());
+                const paramStr = argList.join(', ') || "";
                 let newlineStr = "";
                 if (!semi.sourceString) {
                     newlineStr = paramStr ? `, "\\n"` : `"\\n"`;
@@ -1370,9 +1367,6 @@
                 semanticsHelper.nextIndentAdd(2);
                 return `while (${cond}) {`;
             },
-            StrOrNumExp(e) {
-                return String(e.eval());
-            },
             XorExp_xor(a, _op, b) {
                 return `${a.eval()} ^ ${b.eval()}`;
             },
@@ -1386,22 +1380,22 @@
                 return `~(${e.eval()})`;
             },
             CmpExp_eq(a, _op, b) {
-                return `${a.eval()} === ${b.eval()}`;
+                return `-(${a.eval()} === ${b.eval()})`; // or -Number(...), or -(...), or: ? -1 : 0
             },
             CmpExp_ne(a, _op, b) {
-                return `${a.eval()} !== ${b.eval()}`;
+                return `-(${a.eval()} !== ${b.eval()})`;
             },
             CmpExp_lt(a, _op, b) {
-                return `${a.eval()} < ${b.eval()}`;
+                return `-(${a.eval()} < ${b.eval()})`;
             },
             CmpExp_le(a, _op, b) {
-                return `${a.eval()} <= ${b.eval()}`;
+                return `-(${a.eval()} <= ${b.eval()})`;
             },
             CmpExp_gt(a, _op, b) {
-                return `${a.eval()} > ${b.eval()}`;
+                return `-(${a.eval()} > ${b.eval()})`;
             },
             CmpExp_ge(a, _op, b) {
-                return `${a.eval()} >= ${b.eval()}`;
+                return `-(${a.eval()} >= ${b.eval()})`;
             },
             AddExp_plus(a, _op, b) {
                 return `${a.eval()} + ${b.eval()}`;
@@ -1434,10 +1428,22 @@
                 return `-${e.eval()}`;
             },
             StrCmpExp_eq(a, _op, b) {
-                return `${a.eval()} === ${b.eval()}`;
+                return `-(${a.eval()} === ${b.eval()})`;
             },
             StrCmpExp_ne(a, _op, b) {
-                return `${a.eval()} !== ${b.eval()}`;
+                return `-(${a.eval()} !== ${b.eval()})`;
+            },
+            StrCmpExp_lt(a, _op, b) {
+                return `-(${a.eval()} < ${b.eval()})`;
+            },
+            StrCmpExp_le(a, _op, b) {
+                return `-(${a.eval()} <= ${b.eval()})`;
+            },
+            StrCmpExp_gt(a, _op, b) {
+                return `-(${a.eval()} > ${b.eval()})`;
+            },
+            StrCmpExp_ge(a, _op, b) {
+                return `-(${a.eval()} >= ${b.eval()})`;
             },
             StrAddExp_plus(a, _op, b) {
                 return `${a.eval()} + ${b.eval()}`;
@@ -1455,7 +1461,7 @@
                 return `${ident.eval()}[${e.eval().join("][")}]`;
             },
             DimArrayIdent(ident, _open, indices, _close) {
-                return [ident.eval(), ...indices.eval()]; //TTT
+                return [ident.eval(), ...indices.eval()];
             },
             decimalValue(value) {
                 return value.sourceString;
@@ -1620,7 +1626,6 @@
                 getGosubLabels: () => this.getGosubLabels(),
                 getIndent: () => this.getIndent(),
                 getIndentStr: () => this.getIndentStr(),
-                //getInstr: (name: string) => this.getInstr(name),
                 getInstrMap: () => this.getInstrMap(),
                 getRestoreMap: () => this.getRestoreMap(),
                 getVariable: (name) => this.getVariable(name),
