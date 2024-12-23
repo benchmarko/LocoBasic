@@ -1,6 +1,6 @@
 {
   "name": "locobasic",
-  "version": "0.1.19",
+  "version": "0.1.20",
   "description": "# LocoBasic - Loco BASIC",
   "type": "commonjs",
   "scripts": {
@@ -13,6 +13,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.14.0",
+    "@types/codemirror": "^5.60.15",
     "@types/eslint__js": "^8.42.3",
     "@types/node": "^22.9.0",
     "eslint": "^9.14.0",

@@ -27,3 +27,9 @@ export interface IUI {
 	setOutputText(value: string): void,
 	checkSyntax(str: string): Promise<string>
 }
+
+export interface IVm {
+	cls(): void,
+	print(_msg: string): void,
+	prompt(_msg: string): number|string 
+}

@@ -17,7 +17,7 @@
 // [When using async functions like FRAME or INPUT, redirect to hello1.mjs]
 //
 
-declare const window: any;
+declare const window: Record<string, any>;
 
 import type { ConfigEntryType, ConfigType, ICore, IUI } from "./Interfaces";
 import { Core } from "./Core";
@@ -158,11 +158,11 @@ function main(config: ConfigType) {
 const config = core.getConfigObject();
 
 if (typeof window !== "undefined") {
-	(window as any).cpcBasic = {
+	window.cpcBasic = {
 		addItem: addItem
 	};
 	window.onload = () => {
-		const UI = (window as any).locobasicUI.UI; 
+		const UI = window.locobasicUI.UI; 
 		ui = new UI(core);
 
 		const args = ui.parseUri(window.location.search.substring(1), config);

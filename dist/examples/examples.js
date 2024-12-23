@@ -849,6 +849,371 @@ PRINT "":PRINT "=> max:";STR$(mx);", CPC";mhz;"MHz"
 `);
 
 cpcBasic.addItem("", `
+1 rem eliza - Eliza (Boss)
+2 rem (c) Olaf Hartwig, 1985
+3 REM Kuenstliche Intelligenz auf dem CPC
+4 REM Titel: Eliza Vorgesetzter
+5 rem 'Modifications: line 3045: avoid endless loop when only one answer to choose
+6 MODE 2
+7 'WIDTH 60
+10 '
+30 'PAPER 3
+40 'PEN 0
+50 'CLS
+70 '
+100 GOSUB 30000
+110 REM Initialisation
+150 GOSUB 20000
+160 REM Titel
+170 '
+175 i$="":while i$<>"stop"
+200 GOSUB 1000
+210 REM Dialog Satzeingabe
+215 if i$="stop" then stop
+300 GOSUB 2000
+310 REM Suchroutine
+400 GOSUB 3000
+410 REM Konjugation
+500 GOSUB 4000
+510 REM Antwortsatz
+610 wend
+989 STOP
+990 '
+1000 REM Dialog Satzeingabe
+1100 PRINT
+1105 i$="":while i$="" or LEN(i$)<2 OR LEN(i$)>200
+1110 INPUT "_ _ _> ";i$
+1120 'IF i$="" THEN 1110
+1125 'IF i$="stop" THEN STOP
+1130 IF LEN(i$)<2 OR LEN(i$)>200 THEN PRINT"Ungueltige Eingabe...": 'GOTO 1110
+1135 wend
+1800 RETURN
+1990 '
+2000 REM Suchschleife
+2010 '
+2020 REM Schluesselwort waehlen
+2090 ma=0
+2100 i=1: while i<=46 and ma<>9:'FOR i=1 TO 46
+2110 zk$=k$(i)
+2120 GOSUB 2500
+2125 'IF ma=9 THEN 2150
+2130 'NEXT i
+2135 i=i+1
+2136 wend
+2140 '
+2150 RETURN
+2160 '
+2500 REM scanning
+2510 FOR p=1 TO LEN(i$)
+2520 w$=MID$(i$,p,LEN(zk$))
+2530 IF w$=k$(i) THEN ma=9:k=i:RETURN
+2540 NEXT p
+2550 k=46:REM kein Keywort
+2560 RETURN
+2590 '
+3000 REM Konjugation
+3010 REM Antwortsatz vorwaehlen
+3015 aw=aalt:zw=2
+while aw=aalt and zw>1
+3020 zw=n(k)-r(k)
+3030 zr=INT(RND(1)*zw)
+3040 aw=r(k)+zr
+3045 'IF aw=aalt and zw>1 THEN 3000: 'IF aw=aalt THEN 3000
+wend
+3047 aalt=aw
+3050 '
+3060 mk=0
+3070 REM Restsatzmarker reset
+3080 '
+3100 REM Restsatz anfuegen?
+3120 i=1: while i<= LEN(a$(aw)) and  MID$(a$(aw),i,1)<>"*":'FOR i=1 TO LEN(a$(aw))
+3130 'IF MID$(a$(aw),i,1)="*" THEN 3200
+3140 'NEXT i
+i=i+1
+wend
+IF MID$(a$(aw),i,1)="*" THEN gosub 3200
+3150 RETURN
+3160 REM kein Restsatz
+3170 REM und keine Konjugation
+3200 '
+3300 REM Restsatz isolieren
+3310 re$=MID$(i$,p+LEN(zk$),LEN(i$))
+3350 mk=99
+3360 REM Restsatz in Antwort anfuegen
+3510 '
+3980 RETURN
+3990 '
+4000 REM Satzausgabe
+4010 '
+4100 PRINT " --> "
+4120 'IF mk=99 THEN GOTO 4200
+4130 IF mk=0 THEN gosub 4300: return 'GOTO 4300
+4140 '
+4200 PRINT LEFT$(a$(aw),LEN(a$(aw))-1);re$
+4250 RETURN
+4260 '
+4300 PRINT a$(aw)
+4350 RETURN
+5000 '
+20000 REM Titel
+20010 'CLS
+20015 PRINT
+20020 PRINT " E L I Z A   V O R G."
+20030 PRINT
+20040 PRINT "(c) Olaf Hartwig  1985"
+20060 'WINDOW 6,79,6,25
+20070 'PAPER 2
+20080 'PEN 3
+20090 'CLS
+20100 RETURN
+28000 '
+30000 REM Initialisation
+30010 DIM r(46):   REM Codezahl 1
+30020 DIM n(46):   REM Codezahl 2
+30030 DIM k$(46):  REM Keywoerter
+30040 DIM a$(121): REM Antworten
+30100 '
+31000 REM Codezahlen lesen
+31005 FOR i=1 TO 46
+31010 READ r(i)
+31020 READ n(i)
+31030 NEXT i
+31060 '
+31100 REM data r(i), n(i)
+31110 DATA 1,3
+31120 DATA 4,6
+31130 DATA 7,10
+31140 DATA 11,15
+31150 DATA 11,15
+31160 DATA 16,20
+31170 DATA 21,24
+31180 DATA 25,27
+31190 DATA 28,35
+31200 DATA 28,35
+31210 DATA 28,35
+31220 DATA 28,35
+31230 DATA 28,35
+31240 DATA 28,35
+31250 DATA 36,40
+31260 DATA 36,40
+31270 DATA 36,40
+31280 DATA 41,45
+31290 DATA 41,45
+31300 DATA 41,45
+31310 DATA 41,45
+31320 DATA 41,45
+31330 DATA 46,48
+31340 DATA 49,53
+31350 DATA 54,57
+31360 DATA 58,63
+31370 DATA 64,69
+31380 DATA 64,69
+31390 DATA 70,74
+31400 DATA 70,74
+31410 DATA 75,77
+31420 DATA 75,77
+31430 DATA 78,85
+31440 DATA 86,89
+31450 DATA 90,94
+31460 DATA 90,94
+31470 DATA 95,98
+31480 DATA 95,98
+31490 DATA 99,101
+31500 DATA 102,106
+31510 DATA 107,108
+31520 DATA 109,111
+31530 DATA 112,113
+31540 DATA 112,113
+31550 DATA 114,121
+31560 DATA 114,121
+31590 '
+32000 REM Keywoerter einlesen
+32010 FOR i=1 TO 46
+32020 READ k$(i)
+32030 NEXT i
+32040 '
+32100 REM data Keywoerter
+32110 DATA "ich bin"
+32120 DATA "ich kann"
+32130 DATA "will"
+32140 DATA "wuensche"
+32150 DATA "wunsch"
+32160 DATA "du"
+32170 DATA "sie"
+32180 DATA "immer"
+32190 DATA "warum"
+32200 DATA "wie"
+32210 DATA "wer"
+32220 DATA "was"
+32230 DATA "wo"
+32240 DATA "wann"
+32250 DATA "nein"
+32260 DATA "nicht"
+32270 DATA "nie"
+32280 DATA "ja"
+32290 DATA "stimmt"
+32300 DATA "immer"
+32310 DATA "genau"
+32320 DATA "richtig"
+32330 DATA "grund"
+32340 DATA "traum"
+32350 DATA "hallo"
+32360 DATA "denke"
+32370 DATA "geld"
+32380 DATA "gehalt"
+32390 DATA "gleich"
+32400 DATA "sofort"
+32410 DATA "ende"
+32420 DATA "freizeit"
+32430 DATA "freund"
+32440 DATA "computer"
+32450 DATA "arbeit"
+32460 DATA "beruf"
+32470 DATA "idiot"
+32480 DATA "trottel"
+32490 DATA "streik"
+32500 DATA "moegen"
+32510 DATA "spielen"
+32520 DATA "alt"
+32530 DATA "chef"
+32540 DATA "boss"
+32550 DATA "kein keywort"
+32555 DATA ""
+32590 '
+33000 REM Antworten einlesen
+33010 FOR i=1 TO 121
+33020 READ a$(i)
+33030 NEXT i
+33070 '
+33100 REM Data Antworten
+33110 DATA "sind sie sich da auch ganz sicher dass sie das wirklich sind und zwar*"
+33120 DATA "vielleicht wuerden sie das ja gerne sein naehmlich*"
+33130 DATA "ich glaube ihnen kein wort das sie das sind-*"
+33140 DATA "schoen wenn sie das koennen!"
+33150 DATA "reden sie nicht so viel-fangen sie an!"
+33160 DATA "dann setzen sie ihr koennen sinnvol ein und belaestigen sie mich nicht"
+33170 DATA "was ist das fuer ein tonfall.sie wollen nicht sondern moechten."
+33180 DATA "was wollen sie?!!"
+33190 DATA "ihnen geht es wohl zu gut!"
+33200 DATA "abgelehnt! sprechen sie nicht weiter!"
+33210 DATA "was wuenschen sie? *"
+33220 DATA "habe ich mich da verhoert?sie wuenschen*"
+33230 DATA "jeder wunsch muss hier hart erarbeitet werden!"
+33240 DATA "sie wuenschen sich da vielleicht etwas zu viel!"
+33250 DATA "ich habe ihre wuensche allmaehlich gestrichen satt!"
+33260 DATA "gewoehnen sie sich allmaehlich einen anderen tonfall an!"
+33270 DATA "siezen sie mich gefaelligst!"
+33280 DATA "wenn sie mich nicht augenblicklich mit 'sie' anreden fliegen sie raus"
+33290 DATA "hoeren sie sofort mit ihrer duzerei auf!"
+33300 DATA "wagen sie es nicht noch einmal 'du' zu mir zu sagen!"
+33310 DATA "reden sie schon wieder von mir?"
+33320 DATA "beziehen sie das auf mich?"
+33330 DATA "ihr siezen gefaellt mir."
+33340 DATA "warum wenden sie sich immer an mich?"
+33350 DATA "wirklich immer?"
+33360 DATA "immer noch?"
+33370 DATA "warum?"
+33380 DATA "weshalb fragen sie?"
+33390 DATA "sie haben meine geduld bereits ueberstrapaziert! keine fragen mehr!"
+33400 DATA "noch eine weitere frage und sie fliegen raus!"
+33410 DATA "ihre ewige fragerei ist ja nicht zum aushalten!"
+33420 DATA "stellen keine so idiotischen fragen!"
+33430 DATA "schluss mit der fragerei!"
+33440 DATA "hier wird nicht gefragt sondern gespurt."
+33450 DATA "hier stelle ich die fragen."
+33460 DATA "sagen sie nicht immer nein!"
+33470 DATA "noch ein 'nein' und..."
+33480 DATA "hier wird positiv gedacht!"
+33490 DATA "wirklich nicht?"
+33500 DATA "was soll das heissen?"
+33510 DATA "prima!"
+33520 DATA "jawohl! denken sie positiv!"
+33530 DATA "heisst das sie sind mit mir einer meinung?"
+33540 DATA "sie denken also positiv darueber?"
+33550 DATA "es gefaellt mir wenn sie positiv denken."
+33560 DATA "suchen sie nicht nach gruenden sondern arbeiten sie!"
+33570 DATA "ihre gruende interessieren mich nicht!"
+33580 DATA "behalten sie ihre gruende besser fuer sich!"
+33590 DATA "haben sie etwa bei ihrer arbeit getraeumt?"
+33600 DATA "sie haben doch wohl von mir getraeumt?"
+33610 DATA "ihre traeume interessieren mich nicht!"
+33620 DATA "kommen sie mir nicht mit solchen dingen!"
+33630 DATA "traeumen koennen sie zu hause aber nicht bei der arbeit!"
+33640 DATA "guten tag heisst das!"
+33650 DATA "was erlauben sie sich?"
+33660 DATA "sagen sie nicht noch einmal hallo zu mir!"
+33670 DATA "wie sprechen sie mit ihrem vorgesetzten?"
+33680 DATA "sie denken zu viel."
+33690 DATA "verschwenden sie ihre energie nicht mit zu vielem denken!"
+33700 DATA "denken sie nicht - arbeiten sie!"
+33710 DATA "wenn sie das noch einmal denken fliegen sie raus!"
+33720 DATA "genug gedacht fuer heute!"
+33730 DATA "sie werden nicht fuers denken bezahlt sondern fuers arbeiten!"
+33740 DATA "sie wollen etwa schon wieder mehr geld?"
+33750 DATA "erwaehnen sie noch einmal das wort geld und ich kuerze ihr gehalt!"
+33760 DATA "warum kommen sie auf geld?"
+33770 DATA "geld geht mich nichts an."
+33780 DATA "geld erhaelt nur der der arbeitet ... sie nicht!"
+33790 DATA "aergern sie mich nicht mit ihren ewigen gedanken an geld!"
+33800 DATA "sagen sie das nicht sondern handeln sie!"
+33810 DATA "lassen sie dem satz taten folgen!"
+33820 DATA "handeln sie endlich!"
+33830 DATA "ihre ausfluechte reichen mir...tun sie etwas!"
+33840 DATA "nicht gleich oder sofort sondern jetzt!keine ausfluechte!"
+33850 DATA "wie koennen sie jetzt an ihre freizeit denken?"
+33860 DATA "sie muessen heute ueberstunden machen...keine freizeit!"
+33870 DATA "sie haben doch erst gerade ferien gehabt!"
+33880 DATA "ihr einziger freund bin ich!"
+33890 DATA "warum denken sie an freunde?"
+33900 DATA "uebrigens ihre freunde gehen mir langsam auf die nerven!"
+33910 DATA "wie koennen sie jetzt an freunde denken...sie muessen arbeiten!"
+33920 DATA "belaestigen sie mich nicht immer mit ihren freunden!"
+33930 DATA "sie haben jetzt keine zeit fuer freunde!"
+33940 DATA "denken sie an etwas sinnvolleres!"
+33950 DATA "haben sie ueberhaupt freunde?"
+33960 DATA "was halten sie von computern?"
+33970 DATA "haben sie etwas gegen computer?"
+33980 DATA "computer sind sinnvoll. oder was finden sie?"
+33990 DATA "wie bitte computer sind *"
+34000 DATA "wie ist denn ihre arbeitseinstellung?"
+34010 DATA "was? arbeit ist *"
+34020 DATA "wie gefaellt ihnen denn ihre arbeit?"
+34030 DATA "haben sie zu wenig arbeit?"
+34040 DATA "sie moechten wohl mehr in ihrem beruf arbeiten?"
+34050 DATA "reden sie etwa von mir?"
+34060 DATA "was haben sie da eben gesagt?"
+34070 DATA "meinen sie etwa mich?"
+34080 DATA "ein weiteres wort und ich feuere sie...fristlos!"
+34090 DATA "streik ??"
+34100 DATA "schon wieder ein streik ?"
+34110 DATA "bei streiks hilft nur aussperrung oder entlassungen!"
+34120 DATA "was moegen sie? ...*"
+34130 DATA "warum moegen sie*"
+34140 DATA "moegen sie auch ihre arbeit?"
+34150 DATA "sie moegen doch sicher ganz besonders mich nicht wahr?"
+34160 DATA "sie moegen mir entschieden zu viel!"
+34170 DATA "warum spielen sie das gerne und zwar*"
+34180 DATA "bei mir wird nicht gespielt!"
+34190 DATA "wer ist hier alt?"
+34200 DATA "sie werden auch allmaehlich alt."
+34210 DATA "finden sie mich etwa auch alt?"
+34220 DATA "wie reden sie mit mir?"
+34230 DATA "was bilden sie sich ein mich so zu nennen?"
+34240 DATA "was wollen sie eigentlich?"
+34250 DATA "halten sie gefaelligst ihren mund!"
+34260 DATA "nuscheln sie nicht so!"
+34270 DATA "gewoehnen sie sich einen anderen tonfall an!"
+34280 DATA "ist das alles was sie mir zu sagen haben?"
+34290 DATA "ich muss noch etwas erledigen. warten sie einige minuten!"
+34300 DATA "entschuldigen sie mich fuer einige minuten. ich muss kurz telephonieren."
+34310 DATA "starren sie mich nicht so aufdringlich an!"
+34320 DATA ""
+34330 DATA ""
+34340 '
+34350 RETURN
+`);
+
+cpcBasic.addItem("", `
 REM euler - Compute e with 1000 digits
 MODE 2
 PRINT"Compute e with 1000 digits"
@@ -1225,7 +1590,7 @@ MODE 2
 CLS
 PRINT "Test Page"
 '
-PRINT "Numbers"
+PRINT "Numbers: ";
 a=1
 a=1.2
 a=-1.2
@@ -1265,55 +1630,25 @@ a=10000: IF a<>10000 THEN ERROR 33
 a=0.0001: IF a<>0.0001 THEN ERROR 33
 a=1E+09-1: IF a<>1E+09-1 OR a<>999999999 THEN ERROR 33
 '
-PRINT"hex number: &"
+PRINT "hex(&), ";
 a=&A7:IF a<>167 THEN ERROR 33
 a=-&A7:IF a<>-167 THEN ERROR 33
 a=&7FFF:IF a<>32767 THEN ERROR 33
 '
-PRINT"bin number: &x"
+PRINT "bin(&x)"
 a=&0:IF a<>0 THEN ERROR 33
 a=&X10100111:IF a<>167 THEN ERROR 33
 a=&X111111111111111:IF a<>32767 THEN ERROR 33
 a=-&X111111111111111:IF a<>-32767 THEN ERROR 33
 '
-PRINT"Strings"
+PRINT "Strings"
 a$="a12":IF a$<>"a12" THEN ERROR 33
 a$="7.1":IF a$<>"7.1" THEN ERROR 33
 ''a$="\\"
 '
-PRINT"Variable types"
+PRINT "Variables: types: $, ";
 a=1.4:IF a<>1.4 THEN ERROR 33
 a$="1.4":IF a$<>"1.4" THEN ERROR 33
-'
-PRINT"Array Variables"
-dim a(2), a$(2)
-a(2)=1.4:IF a(2)<>1.4 THEN ERROR 33
-a(2)=1.5:IF a(2)<>1.5 THEN ERROR 33
-a$(2)="1.4":IF a$(2)<>"1.4" THEN ERROR 33
-'
-PRINT"expressions, operators +-*..."
-a=1+2+3:IF a<>6 THEN ERROR 33
-a=3-2-1:IF a<>0 THEN ERROR 33
-a=&A7+&X10100111-(123-27):IF a<>238 THEN ERROR 33
-a=3+2*3-7:IF a<>2 THEN ERROR 33
-a=(3+2)*(3-7):IF a<>-20 THEN ERROR 33
-a=-(10-7)-(-6-2):IF a<>5 THEN ERROR 33
-a=20/2.5:IF a<>8 THEN ERROR 33
-a=20\\3:IF a<>6 THEN ERROR 33
-a=3^2:IF a<>9 THEN ERROR 33
-a=&X1001 AND &X1110:IF a<>&X1000 THEN ERROR 33
-a=&X1001 OR &X110:IF a<>&X1111 THEN ERROR 33
-a=&X1001 XOR &X1010:IF a<>&X11 THEN ERROR 33
-a=NOT &X1001:IF a<>-10 THEN ERROR 33
-a=+-9:IF a<>-9 THEN ERROR 33
-a=(1=0):IF a<>0 THEN ERROR 33
-a=(1>0)*(0<1):IF a<>1 THEN ERROR 33
-a=1=1=-1:IF a<>-1 THEN ERROR 33
-'
-newline=7
-'
-' variables
-'
 ''a!=1.4
 ''a%=1.4
 a$="1.4"
@@ -1324,6 +1659,16 @@ CaSe=cAsE
 ''in.ser.t.lin.e=2
 ''a!(2)=1.4
 ''a%(2)=1.4
+''1 a$=a%
+''1 a$=a!
+''1 abc=def
+'newline=7
+'
+PRINT "Arrays"
+dim a(2), a$(2)
+a(2)=1.4:IF a(2)<>1.4 THEN ERROR 33
+a(2)=1.5:IF a(2)<>1.5 THEN ERROR 33
+a$(2)="1.4":IF a$(2)<>"1.4" THEN ERROR 33
 DIM a$(2):a$(2)="1.4"
 ''a$[2]="1.4"
 DIM a(9),b(1,2):a(9)=b(1,2)
@@ -1333,12 +1678,8 @@ DIM a(2),b(2,2,1)
 b(2,2,1)=4:a(ROUND(1.4))=b(ROUND(1.5),ROUND(2.4),1): IF a(1)<>4 THEN ERROR 33
 x=1:b(1,2,1)=5:a(x+1)=b(x,x*2,ROUND(x-0.5)): IF a(x+1)<>5 THEN ERROR 33
 x=1:b(1,2,0)=6:a(x-1)=b(INT(x),x*2,(x-1+&C) MOD 2): IF a(x-1)<>6 THEN ERROR 33
-''1 a$=a%
-''1 a$=a!
-''1 abc=def
 '
-' expressions
-'
+PRINT "Expressions, Operators +-*..."
 a=1+2+3: IF a<>6 THEN ERROR 33
 a=3-2-1: IF a<>0 THEN ERROR 33
 a=&A7+&X10100111-(123-27): IF a<>238 THEN ERROR 33
@@ -1351,24 +1692,20 @@ a=&X1001 AND &X1110: IF a<>8 THEN ERROR 33
 a=&X1001 OR &X110: IF a<>15 THEN ERROR 33
 a=&X1001 XOR &X1010: IF a<>3 THEN ERROR 33
 a=NOT &X1001: IF a<>-10 THEN ERROR 33
+a=+-9:IF a<>-9 THEN ERROR 33
+a=(1=0):IF a<>0 THEN ERROR 33
+a=(1>0)*(0<1):IF a<>1 THEN ERROR 33
+a=1=1=-1:IF a<>-1 THEN ERROR 33
 ''a=+++++++++---9
 a=(1=0)
 a=(1>0)*(0<1)
 a=(b>=c)*(d<=e)
 a=1=1=-1
 a=1>=1>1
-'
-' Line numbers
-''0 c=1
-''65535 c=1
-''65536 c=1
-''2 c=1
-''1 c=1
 a=(29+1) MOD 10=0 and 5=7 :' num num
 a=(29+1) MOD 10=9 and "5"+"6"="56" :' num str
 a="5"+"6"="56" and (29+1) MOD 10=9 :' str num
 a="5"+"6"="56" and space$(1)=" " :' str str
-'
 a=(29+1) MOD 10=0 or 5=7 :' num num
 a=(29+1) MOD 10=9 or "5"+"6"="56" :' num str
 a="5"+"6"="56" or (29+1) MOD 10=9 :' str num
@@ -1376,39 +1713,45 @@ a="5"+"6"="56" or space$(1)=" " :' str str
 a=a$<>"a2" OR b$<>"2"
 a=a<>2 OR b<>2 or b$<>"5"
 '
-' special
+' Line numbers
+''0 c=1
+''65535 c=1
+''65536 c=1
+''2 c=1
+''1 c=1
 '
 ' abs, after gosub, and, asc, atn, auto
-PRINT"ABS(positive number)"
+'
+PRINT "ABS, ";
 a=ABS(+67.98):IF a<>67.98 THEN ERROR 33
-PRINT"ABS(negative number)"
 a=ABS(-67.98):IF a<>67.98 THEN ERROR 33
-PRINT"ABS(0)"
 a=ABS(0):IF a<>0 THEN ERROR 33
-'
-PRINT"AND (and OR)"
-a=4 OR 7 AND 2:IF a<>6 THEN ERROR 33
-'
-PRINT"ASC"
-a=ASC("a"):IF a<>97 THEN ERROR 33
-a=ASC("ab"):IF a<>97 THEN ERROR 33
-'
-PRINT "ATN"
-a=INT(ATN(1)*100000000)/100000000:IF a<>0.78539816 THEN ERROR 33
-'
 a=ABS(2.3)
 ''10 after 2 gosub 10010
 ''10 after 3,1 gosub 10010
 ''1 after gosub 10010
 ''1 after 1,2,3 gosub 10010
+'
+PRINT "AND (and OR), ";
+a=4 OR 7 AND 2:IF a<>6 THEN ERROR 33
 a=b AND c
+'
+PRINT "ASC, ";
+a=ASC("a"):IF a<>97 THEN ERROR 33
+a=ASC("ab"):IF a<>97 THEN ERROR 33
 a=ASC("A")
 b$="B":a=ASC(b$) AND c
+'
+PRINT "ATN; ";
+a=ATN(0):IF a<>0 THEN ERROR 33
+a=INT(ATN(1)*100000000)/100000000:IF a<>0.78539816 THEN ERROR 33
 a=ATN(2.3)
 ''auto
 ''auto 100
+'
 ' bin$, border
-PRINT "BIN$"
+'
+PRINT "BIN$, ";
 a$=BIN$(3)
 a$=BIN$(3,8)
 a$=BIN$(&X1001)
@@ -1418,6 +1761,7 @@ b$=BIN$(255,10):IF b$<>"0011111111" THEN ERROR 33
 b$=BIN$(170,6):IF b$<>"10101010" THEN ERROR 33
 b$=BIN$(32767,16):IF b$<>"0111111111111111" THEN ERROR 33
 b$=BIN$(65535):IF b$<>"1111111111111111" THEN ERROR 33
+'
 ''border 5
 ''border 5,a
 ' call, cat, chain, chain merge, chr$, cint, clg, closein, closeout, cls, cont, copychr$, cos, creal, cursor
@@ -1434,8 +1778,13 @@ b$=BIN$(65535):IF b$<>"1111111111111111" THEN ERROR 33
 ''chain merge "f3" , 10+3
 ''chain merge "f4" , 10+3, delete 100-200
 ''chain merge "f5" , , delete 100-200
-a$=CHR$(65)
-a=CINT(2.3)
+'
+PRINT "CHR$, ";
+a$=CHR$(65): IF a$<>"A" THEN ERROR 33
+'
+PRINT "CINT, ";
+a=CINT(2.3): IF a<>2 THEN ERROR 33
+'
 ''clear
 ''clear input
 ''clg
@@ -1448,7 +1797,12 @@ a=CINT(2.3)
 ''cont
 ''a$=copychr$(#0)
 ''a$=copychr$(#a+1)
+'
+PRINT "COS, ";
+a=COS(0): IF a<>1 THEN ERROR 33
+a=COS(PI): IF a<>-1 THEN ERROR 33
 a=COS(2.3)
+'
 ''a=creal(2.3+a)
 ''cursor
 ''cursor 0
@@ -1459,6 +1813,8 @@ a=COS(2.3)
 ''cursor #2,1
 ''cursor #2,1,1
 ''cursor #2,,1
+'
+PRINT "DATA (and READ)"
 ' data, dec$, def fn, defint, defreal, defstr, deg, delete, derr, di, dim, draw, drawr
 ''data
 ''data ,
@@ -1483,7 +1839,8 @@ READ a:IF a<>&A7 THEN ERROR 33
 READ a:IF a<>&A7 THEN ERROR 33
 '
 ''a$=dec$(3,"##.##")
-PRINT"DEF FN"
+'
+PRINT "DEF FN (and FN), ";
 def fnclk=10
 def fnclk(a)=a*10
 def fnclk(a,b)=a*10+b
@@ -1553,6 +1910,8 @@ a=FNf1(1,2,3):IF a<>6 THEN ERROR 33
 ''1 delete a
 ''a=derr
 ''di
+'
+PRINT "DIM, ";
 DIM a(1)
 ''dim a!(1)
 ''dim a%(1)
@@ -1564,6 +1923,7 @@ x=1:DIM a(2,13+7),b$(3),c(2*x,7)
 ''a=0:FOR i=0 TO 4:a=a+a(i):NEXT:IF a<>10 THEN ERROR 33
 DIM a(4):FOR i=0 TO 4:a(i)=i:NEXT
 x=0:FOR i=0 TO 4:x=x+a(i):NEXT:IF x<>10 THEN ERROR 33
+'
 ''draw 10,20
 ''draw -10,-20,7
 ''draw 10,20,7,3
@@ -1590,10 +1950,13 @@ x=0:FOR i=0 TO 4:x=x+a(i):NEXT:IF x<>10 THEN ERROR 33
 ''env num,steps,dist,ti,steps2,dist2,ti2
 ''env num,=reg,period,=reg2,period2
 ''a=eof
+'
+PRINT "ERASE, ";
 DIM e(1):ERASE e
 DIM e$(1):ERASE e$
 DIM e(1),e$(1):ERASE e,e$
 ''1 erase 5
+'
 ''a=erl
 ''a=err
 ''error 7
@@ -1601,11 +1964,22 @@ DIM e(1),e$(1):ERASE e,e$
 ''10 every 50 gosub 10010
 ''10 every 25.2,1 gosub 10010
 ''10 every 10+a,b gosub 10010
-a=EXP(2.3)
+'
+PRINT "EXP, ";
+a=EXP(0): IF a<>1 THEN ERROR 33
+a=EXP(2.3): IF ROUND(a,5)<>9.97418 THEN ERROR 33
+'
 ' fill, fix, fn, for, frame, fre
 ''fill 7
-a=FIX(2.3)
-'' x=fnclk 'TODO?
+'
+PRINT "FIX, ";
+a=FIX(0): IF a<>0 THEN ERROR 33
+a=FIX(2.77): IF a<>2 THEN ERROR 33
+a=FIX(-2.3): IF a<>-2 THEN ERROR 33
+a=FIX(123.466): IF a<>123 THEN ERROR 33
+'
+PRINT "FN, ";
+x=fnclk
 x=fnclk(a)
 x=fnclk(a,b)
 x$=fnclk$(a$,b$)
@@ -1613,6 +1987,8 @@ x$=fnclk$(a$,b$)
 ''x=fn clk(a)
 ''x=fn clk(a,b)
 ''x$=fn clk$(a$,b$)
+'
+PRINT "FOR, ";
 FOR a=1 TO 10:NEXT
 ''for a%=1.5 to 9.5: next
 ''for a!=1.5 to 9.5: next
@@ -1630,14 +2006,20 @@ FOR a=2 TO 1 STEP -&X1:NEXT
 ''1 for a$=1 to 2: next
 FOR abc=1 TO 10 STEP 3:NEXT abc
 ''for a=b to c step s:a=0:next
+'
+PRINT "FRAME, ";
 FRAME
+'
 ''a=fre(0)
 ''a=fre("")
 ''a=fre(b-2)
 ''a=fre(a$)
 ' gosub, goto, graphics paper, graphics pen
+'
+PRINT "GOSUB, ";
 GOSUB 10010
 ''1 gosub a
+'
 ''10 goto 10010
 ''1 goto a
 ''graphics paper 5
@@ -1647,11 +2029,21 @@ GOSUB 10010
 ''graphics pen ,0
 ''graphics pen 2.3*a,1+b
 ' hex$, himem
-a$=HEX$(16)
-a$=HEX$(16,4)
+'
+PRINT "HEX$"
+a$=HEX$(0): IF a$<>"0" THEN ERROR 33
+a$=HEX$(16,4): IF a$<>"0010" THEN ERROR 33
+a$=HEX$(255): IF a$<>"FF" THEN ERROR 33
+a$=HEX$(255,10): IF a$<>"00000000FF" THEN ERROR 33
+a$=HEX$(256): IF a$<>"100" THEN ERROR 33
+a$=HEX$(32767,16): IF a$<>"0000000000007FFF" THEN ERROR 33
+a$=HEX$(65535): IF a$<>"FFFF" THEN ERROR 33
 a$=HEX$(a,b)
+'
 ''a=himem
 ' if, ink, inkey, inkey$, inp, input, instr, int
+'
+PRINT "IF, ";
 IF a=1 THEN a=2
 IF a=1 THEN a=2 ELSE a=1
 ''if a=1 then
@@ -1670,9 +2062,9 @@ IF a=1 THEN GOSUB 10010
 ''10 if a=1 then 10 else goto 20 '20 rem
 ''10 if a=b+5*c then a=a+1: goto 10 else a=a-1:goto 20
 IF a=b+5*c THEN a=a+1:GOSUB 10010 ELSE a=a-1:GOSUB 10020
-REM
 IF a<>3 THEN GOSUB 10010
 IF a$<>"3" THEN GOSUB 10010
+'
 ''ink 2,19
 ''ink 2,19,22
 ''ink a*2,b-1,c
@@ -1687,18 +2079,26 @@ IF a$<>"3" THEN GOSUB 10010
 ''input ;"para noCRLF";a$,b
 ''input#2,;"para noCRLF";a$,b
 ''input#stream,;"string";a$,b
-a=INSTR("key","ey")
-a=INSTR(s$,find$)
+'
+PRINT "INSTR, ";
+''a=INSTR("", ""): IF a<>0 THEN ERROR 33
+a=INSTR("key","ey"): IF a<>2 THEN ERROR 33
+a$="key": b$="y": a=INSTR(a$,b$): IF a<>3 THEN ERROR 33
 ''a=instr(start,s$,find$)
-PRINT"INSTR"
-a=INSTR("Amstrad", "m"):IF a<>2 THEN ERROR 33
-a=INSTR("Amstrad", "sr"):IF a<>0 THEN ERROR 33
-''a=INSTR(6,"amstrad", "a"):IF a<>6 THEN ERROR 33
-''a=INSTR("", ""):IF a<>0 THEN ERROR 33
-''a=INSTR(1, "", ""):IF a<>0 THEN ERROR 33
-''a=INSTR(1, "ab", ""):IF a<>1 THEN ERROR 33
-a=INT(-2.3)
-a=INT(b+2.3)
+a=INSTR("Amstrad", "m"): IF a<>2 THEN ERROR 33
+a=INSTR("Amstrad", "sr"): IF a<>0 THEN ERROR 33
+''a=INSTR(6,"amstrad", "a"): IF a<>6 THEN ERROR 33
+''a=INSTR("", ""): IF a<>0 THEN ERROR 33
+''a=INSTR(1, "", ""): IF a<>0 THEN ERROR 33
+''a=INSTR(1, "ab", ""): IF a<>1 THEN ERROR 33
+'
+PRINT "INT, ";
+a=INT(0): IF a<>0 THEN ERROR 33
+a=INT(1): IF a<>1 THEN ERROR 33
+a=INT(2.7): IF a<>2 THEN ERROR 33
+a=INT(-2.3): IF a<>-3 THEN ERROR 33
+b=1:a=INT(b+2.3): IF a<>3 THEN ERROR 33
+'
 ' joy
 ''a=joy(0)
 ''a=joy(b+1)
@@ -1711,8 +2111,18 @@ a=INT(b+2.3)
 ''key def 68,1,159,160,161
 ''key def num,fire,normal,shift,ctrl
 ' left$, len, let, line input, list, load, locate, log, log10, lower$
-a$=LEFT$(b$,n)
-a=LEN(a$)
+'
+PRINT "LEFT$, ";
+a$=LEFT$("abc",0):IF a$<>"" THEN ERROR 33
+a$="abc":a$=LEFT$(a$,1):IF a$<>"a" THEN ERROR 33
+a$="abc":a$=LEFT$(a$,2):IF a$<>"ab" THEN ERROR 33
+a$="abc":a$=LEFT$(a$,4):IF a$<>"abc" THEN ERROR 33
+'
+PRINT "LEN, ";
+a=LEN(""): IF a<>0 THEN ERROR 33
+a=LEN("a"): IF a<>1 THEN ERROR 33
+a$="abc":a=LEN(a$): IF a<>3 THEN ERROR 33
+'
 ''let a=a+1
 ''line input a$
 ''line input ;a$
@@ -1742,56 +2152,81 @@ a=LEN(a$)
 ''locate 10,20
 ''locate#2,10,20
 ''locate#stream,x,y
-PRINT"LOG"
-a=LOG(10)
+'
+PRINT "LOG, ";
+a=LOG(1): IF a<>0 THEN ERROR 33
+a=LOG(10): IF ROUND(a,4)<>2.3026 THEN ERROR 33
 a=LOG(1000)/LOG(10): IF INT(a+1E-9)<>3 THEN ERROR 33
-PRINT"LOG10"
-a=LOG10(10)
+'
+PRINT "LOG10, ";
+a=LOG10(1): IF a<>0 THEN ERROR 33
+a=LOG10(10): IF a<>1 THEN ERROR 33
 a=LOG10(1000):IF a<>3 THEN ERROR 33
-b$="AbC":a$=LOWER$(b$)
-a$=LOWER$("String")
+'
+PRINT "LOWER$, ";
+a$=LOWER$(""): IF a$<>"" THEN ERROR 33
+a$=LOWER$("A"): IF a$<>"a" THEN ERROR 33
+a$=LOWER$("ABCDEFGHKKLMNOPQRSTUVWXYZ"): IF a$<>"abcdefghkklmnopqrstuvwxyz" THEN ERROR 33
+b$="AbC":a$=LOWER$(b$): IF a$<>"abc" THEN ERROR 33
+a$=LOWER$("String"): IF a$<>"string" THEN ERROR 33
+'
 ' mask, max, memory, merge, mid$, min, mod, mode, move, mover
 ''mask &x10101011
 ''mask 2^(8-x),1
 ''mask a,b
 ''mask ,b
-PRINT "MAX"
-a=MAX(1)
-a=MAX(1,5)
-a=MAX(b,c,d)
+'
+PRINT "MAX, ";
+a=MAX(0): IF a<>0 THEN ERROR 33
+a=MAX(0,4): IF a<>4 THEN ERROR 33
+a=MAX(-3.2,3.1,2.3): IF a<>3.1 THEN ERROR 33
+a=MAX(7): IF a<>7 THEN ERROR 33
+a=MAX(1.5,2.1,2.0): IF a<>2.1 THEN ERROR 33
+a=1:b=2:a=MAX(a,7,b): IF a<>7 THEN ERROR 33
 ''a$=max("abc")
 ''1 a$=max("abc","d")
-a=MAX(7):IF a<>7 THEN ERROR 33
-a=MAX(1.5,2.1,2.0):IF a<>2.1 THEN ERROR 33
 ''a$=MAX("abc"):IF a$<>"abc" THEN ERROR 33
+'
 ''memory &3fff
 ''memory adr
 ''merge "file"
 ''merge f$
-PRINT"MID$"
-a$=MID$("string",3)
-a$=MID$("string",3,2)
-p=1:a$=MID$(b$,p)
-a$=MID$(b$,p,lg)
+'
+PRINT "MID$, ";
+a$=MID$("abc",2): IF a$<>"bc" THEN ERROR 33
+a$=MID$("abc",1): IF a$<>"abc" THEN ERROR 33
+a$=MID$("abc",255): IF a$<>"" THEN ERROR 33
+a$=MID$("abc",2,0): IF a$<>"" THEN ERROR 33
+a$=MID$("abc",2,1): IF a$<>"b" THEN ERROR 33
+a$=MID$("abc",2,3): IF a$<>"bc" THEN ERROR 33
+a$=MID$("string",3): IF a$<>"ring" THEN ERROR 33
+a$=MID$("string",3,2): IF a$<>"ri" THEN ERROR 33
+b$="abcd":a=2:a$=MID$(b$,a): IF a$<>"bcd" THEN ERROR 33
+b$="abcd":a=2:b=2:a$=MID$(b$,a,b): IF a$<>"bc" THEN ERROR 33
+''PRINT"MID$ as assign"
 ''mid$(a$,2)=b$
 ''mid$(a$,2,2)=b$
 ''mid$(a$,b%,c!)="string"
-a$="abcd":b$=mid$(a$,2):IF b$<>"bcd" THEN ERROR 33
-a$="abcd":b$=mid$(a$,2,2):IF b$<>"bc" THEN ERROR 33
-''PRINT"MID$ as assign"
 ''a$="abcd":b$="xyz":MID$(a$,2)=b$:IF a$<>"axyz" OR b$<>"xyz" THEN ERROR 33
 ''a$="abcd":b$="xyz":MID$(a$,2,2)=b$:IF a$<>"axyd" THEN ERROR 33
-PRINT "MIN"
-a=MIN(1)
-a=MIN(1,5)
+'
+PRINT "MIN, ";
+a=MIN(0): IF a<>0 THEN ERROR 33
+a=MIN(7): IF a<>7 THEN ERROR 33
+a=MIN(0,4): IF a<>0 THEN ERROR 33
+a=MIN(1,5): IF a<>1 THEN ERROR 33
+a=MIN(-3.2,3.1,2.3): IF a<>-3.2 THEN ERROR 33
+a=MIN(1.5,2.1,2.0): IF a<>1.5 THEN ERROR 33
 a=MIN(b,c,d)
+a=2:b=1:a=MIN(a,7,b): IF a<>1 THEN ERROR 33
 ''a$=min("abc")
 ''1 a$=min("abc","d")
-a=MIN(7):IF a<>7 THEN ERROR 33
-a=MIN(1.5,2.1,2.0):IF a<>1.5 THEN ERROR 33
-''a$=MIN("abc"):IF a$<>"abc" THEN ERROR 33
-a=10 MOD 3
-a=b MOD -c
+''a$=MIN("abc"): IF a$<>"abc" THEN ERROR 33
+'
+PRINT "MOD"
+a=10 MOD 3: IF a<>1 THEN ERROR 33
+a=5:b=3:a=a MOD -b:IF a<>2 THEN ERROR 33
+'
 ''mode 0 'testet on top
 ''mode n+1
 ''move 10,20
@@ -1806,11 +2241,16 @@ a=b MOD -c
 ''mover x,y,m,g1
 ' new, next, not
 ''new
-FOR a=1 TO 2:NEXT
-FOR i=1 TO 2:NEXT i
-FOR j=1 TO 2:FOR i=3 TO 4:NEXT i,j
-a=NOT 2
-a=NOT -b
+'
+PRINT "NEXT, ";
+FOR a=1 TO 2:NEXT: IF a<>3 THEN ERROR 33
+FOR a=1 TO 2:NEXT a: IF a<>3 THEN ERROR 33
+FOR a=1 TO 2:FOR b=3 TO 4:NEXT b,a: IF a<>3 OR b<>5 THEN ERROR 33
+'
+PRINT "NOT, ";
+a=NOT 2: IF a<>-3 THEN ERROR 33
+b=-7:a=NOT -b: IF a<>-8 THEN ERROR 33
+'
 ' on break ..., on error goto, on gosub, on goto, on sq gosub, openin, openout, or, origin, out
 ''on break cont
 ''10 on break gosub 10010
@@ -1825,9 +2265,12 @@ a=NOT -b
 ''1 on error goto 2:a$=dec$(b$,"\\    \\") '2 rem
 ''1 on error goto 0:mask ,
 ''1 on error goto 2:mask , '2 rem
+'
+PRINT "ON GOSUB, ";
 ON 1 GOSUB 10010
 x=1:ON x GOSUB 10010,10020 '20 rem
 x=2:ON x+1 GOSUB 10010,10020,10020 '20 rem
+'
 ''10 on 1 goto 10
 ''10 on x goto 10,20 '20 rem
 ''10 on x+1 goto 10,20,20 '20 rem
@@ -1837,8 +2280,11 @@ x=2:ON x+1 GOSUB 10010,10020,10020 '20 rem
 ''openin f$
 ''openout "file"
 ''openout f$
-a=1 OR &1A0
+'
+PRINT "OR, ";
+a=1 OR &1A0: IF a<>417 THEN ERROR 33
 a=b OR c
+'
 ''origin 10,20
 ''origin 10,20,5,200,50,15
 ''origin x,y,left,right,top,bottom
@@ -1853,7 +2299,10 @@ a=b OR c
 ''pen 2,1
 ''pen#3,2,1
 ''pen#stream,p,trans
-a=PI
+'
+PRINT "PI, ";
+a=PI: IF ROUND(a,8)<>3.14159265 THEN ERROR 33
+'
 ''plot 10,20
 ''plot -10,-20,7
 ''plot 10,20,7,3
@@ -1869,19 +2318,19 @@ a=PI
 ''a=pos(#0)
 ''a=pos(#stream)
 '
-PRINT "PRINT"
+PRINT "PRINT, ";
 PRINT
 ''print ,
 PRINT ;
 ''print #2
 ''print #2,
-PRINT "string"
+PRINT "string";
 PRINT 999999999;
 print 1e9;
 print 2.5e10;
 PRINT 1.234567846;
-PRINT a$
-PRINT a$;b
+a$="test":PRINT a$;
+a$="test":b=2:PRINT a$;b;
 ''print#2,a$,b
 ''print using"####";ri;
 ''print using "##.##";-1.2
@@ -1891,56 +2340,87 @@ PRINT a$;b
 ''print using "&";"a1";"a2";
 ''print#9,tab(t);t$;i;"h1"
 PRINT a=(29+1) MOD 10=0 and 5=7; a$<>"a2" OR b$<>"2"
-?
+'
+?;
 ?a$;b
 ''?#2,ti-t0!;spc(5);
+'
 ' rad, randomize, read, release, rem, remain, renum, restore, resume, return, right$, rnd, round, run
 ''rad
 ''randomize
 ''randomize 123.456
+'
+PRINT "READ, ";
 data "a1", 1, "a2"
 data 2, "c1"
 READ a$: IF a$<>"a1" THEN ERROR 33
 READ b: IF b<>1 THEN ERROR 33
 READ a$,b,c$: IF a$<>"a2" OR b<>2 OR c$<>"c1" THEN ERROR 33
+'
 ''release 1
 ''release n+1
+'
+PRINT "REM, ";
 REM
 REM comment until EOL
 REM '
 'comment until EOL
-'a=1 'comment
+a=1 'comment
+'
 ''a=remain(0)
 ''a=remain(ti)
 ''renum
 ''renum 100
 ''renum 100,50
 ''renum 100,50,2
+'
+PRINT "RESTORE, ";
 RESTORE
 RESTORE 10
+'
 ''resume
 ''10 resume 10
 ''resume next
 ''return
-a$=RIGHT$(b$,n)
-a$=" 204":a$=RIGHT$(a$,LEN(a$)-1): IF a$<>"204" then error 33
-''a=rnd
-a=RND(0)
-a=RND(-1*b)
 '
-PRINT"ROUND"
-a=ROUND(2.335)
-a=ROUND(2.335,2)
-a=ROUND(PI):IF a<>3 THEN ERROR 33
-a=ROUND(PI,0):IF a<>3 THEN ERROR 33
-''a=ROUND(PI,0.4):IF a<>3 THEN ERROR 33
-a=ROUND(PI,2):IF a<>3.14 THEN ERROR 33
-''a=ROUND(PI,2.4):IF a<>3.14 THEN ERROR 33
-a=ROUND(1234.5678,-2):IF a<>1200 THEN ERROR 33
-''a=ROUND(8.575,2):IF a<>8.58 THEN ERROR 33
-''a=ROUND(-8.575,2):IF a<>-8.58 THEN ERROR 33
-''a=ROUND(1.005,2):IF a<>1.01 THEN ERROR 33
-''a=ROUND(-1.005,2):IF a<>-1.01 THEN ERROR 33
+PRINT "RIGHT$, ";
+a$=RIGHT$("abc",0): IF a$<>"abc" THEN ERROR 33
+a$=RIGHT$("abc",1): IF a$<>"c" THEN ERROR 33
+a$=RIGHT$("abc",2): IF a$<>"bc" THEN ERROR 33
+a$=RIGHT$("abc",4): IF a$<>"abc" THEN ERROR 33
+b$="abcd":a=2:a$=RIGHT$(b$,a): IF a$<>"cd" THEN ERROR 33
+a$=" 204":a$=RIGHT$(a$,LEN(a$)-1): IF a$<>"204" then error 33
+'
+PRINT "RND, ";
+''a=rnd
+a=RND(0): IF a<=0 OR a>=1 THEN ERROR 33
+b=2:a=RND(-1*b): IF a<=0 OR a>=1 THEN ERROR 33
+'
+PRINT "ROUND, ";
+a=ROUND(2.49): IF a<>2 THEN ERROR 33
+a=ROUND(2.50): IF a<>3 THEN ERROR 33
+a=ROUND(0): IF a<>0 THEN ERROR 33
+a=ROUND(-2.49): IF a<>-2 THEN ERROR 33
+'a=ROUND(-2.50): IF a<>-3 THEN ERROR 33
+'a=ROUND(8.575,2): IF a<>8.58 THEN ERROR 33
+'a=ROUND(-8.575,2): IF a<>-8.58 THEN ERROR 33
+'a=ROUND(1.005,2): IF a<>1.01 THEN ERROR 33
+'a=ROUND(-1.005,2): IF a<>-1.01 THEN ERROR 33
+a=ROUND(2.49,-39): IF a<>0 THEN ERROR 33
+a=ROUND(2.49,39): IF a<>2.49 THEN ERROR 33
+a=ROUND(1234.5678,-2): IF a<>1200 THEN ERROR 33
+a=ROUND(2.335): IF a<>2 THEN ERROR 33
+a=ROUND(2.335,2): IF a<>2.34 THEN ERROR 33
+a=ROUND(PI): IF a<>3 THEN ERROR 33
+a=ROUND(PI,0): IF a<>3 THEN ERROR 33
+''a=ROUND(PI,0.4): IF a<>3 THEN ERROR 33
+a=ROUND(PI,2): IF a<>3.14 THEN ERROR 33
+''a=ROUND(PI,2.4): IF a<>3.14 THEN ERROR 33
+a=ROUND(1234.5678,-2): IF a<>1200 THEN ERROR 33
+''a=ROUND(8.575,2): IF a<>8.58 THEN ERROR 33
+''a=ROUND(-8.575,2): IF a<>-8.58 THEN ERROR 33
+''a=ROUND(1.005,2): IF a<>1.01 THEN ERROR 33
+''a=ROUND(-1.005,2): IF a<>-1.01 THEN ERROR 33
 '
 ''run
 ''10 run 10
@@ -1953,9 +2433,13 @@ a=ROUND(1234.5678,-2):IF a<>1200 THEN ERROR 33
 ''save "file.scr",b,&c000,&4000
 ''save "file.bin",b,&8000,&100,&8010
 ''save f$,b,adr,lg,entry
-a=SGN(5)
-a=SGN(0)
-a=SGN(-5)
+'
+PRINT "SGN, ";
+a=SGN(5): IF a<>1 THEN ERROR 33
+a=SGN(0): IF a<>0 THEN ERROR 33
+a=SGN(-5): IF a<>-1 THEN ERROR 33
+'
+PRINT "SIN, ";
 a=SIN(2.3)
 ''sound 1,100
 ''sound 1,100,400
@@ -1965,8 +2449,10 @@ a=SIN(2.3)
 ''sound 1,100,400,15,1,1,4
 ''sound ch,period,duration,,,,noise
 ''sound ch,period,duration,vol,env1,ent1,noise
-a$=SPACE$(9)
-a$=SPACE$(9+b)
+'
+PRINT "SPACE$, ";
+a$=SPACE$(9): IF a$<>"         " THEN ERROR 33
+b=-2:a$=SPACE$(9+b): IF a$<>"       " THEN ERROR 33
 ''speed ink 10,5
 ''speed ink a,b
 ''speed key 10,5
@@ -1976,17 +2462,21 @@ a$=SPACE$(9+b)
 ''1 speed mode 2
 ''a=sq(1)
 ''a=sq(channel)
-a=SQR(9)
-'' below: stop
-a$=STR$(123)
 '
-PRINT "STR$"
+PRINT "SQR, ";
+a=SQR(9): IF a<>3 THEN ERROR 33
+'' below: stop
+'
+PRINT "STR$, ";
+a$=STR$(123): IF a$<>" 123" THEN ERROR 33
 a$=STR$(a+b)
 a=1: s$="": WHILE a<=5: s$=s$+STR$(a)+":": a=a+1: b=0: WHILE b<3: b=b+1: s$=s$+STR$(b): WEND: s$=s$+" ": WEND: s$=s$+"#"
 IF s$<>" 1: 1 2 3  2: 1 2 3  3: 1 2 3  4: 1 2 3  5: 1 2 3 #" THEN ERROR 33
-a$=STRING$(40,"*")
+'
+PRINT "STRING$"
+a$=STRING$(13,"*"): IF a$<>"*************" THEN ERROR 33
 ''a$=string$(40,42)
-a$=STRING$(lg,char$)
+a=7:b$="x":a$=STRING$(a,b$): IF a$<>"xxxxxxx" THEN ERROR 33
 ''symbol 255,1,2,3,4,5,6,7,&x10110011
 ''symbol 255,1
 ''symbol after 255
@@ -1997,36 +2487,44 @@ a$=STRING$(lg,char$)
 ''tagoff
 ''tagoff#2
 ''tagoff#stream
-PRINT "TAN"
-a=TAN(45)
-a=INT(TAN(0.7853981635)*100000000)/100000000:IF a<>1 THEN ERROR 33
+'
+PRINT "TAN, ";
+a=TAN(45 * PI/180): IF ROUND(a,8)<>1 THEN ERROR 33
+a=INT(TAN(0.7853981635)*100000000)/100000000: IF a<>1 THEN ERROR 33
 ''a=test(10,20)
 ''a=test(x,y)
 ''a=testr(10,-20)
 ''a=testr(xm,ym)
-t=TIME
+'
+PRINT "TIME, ";
+a=TIME: IF a<=0 THEN ERROR 33
 ''troff
 ''tron
 ' unt, upper$
 ''a=unt(&ff66)
-a$=UPPER$("String")
-a$=UPPER$(b$)
+'
+PRINT "UPPER$, ";
+a$=UPPER$("String"): IF a$<>"STRING" THEN ERROR 33
+b$="a text":a$=UPPER$(b$): IF a$<>"A TEXT" THEN ERROR 33
 ' val, vpos
-PRINT"VAL"
-a=VAL("-2.3")
-a=VAL(b$)
-a=VAL(""):IF a<>0 THEN ERROR 33
-''a=VAL("4r"):IF a<>4 THEN ERROR 33
-a=VAL("&ff"):IF a<>&FF THEN ERROR 33
-a=VAL("&7A00"):IF a<>31232 or a<>&7A00 THEN ERROR 33
+'
+PRINT "VAL, ";
+a=VAL("-2.3"): IF a<>-2.3 THEN ERROR 33
+b$="2.3": a=VAL(b$): IF a<>2.3 THEN ERROR 33
+a=VAL(""): IF a<>0 THEN ERROR 33
+''a=VAL("4r"): IF a<>4 THEN ERROR 33
+a=VAL("&ff"): IF a<>&FF THEN ERROR 33
+a=VAL("&7A00"): IF a<>31232 or a<>&7A00 THEN ERROR 33
 '
 ''a=vpos(#0)
 ''a=vpos(#stream)
 ' wait, wend, while, width, window, window swap, write
 ''wait &ff34,20
 ''wait &ff34,20,25
-a=9:WHILE a=10:WEND:if a<>9 then error 33
-a=3:WHILE a>0:a=a-1:WEND:if a<>0 then error 33
+'
+PRINT "WEND (and WHILE), ";
+a=9:WHILE a=10:WEND: if a<>9 then error 33
+a=3:WHILE a>0:a=a-1:WEND: if a<>0 then error 33
 ''width 40
 ''window 10,30,5,20
 ''window#1,10,30,5,20
@@ -2049,8 +2547,10 @@ a=3:WHILE a>0:a=a-1:WEND:if a<>0 then error 33
 ''write ,
 ''write ;
 ' xor, xpos
-a=&X1001 XOR &X0110
-a=b XOR c
+'
+PRINT "XOR"
+a=&X1001 XOR &X0110: IF a<>15 THEN ERROR 33
+b=5:c=7:a=b XOR c: IF a<>2 THEN ERROR 33
 ''a=xpos
 ' ypos
 ''a=ypos

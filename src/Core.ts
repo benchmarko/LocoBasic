@@ -1,6 +1,6 @@
 // core.ts
 
-import type { ICore, ConfigType, ConfigEntryType } from "./Interfaces";
+import type { ICore, ConfigType, ConfigEntryType, IVm } from "./Interfaces";
 import { Parser } from "./Parser";
 import { arithmetic } from "./arithmetic";
 import { Semantics } from "./Semantics";
@@ -106,41 +106,42 @@ export class Core implements ICore {
 			return "ERROR";
 		}
 
-		let output: string;
-		output = await this.onCheckSyntax(compiledScript);
-		if (output) {
+		const syntaxError = await this.onCheckSyntax(compiledScript);
+		if (syntaxError) {
 			vm.cls();
-			return "ERROR: " + output;
+			return "ERROR: " + syntaxError;
 		}
 
 		try {
 			const fnScript = new Function("_o", compiledScript);
-			const result = fnScript(this.vm) || "";
+			const result = fnScript(this.vm as IVm) || "";
+
+			let output: string;
 			if (result instanceof Promise) {
 				output = await result;
 				output = this.vm.getOutput() + output;
 			} else {
 				output = this.vm.getOutput() + result;
 			}
-
+			return output;
 		} catch (error) {
-			output = "ERROR: ";
+			let errorMessage = "ERROR: ";
 			if (error instanceof Error) {
-				output += this.vm.getOutput() + "\n" + String(error);
+				errorMessage += this.vm.getOutput() + "\n" + String(error);
 
-				const anyErr = error as any;
+				const anyErr = error as unknown as Record<string, number>;
 				const lineNumber = anyErr.lineNumber; // only on FireFox
 				const columnNumber = anyErr.columnNumber; // only on FireFox
 
 				if (lineNumber || columnNumber) {
 					const errLine = lineNumber - 2; // lineNumber -2 because of anonymous function added by new Function() constructor
-					output += ` (Line ${errLine}, column ${columnNumber})`;
+					errorMessage += ` (Line ${errLine}, column ${columnNumber})`;
 				}
 			} else {
-				output += "unknown";
+				errorMessage += "unknown";
 			}
+			return errorMessage;
 		}
-		return output;
 	}
 
 	public putScriptInFrame(script: string) {

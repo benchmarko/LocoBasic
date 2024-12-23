@@ -1,6 +1,7 @@
 // UI.ts
 
-import { ICore, IUI, ConfigType } from "../Interfaces";
+import type { Editor } from 'codemirror';
+import type { ICore, IUI, ConfigType } from "../Interfaces";
 
 // Worker:
 type PlainErrorEventType = {
@@ -47,8 +48,8 @@ const workerFn = () => {
 
 export class UI implements IUI {
 	private readonly core: ICore;
-	private basicCm: any;
-	private compiledCm: any;
+	private basicCm?: Editor;
+	private compiledCm?: Editor;
 	//private static worker?: Worker;
 	private static getErrorEvent?: (s: string) => Promise<PlainErrorEventType>;
 
@@ -56,10 +57,10 @@ export class UI implements IUI {
 		this.core = core;
 	}
 
-	private debounce<T extends (...args: any[]) => void>(func: T, delayPara: string): (...args: any[]) => void {
+	private debounce<T extends (...args: unknown[]) => void | Promise<void>>(func: T, delayPara: string): (...args: Parameters<T>) => void {
 		let timeoutId: ReturnType<typeof setTimeout>;
 		const core = this.core;
-		return function (this: any, ...args: any[]) {
+		return function (this: unknown, ...args: Parameters<T>) {
 			const context = this;
 			const delay = core.getConfig<number>(delayPara);
 			clearTimeout(timeoutId);
@@ -96,7 +97,7 @@ export class UI implements IUI {
 		this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
 	}
 
-	private onCompiledTextChange(_event: Event) { // eslint-disable-line @typescript-eslint/no-unused-vars
+	private onCompiledTextChange() {
 		const autoExecuteInput = document.getElementById("autoExecuteInput") as HTMLInputElement;
 		if (autoExecuteInput.checked) {
 			const executeButton = window.document.getElementById("executeButton") as HTMLButtonElement;
@@ -107,7 +108,7 @@ export class UI implements IUI {
 	private onCompileButtonClick(_event: Event) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		const basicText = document.getElementById("basicText") as HTMLTextAreaElement;
 		const compiledText = document.getElementById("compiledText") as HTMLTextAreaElement;
-		const input = this.compiledCm ? this.basicCm.getValue() : basicText.value;
+		const input = this.basicCm ? this.basicCm.getValue() : basicText.value;
 		const compiledScript = this.core.compileScript(input);
 
 		if (this.compiledCm) {
@@ -122,7 +123,7 @@ export class UI implements IUI {
 		}
 	}
 
-	private async onbasicTextChange(_event: Event) { // eslint-disable-line @typescript-eslint/no-unused-vars
+	private async onbasicTextChange() {
 		const autoCompileInput = document.getElementById("autoCompileInput") as HTMLInputElement;
 		if (autoCompileInput.checked) {
 			const compileButton = window.document.getElementById("compileButton") as HTMLButtonElement;
@@ -180,10 +181,10 @@ export class UI implements IUI {
 		const worker = new Worker(window.URL.createObjectURL(blob));
 		// Use a queue to ensure processNext only calls the worker once the worker is idle
 		const processingQueue: ProcessingQueueType[] = [];
-		let processing = false;
+		let isProcessing = false;
 
 		const processNext = () => {
-			processing = true;
+			isProcessing = true;
 			const { resolve, jsText } = processingQueue.shift() as ProcessingQueueType;
 			worker.addEventListener(
 				'message',
@@ -192,7 +193,7 @@ export class UI implements IUI {
 					if (processingQueue.length) {
 						processNext();
 					} else {
-						processing = false;
+						isProcessing = false;
 					}
 				},
 				{ once: true }
@@ -200,12 +201,14 @@ export class UI implements IUI {
 			worker.postMessage(jsText);
 		};
 
-		const getErrorEvent = (jsText: string) => new Promise<PlainErrorEventType>((resolve) => {
-			processingQueue.push({ resolve, jsText });
-			if (!processing) {
-				processNext();
-			}
-		});
+		const getErrorEvent = (jsText: string): Promise<PlainErrorEventType> => {
+			return new Promise<PlainErrorEventType>((resolve) => {
+				processingQueue.push({ resolve, jsText });
+				if (!isProcessing) {
+					processNext();
+				}
+			});
+		};
 
 		UI.getErrorEvent = getErrorEvent;
 		return getErrorEvent;
@@ -264,10 +267,10 @@ export class UI implements IUI {
 
 	public onWindowLoad(_event: Event) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		const basicText = window.document.getElementById("basicText") as HTMLTextAreaElement;
-		basicText.addEventListener('change', (event) => this.onbasicTextChange(event));
+		basicText.addEventListener('change', () => this.onbasicTextChange());
 
 		const compiledText = window.document.getElementById("compiledText") as HTMLTextAreaElement;
-		compiledText.addEventListener('change', (event) => this.onCompiledTextChange(event));
+		compiledText.addEventListener('change', () => this.onCompiledTextChange());
 
 		const compileButton = window.document.getElementById("compileButton") as HTMLButtonElement;
 		compileButton.addEventListener('click', (event) => this.onCompileButtonClick(event), false);
@@ -278,19 +281,19 @@ export class UI implements IUI {
 		const exampleSelect = window.document.getElementById("exampleSelect") as HTMLSelectElement;
 		exampleSelect.addEventListener('change', (event) => this.onExampleSelectChange(event));
 
-		const WinCodeMirror = (window as any).CodeMirror;
+		const WinCodeMirror = window.CodeMirror;
 		if (WinCodeMirror) {
 			this.basicCm = WinCodeMirror.fromTextArea(basicText, {
 				lineNumbers: true,
 				mode: 'javascript'
 			});
-			this.basicCm.on('changes', this.debounce((event: Event) => this.onbasicTextChange(event), "debounceCompile"));
+			this.basicCm.on('changes', this.debounce(() => this.onbasicTextChange(), "debounceCompile"));
 
 			this.compiledCm = WinCodeMirror.fromTextArea(compiledText, {
 				lineNumbers: true,
 				mode: 'javascript'
 			});
-			this.compiledCm.on('changes', this.debounce((event: Event) => this.onCompiledTextChange(event), "debounceExecute"));
+			this.compiledCm.on('changes', this.debounce(() => this.onCompiledTextChange(), "debounceExecute"));
 		}
 
 		UI.asyncDelay(() => {
