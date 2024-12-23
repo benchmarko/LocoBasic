@@ -71,7 +71,7 @@ export class UI {
             this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
         });
     }
-    onCompiledTextChange(_event) {
+    onCompiledTextChange() {
         const autoExecuteInput = document.getElementById("autoExecuteInput");
         if (autoExecuteInput.checked) {
             const executeButton = window.document.getElementById("executeButton");
@@ -81,7 +81,7 @@ export class UI {
     onCompileButtonClick(_event) {
         const basicText = document.getElementById("basicText");
         const compiledText = document.getElementById("compiledText");
-        const input = this.compiledCm ? this.basicCm.getValue() : basicText.value;
+        const input = this.basicCm ? this.basicCm.getValue() : basicText.value;
         const compiledScript = this.core.compileScript(input);
         if (this.compiledCm) {
             this.compiledCm.setValue(compiledScript);
@@ -95,7 +95,7 @@ export class UI {
             }
         }
     }
-    onbasicTextChange(_event) {
+    onbasicTextChange() {
         return __awaiter(this, void 0, void 0, function* () {
             const autoCompileInput = document.getElementById("autoCompileInput");
             if (autoCompileInput.checked) {
@@ -142,9 +142,9 @@ export class UI {
         const worker = new Worker(window.URL.createObjectURL(blob));
         // Use a queue to ensure processNext only calls the worker once the worker is idle
         const processingQueue = [];
-        let processing = false;
+        let isProcessing = false;
         const processNext = () => {
-            processing = true;
+            isProcessing = true;
             const { resolve, jsText } = processingQueue.shift();
             worker.addEventListener('message', ({ data }) => {
                 resolve(JSON.parse(data));
@@ -152,17 +152,19 @@ export class UI {
                     processNext();
                 }
                 else {
-                    processing = false;
+                    isProcessing = false;
                 }
             }, { once: true });
             worker.postMessage(jsText);
         };
-        const getErrorEvent = (jsText) => new Promise((resolve) => {
-            processingQueue.push({ resolve, jsText });
-            if (!processing) {
-                processNext();
-            }
-        });
+        const getErrorEvent = (jsText) => {
+            return new Promise((resolve) => {
+                processingQueue.push({ resolve, jsText });
+                if (!isProcessing) {
+                    processNext();
+                }
+            });
+        };
         UI.getErrorEvent = getErrorEvent;
         return getErrorEvent;
     }
@@ -211,9 +213,9 @@ export class UI {
     }
     onWindowLoad(_event) {
         const basicText = window.document.getElementById("basicText");
-        basicText.addEventListener('change', (event) => this.onbasicTextChange(event));
+        basicText.addEventListener('change', () => this.onbasicTextChange());
         const compiledText = window.document.getElementById("compiledText");
-        compiledText.addEventListener('change', (event) => this.onCompiledTextChange(event));
+        compiledText.addEventListener('change', () => this.onCompiledTextChange());
         const compileButton = window.document.getElementById("compileButton");
         compileButton.addEventListener('click', (event) => this.onCompileButtonClick(event), false);
         const executeButton = window.document.getElementById("executeButton");
@@ -226,12 +228,12 @@ export class UI {
                 lineNumbers: true,
                 mode: 'javascript'
             });
-            this.basicCm.on('changes', this.debounce((event) => this.onbasicTextChange(event), "debounceCompile"));
+            this.basicCm.on('changes', this.debounce(() => this.onbasicTextChange(), "debounceCompile"));
             this.compiledCm = WinCodeMirror.fromTextArea(compiledText, {
                 lineNumbers: true,
                 mode: 'javascript'
             });
-            this.compiledCm.on('changes', this.debounce((event) => this.onCompiledTextChange(event), "debounceExecute"));
+            this.compiledCm.on('changes', this.debounce(() => this.onCompiledTextChange(), "debounceExecute"));
         }
         UI.asyncDelay(() => {
             const core = this.core;

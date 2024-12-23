@@ -1,8 +1,8 @@
-import { ICore, IUI, ConfigType } from "../Interfaces";
+import type { ICore, IUI, ConfigType } from "../Interfaces";
 export declare class UI implements IUI {
     private readonly core;
-    private basicCm;
-    private compiledCm;
+    private basicCm?;
+    private compiledCm?;
     private static getErrorEvent?;
     constructor(core: ICore);
     private debounce;

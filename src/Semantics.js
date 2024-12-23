@@ -1,13 +1,15 @@
+// Semantics.ts
 function getCodeSnippets() {
     const _o = {};
     let _data = [];
     let _dataPtr = 0;
     let _restoreMap = {};
     const codeSnippets = {
-        _dataDefine: function _dataDefine() {
+        _setDataDummy: function _setDataDummy() {
             _data = [];
             _dataPtr = 0;
             _restoreMap = {};
+            //Object.assign(_o, vm);
         },
         bin$: function bin$(num, pad = 0) {
             return num.toString(2).toUpperCase().padStart(pad, "0");
@@ -30,11 +32,15 @@ function getCodeSnippets() {
             return num.toString(16).toUpperCase().padStart(pad || 0, "0");
         },
         input: function input(msg, isNum) {
-            return new Promise(resolve => setTimeout(() => resolve(isNum ? Number(_o.prompt(msg)) : _o.prompt(msg)), 0));
+            return new Promise(resolve => setTimeout(() => {
+                const input = _o.prompt(msg);
+                resolve(isNum ? Number(input) : input);
+            }, 0));
         },
         print: function print(...args) {
-            const _printNumber = (arg) => (arg >= 0) ? ` ${arg} ` : `${arg} `;
-            _o.print(args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg).join(""));
+            const _printNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
+            const output = args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg).join("");
+            _o.print(output);
         },
         read: function read() {
             return _data[_dataPtr++];
@@ -53,18 +59,28 @@ function getCodeSnippets() {
         },
         val: function val(str) {
             return Number(str.replace("&x", "0b").replace("&", "0x"));
-        },
+        }
     };
     return codeSnippets;
 }
+/*
+// round with higher precision: https://www.jacklmoore.com/notes/rounding-in-javascript
+round: function round(num: number, dec: number) {
+    const maxDecimals = 20 - Math.floor(Math.log10(Math.abs(num))); // limit for JS
+    if (dec >= 0 && dec > maxDecimals) {
+        dec = maxDecimals;
+    }
+    return Math.sign(num) * Number(Math.round(Number(Math.abs(num) + "e" + dec)) + "e" + (dec >= 0 ? -dec : -dec));
+}
+*/
 function trimIndent(code) {
     const lines = code.split("\n");
     const lastLine = lines[lines.length - 1];
     const match = lastLine.match(/^(\s+)}$/);
     if (match) {
         const indent = match[1];
-        const lines2 = lines.map((l) => l.replace(indent, ""));
-        return lines2.join("\n");
+        const trimmedLines = lines.map((line) => line.startsWith(indent) ? line.slice(indent.length) : line);
+        return trimmedLines.join("\n");
     }
     return code;
 }
@@ -77,30 +93,38 @@ function getSemantics(semanticsHelper) {
         Program(lines) {
             const lineList = evalChildren(lines.children);
             const variableList = semanticsHelper.getVariables();
-            const varStr = variableList.length ? "let " + variableList.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
+            const variableDeclarations = variableList.length ? "let " + variableList.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
             // find subroutines
             const definedLabels = semanticsHelper.getDefinedLabels();
             const gosubLabels = semanticsHelper.getGosubLabels();
             const restoreMap = semanticsHelper.getRestoreMap();
-            let subFirst;
-            for (let index = 0; index < definedLabels.length; index += 1) {
-                const item = definedLabels[index];
-                if (gosubLabels[item.label]) {
-                    subFirst = item;
+            const awaitLabels = [];
+            let subroutineStart;
+            for (const label of definedLabels) {
+                if (gosubLabels[label.label]) {
+                    subroutineStart = label;
                 }
-                if (subFirst && item.last >= 0) {
-                    const first = subFirst.first;
+                if (subroutineStart && label.last >= 0) {
+                    const first = subroutineStart.first;
                     const indent = lineList[first].search(/\S|$/);
                     const indentStr = " ".repeat(indent);
-                    for (let i = first; i <= item.last; i += 1) {
-                        lineList[i] = "  " + lineList[i]; // ident
+                    let hasAwait = false;
+                    for (let i = first; i <= label.last; i += 1) {
+                        if (lineList[i].includes("await ")) {
+                            hasAwait = true; // quick check
+                        }
+                        lineList[i] = "  " + lineList[i]; // indent
                     }
-                    lineList[first] = `${indentStr}function _${subFirst.label}() {${indentStr}\n` + lineList[first];
-                    lineList[item.last] += `\n${indentStr}` + "}"; //TS issue when using the following? `\n${indentStr}};`
-                    subFirst = undefined;
+                    const asyncStr = hasAwait ? "async " : "";
+                    lineList[first] = `${indentStr}${asyncStr}function _${subroutineStart.label}() {${indentStr}\n` + lineList[first];
+                    lineList[label.last] += `\n${indentStr}` + "}"; //TS issue when using the following? `\n${indentStr}};`
+                    if (hasAwait) {
+                        awaitLabels.push(subroutineStart.label);
+                    }
+                    subroutineStart = undefined;
                 }
-                if (restoreMap[item.label] === -1) {
-                    restoreMap[item.label] = item.dataIndex;
+                if (restoreMap[label.label] === -1) {
+                    restoreMap[label.label] = label.dataIndex;
                 }
             }
             const dataList = semanticsHelper.getDataList();
@@ -132,22 +156,28 @@ function getSemantics(semanticsHelper) {
                     }
                 }
             }
-            if (varStr) {
-                lineList.unshift(varStr);
+            if (variableDeclarations) {
+                lineList.unshift(variableDeclarations);
             }
             if (needsAsync) {
                 lineList.unshift(`return async function() {`);
                 lineList.push('}();');
             }
             lineList.unshift(`"use strict"`);
-            const lineStr = lineList.filter((line) => line !== "").join('\n');
+            let lineStr = lineList.filter((line) => line.trimEnd() !== "").join('\n');
+            if (awaitLabels.length) {
+                for (const label of awaitLabels) {
+                    const regEx = new RegExp(`_${label}\\(\\);`, "g");
+                    lineStr = lineStr.replace(regEx, `await _${label}();`);
+                }
+            }
             return lineStr;
         },
         Line(label, stmts, comment, _eol) {
-            const labelStr = label.sourceString;
+            const labelString = label.sourceString;
             const currentLineIndex = semanticsHelper.incrementLineIndex() - 1;
-            if (labelStr) {
-                semanticsHelper.addDefinedLabel(labelStr, currentLineIndex);
+            if (labelString) {
+                semanticsHelper.addDefinedLabel(labelString, currentLineIndex);
             }
             const lineStr = stmts.eval();
             if (lineStr === "return") {
@@ -165,16 +195,17 @@ function getSemantics(semanticsHelper) {
         },
         Statements(stmt, _stmtSep, stmts) {
             // separate statements, use ";", if the last stmt does not end with "{"
-            return [stmt.eval(), ...evalChildren(stmts.children)].reduce((str, st) => str.endsWith("{") ? `${str} ${st}` : `${str}; ${st}`);
+            const statements = [stmt.eval(), ...evalChildren(stmts.children)];
+            return statements.reduce((acc, current) => acc.endsWith("{") ? `${acc} ${current}` : `${acc}; ${current}`);
         },
         ArrayAssign(ident, _op, e) {
             return `${ident.eval()} = ${e.eval()}`;
         },
         Assign(ident, _op, e) {
-            const name = ident.sourceString;
-            const name2 = semanticsHelper.getVariable(name);
+            const variableName = ident.sourceString;
+            const resolvedVariableName = semanticsHelper.getVariable(variableName);
             const value = e.eval();
-            return `${name2} = ${value}`;
+            return `${resolvedVariableName} = ${value}`;
         },
         Abs(_absLit, _open, e, _close) {
             return `Math.abs(${e.eval()})`;
@@ -208,15 +239,15 @@ function getSemantics(semanticsHelper) {
             return `cls()`;
         },
         Comparison(_iflit, condExp, _thenLit, thenStat, elseLit, elseStat) {
-            const indentStr = semanticsHelper.getIndentStr();
+            const initialIndent = semanticsHelper.getIndentStr();
             semanticsHelper.addIndent(2);
-            const indentStr2 = semanticsHelper.getIndentStr();
+            const increasedIndent = semanticsHelper.getIndentStr();
             const cond = condExp.eval();
             const thSt = thenStat.eval();
-            let result = `if (${cond}) {\n${indentStr2}${thSt}\n${indentStr}}`; // put in newlines to also allow line comments
+            let result = `if (${cond}) {\n${increasedIndent}${thSt}\n${initialIndent}}`; // put in newlines to also allow line comments
             if (elseLit.sourceString) {
                 const elseSt = evalChildren(elseStat.children).join('; ');
-                result += ` else {\n${indentStr2}${elseSt}\n${indentStr}}`;
+                result += ` else {\n${increasedIndent}${elseSt}\n${initialIndent}}`;
             }
             semanticsHelper.addIndent(-2);
             return result;
@@ -421,10 +452,7 @@ function getSemantics(semanticsHelper) {
         Read(_readlit, args) {
             semanticsHelper.addInstr("read");
             const argList = args.asIteration().children.map(c => c.eval());
-            const results = [];
-            for (const ident of argList) {
-                results.push(`${ident} = read()`);
-            }
+            const results = argList.map(identifier => `${identifier} = read()`);
             return results.join("; ");
         },
         Rem(_remLit, remain) {
@@ -446,14 +474,14 @@ function getSemantics(semanticsHelper) {
             // args are ignored
             return `Math.random()`;
         },
-        Round(_roundLit, _open, e, _comma, e2, _close) {
+        Round(_roundLit, _open, value, _comma, decimals, _close) {
             var _a;
-            const dec = (_a = e2.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
-            if (dec) {
+            const decimalPlaces = (_a = decimals.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
+            if (decimalPlaces) {
                 semanticsHelper.addInstr("round");
-                return `round(${e.eval()}, ${dec})`;
+                return `round(${value.eval()}, ${decimalPlaces})`;
             }
-            return `Math.round(${e.eval()})`; // common round without decimals places
+            return `Math.round(${value.eval()})`; // common round without decimals places
             // A better way to avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
         },
         Sgn(_sgnLit, _open, e, _close) {
@@ -727,7 +755,7 @@ export class Semantics {
         return name;
     }
     static deleteAllItems(items) {
-        for (const name in items) { // eslint-disable-line guard-for-in
+        for (const name in items) {
             delete items[name];
         }
     }

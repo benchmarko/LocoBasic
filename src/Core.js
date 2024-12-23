@@ -92,15 +92,15 @@ export class Core {
             if (compiledScript.startsWith("ERROR")) {
                 return "ERROR";
             }
-            let output;
-            output = yield this.onCheckSyntax(compiledScript);
-            if (output) {
+            const syntaxError = yield this.onCheckSyntax(compiledScript);
+            if (syntaxError) {
                 vm.cls();
-                return "ERROR: " + output;
+                return "ERROR: " + syntaxError;
             }
             try {
                 const fnScript = new Function("_o", compiledScript);
                 const result = fnScript(this.vm) || "";
+                let output;
                 if (result instanceof Promise) {
                     output = yield result;
                     output = this.vm.getOutput() + output;
@@ -108,24 +108,25 @@ export class Core {
                 else {
                     output = this.vm.getOutput() + result;
                 }
+                return output;
             }
             catch (error) {
-                output = "ERROR: ";
+                let errorMessage = "ERROR: ";
                 if (error instanceof Error) {
-                    output += this.vm.getOutput() + "\n" + String(error);
+                    errorMessage += this.vm.getOutput() + "\n" + String(error);
                     const anyErr = error;
                     const lineNumber = anyErr.lineNumber; // only on FireFox
                     const columnNumber = anyErr.columnNumber; // only on FireFox
                     if (lineNumber || columnNumber) {
                         const errLine = lineNumber - 2; // lineNumber -2 because of anonymous function added by new Function() constructor
-                        output += ` (Line ${errLine}, column ${columnNumber})`;
+                        errorMessage += ` (Line ${errLine}, column ${columnNumber})`;
                     }
                 }
                 else {
-                    output += "unknown";
+                    errorMessage += "unknown";
                 }
+                return errorMessage;
             }
-            return output;
         });
     }
     putScriptInFrame(script) {
