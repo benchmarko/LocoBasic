@@ -297,13 +297,13 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `Math.atan(${e.eval()})`;
 		},
 
-		Bin(_binLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		BinS(_binLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.addInstr("bin$");
 			const pad = n.child(0)?.eval();
 			return pad !== undefined ? `bin$(${e.eval()}, ${pad})` : `bin$(${e.eval()})`
 		},
 
-		Chr(_chrLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		ChrS(_chrLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `String.fromCharCode(${e.eval()})`;
 		},
 
@@ -322,24 +322,6 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		Cls(_clsLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.addInstr("cls");
 			return `cls()`;
-		},
-
-		Comparison(_iflit: Node, condExp: Node, _thenLit: Node, thenStat: Node, elseLit: Node, elseStat: Node) {
-			const initialIndent = semanticsHelper.getIndentStr();
-			semanticsHelper.addIndent(2);
-			const increasedIndent = semanticsHelper.getIndentStr();
-
-			const cond = condExp.eval();
-			const thSt = thenStat.eval();
-
-			let result = `if (${cond}) {\n${increasedIndent}${thSt}\n${initialIndent}}`; // put in newlines to also allow line comments
-			if (elseLit.sourceString) {
-				const elseSt = evalChildren(elseStat.children).join('; ');
-				result += ` else {\n${increasedIndent}${elseSt}\n${initialIndent}}`;
-			}
-
-			semanticsHelper.addIndent(-2);
-			return result;
 		},
 
 		Data(_datalit: Node, args: Node) {
@@ -449,7 +431,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `${fnIdent.eval()}${argStr}`;
 		},
 
-		ForLoop(_forLit: Node, variable: Node, _eqSign: Node, start: Node, _dirLit: Node, end: Node, _stepLit: Node, step: Node) {
+		For(_forLit: Node, variable: Node, _eqSign: Node, start: Node, _dirLit: Node, end: Node, _stepLit: Node, step: Node) {
 			const varExp = variable.eval();
 			const startExp = start.eval();
 			const endExp = end.eval();
@@ -482,10 +464,28 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `_${labelStr}()`;
 		},
 
-		Hex(_hexLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		HexS(_hexLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.addInstr("hex$");
 			const pad = n.child(0)?.eval();
 			return pad !== undefined ? `hex$(${e.eval()}, ${pad})` : `hex$(${e.eval()})`
+		},
+
+		If(_iflit: Node, condExp: Node, _thenLit: Node, thenStat: Node, elseLit: Node, elseStat: Node) {
+			const initialIndent = semanticsHelper.getIndentStr();
+			semanticsHelper.addIndent(2);
+			const increasedIndent = semanticsHelper.getIndentStr();
+
+			const cond = condExp.eval();
+			const thSt = thenStat.eval();
+
+			let result = `if (${cond}) {\n${increasedIndent}${thSt}\n${initialIndent}}`; // put in newlines to also allow line comments
+			if (elseLit.sourceString) {
+				const elseSt = evalChildren(elseStat.children).join('; ');
+				result += ` else {\n${increasedIndent}${elseSt}\n${initialIndent}}`;
+			}
+
+			semanticsHelper.addIndent(-2);
+			return result;
 		},
 
 		Input(_inputLit: Node, message: Node, _semi: Node, e: Node) {
@@ -506,7 +506,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `Math.floor(${e.eval()})`;
 		},
 
-		Left(_leftLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		LeftS(_leftLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `(${e1.eval()}).slice(0, ${e2.eval()})`;
 		},
 
@@ -522,7 +522,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `Math.log10(${e.eval()})`;
 		},
 
-		Lower(_lowerLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		LowerS(_lowerLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `(${e.eval()}).toLowerCase()`;
 		},
 
@@ -531,7 +531,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `Math.max(${argList})`;
 		},
 
-		Mid(_midLit: Node, _open: Node, e1: Node, _comma1: Node, e2: Node, _comma2: Node, e3: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		MidS(_midLit: Node, _open: Node, e1: Node, _comma1: Node, e2: Node, _comma2: Node, e3: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			const length = e3.child(0)?.eval();
 			const lengthStr = length === undefined ? "" : `, ${length}`;
 			return `(${e1.eval()}).substr(${e2.eval()} - 1${lengthStr})`;
@@ -611,7 +611,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return "return";
 		},
 
-		Right(_rightLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		RightS(_rightLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `(${e1.eval()}).slice(-(${e2.eval()}))`;
 		},
 
@@ -638,7 +638,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `Math.sin(${e.eval()})`;
 		},
 
-		Space2(_stringLit: Node, _open: Node, len: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		SpaceS(_stringLit: Node, _open: Node, len: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `" ".repeat(${len.eval()})`;
 		},
 
@@ -650,7 +650,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `return "stop"`;
 		},
 
-		Str(_strLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		StrS(_strLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			const arg = e.eval();
 
 			if (isNaN(Number(arg))) {
@@ -661,7 +661,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return arg >= 0 ? `(" " + String(${arg}))` : `String(${arg})`;
 		},
 
-		String2(_stringLit: Node, _open: Node, len: Node, _commaLit: Node, chr: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		StringS(_stringLit: Node, _open: Node, len: Node, _commaLit: Node, chr: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			// Note: String$: we only support second parameter as string; we do not use charAt(0) to get just one char
 			return `(${chr.eval()}).repeat(${len.eval()})`;
 		},
@@ -675,7 +675,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `time()`;
 		},
 
-		Upper(_upperLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		UpperS(_upperLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `(${e.eval()}).toUpperCase()`;
 		},
 
@@ -695,7 +695,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return '}';
 		},
 
-		WhileLoop(_whileLit: Node, e: Node) {
+		While(_whileLit: Node, e: Node) {
 			const cond = e.eval();
 			semanticsHelper.nextIndentAdd(2);
 			return `while (${cond}) {`;
