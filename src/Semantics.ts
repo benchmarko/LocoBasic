@@ -61,6 +61,14 @@ function getCodeSnippets() {
 		cls: function cls() {
 			_o.cls();
 		},
+		dec$: function dec$(num: number, format: string) {
+			const [, decimalPart] = format.split(".", 2);
+			const decimals = decimalPart ? decimalPart.length : 0;
+			const str = num.toFixed(decimals);
+			const padLen = format.length - str.length;
+			const pad = padLen > 0 ? " ".repeat(padLen) : "";
+			return pad + str;
+		},
 		dim: function dim(dims: number[], initVal: string | number = 0) {
 			const createRecursiveArray = (depth: number): RecursiveArray<string | number> => {
 				const length = dims[depth] + 1; // +1 because of 0-based index
@@ -341,6 +349,11 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			dataList.push(argList.join(", "));
 			semanticsHelper.addDataIndex(argList.length);
 			return "";
+		},
+
+		DecS(_decLit: Node, _open: Node, num: Node, _comma: Node, format: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addInstr("dec$");
+			return `dec$(${num.eval()}, ${format.eval()})`;
 		},
 
 		Def(_defLit: Node, _fnLit: Node, assign: Node) {

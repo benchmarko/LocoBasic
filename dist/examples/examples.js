@@ -327,7 +327,7 @@ REM printResult(): void
 3500 PRINT: PRINT "Throughput for all benchmarks (loops per sec):"
 PRINT "BMR ("; prgLanguage$; ") :";
 FOR bench = bench1 TO bench2
-PRINT round(benchres(bench),3); 'PRINT USING "#######.### "; benchres(bench);
+PRINT dec$(benchres(bench), "#######.###");" "; 'PRINT USING "#######.### "; benchres(bench);
 NEXT bench
 PRINT
 RETURN
@@ -360,10 +360,10 @@ if tDelta < 0 THEN tDelta = -tDelta
 REM  xx IF tEsti > tMeas THEN tDelta = tEsti - tMeas ELSE tDelta = tMeas - tEsti
 loopsPsec = 0
 IF tMeas > 0 THEN loopsPsec = (loops * 1000) / tMeas
-PRINT round(loopsPsec, 3); 'USING "######.###";loopsPsec;
-PRINT "/s (time="; round(tMeas, 3); 'USING "#####.###"; tMeas;
-PRINT " ms, loops="; loops; 'USING "#######"; loops;
-PRINT ", delta="; round(tDelta, 3);: PRINT " ms)" 'USING "#####.###"; tDelta;: PRINT " ms)"
+PRINT dec$(loopsPsec, "######.###"); 'USING "######.###";loopsPsec;
+PRINT "/s (time="; dec$(tMeas, "#####.###"); 'USING "#####.###"; tMeas;
+PRINT " ms, loops="; dec$(loops, "#######"); 'USING "#######"; loops;
+PRINT ", delta="; dec$(tDelta, "#####.###");: PRINT " ms)" 'USING "#####.###"; tDelta;: PRINT " ms)"
 IF x <> -1 then gosub 4200 else throughput = -1
 WEND
 RETURN
@@ -850,93 +850,95 @@ PRINT "":PRINT "=> max:";STR$(mx);", CPC";mhz;"MHz"
 
 cpcBasic.addItem("", `
 100 REM crypto1 - Cryptology 1 (Kryptoanalyse - Kryptologie)
-110 '"Die geheime Nachricht/Umschau Verlag/S.63"
+110 'Die geheime Nachricht, Umschau Verlag, S.63
 120 '16.11.1988
 130 '
-160 DIM z(5,27):'6 Sprachen mit 28 Daten : 26 Buchstaben+ Vokale/Konson.
-170 'Einlesen der Buchstabenhaeufigkeit:
+160 DIM z(5,27): '6 languages with 28 data points: 26 letters + vowels/consonants
+170 'Reading the frequency of letters
 180 FOR j=0 TO 5:FOR i=0 TO 27:READ z(j,i):NEXT i,j
 190 MODE 2
-200 PRINT "Kryptoanalyse - Kryptologie"
-210 PRINT"Anteil der Buchstaben in % :"
-230 PRINT"Deutsch:";" Englisch:";" Franzoesisch";" Italienisch:";" Spanisch:";" Portug."
-240 FOR i=0 TO 27:FOR j=0 TO 5
-250 IF j=0 THEN PRINT CHR$(i+65)+" ";
-260 PRINT z(j,i);:NEXT j
-262 ?
-265 'if i=22 then t=time+900:while time<t:frame:wend
+200 PRINT "Cryptanalysis - Cryptology - Letter frequency (%)"
+215 padLen=12
+225 def fnpad$(s$)=space$(padLen-len(s$))+s$
+230 PRINT "   ";fnpad$("German");fnpad$("English");fnpad$("French");fnpad$("Italian");fnpad$("Spanish");fnpad$("Portuguese")
+240 FOR i=0 TO 27
+243   IF i<26 THEN PRINT CHR$(i+65)+"  "; else if i=26 then print:PRINT "vow"; else PRINT "con";
+245   FOR j=0 TO 5
+250     PRINT fnpad$(dec$(z(j,i),"###.##"));
+255   NEXT j
+262   PRINT
 268 NEXT i
 270 '
-280 PRINT"Prozentsumme:"
-290 PRINT"  ";
-300 FOR j=0 TO 5:su=0:FOR i=0 TO 25:su=su+z(j,i):NEXT i:PRINT round(su,1);:NEXT j
+290 'PRINT"sum";
+300 'FOR j=0 TO 5:su=0:FOR i=0 TO 25:su=su+z(j,i):NEXT i:PRINT fnpad$(dec$(su,"###.#"));:NEXT j
 305 't=time+900:while time<t:frame:wend
-307 print:print
+308 PRINT "[vow= vowels, con=most frequent consonants L, N, R, S, T]"
+309 print
 310 '
 320 '
-330 'Vergleichstabelle der Haeufigkeit der Einzelbuchstaben bezogen auf 100-Woerter Texte:
-340 'Tabelle: 1. Anteil Einzelbuchstaben A-Z
-350 '2. Anteil der Vokale (1 Zahl)
-360 '2. Anteil der haeufigsten Konsonanten L,N,R,S,T (1 Zahl)
+330 'Comparison table of the frequency of individual letters based on 100-word texts:
+340 'Table: 1. Proportion of individual letters A-Z
+350 '2. Proportion of vowels (1 number)
+360 '2. Proportion of the most frequent consonants L, N, R, S, T (1 number)
 370 '
-380 'deutsch:
+380 'German
 390 DATA 5,2.5,1.5,5,18.5,1.5,4,4,8,0,1,3,2.5,11.5,3.5,0.5,0,7,7,5,5,1,1.5,0,0,1.5
 400 DATA 40,34
-410 'englisch
+410 'English
 420 DATA 7.81,1.28,2.93,4.11,13.05,2.88,1.39,5.85,6.77,0.23,0.42,3.6,2.62,7.28,8.21,2.15,0.14,6.64,6.46,9.02,2.77,1,1.49,0.3,1.51,0.09
 430 DATA 40,33
-440 'franzoesisch
+440 'French
 450 DATA 9.42,1.02,2.64,3.38,15.87,0.95,1.04,0.77,8.41,0.89,0,5.34,3.24,7.15,5.14,2.86,1.06,6.46,7.9,7.26,6.24,2.15,0,0.3,0.24,0.32
 460 DATA 45,34
-470 'italienisch
+470 'Italian
 480 DATA 11.74,0.92,4.5,3.73,11.79,0.95,1.64,1.54,11.28,0,0,6.51,2.51,6.88,9.83,3.05,0.61,6.37,4.98,5.62,3.01,2.1,0,0,0,0.49
 490 DATA 48,30
-500 'spanisch
+500 'Spanish
 510 DATA 12.69,1.41,3.93,5.58,13.15,0.46,1.12,1.24,6.25,0.56,0,5.94,2.65,6.95,9.49,2.43,1.16,6.25,7.6,3.91,4.63,1.07,0,0.13,1.06,0.35
 520 DATA 47,31
-530 'portugiesisch
+530 'Portuguese
 540 DATA 13.5,0.5,3.5,5,13,1,1,1,6,0.5,0,3.5,4.5,5.5,11.5,3,1.5,7.5,7.5,4.5,4,1.5,0,0.2,0,0.3
 550 DATA 48,29
 560 '
 570 '
 610 REM Kryptoanalyse - Kryptologie
-620 '"Die geheime Nachricht/Umschau Verlag/S.62"
+620 'Die geheime Nachricht, Umschau Verlag, S.62
 630 '16.11.1988
 640 '
-670 ma=25:mb=23:mc=6:md=15:me=14 :'Anzahl-1
-680 DIM a(ma),b(mb),c(mc),d(md),e(me) :'Felder fuer Gruppen (Anzahl-1)
-690 'Einlesen der Buchstabengruppen
-700 FOR i=0 TO ma:READ a(i):NEXT
-710 FOR i=0 TO mb:READ b(i):NEXT
-720 FOR i=0 TO mc:READ c(i):NEXT
-730 FOR i=0 TO md:READ d(i):NEXT
-740 FOR i=0 TO me:READ e(i):NEXT
+670 ma=25:mb=23:mc=6:md=15:me=14 :'count-1
+680 DIM a$(ma),b$(mb),c$(mc),d$(md),e$(me) :'fields for letter groups (count-1)
+690 'Read letter groups
+700 FOR i=0 TO ma:READ a$(i):NEXT
+710 FOR i=0 TO mb:READ b$(i):NEXT
+720 FOR i=0 TO mc:READ c$(i):NEXT
+730 FOR i=0 TO md:READ d$(i):NEXT
+740 FOR i=0 TO me:READ e$(i):NEXT
 750 '
 760 'MODE 2
-770 PRINT "Kryptoanalyse - Kryptologie"
-775 print
-780 PRINT"Haeufigkeit von Buchstaben(gruppen) im Deutschen:"
-790 FOR i=0 TO ma:PRINT a(i);",";:NEXT:PRINT
-800 FOR i=0 TO mb:PRINT b(i);",";:NEXT:PRINT
-810 FOR i=0 TO mc:PRINT c(i);",";:NEXT:PRINT
-820 FOR i=0 TO md:PRINT d(i);",";:NEXT:PRINT
-830 FOR i=0 TO me:PRINT e(i);",";:NEXT:PRINT
+770 'PRINT "Kryptoanalyse - Kryptologie"
+775 'print
+780 PRINT "Order of frequencies for letters and letter groups in German"
+790 FOR i=0 TO ma:PRINT a$(i);",";:NEXT:PRINT
+800 FOR i=0 TO mb:PRINT b$(i);",";:NEXT:PRINT
+810 FOR i=0 TO mc:PRINT c$(i);",";:NEXT:PRINT
+820 FOR i=0 TO md:PRINT d$(i);",";:NEXT:PRINT
+830 FOR i=0 TO me:PRINT e$(i);",";:NEXT:PRINT
 840 '
 850 '
 855 'print:frame:'TODO: wait key
 857 stop
 860 '
-870 'Reihenfolge der Haeufikeiten fuer Buchstaben und Buchstabengruppen im Deutschen:
+870 'Order of frequencies for letters and letter groups in German
 880 '
-890 'einzelne Buchstaben:
+890 'Individual letters
 900 DATA "E","N","R","I","S","T","U","D","A","H","G","L","O","C","M","B","Z","F","W","K","V","P","J","Q","X","Y"
-910 'Zweiergruppen:
+910 'Two-letter groups
 920 DATA "EN","ER","CH","DE","GE","EI","IE","IN","NE","BE","EL","TE","UN","ST","DI","ND","UE","SE","AU","RE","HE","IT","RI","TZ"
-930 'Doppelbuchstaben:
+930 'Double letters
 940 DATA "EE","TT","LL","SS","DD","MM","NN"
-950 'Dreiergruppen:
+950 'Three-letter groups
 960 DATA "EIN","ICH","DEN","DER","TEN","CHT","SCH","CHE","DIE","UNG","GEN","UND","NEN","DES","BEN","RCH"
-970 'Vierergruppen:
+970 'Four-letter groups
 980 DATA "ICHT","KEIT","HEIT","CHON","CHEN","CHER","URCH","EICH","DERN","AUCH","SCHA","SCHE","SCHI","SCHO","SCHU"
 990 '
 `);
@@ -1450,7 +1452,7 @@ lp=1:changed=1
 while lp<=maxlp and changed<>0
   cls
   PRINT"L I F E G A M E"
-  gosub 1000
+  gosub 300
   t=time+50:while time<t:frame:wend
   lp=lp+1
 wend
@@ -1458,7 +1460,7 @@ print
 print "Stop after";lp;"generations"
 if changed=0 then ?" No change any more"
 stop
-1000 'output
+300 'output
 FOR i=1 TO ze-1:FOR j=1 TO sp
     IF al(i,j)=0 THEN PRINT " "; ELSE PRINT "*";
 NEXT j: PRINT: NEXT i
@@ -1476,6 +1478,42 @@ FOR i=1 TO ze-1
   NEXT j
 NEXT i
 return
+'
+'another implementation
+'
+mode 2
+rows=15:cols=20
+DIM grid(rows+1, cols+1), nextGrid(rows+1, cols+1)
+REM Initialize grid
+FOR x = 1 TO rows
+  FOR y = 1 TO cols
+    grid(x, y) = INT(RND * 2)
+  NEXT y
+NEXT x
+'
+REM Main loop
+FOR st = 1 TO 30
+ CLS
+ FOR x = 1 TO rows
+   FOR y = 1 TO cols
+     IF grid(x, y) = 1 then print "*"; else print " ";
+     neighbors = grid(x-1, y-1) + grid(x, y-1) + grid(x+1, y-1) + grid(x-1, y) + grid(x+1, y) + grid(x-1, y+1) + grid(x, y+1) + grid(x+1, y+1)
+     IF grid(x, y) = 1 AND (neighbors < 2 OR neighbors > 3) THEN nextGrid(x, y) = 0
+     IF grid(x, y) = 0 AND neighbors = 3 THEN nextGrid(x, y) = 1
+     IF grid(x, y) = 1 AND neighbors = 2 OR neighbors = 3 THEN nextGrid(x, y) = 1
+   NEXT y
+  print
+ NEXT x
+ 'SWAP grid, nextGrid
+FOR x = 1 TO rows
+  FOR y = 1 TO cols
+    grid(x, y) = nextGrid(x, y)
+  NEXT y
+NEXT x
+ 'SLEEP 100
+  t=time+40:while time<t:frame:wend
+NEXT st
+stop
 `);
 
 cpcBasic.addItem("", `
@@ -1497,7 +1535,8 @@ FOR y=1 TO 22
   print indent$;
   FOR x=1 TO 11
     READ p
-    IF p>0 THEN PRINT STRING$(4,CHR$(65+p)); ELSE PRINT STRING$(4," ");
+    IF p>0 THEN ch$=CHR$(65+p) ELSE ch$=" "
+    PRINT STRING$(4,ch$);
   NEXT x
   ?
 NEXT y
@@ -1611,7 +1650,7 @@ FOR loop = 1 TO loops
 NEXT
 t=TIME-t
 PRINT "Number of primes below ";n;": ";x
-PRINT "Loops:";loops;"; Time:";t
+PRINT "Loops:";loops;"; Time:";round(t*10/3, 3);"ms;"
 STOP
 '
 1000 'compute
@@ -1653,7 +1692,11 @@ cpcBasic.addItem("", `
 
 cpcBasic.addItem("", `
 REM testsub - Test Subroutines
+cls
 ?"start"
+gosub 350
+?"end"
+stop
 '
 100 ?"sub100"
 RETURN
@@ -1671,10 +1714,13 @@ GOSUB 200
   'gosub 400
 RETURN
 '
+350 'main
+gosub 100
+gosub 200
 GOSUB 300
 a=1
 ON a GOSUB 200, 300
-?"at end"
+return
 `);
 
 cpcBasic.addItem("", `
@@ -1934,7 +1980,15 @@ DATA &a7, &x10100111
 READ a:IF a<>&A7 THEN ERROR 33
 READ a:IF a<>&A7 THEN ERROR 33
 '
-''a$=dec$(3,"##.##")
+PRINT "DEC$, ";
+a$=DEC$(0,"##.##"): IF a$<>" 0.00" THEN ERROR 33
+a$=DEC$(-1.2,"##.##"): IF a$<>"-1.20" THEN ERROR 33
+''a$=DEC$(1.005,"##.##"): IF a$<>" 1.01" THEN ERROR 33
+a$=DEC$(3,"###.##"): IF a$<>"  3.00" THEN ERROR 33
+a$=DEC$(2.9949,"#.##"): IF a$<>"2.99" THEN ERROR 33
+''a$=DEC$(8.575,"##.##"): IF a$<>" 8.58" THEN ERROR 33
+a$=DEC$(8.595,"##.##"): IF a$<>" 8.60" THEN ERROR 33
+''a$=DEC$(15.355,"#.##"): IF a$<>"15.36" THEN ERROR 33
 '
 PRINT "DEF FN (and FN), ";
 def fnclk=10

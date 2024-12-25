@@ -85,6 +85,9 @@ export const arithmetic = {
     Data
       = data NonemptyListOf<DataItem, ",">
 
+    DecS
+      = decS "(" NumExp "," StrExp ")"
+
     Def
       = def fn DefAssign
     
@@ -252,6 +255,7 @@ export const arithmetic = {
       = "(" StrExp ")"  -- paren
       | BinS
       | ChrS
+      | DecS
       | HexS
       | LeftS
       | LowerS

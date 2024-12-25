@@ -8,7 +8,7 @@ Line numbers are optional and only needed to start a subroutine or a *DATA* line
 LocoBasic Links:
 [LocoBasic](https://benchmarko.github.io/LocoBasic/),
 [Source code](https://github.com/benchmarko/LocoBasic/),
-[HTML Readme](https://github.com/benchmarko/LocoBasic/#readme),
+[HTML Readme](https://github.com/benchmarko/LocoBasic/#readme)
 
 ## Getting Started
 
@@ -97,6 +97,8 @@ LocoBasic Links:
   - Separated by commas ","
   - Strings must be quoted
   - Numbers (including hex and binary) are unquoted and can only be read numerically
+  - `DEC$(number, format)` Returns the number as a string formatted according to the specified pattern.
+    - Only "#" and "." are supported in the format. Example: "##.###"
 - `DEF FNname[(arg1, ...)] = expression` Defines a function *FNname*
   - Can be used as `FNname()`
   - No space between *FN* and *name* is allowed
@@ -142,7 +144,7 @@ LocoBasic Links:
 - `PRINT argument1 [; argument2; ...]` Outputs text and numbers
   - Arguments must be separated by `;`
   - Numbers are padded with trailinng space, and leading space for positive numbers
-  - **Limitations:** No support for `TAB()`, `SPC()`, or `USING` formatting
+  - **Limitations:** No support for `TAB()`, `SPC()`, or `USING` formatting. Use *DEC$()* to format numbers
 - `READ variable` Reads the next value from a `DATA` statement into *variable*
 - `REM` A comment until end of line, same as `
 - `RESTORE [line]` Resets the `DATA` pointer to a specified *line* number
@@ -223,7 +225,7 @@ after auto border break call cat chain clear cog closein closeout cont copychr
 
 ### Resources
 
-- [Ohm](https://ohmjs.org/) JavaScript parsing toolkit - [Source code](https://github.com/ohmjs/ohm)
+- [Ohm](https://ohmjs.org/) JavaScript parsing toolkit - [Source code](https://github.com/ohmjs/ohm) - Paper: [Modular Semantic Actions](https://ohmjs.org/pubs/dls2016/modular-semantic-actions.pdf)
 
 - [CodeMirror](https://codemirror.net/) code editor used for the Locobasic UI -
 [Source code](https://github.com/codemirror/dev/) -
