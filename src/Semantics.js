@@ -17,6 +17,14 @@ function getCodeSnippets() {
         cls: function cls() {
             _o.cls();
         },
+        dec$: function dec$(num, format) {
+            const [, decimalPart] = format.split(".", 2);
+            const decimals = decimalPart ? decimalPart.length : 0;
+            const str = num.toFixed(decimals);
+            const padLen = format.length - str.length;
+            const pad = padLen > 0 ? " ".repeat(padLen) : "";
+            return pad + str;
+        },
         dim: function dim(dims, initVal = 0) {
             const createRecursiveArray = (depth) => {
                 const length = dims[depth] + 1; // +1 because of 0-based index
@@ -216,13 +224,13 @@ function getSemantics(semanticsHelper) {
         Atn(_atnLit, _open, e, _close) {
             return `Math.atan(${e.eval()})`;
         },
-        Bin(_binLit, _open, e, _comma, n, _close) {
+        BinS(_binLit, _open, e, _comma, n, _close) {
             var _a;
             semanticsHelper.addInstr("bin$");
             const pad = (_a = n.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
             return pad !== undefined ? `bin$(${e.eval()}, ${pad})` : `bin$(${e.eval()})`;
         },
-        Chr(_chrLit, _open, e, _close) {
+        ChrS(_chrLit, _open, e, _close) {
             return `String.fromCharCode(${e.eval()})`;
         },
         Comment(_commentLit, remain) {
@@ -238,20 +246,6 @@ function getSemantics(semanticsHelper) {
             semanticsHelper.addInstr("cls");
             return `cls()`;
         },
-        Comparison(_iflit, condExp, _thenLit, thenStat, elseLit, elseStat) {
-            const initialIndent = semanticsHelper.getIndentStr();
-            semanticsHelper.addIndent(2);
-            const increasedIndent = semanticsHelper.getIndentStr();
-            const cond = condExp.eval();
-            const thSt = thenStat.eval();
-            let result = `if (${cond}) {\n${increasedIndent}${thSt}\n${initialIndent}}`; // put in newlines to also allow line comments
-            if (elseLit.sourceString) {
-                const elseSt = evalChildren(elseStat.children).join('; ');
-                result += ` else {\n${increasedIndent}${elseSt}\n${initialIndent}}`;
-            }
-            semanticsHelper.addIndent(-2);
-            return result;
-        },
         Data(_datalit, args) {
             const argList = args.asIteration().children.map(c => c.eval());
             const definedLabels = semanticsHelper.getDefinedLabels();
@@ -266,6 +260,10 @@ function getSemantics(semanticsHelper) {
             dataList.push(argList.join(", "));
             semanticsHelper.addDataIndex(argList.length);
             return "";
+        },
+        DecS(_decLit, _open, num, _comma, format, _close) {
+            semanticsHelper.addInstr("dec$");
+            return `dec$(${num.eval()}, ${format.eval()})`;
         },
         Def(_defLit, _fnLit, assign) {
             return `${assign.eval()}`;
@@ -337,7 +335,7 @@ function getSemantics(semanticsHelper) {
             const argStr = ((_a = args.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "()";
             return `${fnIdent.eval()}${argStr}`;
         },
-        ForLoop(_forLit, variable, _eqSign, start, _dirLit, end, _stepLit, step) {
+        For(_forLit, variable, _eqSign, start, _dirLit, end, _stepLit, step) {
             var _a;
             const varExp = variable.eval();
             const startExp = start.eval();
@@ -364,11 +362,25 @@ function getSemantics(semanticsHelper) {
             semanticsHelper.addGosubLabel(labelStr);
             return `_${labelStr}()`;
         },
-        Hex(_hexLit, _open, e, _comma, n, _close) {
+        HexS(_hexLit, _open, e, _comma, n, _close) {
             var _a;
             semanticsHelper.addInstr("hex$");
             const pad = (_a = n.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
             return pad !== undefined ? `hex$(${e.eval()}, ${pad})` : `hex$(${e.eval()})`;
+        },
+        If(_iflit, condExp, _thenLit, thenStat, elseLit, elseStat) {
+            const initialIndent = semanticsHelper.getIndentStr();
+            semanticsHelper.addIndent(2);
+            const increasedIndent = semanticsHelper.getIndentStr();
+            const cond = condExp.eval();
+            const thSt = thenStat.eval();
+            let result = `if (${cond}) {\n${increasedIndent}${thSt}\n${initialIndent}}`; // put in newlines to also allow line comments
+            if (elseLit.sourceString) {
+                const elseSt = evalChildren(elseStat.children).join('; ');
+                result += ` else {\n${increasedIndent}${elseSt}\n${initialIndent}}`;
+            }
+            semanticsHelper.addIndent(-2);
+            return result;
         },
         Input(_inputLit, message, _semi, e) {
             semanticsHelper.addInstr("input");
@@ -383,7 +395,7 @@ function getSemantics(semanticsHelper) {
         Int(_intLit, _open, e, _close) {
             return `Math.floor(${e.eval()})`;
         },
-        Left(_leftLit, _open, e1, _comma, e2, _close) {
+        LeftS(_leftLit, _open, e1, _comma, e2, _close) {
             return `(${e1.eval()}).slice(0, ${e2.eval()})`;
         },
         Len(_lenLit, _open, e, _close) {
@@ -395,14 +407,14 @@ function getSemantics(semanticsHelper) {
         Log10(_log10Lit, _open, e, _close) {
             return `Math.log10(${e.eval()})`;
         },
-        Lower(_lowerLit, _open, e, _close) {
+        LowerS(_lowerLit, _open, e, _close) {
             return `(${e.eval()}).toLowerCase()`;
         },
         Max(_maxLit, _open, args, _close) {
             const argList = args.asIteration().children.map(c => c.eval()); // see also: ArrayArgs
             return `Math.max(${argList})`;
         },
-        Mid(_midLit, _open, e1, _comma1, e2, _comma2, e3, _close) {
+        MidS(_midLit, _open, e1, _comma1, e2, _comma2, e3, _close) {
             var _a;
             const length = (_a = e3.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
             const lengthStr = length === undefined ? "" : `, ${length}`;
@@ -467,7 +479,7 @@ function getSemantics(semanticsHelper) {
         Return(_returnLit) {
             return "return";
         },
-        Right(_rightLit, _open, e1, _comma, e2, _close) {
+        RightS(_rightLit, _open, e1, _comma, e2, _close) {
             return `(${e1.eval()}).slice(-(${e2.eval()}))`;
         },
         Rnd(_rndLit, _open, _e, _close) {
@@ -490,7 +502,7 @@ function getSemantics(semanticsHelper) {
         Sin(_sinLit, _open, e, _close) {
             return `Math.sin(${e.eval()})`;
         },
-        Space2(_stringLit, _open, len, _close) {
+        SpaceS(_stringLit, _open, len, _close) {
             return `" ".repeat(${len.eval()})`;
         },
         Sqr(_sqrLit, _open, e, _close) {
@@ -499,7 +511,7 @@ function getSemantics(semanticsHelper) {
         Stop(_stopLit) {
             return `return "stop"`;
         },
-        Str(_strLit, _open, e, _close) {
+        StrS(_strLit, _open, e, _close) {
             const arg = e.eval();
             if (isNaN(Number(arg))) {
                 semanticsHelper.addInstr("str$");
@@ -508,7 +520,7 @@ function getSemantics(semanticsHelper) {
             // simplify if we know at compile time that arg is a positive number
             return arg >= 0 ? `(" " + String(${arg}))` : `String(${arg})`;
         },
-        String2(_stringLit, _open, len, _commaLit, chr, _close) {
+        StringS(_stringLit, _open, len, _commaLit, chr, _close) {
             // Note: String$: we only support second parameter as string; we do not use charAt(0) to get just one char
             return `(${chr.eval()}).repeat(${len.eval()})`;
         },
@@ -519,7 +531,7 @@ function getSemantics(semanticsHelper) {
             semanticsHelper.addInstr("time");
             return `time()`;
         },
-        Upper(_upperLit, _open, e, _close) {
+        UpperS(_upperLit, _open, e, _close) {
             return `(${e.eval()}).toUpperCase()`;
         },
         Val(_upperLit, _open, e, _close) {
@@ -535,7 +547,7 @@ function getSemantics(semanticsHelper) {
             semanticsHelper.addIndent(-2);
             return '}';
         },
-        WhileLoop(_whileLit, e) {
+        While(_whileLit, e) {
             const cond = e.eval();
             semanticsHelper.nextIndentAdd(2);
             return `while (${cond}) {`;

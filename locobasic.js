@@ -73,82 +73,85 @@
       = Label? Statements Comment? (eol | end)
 
     Label
-     = label
+      = label
 
     Statements
-     = Statement (":" Statement)*
+      = Statement (":" Statement)*
 
     Statement
-     = Comment
-     | Comparison
-     | Cls
-     | Data
-     | Def
-     | Dim
-     | End
-     | Erase
-     | Error
-     | ForLoop
-     | Frame
-     | Gosub
-     | Input
-     | Mode
-     | Next
-     | On
-     | Print
-     | Read
-     | Rem
-     | Restore
-     | Return
-     | Stop
-     | WhileLoop
-     | Wend
-     | ArrayAssign
-     | Assign
+      = Comment
+      | Cls
+      | Data
+      | Def
+      | Dim
+      | End
+      | Erase
+      | Error
+      | For
+      | Frame
+      | Gosub
+      | If
+      | Input
+      | Mode
+      | Next
+      | On
+      | Print
+      | Read
+      | Rem
+      | Restore
+      | Return
+      | Stop
+      | While
+      | Wend
+      | ArrayAssign
+      | Assign
 
     ArrayAssign
       = ArrayIdent "=" NumExp
       | StrArrayIdent "=" StrExp
 
     Abs
-      = caseInsensitive<"abs"> "(" NumExp ")"
+      = abs "(" NumExp ")"
 
     Asc
-      = caseInsensitive<"asc"> "(" StrExp ")"
+      = asc "(" StrExp ")"
 
     Atn
-      = caseInsensitive<"atn"> "(" NumExp ")"
+      = atn "(" NumExp ")"
 
     Assign
       = ident "=" NumExp
       | strIdent "=" StrExp
 
-    Bin
-      = caseInsensitive<"bin$"> "(" NumExp ("," NumExp)? ")"
+    BinS
+      = binS "(" NumExp ("," NumExp)? ")"
 
-    Chr
-      = caseInsensitive<"chr$"> "(" NumExp ")"
+    ChrS
+      = chrS "(" NumExp ")"
 
     Cint
-      = caseInsensitive<"cint"> "(" NumExp ")"
+      = cint "(" NumExp ")"
 
     Cls
-      = caseInsensitive<"cls">
+      = cls
 
     Comment
       = "\\'" partToEol
 
     Cos
-      = caseInsensitive<"cos"> "(" NumExp ")"
+      = cos "(" NumExp ")"
 
     DataItem
       = string | number | signedDecimal
 
     Data
-      = caseInsensitive<"data"> NonemptyListOf<DataItem, ",">
+      = data NonemptyListOf<DataItem, ",">
+
+    DecS
+      = decS "(" NumExp "," StrExp ")"
 
     Def
-      = caseInsensitive<"def"> caseInsensitive<"fn"> DefAssign
+      = def fn DefAssign
     
     DefArgs
       = "(" ListOf<SimpleIdent, ","> ")"
@@ -158,79 +161,79 @@
       | strIdent DefArgs? "=" StrExp
 
     Dim
-      = caseInsensitive<"dim"> NonemptyListOf<DimArrayIdent, ",">
+      = dim NonemptyListOf<DimArrayIdent, ",">
 
     End
-      = caseInsensitive<"end">
+      = endLit
 
     Erase
-      = caseInsensitive<"erase"> NonemptyListOf<SimpleIdent, ",">
+      = erase NonemptyListOf<SimpleIdent, ",">
 
     Error
-      = caseInsensitive<"error"> NumExp
+      = error NumExp
 
     Exp
-      = caseInsensitive<"exp"> "(" NumExp ")"
+      = exp "(" NumExp ")"
 
     Fix
-      = caseInsensitive<"fix"> "(" NumExp ")"
+      = fix "(" NumExp ")"
 
-    ForLoop
-      = caseInsensitive<"for"> variable "=" NumExp caseInsensitive<"to"> NumExp (caseInsensitive<"step"> NumExp)?
+    For
+      = for variable "=" NumExp to NumExp (step NumExp)?
 
     Frame
-      = caseInsensitive<"frame">
+      = frame
 
     Gosub
-      = caseInsensitive<"gosub"> label
+      = gosub label
 
-    Hex
-      = caseInsensitive<"hex$"> "(" NumExp ("," NumExp)? ")"
+    HexS
+      = hexS "(" NumExp ("," NumExp)? ")"
 
     Input
-      = caseInsensitive<"input"> (string (";" | ","))? AnyIdent  // or NonemptyListOf?
+      = input (string (";" | ","))? AnyIdent  // or NonemptyListOf?
 
     Instr
-      = caseInsensitive<"instr"> "(" StrExp "," StrExp ")"
+      = instr "(" StrExp "," StrExp ")"
 
     Int
-      = caseInsensitive<"int"> "(" NumExp ")"
+      = int "(" NumExp ")"
 
-    Left
-      = caseInsensitive<"left$"> "(" StrExp "," NumExp ")"
+    LeftS
+      = leftS "(" StrExp "," NumExp ")"
 
     Len
-      = caseInsensitive<"len"> "(" StrExp ")"
+      = len "(" StrExp ")"
 
     Log
-      = caseInsensitive<"log"> "(" NumExp ")"
+      = log "(" NumExp ")"
 
     Log10
-      = caseInsensitive<"log10"> "(" NumExp ")"
+      = log10 "(" NumExp ")"
 
-    Lower
-      = caseInsensitive<"lower$"> "(" StrExp ")"
+    LowerS
+      = lowerS "(" StrExp ")"
 
     Max
-      = caseInsensitive<"max"> "(" NonemptyListOf<NumExp, ","> ")"
+      = max "(" NonemptyListOf<NumExp, ","> ")"
 
-    Mid
-      = caseInsensitive<"mid$"> "(" StrExp "," NumExp ("," NumExp)? ")"
+    MidS
+      = midS "(" StrExp "," NumExp ("," NumExp)? ")"
 
     Min
-      = caseInsensitive<"min"> "(" NonemptyListOf<NumExp, ","> ")"
+      = min "(" NonemptyListOf<NumExp, ","> ")"
 
     Mode
-      = caseInsensitive<"mode"> NumExp
+      = mode NumExp
 
     Pi
-      = caseInsensitive<"pi">
+      = pi
 
     Next
-     = caseInsensitive<"next"> ListOf<variable, ",">
+      = next ListOf<variable, ",">
 
     On
-     = caseInsensitive<"on"> NumExp caseInsensitive<"gosub"> NonemptyListOf<label, ",">
+      = on NumExp gosub NonemptyListOf<label, ",">
 
     PrintArg
       = &StrCmpExp NumExp -- strCmp
@@ -238,70 +241,70 @@
       | NumExp
 
     Print
-      = (caseInsensitive<"print"> | "?") ListOf<PrintArg,";"> (";")?
+      = (print | "?") ListOf<PrintArg,";"> (";")?
 
     Read
-      = caseInsensitive<"read"> NonemptyListOf<AnyIdent, ",">
+      = read NonemptyListOf<AnyIdent, ",">
 
     Rem
-      = caseInsensitive<"Rem"> partToEol
+      = rem partToEol
 
     Restore
-      = caseInsensitive<"Restore"> label?
+      = restore label?
 
     Return
-      = caseInsensitive<"return">
+      = return
 
-    Right
-      = caseInsensitive<"right$"> "(" StrExp "," NumExp ")"
+    RightS
+      = rightS "(" StrExp "," NumExp ")"
 
     Rnd
-      = caseInsensitive<"rnd"> "(" NumExp? ")"
+      = rnd ("(" NumExp ")")?
     
     Round
-      = caseInsensitive<"round"> "(" NumExp ("," NumExp)? ")"
+      = round "(" NumExp ("," NumExp)? ")"
 
     Sgn
-      = caseInsensitive<"sgn"> "(" NumExp ")"
+      = sgn "(" NumExp ")"
 
     Sin
-      = caseInsensitive<"sin"> "(" NumExp ")"
+      = sin "(" NumExp ")"
 
-    Space2
-      = caseInsensitive<"space$"> "(" NumExp ")"
+    SpaceS
+      = spaceS "(" NumExp ")"
 
     Sqr
-      = caseInsensitive<"sqr"> "(" NumExp ")"
+      = sqr "(" NumExp ")"
 
     Stop
-      = caseInsensitive<"stop">
+      = stop
 
-    Str
-      = caseInsensitive<"str$"> "(" NumExp ")"
+    StrS
+      = strS "(" NumExp ")"
 
-    String2
-      = caseInsensitive<"string$"> "(" NumExp "," StrExp ")"
+    StringS
+      = stringS "(" NumExp "," StrExp ")"
 
     Tan
-      = caseInsensitive<"tan"> "(" NumExp ")"
+      = tan "(" NumExp ")"
 
     Time
-      = caseInsensitive<"time">
+      = time
 
-    Upper
-      = caseInsensitive<"upper$"> "(" StrExp ")"
+    UpperS
+      = upperS "(" StrExp ")"
 
     Val
-      = caseInsensitive<"val"> "(" StrExp ")"
+      = val "(" StrExp ")"
 
     Wend
-      = caseInsensitive<"wend">
+      = wend
 
-    WhileLoop
-      = caseInsensitive<"while"> NumExp
+    While
+      = while NumExp
 
-    Comparison
-      = caseInsensitive<"if"> NumExp caseInsensitive<"then"> Statements (caseInsensitive<"else"> Statements)?
+    If
+      = if NumExp then Statements (else Statements)?
 
     StrExp
       = StrAddExp
@@ -312,17 +315,18 @@
 
     StrPriExp
       = "(" StrExp ")"  -- paren
-      | Bin
-      | Chr
-      | Hex
-      | Left
-      | Lower
-      | Mid
-      | Right
-      | Space2
-      | Str
-      | String2
-      | Upper
+      | BinS
+      | ChrS
+      | DecS
+      | HexS
+      | LeftS
+      | LowerS
+      | MidS
+      | RightS
+      | SpaceS
+      | StrS
+      | StringS
+      | UpperS
       | StrFnIdent
       | StrArrayIdent
       | strIdent
@@ -333,19 +337,19 @@
       = XorExp
 
     XorExp
-      = OrExp caseInsensitive<"xor"> XorExp  -- xor
+      = OrExp xor XorExp  -- xor
       | OrExp
 
     OrExp
-      = AndExp caseInsensitive<"or"> OrExp  -- or
+      = AndExp or OrExp  -- or
       | AndExp
 
     AndExp
-      = NotExp caseInsensitive<"and"> AndExp  -- and
+      = NotExp and AndExp  -- and
       | NotExp
 
     NotExp
-      = caseInsensitive<"not"> NotExp  -- not
+      = not NotExp  -- not
       | StrCmpExp
       | CmpExp
 
@@ -372,7 +376,7 @@
       | ModExp
 
     ModExp
-      = ModExp caseInsensitive<"mod"> DivExp -- mod
+      = ModExp mod DivExp -- mod
       | DivExp
 
     DivExp
@@ -447,360 +451,361 @@
       = fnIdent FnArgs?
 
     StrFnIdent
-     = strFnIdent StrFnArgs?
+      = strFnIdent StrFnArgs?
 
     FnArgs
-     = "(" ListOf<NumExp, ","> ")"
+      = "(" ListOf<NumExp, ","> ")"
 
     StrFnArgs
-     = "(" ListOf<StrExp, ","> ")"
+      = "(" ListOf<StrExp, ","> ")"
 
     keyword
-      = abs | after | and | asc | atn | auto | bin | border | break
-      | call | cat | chain | chr | cint | clear | clg | closein | closeout | cls | cont | copychr | cos | creal | cursor
-      | data | dec | def | defint | defreal | defstr | deg | delete | derr | di | dim | draw | drawr
-      | edit | ei | else | end2 | ent | env | eof | erase | erl | err | error | every | exp | fill | fix | fn | for | frame | fre | gosub | goto | graphics
-      | hex | himem | if | ink | inkey | inp | input | instr | int | joy | key | left | len | let | line | list | load | locate | log | log10 | lower2
-      | mask | max | memory | merge | mid | min | mod | mode | move | mover | new | next | not | on | openin | openout | or | origin | out
+      = abs | after | and | asc | atn | auto | binS | border | break
+      | call | cat | chain | chrS | cint | clear | clg | closein | closeout | cls | cont | copychrS | cos | creal | cursor
+      | data | decS | def | defint | defreal | defstr | deg | delete | derr | di | dim | draw | drawr
+      | edit | ei | else | endLit | ent | env | eof | erase | erl | err | error | every | exp | fill | fix | fn | for | frame | fre | gosub | goto | graphics
+      | hexS | himem | if | ink | inkey | inkeyS|  inp | input | instr | int | joy | key | leftS | len | let | line | list | load | locate | log | log10 | lowerS
+      | mask | max | memory | merge | midS | min | mod | mode | move | mover | new | next | not | on | openin | openout | or | origin | out
       | paper | peek | pen | pi | plot | plotr | poke | pos | print
-      | rad | randomize | read | release | rem | remain | renum | restore | resume | return | right | rnd | round | run
-      | save | sgn | sin | sound | space2 | spc | speed | sq | sqr | step | stop | str | string2 | swap | symbol
-      | tab | tag | tagoff | tan | test | testr | then | time | to | troff | tron | unt | upper2 | using
+      | rad | randomize | read | release | rem | remain | renum | restore | resume | return | rightS | rnd | round | run
+      | save | sgn | sin | sound | spaceS | spc | speed | sq | sqr | step | stop | strS | stringS | swap | symbol
+      | tab | tag | tagoff | tan | test | testr | then | time | to | troff | tron | unt | upperS | using
       | val | vpos | wait | wend | while | width | window | write | xor | xpos | ypos | zone
 
     abs
-       = caseInsensitive<"abs"> ~identPart
+      = caseInsensitive<"abs"> ~identPart
     after
       = caseInsensitive<"after"> ~identPart
     and
-    = caseInsensitive<"and"> ~identPart
+      = caseInsensitive<"and"> ~identPart
     asc
-    = caseInsensitive<"asc"> ~identPart
+      = caseInsensitive<"asc"> ~identPart
     atn
-    = caseInsensitive<"atn"> ~identPart
+      = caseInsensitive<"atn"> ~identPart
     auto
-    = caseInsensitive<"auto"> ~identPart
-    bin
-    = caseInsensitive<"bin$"> ~identPart
+      = caseInsensitive<"auto"> ~identPart
+    binS
+      = caseInsensitive<"bin$"> ~identPart
     border
-    = caseInsensitive<"border"> ~identPart
+      = caseInsensitive<"border"> ~identPart
     break
-    = caseInsensitive<"break"> ~identPart
+      = caseInsensitive<"break"> ~identPart
     call
-    = caseInsensitive<"call"> ~identPart
+      = caseInsensitive<"call"> ~identPart
     cat
-    = caseInsensitive<"cat"> ~identPart
+      = caseInsensitive<"cat"> ~identPart
     chain
-    = caseInsensitive<"chain"> ~identPart
-    chr
-    = caseInsensitive<"chr$"> ~identPart
+      = caseInsensitive<"chain"> ~identPart
+    chrS
+      = caseInsensitive<"chr$"> ~identPart
     cint
-    = caseInsensitive<"cint"> ~identPart
+      = caseInsensitive<"cint"> ~identPart
     clear
-    = caseInsensitive<"clear"> ~identPart
+      = caseInsensitive<"clear"> ~identPart
     clg
-    = caseInsensitive<"clg"> ~identPart
+      = caseInsensitive<"clg"> ~identPart
     closein
-    = caseInsensitive<"closein"> ~identPart
+      = caseInsensitive<"closein"> ~identPart
     closeout
-    = caseInsensitive<"closeout"> ~identPart
+      = caseInsensitive<"closeout"> ~identPart
     cls
-    = caseInsensitive<"cls"> ~identPart
+      = caseInsensitive<"cls"> ~identPart
     cont
-    = caseInsensitive<"cont"> ~identPart
-    copychr
-    = caseInsensitive<"copychr$"> ~identPart
+      = caseInsensitive<"cont"> ~identPart
+    copychrS
+      = caseInsensitive<"copychr$"> ~identPart
     cos
-    = caseInsensitive<"cos"> ~identPart
+      = caseInsensitive<"cos"> ~identPart
     creal
-    = caseInsensitive<"creal"> ~identPart
+      = caseInsensitive<"creal"> ~identPart
     cursor
-    = caseInsensitive<"cursor"> ~identPart
+      = caseInsensitive<"cursor"> ~identPart
     data
-    = caseInsensitive<"data"> ~identPart
-    dec
-    = caseInsensitive<"dec"> ~identPart
+      = caseInsensitive<"data"> ~identPart
+    decS
+      = caseInsensitive<"dec$"> ~identPart
     def
-    = caseInsensitive<"def"> ~identPart
+      = caseInsensitive<"def"> ~identPart
     defint
-    = caseInsensitive<"defint"> ~identPart
+      = caseInsensitive<"defint"> ~identPart
     defreal
-    = caseInsensitive<"defreal"> ~identPart
+      = caseInsensitive<"defreal"> ~identPart
     defstr
-    = caseInsensitive<"defstr"> ~identPart
+      = caseInsensitive<"defstr"> ~identPart
     deg
-    = caseInsensitive<"deg"> ~identPart
+      = caseInsensitive<"deg"> ~identPart
     delete
-    = caseInsensitive<"delete"> ~identPart
+      = caseInsensitive<"delete"> ~identPart
     derr
-    = caseInsensitive<"derr"> ~identPart
+      = caseInsensitive<"derr"> ~identPart
     di
-    = caseInsensitive<"di"> ~identPart
+      = caseInsensitive<"di"> ~identPart
     dim
-    = caseInsensitive<"dim"> ~identPart
+      = caseInsensitive<"dim"> ~identPart
     draw
-    = caseInsensitive<"draw"> ~identPart
+      = caseInsensitive<"draw"> ~identPart
     drawr
-    = caseInsensitive<"drawr"> ~identPart
+      = caseInsensitive<"drawr"> ~identPart
     edit
-    = caseInsensitive<"edit"> ~identPart
+      = caseInsensitive<"edit"> ~identPart
     ei
-    = caseInsensitive<"ei"> ~identPart
+      = caseInsensitive<"ei"> ~identPart
     else
-    = caseInsensitive<"else"> ~identPart
-    end2
-    = caseInsensitive<"end"> ~identPart
+      = caseInsensitive<"else"> ~identPart
+    endLit
+      = caseInsensitive<"end"> ~identPart
     ent
-    = caseInsensitive<"ent"> ~identPart
+      = caseInsensitive<"ent"> ~identPart
     env
-    = caseInsensitive<"env"> ~identPart
+      = caseInsensitive<"env"> ~identPart
     eof
-    = caseInsensitive<"eof"> ~identPart
+      = caseInsensitive<"eof"> ~identPart
     erase
-    = caseInsensitive<"erase"> ~identPart
+      = caseInsensitive<"erase"> ~identPart
     erl
-    = caseInsensitive<"erl"> ~identPart
+      = caseInsensitive<"erl"> ~identPart
     err
-    = caseInsensitive<"err"> ~identPart
+      = caseInsensitive<"err"> ~identPart
     error
-    = caseInsensitive<"error"> ~identPart
+      = caseInsensitive<"error"> ~identPart
     every
-    = caseInsensitive<"every"> ~identPart
+      = caseInsensitive<"every"> ~identPart
     exp
-    = caseInsensitive<"exp"> ~identPart
+      = caseInsensitive<"exp"> ~identPart
     fill
-    = caseInsensitive<"fill"> ~identPart
+      = caseInsensitive<"fill"> ~identPart
     fix
-    = caseInsensitive<"fix"> ~identPart
+      = caseInsensitive<"fix"> ~identPart
     fn
-    = caseInsensitive<"fn"> ~identPart
+      = caseInsensitive<"fn">  //~identPart
     for
-    = caseInsensitive<"for"> ~identPart
+      = caseInsensitive<"for"> ~identPart
     frame
-    = caseInsensitive<"frame"> ~identPart
+      = caseInsensitive<"frame"> ~identPart
     fre
-    = caseInsensitive<"fre"> ~identPart
+      = caseInsensitive<"fre"> ~identPart
     gosub
-    = caseInsensitive<"gosub"> ~identPart
+      = caseInsensitive<"gosub"> ~identPart
     goto
-    = caseInsensitive<"goto"> ~identPart
+      = caseInsensitive<"goto"> ~identPart
     graphics
-    = caseInsensitive<"graphics"> ~identPart
-    hex
-    = caseInsensitive<"hex$"> ~identPart
+      = caseInsensitive<"graphics"> ~identPart
+    hexS
+      = caseInsensitive<"hex$"> ~identPart
     himem
-    = caseInsensitive<"himem"> ~identPart
+      = caseInsensitive<"himem"> ~identPart
     if
-    = caseInsensitive<"if"> ~identPart
+      = caseInsensitive<"if"> ~identPart
     ink
-    = caseInsensitive<"ink"> ~identPart
+      = caseInsensitive<"ink"> ~identPart
     inkey
-    = caseInsensitive<"inkey"> ~identPart
-    | caseInsensitive<"inkey$"> ~identPart
+      = caseInsensitive<"inkey"> ~identPart
+    inkeyS
+      = caseInsensitive<"inkey$"> ~identPart
     inp
-    = caseInsensitive<"inp"> ~identPart
+      = caseInsensitive<"inp"> ~identPart
     input
-    = caseInsensitive<"input"> ~identPart
+      = caseInsensitive<"input"> ~identPart
     instr
-    = caseInsensitive<"instr"> ~identPart
+      = caseInsensitive<"instr"> ~identPart
     int
-    = caseInsensitive<"int"> ~identPart
+      = caseInsensitive<"int"> ~identPart
     joy
-    = caseInsensitive<"joy"> ~identPart
+      = caseInsensitive<"joy"> ~identPart
     key
-    = caseInsensitive<"key"> ~identPart
-    left
-    = caseInsensitive<"left$"> ~identPart
+      = caseInsensitive<"key"> ~identPart
+    leftS
+      = caseInsensitive<"left$"> ~identPart
     len
-    = caseInsensitive<"len"> ~identPart
+      = caseInsensitive<"len"> ~identPart
     let
-    = caseInsensitive<"let"> ~identPart
+      = caseInsensitive<"let"> ~identPart
     line
-    = caseInsensitive<"line"> ~identPart
+      = caseInsensitive<"line"> ~identPart
     list
-    = caseInsensitive<"list"> ~identPart
+      = caseInsensitive<"list"> ~identPart
     load
-    = caseInsensitive<"load"> ~identPart
+      = caseInsensitive<"load"> ~identPart
     locate
-    = caseInsensitive<"locate"> ~identPart
+      = caseInsensitive<"locate"> ~identPart
     log
-    = caseInsensitive<"log"> ~identPart
+      = caseInsensitive<"log"> ~identPart
     log10
-    = caseInsensitive<"log10"> ~identPart
-    lower2
-    = caseInsensitive<"lower$"> ~identPart
+      = caseInsensitive<"log10"> ~identPart
+    lowerS
+      = caseInsensitive<"lower$"> ~identPart
     mask
-    = caseInsensitive<"mask"> ~identPart
+      = caseInsensitive<"mask"> ~identPart
     max
-    = caseInsensitive<"max"> ~identPart
+      = caseInsensitive<"max"> ~identPart
     memory
-    = caseInsensitive<"memory"> ~identPart
+      = caseInsensitive<"memory"> ~identPart
     merge
-    = caseInsensitive<"merge"> ~identPart
-    mid
-    = caseInsensitive<"mid$"> ~identPart
+      = caseInsensitive<"merge"> ~identPart
+    midS
+      = caseInsensitive<"mid$"> ~identPart
     min
-    = caseInsensitive<"min"> ~identPart
+      = caseInsensitive<"min"> ~identPart
     mod
-    = caseInsensitive<"mod"> ~identPart
+      = caseInsensitive<"mod"> ~identPart
     mode
-    = caseInsensitive<"mode"> ~identPart
+      = caseInsensitive<"mode"> ~identPart
     move
-    = caseInsensitive<"move"> ~identPart
+      = caseInsensitive<"move"> ~identPart
     mover
-    = caseInsensitive<"mover"> ~identPart
+      = caseInsensitive<"mover"> ~identPart
     new
-    = caseInsensitive<"new"> ~identPart
+      = caseInsensitive<"new"> ~identPart
     next
-    = caseInsensitive<"next"> ~identPart
+      = caseInsensitive<"next"> ~identPart
     not
-    = caseInsensitive<"not"> ~identPart
+      = caseInsensitive<"not"> ~identPart
     on
-    = caseInsensitive<"on"> ~identPart
+      = caseInsensitive<"on"> ~identPart
     openin
-    = caseInsensitive<"openin"> ~identPart
+      = caseInsensitive<"openin"> ~identPart
     openout
-    = caseInsensitive<"openout"> ~identPart
+      = caseInsensitive<"openout"> ~identPart
     or
-    = caseInsensitive<"or"> ~identPart
+      = caseInsensitive<"or"> ~identPart
     origin
-    = caseInsensitive<"origin"> ~identPart
+      = caseInsensitive<"origin"> ~identPart
     out
-    = caseInsensitive<"out"> ~identPart
+      = caseInsensitive<"out"> ~identPart
     paper
-    = caseInsensitive<"paper"> ~identPart
+      = caseInsensitive<"paper"> ~identPart
     peek
-    = caseInsensitive<"peek"> ~identPart
+      = caseInsensitive<"peek"> ~identPart
     pen
-    = caseInsensitive<"pen"> ~identPart
+      = caseInsensitive<"pen"> ~identPart
     pi
-    = caseInsensitive<"pi"> ~identPart
+      = caseInsensitive<"pi"> ~identPart
     plot
-    = caseInsensitive<"plot"> ~identPart
+      = caseInsensitive<"plot"> ~identPart
     plotr
-    = caseInsensitive<"plotr"> ~identPart
+      = caseInsensitive<"plotr"> ~identPart
     poke
-    = caseInsensitive<"poke"> ~identPart
+      = caseInsensitive<"poke"> ~identPart
     pos
-    = caseInsensitive<"pos"> ~identPart
+      = caseInsensitive<"pos"> ~identPart
     print
-    = caseInsensitive<"print"> ~identPart
+      = caseInsensitive<"print"> ~identPart
     rad
-    = caseInsensitive<"rad"> ~identPart
+      = caseInsensitive<"rad"> ~identPart
     randomize
-    = caseInsensitive<"randomize"> ~identPart
+      = caseInsensitive<"randomize"> ~identPart
     read
-    = caseInsensitive<"read"> ~identPart
+      = caseInsensitive<"read"> ~identPart
     release
-    = caseInsensitive<"release"> ~identPart
+      = caseInsensitive<"release"> ~identPart
     rem
-    = caseInsensitive<"rem"> ~identPart
+      = caseInsensitive<"rem"> ~identPart
     remain
-    = caseInsensitive<"remain"> ~identPart
+      = caseInsensitive<"remain"> ~identPart
     renum
-    = caseInsensitive<"renum"> ~identPart
+      = caseInsensitive<"renum"> ~identPart
     restore
-    = caseInsensitive<"restore"> ~identPart
+      = caseInsensitive<"restore"> ~identPart
     resume
-    = caseInsensitive<"resume"> ~identPart
+      = caseInsensitive<"resume"> ~identPart
     return
-    = caseInsensitive<"return"> ~identPart
-    right
-    = caseInsensitive<"right$"> ~identPart
+      = caseInsensitive<"return"> ~identPart
+    rightS
+      = caseInsensitive<"right$"> ~identPart
     rnd
-    = caseInsensitive<"rnd"> ~identPart
+      = caseInsensitive<"rnd"> ~identPart
     round
-    = caseInsensitive<"round"> ~identPart
+      = caseInsensitive<"round"> ~identPart
     run
-    = caseInsensitive<"run"> ~identPart
+      = caseInsensitive<"run"> ~identPart
     save
-    = caseInsensitive<"save"> ~identPart
+      = caseInsensitive<"save"> ~identPart
     sgn
-    = caseInsensitive<"sgn"> ~identPart
+      = caseInsensitive<"sgn"> ~identPart
     sin
-    = caseInsensitive<"sin"> ~identPart
+      = caseInsensitive<"sin"> ~identPart
     sound
-    = caseInsensitive<"sound"> ~identPart
-    space2
-    = caseInsensitive<"space"> ~identPart
+      = caseInsensitive<"sound"> ~identPart
+    spaceS
+      = caseInsensitive<"space$"> ~identPart
     spc
-    = caseInsensitive<"spc"> ~identPart
+      = caseInsensitive<"spc"> ~identPart
     speed
-    = caseInsensitive<"speed"> ~identPart
+      = caseInsensitive<"speed"> ~identPart
     sq
-    = caseInsensitive<"sq"> ~identPart
+      = caseInsensitive<"sq"> ~identPart
     sqr
-    = caseInsensitive<"sqr"> ~identPart
+      = caseInsensitive<"sqr"> ~identPart
     step
-    = caseInsensitive<"step"> ~identPart
+      = caseInsensitive<"step"> ~identPart
     stop
-    = caseInsensitive<"stop"> ~identPart
-    str
-    = caseInsensitive<"str$"> ~identPart
-    string2
-    = caseInsensitive<"string$"> ~identPart
+      = caseInsensitive<"stop"> ~identPart
+    strS
+      = caseInsensitive<"str$"> ~identPart
+    stringS
+      = caseInsensitive<"string$"> ~identPart
     swap
-    = caseInsensitive<"swap"> ~identPart
+      = caseInsensitive<"swap"> ~identPart
     symbol
-    = caseInsensitive<"symbol"> ~identPart
+      = caseInsensitive<"symbol"> ~identPart
     tab
-    = caseInsensitive<"tab"> ~identPart
+      = caseInsensitive<"tab"> ~identPart
     tag
-    = caseInsensitive<"tag"> ~identPart
+      = caseInsensitive<"tag"> ~identPart
     tagoff
-    = caseInsensitive<"tagoff"> ~identPart
+      = caseInsensitive<"tagoff"> ~identPart
     tan
-    = caseInsensitive<"tan"> ~identPart
+      = caseInsensitive<"tan"> ~identPart
     test
-    = caseInsensitive<"test"> ~identPart
+      = caseInsensitive<"test"> ~identPart
     testr
-    = caseInsensitive<"testr"> ~identPart
+      = caseInsensitive<"testr"> ~identPart
     then
-    = caseInsensitive<"then"> ~identPart
+      = caseInsensitive<"then"> ~identPart
     time
-    = caseInsensitive<"time"> ~identPart
+      = caseInsensitive<"time"> ~identPart
     to
-    = caseInsensitive<"to"> ~identPart
+      = caseInsensitive<"to"> ~identPart
     troff
-    = caseInsensitive<"troff"> ~identPart
+      = caseInsensitive<"troff"> ~identPart
     tron
-    = caseInsensitive<"tron"> ~identPart
+      = caseInsensitive<"tron"> ~identPart
     unt
-    = caseInsensitive<"unt"> ~identPart
-    upper2
-    = caseInsensitive<"upper$"> ~identPart
+      = caseInsensitive<"unt"> ~identPart
+    upperS
+      = caseInsensitive<"upper$"> ~identPart
     using
-    = caseInsensitive<"using"> ~identPart
+      = caseInsensitive<"using"> ~identPart
     val
-    = caseInsensitive<"val"> ~identPart
+      = caseInsensitive<"val"> ~identPart
     vpos
-    = caseInsensitive<"vpos"> ~identPart
+      = caseInsensitive<"vpos"> ~identPart
     wait
-    = caseInsensitive<"wait"> ~identPart
+      = caseInsensitive<"wait"> ~identPart
     wend
-    = caseInsensitive<"wend"> ~identPart
+      = caseInsensitive<"wend"> ~identPart
     while
-    = caseInsensitive<"while"> ~identPart
+      = caseInsensitive<"while"> ~identPart
     width
-    = caseInsensitive<"width"> ~identPart
+      = caseInsensitive<"width"> ~identPart
     window
-    = caseInsensitive<"window"> ~identPart
+      = caseInsensitive<"window"> ~identPart
     write
-    = caseInsensitive<"write"> ~identPart
+      = caseInsensitive<"write"> ~identPart
     xor
-    = caseInsensitive<"xor"> ~identPart
+      = caseInsensitive<"xor"> ~identPart
     xpos
-    = caseInsensitive<"xpos"> ~identPart
+      = caseInsensitive<"xpos"> ~identPart
     ypos
-    = caseInsensitive<"ypos"> ~identPart
+      = caseInsensitive<"ypos"> ~identPart
     zone
-    = caseInsensitive<"zone"> ~identPart
+      = caseInsensitive<"zone"> ~identPart
 
     ident (an identifier)
-     = ~keyword identName
+      = ~keyword identName
 
     fnIdent
-     = caseInsensitive<"fn"> ~keyword identName
+      = fn ~keyword identName
 
     identName = identStart identPart*
 
@@ -811,10 +816,10 @@
     variable = ident
 
     strIdent
-     = ~keyword identName ("$")
+      = ~keyword identName "$"
 
     strFnIdent
-     = caseInsensitive<"fn"> ~keyword identName ("$")
+      = fn ~keyword identName "$"
 
     binaryDigit = "0".."1"
 
@@ -848,7 +853,7 @@
     space := " " | "\t"
 
     eol (end of line)
-        = "\\n"
+      = "\\n"
     }
   `
     };
@@ -871,6 +876,14 @@
             },
             cls: function cls() {
                 _o.cls();
+            },
+            dec$: function dec$(num, format) {
+                const [, decimalPart] = format.split(".", 2);
+                const decimals = decimalPart ? decimalPart.length : 0;
+                const str = num.toFixed(decimals);
+                const padLen = format.length - str.length;
+                const pad = padLen > 0 ? " ".repeat(padLen) : "";
+                return pad + str;
             },
             dim: function dim(dims, initVal = 0) {
                 const createRecursiveArray = (depth) => {
@@ -1071,13 +1084,13 @@
             Atn(_atnLit, _open, e, _close) {
                 return `Math.atan(${e.eval()})`;
             },
-            Bin(_binLit, _open, e, _comma, n, _close) {
+            BinS(_binLit, _open, e, _comma, n, _close) {
                 var _a;
                 semanticsHelper.addInstr("bin$");
                 const pad = (_a = n.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
                 return pad !== undefined ? `bin$(${e.eval()}, ${pad})` : `bin$(${e.eval()})`;
             },
-            Chr(_chrLit, _open, e, _close) {
+            ChrS(_chrLit, _open, e, _close) {
                 return `String.fromCharCode(${e.eval()})`;
             },
             Comment(_commentLit, remain) {
@@ -1093,20 +1106,6 @@
                 semanticsHelper.addInstr("cls");
                 return `cls()`;
             },
-            Comparison(_iflit, condExp, _thenLit, thenStat, elseLit, elseStat) {
-                const initialIndent = semanticsHelper.getIndentStr();
-                semanticsHelper.addIndent(2);
-                const increasedIndent = semanticsHelper.getIndentStr();
-                const cond = condExp.eval();
-                const thSt = thenStat.eval();
-                let result = `if (${cond}) {\n${increasedIndent}${thSt}\n${initialIndent}}`; // put in newlines to also allow line comments
-                if (elseLit.sourceString) {
-                    const elseSt = evalChildren(elseStat.children).join('; ');
-                    result += ` else {\n${increasedIndent}${elseSt}\n${initialIndent}}`;
-                }
-                semanticsHelper.addIndent(-2);
-                return result;
-            },
             Data(_datalit, args) {
                 const argList = args.asIteration().children.map(c => c.eval());
                 const definedLabels = semanticsHelper.getDefinedLabels();
@@ -1121,6 +1120,10 @@
                 dataList.push(argList.join(", "));
                 semanticsHelper.addDataIndex(argList.length);
                 return "";
+            },
+            DecS(_decLit, _open, num, _comma, format, _close) {
+                semanticsHelper.addInstr("dec$");
+                return `dec$(${num.eval()}, ${format.eval()})`;
             },
             Def(_defLit, _fnLit, assign) {
                 return `${assign.eval()}`;
@@ -1192,7 +1195,7 @@
                 const argStr = ((_a = args.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "()";
                 return `${fnIdent.eval()}${argStr}`;
             },
-            ForLoop(_forLit, variable, _eqSign, start, _dirLit, end, _stepLit, step) {
+            For(_forLit, variable, _eqSign, start, _dirLit, end, _stepLit, step) {
                 var _a;
                 const varExp = variable.eval();
                 const startExp = start.eval();
@@ -1219,11 +1222,25 @@
                 semanticsHelper.addGosubLabel(labelStr);
                 return `_${labelStr}()`;
             },
-            Hex(_hexLit, _open, e, _comma, n, _close) {
+            HexS(_hexLit, _open, e, _comma, n, _close) {
                 var _a;
                 semanticsHelper.addInstr("hex$");
                 const pad = (_a = n.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
                 return pad !== undefined ? `hex$(${e.eval()}, ${pad})` : `hex$(${e.eval()})`;
+            },
+            If(_iflit, condExp, _thenLit, thenStat, elseLit, elseStat) {
+                const initialIndent = semanticsHelper.getIndentStr();
+                semanticsHelper.addIndent(2);
+                const increasedIndent = semanticsHelper.getIndentStr();
+                const cond = condExp.eval();
+                const thSt = thenStat.eval();
+                let result = `if (${cond}) {\n${increasedIndent}${thSt}\n${initialIndent}}`; // put in newlines to also allow line comments
+                if (elseLit.sourceString) {
+                    const elseSt = evalChildren(elseStat.children).join('; ');
+                    result += ` else {\n${increasedIndent}${elseSt}\n${initialIndent}}`;
+                }
+                semanticsHelper.addIndent(-2);
+                return result;
             },
             Input(_inputLit, message, _semi, e) {
                 semanticsHelper.addInstr("input");
@@ -1238,7 +1255,7 @@
             Int(_intLit, _open, e, _close) {
                 return `Math.floor(${e.eval()})`;
             },
-            Left(_leftLit, _open, e1, _comma, e2, _close) {
+            LeftS(_leftLit, _open, e1, _comma, e2, _close) {
                 return `(${e1.eval()}).slice(0, ${e2.eval()})`;
             },
             Len(_lenLit, _open, e, _close) {
@@ -1250,14 +1267,14 @@
             Log10(_log10Lit, _open, e, _close) {
                 return `Math.log10(${e.eval()})`;
             },
-            Lower(_lowerLit, _open, e, _close) {
+            LowerS(_lowerLit, _open, e, _close) {
                 return `(${e.eval()}).toLowerCase()`;
             },
             Max(_maxLit, _open, args, _close) {
                 const argList = args.asIteration().children.map(c => c.eval()); // see also: ArrayArgs
                 return `Math.max(${argList})`;
             },
-            Mid(_midLit, _open, e1, _comma1, e2, _comma2, e3, _close) {
+            MidS(_midLit, _open, e1, _comma1, e2, _comma2, e3, _close) {
                 var _a;
                 const length = (_a = e3.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
                 const lengthStr = length === undefined ? "" : `, ${length}`;
@@ -1322,7 +1339,7 @@
             Return(_returnLit) {
                 return "return";
             },
-            Right(_rightLit, _open, e1, _comma, e2, _close) {
+            RightS(_rightLit, _open, e1, _comma, e2, _close) {
                 return `(${e1.eval()}).slice(-(${e2.eval()}))`;
             },
             Rnd(_rndLit, _open, _e, _close) {
@@ -1345,7 +1362,7 @@
             Sin(_sinLit, _open, e, _close) {
                 return `Math.sin(${e.eval()})`;
             },
-            Space2(_stringLit, _open, len, _close) {
+            SpaceS(_stringLit, _open, len, _close) {
                 return `" ".repeat(${len.eval()})`;
             },
             Sqr(_sqrLit, _open, e, _close) {
@@ -1354,7 +1371,7 @@
             Stop(_stopLit) {
                 return `return "stop"`;
             },
-            Str(_strLit, _open, e, _close) {
+            StrS(_strLit, _open, e, _close) {
                 const arg = e.eval();
                 if (isNaN(Number(arg))) {
                     semanticsHelper.addInstr("str$");
@@ -1363,7 +1380,7 @@
                 // simplify if we know at compile time that arg is a positive number
                 return arg >= 0 ? `(" " + String(${arg}))` : `String(${arg})`;
             },
-            String2(_stringLit, _open, len, _commaLit, chr, _close) {
+            StringS(_stringLit, _open, len, _commaLit, chr, _close) {
                 // Note: String$: we only support second parameter as string; we do not use charAt(0) to get just one char
                 return `(${chr.eval()}).repeat(${len.eval()})`;
             },
@@ -1374,7 +1391,7 @@
                 semanticsHelper.addInstr("time");
                 return `time()`;
             },
-            Upper(_upperLit, _open, e, _close) {
+            UpperS(_upperLit, _open, e, _close) {
                 return `(${e.eval()}).toUpperCase()`;
             },
             Val(_upperLit, _open, e, _close) {
@@ -1390,7 +1407,7 @@
                 semanticsHelper.addIndent(-2);
                 return '}';
             },
-            WhileLoop(_whileLit, e) {
+            While(_whileLit, e) {
                 const cond = e.eval();
                 semanticsHelper.nextIndentAdd(2);
                 return `while (${cond}) {`;
