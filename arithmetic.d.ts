@@ -1,4 +1,5 @@
 export declare const arithmetic: {
-    grammar: string;
+    basicGrammar: string;
+    strictGrammar: string;
 };
 //# sourceMappingURL=arithmetic.d.ts.map

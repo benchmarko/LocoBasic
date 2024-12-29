@@ -43,6 +43,7 @@ export class Core {
             debug: 0,
             example: "",
             fileName: "",
+            grammar: "basic", // basic or strict
             input: "",
             debounceCompile: 800,
             debounceExecute: 400
@@ -81,7 +82,14 @@ export class Core {
     }
     compileScript(script) {
         if (!this.arithmeticParser) {
-            this.arithmeticParser = new Parser(arithmetic.grammar, this.semantics.getSemantics());
+            const semantics = this.semantics.getSemantics();
+            if (this.getConfig("grammar") === "strict") {
+                const basicParser = new Parser(arithmetic.basicGrammar, semantics);
+                this.arithmeticParser = new Parser(arithmetic.strictGrammar, semantics, basicParser);
+            }
+            else {
+                this.arithmeticParser = new Parser(arithmetic.basicGrammar, semantics);
+            }
         }
         this.semantics.resetParser();
         return this.arithmeticParser.parseAndEval(script);

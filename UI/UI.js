@@ -182,7 +182,8 @@ export class UI {
                 return "";
             }
             output += `Syntax error thrown at: Line ${lineno - 2}, col: ${colno}\n`; // lineNo -2 because of anonymous function added by new Function() constructor
-            output += UI.describeError(str, lineno - 2, colno);
+            output += UI.describeError(str, lineno - 2, colno) + "\n";
+            output += message;
             return output;
         });
     }

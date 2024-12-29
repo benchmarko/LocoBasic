@@ -1,11 +1,23 @@
 // Parser.ts
 import { grammar } from "ohm-js";
 export class Parser {
-    constructor(grammarString, semanticsMap) {
-        this.ohmGrammar = grammar(grammarString);
+    constructor(grammarString, semanticsMap, superParser) {
+        if (superParser) {
+            const superGrammar = superParser.getOhmGrammar();
+            const namespace = {
+                basicGrammar: superGrammar
+            };
+            this.ohmGrammar = grammar(grammarString, namespace);
+        }
+        else {
+            this.ohmGrammar = grammar(grammarString);
+        }
         this.ohmSemantics = this.ohmGrammar
             .createSemantics()
             .addOperation("eval", semanticsMap);
+    }
+    getOhmGrammar() {
+        return this.ohmGrammar;
     }
     // Function to parse and evaluate an expression
     parseAndEval(input) {

@@ -1,14 +1,15 @@
 // main.ts
 //
 // Usage:
-// node dist/locobasic.js [action='compile,run'] [input=<statements>] [example=<name>]
+// node dist/locobasic.js [action='compile,run'] [input=<statements>] [example=<name>] [fileName=<file>] [grammar=<name>] [debug=0] [debounceCompile=800] [debounceExecute=400]
 //
 // - Examples for compile and run:
-// node dist/locobasic.js input='print "Hello!"'
-// npx ts-node dist/locobasic.js input='print "Hello!"'
+// node dist/locobasic.js input='PRINT "Hello!"'
+// npx ts-node dist/locobasic.js input='PRINT "Hello!"'
 // node dist/locobasic.js input="?3 + 5 * (2 - 8)"
 // node dist/locobasic.js example=euler
 // node dist/locobasic.js fileName=dist/examples/example.bas
+// node dist/locobasic.js grammar="strict" input='a$="Bob":PRINT "Hello ";a$;"!"'
 //
 // - Example for compile only:
 // node dist/locobasic.js action='compile' input='print "Hello!";' > hello1.js
@@ -88,7 +89,10 @@ function start(input) {
     const actionConfig = core.getConfig("action");
     if (input !== "") {
         const compiledScript = actionConfig.includes("compile") ? core.compileScript(input) : input;
-        //console.log("INFO: Compiled:\n" + compiledScript + "\n---");
+        if (compiledScript.startsWith("ERROR:")) {
+            console.error(compiledScript);
+            return;
+        }
         if (actionConfig.includes("run")) {
             core.setOnPrint((msg) => {
                 console.log(msg.replace(/\n$/, ""));
