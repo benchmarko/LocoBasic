@@ -1,7 +1,7 @@
 // arithmetics.ts
 //
 export const arithmetic = {
-  grammar:
+  basicGrammar:
     `
     Arithmetic {
     Program
@@ -411,333 +411,333 @@ export const arithmetic = {
       | val | vpos | wait | wend | while | width | window | write | xor | xpos | ypos | zone
 
     abs
-      = caseInsensitive<"abs"> ~identPart
+      = ("abs" | "ABS") ~identPart
     after
-      = caseInsensitive<"after"> ~identPart
+      = ("after" | "AFTER") ~identPart
     and
-      = caseInsensitive<"and"> ~identPart
+      = ("and" | "AND") ~identPart
     asc
-      = caseInsensitive<"asc"> ~identPart
+      = ("asc" | "ASC") ~identPart
     atn
-      = caseInsensitive<"atn"> ~identPart
+      = ("atn" | "ATN") ~identPart
     auto
-      = caseInsensitive<"auto"> ~identPart
+      = ("auto" | "AUTO") ~identPart
     binS
-      = caseInsensitive<"bin$"> ~identPart
+      = ("bin$" | "BIN$") ~identPart
     border
-      = caseInsensitive<"border"> ~identPart
+      = ("border" | "BORDER") ~identPart
     break
-      = caseInsensitive<"break"> ~identPart
+      = ("break" | "BREAK") ~identPart
     call
-      = caseInsensitive<"call"> ~identPart
+      = ("call" | "CALL") ~identPart
     cat
-      = caseInsensitive<"cat"> ~identPart
+      = ("cat" | "CAT") ~identPart
     chain
-      = caseInsensitive<"chain"> ~identPart
+      = ("chain" | "CHAIN") ~identPart
     chrS
-      = caseInsensitive<"chr$"> ~identPart
+      = ("chr$" | "CHR$") ~identPart
     cint
-      = caseInsensitive<"cint"> ~identPart
+      = ("cint" | "CINT") ~identPart
     clear
-      = caseInsensitive<"clear"> ~identPart
+      = ("clear" | "CLEAR") ~identPart
     clg
-      = caseInsensitive<"clg"> ~identPart
+      = ("clg" | "CLG") ~identPart
     closein
-      = caseInsensitive<"closein"> ~identPart
+      = ("closein" | "CLOSEIN") ~identPart
     closeout
-      = caseInsensitive<"closeout"> ~identPart
+      = ("closeout" | "CLOSEOUT") ~identPart
     cls
-      = caseInsensitive<"cls"> ~identPart
+      = ("cls" | "CLS") ~identPart
     cont
-      = caseInsensitive<"cont"> ~identPart
+      = ("cont" | "CONT") ~identPart
     copychrS
-      = caseInsensitive<"copychr$"> ~identPart
+      = ("copychr$" | "COPYCHR$") ~identPart
     cos
-      = caseInsensitive<"cos"> ~identPart
+      = ("cos" | "COS") ~identPart
     creal
-      = caseInsensitive<"creal"> ~identPart
+      = ("creal" | "CREAL") ~identPart
     cursor
-      = caseInsensitive<"cursor"> ~identPart
+      = ("cursor" | "CURSOR") ~identPart
     data
-      = caseInsensitive<"data"> ~identPart
+      = ("data" | "DATA") ~identPart
     decS
-      = caseInsensitive<"dec$"> ~identPart
+      = ("dec$" | "DEC$") ~identPart
     def
-      = caseInsensitive<"def"> ~identPart
+      = ("def" | "DEF") ~identPart
     defint
-      = caseInsensitive<"defint"> ~identPart
+      = ("defint" | "DEFINT") ~identPart
     defreal
-      = caseInsensitive<"defreal"> ~identPart
+      = ("defreal" | "DEFREAL") ~identPart
     defstr
-      = caseInsensitive<"defstr"> ~identPart
+      = ("defstr" | "DEFSTR") ~identPart
     deg
-      = caseInsensitive<"deg"> ~identPart
+      = ("deg" | "DEG") ~identPart
     delete
-      = caseInsensitive<"delete"> ~identPart
+      = ("delete" | "DELETE") ~identPart
     derr
-      = caseInsensitive<"derr"> ~identPart
+      = ("derr" | "DERR") ~identPart
     di
-      = caseInsensitive<"di"> ~identPart
+      = ("di" | "DI") ~identPart
     dim
-      = caseInsensitive<"dim"> ~identPart
+      = ("dim" | "DIM") ~identPart
     draw
-      = caseInsensitive<"draw"> ~identPart
+      = ("draw" | "DRAW") ~identPart
     drawr
-      = caseInsensitive<"drawr"> ~identPart
+      = ("drawr" | "DRAWR") ~identPart
     edit
-      = caseInsensitive<"edit"> ~identPart
+      = ("edit" | "EDIT") ~identPart
     ei
-      = caseInsensitive<"ei"> ~identPart
+      = ("ei" | "EI") ~identPart
     else
-      = caseInsensitive<"else"> ~identPart
+      = ("else" | "ELSE") ~identPart
     endLit
-      = caseInsensitive<"end"> ~identPart
+      = ("end" | "END") ~identPart
     ent
-      = caseInsensitive<"ent"> ~identPart
+      = ("ent" | "ENT") ~identPart
     env
-      = caseInsensitive<"env"> ~identPart
+      = ("env" | "ENV") ~identPart
     eof
-      = caseInsensitive<"eof"> ~identPart
+      = ("eof" | "EOF") ~identPart
     erase
-      = caseInsensitive<"erase"> ~identPart
+      = ("erase" | "ERASE") ~identPart
     erl
-      = caseInsensitive<"erl"> ~identPart
+      = ("erl" | "ERL") ~identPart
     err
-      = caseInsensitive<"err"> ~identPart
+      = ("err" | "ERR") ~identPart
     error
-      = caseInsensitive<"error"> ~identPart
+      = ("error" | "ERROR") ~identPart
     every
-      = caseInsensitive<"every"> ~identPart
+      = ("every" | "EVERY") ~identPart
     exp
-      = caseInsensitive<"exp"> ~identPart
+      = ("exp" | "EXP") ~identPart
     fill
-      = caseInsensitive<"fill"> ~identPart
+      = ("fill" | "FILL") ~identPart
     fix
-      = caseInsensitive<"fix"> ~identPart
+      = ("fix" | "FIX") ~identPart
     fn
-      = caseInsensitive<"fn">  //~identPart
+      = ("fn" | "FN")  //~identPart
     for
-      = caseInsensitive<"for"> ~identPart
+      = ("for" | "FOR") ~identPart
     frame
-      = caseInsensitive<"frame"> ~identPart
+      = ("frame" | "FRAME") ~identPart
     fre
-      = caseInsensitive<"fre"> ~identPart
+      = ("fre" | "FRE") ~identPart
     gosub
-      = caseInsensitive<"gosub"> ~identPart
+      = ("gosub" | "GOSUB") ~identPart
     goto
-      = caseInsensitive<"goto"> ~identPart
+      = ("goto" | "GOTO") ~identPart
     graphics
-      = caseInsensitive<"graphics"> ~identPart
+      = ("graphics" | "GRAPHICS") ~identPart
     hexS
-      = caseInsensitive<"hex$"> ~identPart
+      = ("hex$" | "HEX$") ~identPart
     himem
-      = caseInsensitive<"himem"> ~identPart
+      = ("himem" | "HIMEM") ~identPart
     if
-      = caseInsensitive<"if"> ~identPart
+      = ("if" | "IF") ~identPart
     ink
-      = caseInsensitive<"ink"> ~identPart
+      = ("ink" | "INK") ~identPart
     inkey
-      = caseInsensitive<"inkey"> ~identPart
+      = ("inkey" | "INKEY") ~identPart
     inkeyS
-      = caseInsensitive<"inkey$"> ~identPart
+      = ("inkey$" | "INKEY$") ~identPart
     inp
-      = caseInsensitive<"inp"> ~identPart
+      = ("inp" | "INP") ~identPart
     input
-      = caseInsensitive<"input"> ~identPart
+      = ("input" | "INPUT") ~identPart
     instr
-      = caseInsensitive<"instr"> ~identPart
+      = ("instr" | "INSTR") ~identPart
     int
-      = caseInsensitive<"int"> ~identPart
+      = ("int" | "INT") ~identPart
     joy
-      = caseInsensitive<"joy"> ~identPart
+      = ("joy" | "JOY") ~identPart
     key
-      = caseInsensitive<"key"> ~identPart
+      = ("key" | "KEY") ~identPart
     leftS
-      = caseInsensitive<"left$"> ~identPart
+      = ("left$" | "LEFT$") ~identPart
     len
-      = caseInsensitive<"len"> ~identPart
+      = ("len" | "LEN") ~identPart
     let
-      = caseInsensitive<"let"> ~identPart
+      = ("let" | "LET") ~identPart
     line
-      = caseInsensitive<"line"> ~identPart
+      = ("line" | "LINE") ~identPart
     list
-      = caseInsensitive<"list"> ~identPart
+      = ("list" | "LIST") ~identPart
     load
-      = caseInsensitive<"load"> ~identPart
+      = ("load" | "LOAD") ~identPart
     locate
-      = caseInsensitive<"locate"> ~identPart
+      = ("locate" | "LOCATE") ~identPart
     log
-      = caseInsensitive<"log"> ~identPart
+      = ("log" | "LOG") ~identPart
     log10
-      = caseInsensitive<"log10"> ~identPart
+      = ("log10" | "LOG10") ~identPart
     lowerS
-      = caseInsensitive<"lower$"> ~identPart
+      = ("lower$" | "LOWER$") ~identPart
     mask
-      = caseInsensitive<"mask"> ~identPart
+      = ("mask" | "MASK") ~identPart
     max
-      = caseInsensitive<"max"> ~identPart
+      = ("max" | "MAX") ~identPart
     memory
-      = caseInsensitive<"memory"> ~identPart
+      = ("memory" | "MEMORY") ~identPart
     merge
-      = caseInsensitive<"merge"> ~identPart
+      = ("merge" | "MERGE") ~identPart
     midS
-      = caseInsensitive<"mid$"> ~identPart
+      = ("mid$" | "MID$") ~identPart
     min
-      = caseInsensitive<"min"> ~identPart
+      = ("min" | "MIN") ~identPart
     mod
-      = caseInsensitive<"mod"> ~identPart
+      = ("mod" | "MOD") ~identPart
     mode
-      = caseInsensitive<"mode"> ~identPart
+      = ("mode" | "MODE") ~identPart
     move
-      = caseInsensitive<"move"> ~identPart
+      = ("move" | "MOVE") ~identPart
     mover
-      = caseInsensitive<"mover"> ~identPart
+      = ("mover" | "MOVER") ~identPart
     new
-      = caseInsensitive<"new"> ~identPart
+      = ("new" | "NEW") ~identPart
     next
-      = caseInsensitive<"next"> ~identPart
+      = ("next" | "NEXT") ~identPart
     not
-      = caseInsensitive<"not"> ~identPart
+      = ("not" | "NOT") ~identPart
     on
-      = caseInsensitive<"on"> ~identPart
+      = ("on" | "ON") ~identPart
     openin
-      = caseInsensitive<"openin"> ~identPart
+      = ("openin" | "OPENIN") ~identPart
     openout
-      = caseInsensitive<"openout"> ~identPart
+      = ("openout" | "OPENOUT") ~identPart
     or
-      = caseInsensitive<"or"> ~identPart
+      = ("or" | "OR") ~identPart
     origin
-      = caseInsensitive<"origin"> ~identPart
+      = ("origin" | "ORIGIN") ~identPart
     out
-      = caseInsensitive<"out"> ~identPart
+      = ("out" | "OUT") ~identPart
     paper
-      = caseInsensitive<"paper"> ~identPart
+      = ("paper" | "PAPER") ~identPart
     peek
-      = caseInsensitive<"peek"> ~identPart
+      = ("peek" | "PEEK") ~identPart
     pen
-      = caseInsensitive<"pen"> ~identPart
+      = ("pen" | "PEN") ~identPart
     pi
-      = caseInsensitive<"pi"> ~identPart
+      = ("pi" | "PI") ~identPart
     plot
-      = caseInsensitive<"plot"> ~identPart
+      = ("plot" | "PLOT") ~identPart
     plotr
-      = caseInsensitive<"plotr"> ~identPart
+      = ("plotr" | "PLOTR") ~identPart
     poke
-      = caseInsensitive<"poke"> ~identPart
+      = ("poke" | "POKE") ~identPart
     pos
-      = caseInsensitive<"pos"> ~identPart
+      = ("pos" | "POS") ~identPart
     print
-      = caseInsensitive<"print"> ~identPart
+      = ("print" | "PRINT") ~identPart
     rad
-      = caseInsensitive<"rad"> ~identPart
+      = ("rad" | "RAD") ~identPart
     randomize
-      = caseInsensitive<"randomize"> ~identPart
+      = ("randomize" | "RANDOMIZE") ~identPart
     read
-      = caseInsensitive<"read"> ~identPart
+      = ("read" | "READ") ~identPart
     release
-      = caseInsensitive<"release"> ~identPart
+      = ("release" | "RELEASE") ~identPart
     rem
-      = caseInsensitive<"rem"> ~identPart
+      = ("rem" | "REM") ~identPart
     remain
-      = caseInsensitive<"remain"> ~identPart
+      = ("remain" | "REMAIN") ~identPart
     renum
-      = caseInsensitive<"renum"> ~identPart
+      = ("renum" | "RENUM") ~identPart
     restore
-      = caseInsensitive<"restore"> ~identPart
+      = ("restore" | "RESTORE") ~identPart
     resume
-      = caseInsensitive<"resume"> ~identPart
+      = ("resume" | "RESUME") ~identPart
     return
-      = caseInsensitive<"return"> ~identPart
+      = ("return" | "RETURN") ~identPart
     rightS
-      = caseInsensitive<"right$"> ~identPart
+      = ("right$" | "RIGHT$") ~identPart
     rnd
-      = caseInsensitive<"rnd"> ~identPart
+      = ("rnd" | "RND") ~identPart
     round
-      = caseInsensitive<"round"> ~identPart
+      = ("round" | "ROUND") ~identPart
     run
-      = caseInsensitive<"run"> ~identPart
+      = ("run" | "RUN") ~identPart
     save
-      = caseInsensitive<"save"> ~identPart
+      = ("save" | "SAVE") ~identPart
     sgn
-      = caseInsensitive<"sgn"> ~identPart
+      = ("sgn" | "SGN") ~identPart
     sin
-      = caseInsensitive<"sin"> ~identPart
+      = ("sin" | "SIN") ~identPart
     sound
-      = caseInsensitive<"sound"> ~identPart
+      = ("sound" | "SOUND") ~identPart
     spaceS
-      = caseInsensitive<"space$"> ~identPart
+      = ("space$" | "SPACE$") ~identPart
     spc
-      = caseInsensitive<"spc"> ~identPart
+      = ("spc" | "SPC") ~identPart
     speed
-      = caseInsensitive<"speed"> ~identPart
+      = ("speed" | "SPEED") ~identPart
     sq
-      = caseInsensitive<"sq"> ~identPart
+      = ("sq" | "SQ") ~identPart
     sqr
-      = caseInsensitive<"sqr"> ~identPart
+      = ("sqr" | "SQR") ~identPart
     step
-      = caseInsensitive<"step"> ~identPart
+      = ("step" | "STEP") ~identPart
     stop
-      = caseInsensitive<"stop"> ~identPart
+      = ("stop" | "STOP") ~identPart
     strS
-      = caseInsensitive<"str$"> ~identPart
+      = ("str$" | "STR$") ~identPart
     stringS
-      = caseInsensitive<"string$"> ~identPart
+      = ("string$" | "STRING$") ~identPart
     swap
-      = caseInsensitive<"swap"> ~identPart
+      = ("swap" | "SWAP") ~identPart
     symbol
-      = caseInsensitive<"symbol"> ~identPart
+      = ("symbol" | "SYMBOL") ~identPart
     tab
-      = caseInsensitive<"tab"> ~identPart
+      = ("tab" | "TAB") ~identPart
     tag
-      = caseInsensitive<"tag"> ~identPart
+      = ("tag" | "TAG") ~identPart
     tagoff
-      = caseInsensitive<"tagoff"> ~identPart
+      = ("tagoff" | "TAGOFF") ~identPart
     tan
-      = caseInsensitive<"tan"> ~identPart
+      = ("tan" | "TAN") ~identPart
     test
-      = caseInsensitive<"test"> ~identPart
+      = ("test" | "TEST") ~identPart
     testr
-      = caseInsensitive<"testr"> ~identPart
+      = ("testr" | "TESTR") ~identPart
     then
-      = caseInsensitive<"then"> ~identPart
+      = ("then" | "THEN") ~identPart
     time
-      = caseInsensitive<"time"> ~identPart
+      = ("time" | "TIME") ~identPart
     to
-      = caseInsensitive<"to"> ~identPart
+      = ("to" | "TO") ~identPart
     troff
-      = caseInsensitive<"troff"> ~identPart
+      = ("troff" | "TROFF") ~identPart
     tron
-      = caseInsensitive<"tron"> ~identPart
+      = ("tron" | "TRON") ~identPart
     unt
-      = caseInsensitive<"unt"> ~identPart
+      = ("unt" | "UNT") ~identPart
     upperS
-      = caseInsensitive<"upper$"> ~identPart
+      = ("upper$" | "UPPER$") ~identPart
     using
-      = caseInsensitive<"using"> ~identPart
+      = ("using" | "USING") ~identPart
     val
-      = caseInsensitive<"val"> ~identPart
+      = ("val" | "VAL") ~identPart
     vpos
-      = caseInsensitive<"vpos"> ~identPart
+      = ("vpos" | "VPOS") ~identPart
     wait
-      = caseInsensitive<"wait"> ~identPart
+      = ("wait" | "WAIT") ~identPart
     wend
-      = caseInsensitive<"wend"> ~identPart
+      = ("wend" | "WEND") ~identPart
     while
-      = caseInsensitive<"while"> ~identPart
+      = ("while" | "WHILE") ~identPart
     width
-      = caseInsensitive<"width"> ~identPart
+      = ("width" | "WIDTH") ~identPart
     window
-      = caseInsensitive<"window"> ~identPart
+      = ("window" | "WINDOW") ~identPart
     write
-      = caseInsensitive<"write"> ~identPart
+      = ("write" | "WRITE") ~identPart
     xor
-      = caseInsensitive<"xor"> ~identPart
+      = ("xor" | "XOR") ~identPart
     xpos
-      = caseInsensitive<"xpos"> ~identPart
+      = ("xpos" | "XPOS") ~identPart
     ypos
-      = caseInsensitive<"ypos"> ~identPart
+      = ("ypos" | "YPOS") ~identPart
     zone
-      = caseInsensitive<"zone"> ~identPart
+      = ("zone" | "ZONE") ~identPart
 
     ident (an identifier)
       = ~keyword identName
@@ -749,7 +749,7 @@ export const arithmetic = {
 
     identStart = letter
 
-    identPart = identStart | digit
+    identPart = letter | digit
 
     variable = ident
 
@@ -793,5 +793,340 @@ export const arithmetic = {
     eol (end of line)
       = "\\n"
     }
+  `,
+
+  strictGrammar:
+  `strictGrammar <: basicGrammar {
+    abs
+      := "ABS" ~identPart
+    after
+      := "AFTER" ~identPart
+    and
+      := "AND" ~identPart
+    asc
+      := "ASC" ~identPart
+    atn
+      := "ATN" ~identPart
+    auto
+      := "AUTO" ~identPart
+    binS
+      := "BIN$" ~identPart
+    border
+      := "BORDER" ~identPart
+    break
+      := "BREAK" ~identPart
+    call
+      := "CALL" ~identPart
+    cat
+      := "CAT" ~identPart
+    chain
+      := "CHAIN" ~identPart
+    chrS
+      := "CHR$" ~identPart
+    cint
+      := "CINT" ~identPart
+    clear
+      := "CLEAR" ~identPart
+    clg
+      := "CLG" ~identPart
+    closein
+      := "CLOSEIN" ~identPart
+    closeout
+      := "CLOSEOUT" ~identPart
+    cls
+      := "CLS" ~identPart
+    cont
+      := "CONT" ~identPart
+    copychrS
+      := "COPYCHR$" ~identPart
+    cos
+      := "COS" ~identPart
+    creal
+      := "CREAL" ~identPart
+    cursor
+      := "CURSOR" ~identPart
+    data
+      := "DATA" ~identPart
+    decS
+      := "DEC$" ~identPart
+    def
+      := "DEF" ~identPart
+    defint
+      := "DEFINT" ~identPart
+    defreal
+      := "DEFREAL" ~identPart
+    defstr
+      := "DEFSTR" ~identPart
+    deg
+      := "DEG" ~identPart
+    delete
+      := "DELETE" ~identPart
+    derr
+      := "DERR" ~identPart
+    di
+      := "DI" ~identPart
+    dim
+      := "DIM" ~identPart
+    draw
+      := "DRAW" ~identPart
+    drawr
+      := "DRAWR" ~identPart
+    edit
+      := "EDIT" ~identPart
+    ei
+      := "EI" ~identPart
+    else
+      := "ELSE" ~identPart
+    endLit
+      := "END" ~identPart
+    ent
+      := "ENT" ~identPart
+    env
+      := "ENV" ~identPart
+    eof
+      := "EOF" ~identPart
+    erase
+      := "ERASE" ~identPart
+    erl
+      := "ERL" ~identPart
+    err
+      := "ERR" ~identPart
+    error
+      := "ERROR" ~identPart
+    every
+      := "EVERY" ~identPart
+    exp
+      := "EXP" ~identPart
+    fill
+      := "FILL" ~identPart
+    fix
+      := "FIX" ~identPart
+    fn
+      := "FN"  //~identPart
+    for
+      := "FOR" ~identPart
+    frame
+      := "FRAME" ~identPart
+    fre
+      := "FRE" ~identPart
+    gosub
+      := "GOSUB" ~identPart
+    goto
+      := "GOTO" ~identPart
+    graphics
+      := "GRAPHICS" ~identPart
+    hexS
+      := "HEX$" ~identPart
+    himem
+      := "HIMEM" ~identPart
+    if
+      := "IF" ~identPart
+    ink
+      := "INK" ~identPart
+    inkey
+      := "INKEY" ~identPart
+    inkeyS
+      := "INKEY$" ~identPart
+    inp
+      := "INP" ~identPart
+    input
+      := "INPUT" ~identPart
+    instr
+      := "INSTR" ~identPart
+    int
+      := "INT" ~identPart
+    joy
+      := "JOY" ~identPart
+    key
+      := "KEY" ~identPart
+    leftS
+      := "LEFT$" ~identPart
+    len
+      := "LEN" ~identPart
+    let
+      := "LET" ~identPart
+    line
+      := "LINE" ~identPart
+    list
+      := "LIST" ~identPart
+    load
+      := "LOAD" ~identPart
+    locate
+      := "LOCATE" ~identPart
+    log
+      := "LOG" ~identPart
+    log10
+      := "LOG10" ~identPart
+    lowerS
+      := "LOWER$" ~identPart
+    mask
+      := "MASK" ~identPart
+    max
+      := "MAX" ~identPart
+    memory
+      := "MEMORY" ~identPart
+    merge
+      := "MERGE" ~identPart
+    midS
+      := "MID$" ~identPart
+    min
+      := "MIN" ~identPart
+    mod
+      := "MOD" ~identPart
+    mode
+      := "MODE" ~identPart
+    move
+      := "MOVE" ~identPart
+    mover
+      := "MOVER" ~identPart
+    new
+      := "NEW" ~identPart
+    next
+      := "NEXT" ~identPart
+    not
+      := "NOT" ~identPart
+    on
+      := "ON" ~identPart
+    openin
+      := "OPENIN" ~identPart
+    openout
+      := "OPENOUT" ~identPart
+    or
+      := "OR" ~identPart
+    origin
+      := "ORIGIN" ~identPart
+    out
+      := "OUT" ~identPart
+    paper
+      := "PAPER" ~identPart
+    peek
+      := "PEEK" ~identPart
+    pen
+      := "PEN" ~identPart
+    pi
+      := "PI" ~identPart
+    plot
+      := "PLOT" ~identPart
+    plotr
+      := "PLOTR" ~identPart
+    poke
+      := "POKE" ~identPart
+    pos
+      := "POS" ~identPart
+    print
+      := "PRINT" ~identPart
+    rad
+      := "RAD" ~identPart
+    randomize
+      := "RANDOMIZE" ~identPart
+    read
+      := "READ" ~identPart
+    release
+      := "RELEASE" ~identPart
+    rem
+      := "REM" ~identPart
+    remain
+      := "REMAIN" ~identPart
+    renum
+      := "RENUM" ~identPart
+    restore
+      := "RESTORE" ~identPart
+    resume
+      := "RESUME" ~identPart
+    return
+      := "RETURN" ~identPart
+    rightS
+      := "RIGHT$" ~identPart
+    rnd
+      := "RND" ~identPart
+    round
+      := "ROUND" ~identPart
+    run
+      := "RUN" ~identPart
+    save
+      := "SAVE" ~identPart
+    sgn
+      := "SGN" ~identPart
+    sin
+      := "SIN" ~identPart
+    sound
+      := "SOUND" ~identPart
+    spaceS
+      := "SPACE$" ~identPart
+    spc
+      := "SPC" ~identPart
+    speed
+      := "SPEED" ~identPart
+    sq
+      := "SQ" ~identPart
+    sqr
+      := "SQR" ~identPart
+    step
+      := "STEP" ~identPart
+    stop
+      := "STOP" ~identPart
+    strS
+      := "STR$" ~identPart
+    stringS
+      := "STRING$" ~identPart
+    swap
+      := "SWAP" ~identPart
+    symbol
+      := "SYMBOL" ~identPart
+    tab
+      := "TAB" ~identPart
+    tag
+      := "TAG" ~identPart
+    tagoff
+      := "TAGOFF" ~identPart
+    tan
+      := "TAN" ~identPart
+    test
+      := "TEST" ~identPart
+    testr
+      := "TESTR" ~identPart
+    then
+      := "THEN" ~identPart
+    time
+      := "TIME" ~identPart
+    to
+      := "TO" ~identPart
+    troff
+      := "TROFF" ~identPart
+    tron
+      := "TRON" ~identPart
+    unt
+      := "UNT" ~identPart
+    upperS
+      := "UPPER$" ~identPart
+    using
+      := "USING" ~identPart
+    val
+      := "VAL" ~identPart
+    vpos
+      := "VPOS" ~identPart
+    wait
+      := "WAIT" ~identPart
+    wend
+      := "WEND" ~identPart
+    while
+      := "WHILE" ~identPart
+    width
+      := "WIDTH" ~identPart
+    window
+      := "WINDOW" ~identPart
+    write
+      := "WRITE" ~identPart
+    xor
+      := "XOR" ~identPart
+    xpos
+      := "XPOS" ~identPart
+    ypos
+      := "YPOS" ~identPart
+    zone
+      := "ZONE" ~identPart
+
+    identStart := lower
+}
   `
 };

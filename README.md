@@ -35,9 +35,12 @@ LocoBasic Links:
    node dist/locobasic.js example=euler
    node dist/locobasic.js input='print "Hello!"'
    node dist/locobasic.js input="?3 + 5 * (2 - 8)"
+   node dist/locobasic.js grammar=strict...  [strict mode: keywords must be uppercase, variables must start with a lowercase character]
    ```
 
 ## LocoBasic Language Description
+
+keywords should be uppercase but all lowercase is also accepted (not-strict mode).
 
 ### Control Structures
 
@@ -58,6 +61,7 @@ LocoBasic Links:
 
 ### Variable Types
 
+- case does not matter (strict mode: must start with lower case)
 - Usually number
 - Use `$` to denote a string variable
   - Variable markers like `!` and `%` are **not supported**
@@ -97,8 +101,8 @@ LocoBasic Links:
   - Separated by commas ","
   - Strings must be quoted
   - Numbers (including hex and binary) are unquoted and can only be read numerically
-  - `DEC$(number, format)` Returns the number as a string formatted according to the specified pattern.
-    - Only "#" and "." are supported in the format. Example: "##.###"
+- `DEC$(number, format)` Returns the number as a string formatted according to the specified pattern.
+  - Only "#" and "." are supported in the format. Example: "##.###"
 - `DEF FNname[(arg1, ...)] = expression` Defines a function *FNname*
   - Can be used as `FNname()`
   - No space between *FN* and *name* is allowed
@@ -196,7 +200,7 @@ LocoBasic Links:
 - command line tool should output a stand alone running JS file for node
 - Do we want keywords all uppercase? And variables all lowercase?
   And maybe new features with capital letter? E.g. If...Then...Else...Endif on multiple lines?
-- Create syntax highlighting for BASIC for CodeMirror, maybe similar to the[amstradbasic-vscode](https://github.com/dfreniche/amstradbasic-vscode/blob/master/syntaxes/amstradbasic.tmLanguage.json) or [CPCReady](https://marketplace.visualstudio.com/items?itemName=CPCReady.basic-language-extension) extension
+- Create syntax highlighting for BASIC for CodeMirror, maybe similar to the [amstradbasic-vscode](https://github.com/dfreniche/amstradbasic-vscode/blob/master/syntaxes/amstradbasic.tmLanguage.json) or [CPCReady](https://marketplace.visualstudio.com/items?itemName=CPCReady.basic-language-extension) extension
 
 ### Done
 

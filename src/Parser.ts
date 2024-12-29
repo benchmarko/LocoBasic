@@ -1,16 +1,30 @@
 // Parser.ts
 
-import { type ActionDict, type Grammar, type Semantics, grammar } from "ohm-js";
+import { type ActionDict, type Grammar, type Namespace, type Semantics, grammar } from "ohm-js";
 
 export class Parser {
 	private readonly ohmGrammar: Grammar;
 	private readonly ohmSemantics: Semantics;
 
-	constructor(grammarString: string, semanticsMap: ActionDict<string | string[]>) {
-		this.ohmGrammar = grammar(grammarString);
+	constructor(grammarString: string, semanticsMap: ActionDict<string | string[]>, superParser?: Parser) {
+		if (superParser) {
+			const superGrammar = superParser.getOhmGrammar();
+			
+			const namespace: Namespace = {
+				basicGrammar: superGrammar
+			}
+			this.ohmGrammar = grammar(grammarString, namespace);
+		} else {
+			this.ohmGrammar = grammar(grammarString);
+		}
+
 		this.ohmSemantics = this.ohmGrammar
 			.createSemantics()
 			.addOperation<string | string[]>("eval", semanticsMap);
+	}
+
+	public getOhmGrammar() {
+		return this.ohmGrammar;
 	}
 
 	// Function to parse and evaluate an expression

@@ -39,6 +39,7 @@ export class Core implements ICore {
 		debug: 0,
 		example: "",
 		fileName: "",
+		grammar: "basic", // basic or strict
 		input: "",
 		debounceCompile: 800,
 		debounceExecute: 400
@@ -92,7 +93,13 @@ export class Core implements ICore {
 
 	public compileScript(script: string) {
 		if (!this.arithmeticParser) {
-			this.arithmeticParser = new Parser(arithmetic.grammar, this.semantics.getSemantics());
+			const semantics = this.semantics.getSemantics();
+			if (this.getConfig<string>("grammar") === "strict") {
+				const basicParser = new Parser(arithmetic.basicGrammar, semantics);
+				this.arithmeticParser = new Parser(arithmetic.strictGrammar, semantics, basicParser);
+			} else {
+				this.arithmeticParser = new Parser(arithmetic.basicGrammar, semantics);
+			}
 		}
 		this.semantics.resetParser();
 
