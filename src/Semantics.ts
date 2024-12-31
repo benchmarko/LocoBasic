@@ -91,6 +91,11 @@ function getCodeSnippets() {
 				resolve(isNum ? Number(input) : input);
 			}, 0));
 		},
+		mid$Assign: function mid$Assign(s: string, start: number, newString: string, len?: number) {
+			start -= 1;
+			len = Math.min(len ?? newString.length, newString.length, s.length - start);
+			return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
+		},
 		print: function print(...args: (string | number)[]) {
 			const _printNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
 			const output = args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg).join("");
@@ -548,6 +553,18 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			const length = e3.child(0)?.eval();
 			const lengthStr = length === undefined ? "" : `, ${length}`;
 			return `(${e1.eval()}).substr(${e2.eval()} - 1${lengthStr})`;
+		},
+
+		MidSAssign(_midLit: Node, _open: Node, ident: Node, _comma1: Node, e2: Node, _comma2: Node, e3: Node, _close: Node, _op: Node, e: Node) {
+			semanticsHelper.addInstr("mid$Assign");
+
+			const variableName = ident.sourceString;
+			const resolvedVariableName = semanticsHelper.getVariable(variableName);
+			const start = e2.eval();
+			const newString = e.eval();
+			const length = e3.child(0)?.eval(); // also undefined possible
+
+			return `${resolvedVariableName} = mid$Assign(${resolvedVariableName}, ${start}, ${newString}, ${length})`;
 		},
 
 		Min(_minLit: Node, _open: Node, args: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars

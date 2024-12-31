@@ -30,6 +30,7 @@ export const arithmetic = {
       | Gosub
       | If
       | Input
+      | MidSAssign
       | Mode
       | Next
       | On
@@ -157,6 +158,9 @@ export const arithmetic = {
 
     MidS
       = midS "(" StrExp "," NumExp ("," NumExp)? ")"
+
+    MidSAssign
+      = midS "(" strIdent "," NumExp ("," NumExp)? ")" "=" StrExp
 
     Min
       = min "(" NonemptyListOf<NumExp, ","> ")"
