@@ -1852,6 +1852,57 @@ RETURN
 `);
 
 cpcBasic.addItem("", `
+REM test1 - Test 1
+MODE 2
+DIM cx(5),cy(5),r(5),lc(5),s$(80,25)
+cx(1)=320:cy(1)=140
+r(1)=75:r(2)=40:r(3)=20:r(4)=12:r(5)=8
+'
+sa=120
+st=1
+GOSUB 800: 'init
+GOSUB 1000: 'compute
+GOSUB 2000: 'output
+STOP
+'
+'init
+800 FOR r1=1 TO 25
+FOR c1=1 TO 79
+s$(c1,r1)=" "
+NEXT
+NEXT
+RETURN
+'
+'compute
+1000 cx1=ROUND(cx(st)*80/640):cy1=ROUND((400-cy(st))*25/400):lc(st)=0
+s$(cx1,cy1)=chr$(48+st)
+IF st<5 THEN GOSUB 2000:FRAME: 'intermediate output
+IF st=5 THEN RETURN
+lc(st)=0
+start=1
+WHILE (lc(st) MOD 360)<>0 OR start=1
+start=0
+cx(st+1)=cx(st)+1.7*r(st)*SIN((sa+lc(st))*PI/180)
+cy(st+1)=cy(st)+1.7*r(st)*COS((sa+lc(st))*PI/180)
+st=st+1
+GOSUB 1000
+st=st-1
+lc(st)=lc(st)+2*sa
+WEND
+RETURN
+'
+'output
+2000 CLS
+FOR r1=1 TO 25
+FOR c1=1 TO 79
+PRINT s$(c1,r1);
+NEXT
+PRINT
+NEXT
+RETURN
+`);
+
+cpcBasic.addItem("", `
 10 REM testinpu - Test Input
 20 CLS
 30 ?"Name"
@@ -2524,11 +2575,17 @@ a$=MID$("string",3,2): IF a$<>"ri" THEN ERROR 33
 b$="abcd":a=2:a$=MID$(b$,a): IF a$<>"bcd" THEN ERROR 33
 b$="abcd":a=2:b=2:a$=MID$(b$,a,b): IF a$<>"bc" THEN ERROR 33
 ''PRINT"MID$ as assign"
+a$="abc":MID$(a$,2,2)="XY": IF a$<>"aXY" THEN ERROR 33
+a$="abc":MID$(a$,2)="XY": IF a$<>"aXY" THEN ERROR 33
+a$="abc":MID$(a$,2,1)="X": IF a$<>"aXc" THEN ERROR 33
+a$="abc":MID$(a$,2,2)="X": IF a$<>"aXc" THEN ERROR 33
+a$="abc":MID$(a$,2,1)="XY": IF a$<>"aXc" THEN ERROR 33
+a$="abc":MID$(a$,1)="XY": IF a$<>"XYc" THEN ERROR 33
 ''mid$(a$,2)=b$
 ''mid$(a$,2,2)=b$
 ''mid$(a$,b%,c!)="string"
-''a$="abcd":b$="xyz":MID$(a$,2)=b$:IF a$<>"axyz" OR b$<>"xyz" THEN ERROR 33
-''a$="abcd":b$="xyz":MID$(a$,2,2)=b$:IF a$<>"axyd" THEN ERROR 33
+a$="abcd":b$="xyz":MID$(a$,2)=b$:IF a$<>"axyz" OR b$<>"xyz" THEN ERROR 33
+a$="abcd":b$="xyz":MID$(a$,2,2)=b$:IF a$<>"axyd" THEN ERROR 33
 '
 PRINT "MIN, ";
 a=MIN(0): IF a<>0 THEN ERROR 33

@@ -104,6 +104,7 @@
       | Gosub
       | If
       | Input
+      | MidSAssign
       | Mode
       | Next
       | On
@@ -231,6 +232,9 @@
 
     MidS
       = midS "(" StrExp "," NumExp ("," NumExp)? ")"
+
+    MidSAssign
+      = midS "(" strIdent "," NumExp ("," NumExp)? ")" "=" StrExp
 
     Min
       = min "(" NonemptyListOf<NumExp, ","> ")"
@@ -1250,6 +1254,11 @@
                     resolve(isNum ? Number(input) : input);
                 }, 0));
             },
+            mid$Assign: function mid$Assign(s, start, newString, len) {
+                start -= 1;
+                len = Math.min(len !== null && len !== void 0 ? len : newString.length, newString.length, s.length - start);
+                return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
+            },
             print: function print(...args) {
                 const _printNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
                 const output = args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg).join("");
@@ -1624,6 +1633,16 @@
                 const length = (_a = e3.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
                 const lengthStr = length === undefined ? "" : `, ${length}`;
                 return `(${e1.eval()}).substr(${e2.eval()} - 1${lengthStr})`;
+            },
+            MidSAssign(_midLit, _open, ident, _comma1, e2, _comma2, e3, _close, _op, e) {
+                var _a;
+                semanticsHelper.addInstr("mid$Assign");
+                const variableName = ident.sourceString;
+                const resolvedVariableName = semanticsHelper.getVariable(variableName);
+                const start = e2.eval();
+                const newString = e.eval();
+                const length = (_a = e3.child(0)) === null || _a === void 0 ? void 0 : _a.eval(); // also undefined possible
+                return `${resolvedVariableName} = mid$Assign(${resolvedVariableName}, ${start}, ${newString}, ${length})`;
             },
             Min(_minLit, _open, args, _close) {
                 const argList = args.asIteration().children.map(c => c.eval()); // see also: ArrayArgs
