@@ -16,6 +16,7 @@ export declare class UI implements IUI {
     private setExampleSelect;
     private onExampleSelectChange;
     private setExampleSelectOptions;
+    private onHelpButtonClick;
     private static getErrorEventFn;
     private static describeError;
     checkSyntax(str: string): Promise<string>;

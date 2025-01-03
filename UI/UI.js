@@ -134,6 +134,9 @@ export class UI {
             exampleSelect.add(option);
         }
     }
+    onHelpButtonClick() {
+        window.open("https://github.com/benchmarko/LocoBasic/#readme");
+    }
     static getErrorEventFn() {
         if (UI.getErrorEvent) {
             return UI.getErrorEvent;
@@ -223,6 +226,8 @@ export class UI {
         executeButton.addEventListener('click', (event) => this.onExecuteButtonClick(event), false);
         const exampleSelect = window.document.getElementById("exampleSelect");
         exampleSelect.addEventListener('change', (event) => this.onExampleSelectChange(event));
+        const helpButton = window.document.getElementById("helpButton");
+        helpButton.addEventListener('click', () => this.onHelpButtonClick());
         const WinCodeMirror = window.CodeMirror;
         if (WinCodeMirror) {
             this.basicCm = WinCodeMirror.fromTextArea(basicText, {

@@ -394,8 +394,11 @@ function getSemantics(semanticsHelper) {
             const isNumStr = ident.includes("$") ? "" : ", true";
             return `${ident} = await input(${msgStr}${isNumStr})`;
         },
-        Instr(_instrLit, _open, e1, _comma, e2, _close) {
+        Instr_noLen(_instrLit, _open, e1, _comma, e2, _close) {
             return `((${e1.eval()}).indexOf(${e2.eval()}) + 1)`;
+        },
+        Instr_len(_instrLit, _open, len, _comma1, e1, _comma2, e2, _close) {
+            return `((${e1.eval()}).indexOf(${e2.eval()}, ${len.eval()} - 1) + 1)`;
         },
         Int(_intLit, _open, e, _close) {
             return `Math.floor(${e.eval()})`;
@@ -466,6 +469,10 @@ function getSemantics(semanticsHelper) {
             const paramStr = args.children[0].eval();
             return paramStr;
         },
+        PrintArg_usingNum(_printLit, format, _semi, num) {
+            semanticsHelper.addInstr("dec$");
+            return `dec$(${num.eval()}, ${format.eval()})`;
+        },
         Print(_printLit, args, semi) {
             semanticsHelper.addInstr("print");
             const argList = args.asIteration().children.map(c => c.eval());
@@ -535,9 +542,12 @@ function getSemantics(semanticsHelper) {
             // simplify if we know at compile time that arg is a positive number
             return arg >= 0 ? `(" " + String(${arg}))` : `String(${arg})`;
         },
-        StringS(_stringLit, _open, len, _commaLit, chr, _close) {
-            // Note: String$: we only support second parameter as string; we do not use charAt(0) to get just one char
+        StringS_str(_stringLit, _open, len, _commaLit, chr, _close) {
+            // Note: we do not use charAt(0) to get just one char
             return `(${chr.eval()}).repeat(${len.eval()})`;
+        },
+        StringS_num(_stringLit, _open, len, _commaLit, num, _close) {
+            return `String.fromCharCode(${num.eval()}).repeat(${len.eval()})`;
         },
         Tan(_tanLit, _open, e, _close) {
             return `Math.tan(${e.eval()})`;

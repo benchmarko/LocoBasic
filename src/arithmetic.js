@@ -132,7 +132,8 @@ export const arithmetic = {
       = input (string (";" | ","))? AnyIdent  // or NonemptyListOf?
 
     Instr
-      = instr "(" StrExp "," StrExp ")"
+      = instr "(" StrExp "," StrExp ")" -- noLen
+      | instr "(" NumExp "," StrExp "," StrExp ")" -- len
 
     Int
       = int "(" NumExp ")"
@@ -180,6 +181,7 @@ export const arithmetic = {
       = &StrCmpExp NumExp -- strCmp
       | StrExp
       | NumExp
+      | using StrExp ";" NumExp -- usingNum
 
     Print
       = (print | "?") ListOf<PrintArg,";"> (";")?
@@ -224,7 +226,8 @@ export const arithmetic = {
       = strS "(" NumExp ")"
 
     StringS
-      = stringS "(" NumExp "," StrExp ")"
+      = stringS "(" NumExp "," StrExp ")" -- str
+      | stringS "(" NumExp "," NumExp ")" -- num
 
     Tan
       = tan "(" NumExp ")"
