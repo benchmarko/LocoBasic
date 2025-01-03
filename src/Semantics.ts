@@ -516,8 +516,12 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `${ident} = await input(${msgStr}${isNumStr})`;
 		},
 
-		Instr(_instrLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		Instr_noLen(_instrLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `((${e1.eval()}).indexOf(${e2.eval()}) + 1)`;
+		},
+
+		Instr_len(_instrLit: Node, _open: Node, len: Node, _comma1: Node, e1: Node, _comma2: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `((${e1.eval()}).indexOf(${e2.eval()}, ${len.eval()} - 1) + 1)`;
 		},
 
 		Int(_intLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -606,6 +610,11 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return paramStr;
 		},
 
+		PrintArg_usingNum(_printLit: Node, format: Node, _semi: Node, num: Node) {
+			semanticsHelper.addInstr("dec$");
+			return `dec$(${num.eval()}, ${format.eval()})`;
+		},
+
 		Print(_printLit: Node, args: Node, semi: Node) {
 			semanticsHelper.addInstr("print");
 			const argList = args.asIteration().children.map(c => c.eval());
@@ -691,9 +700,13 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return arg >= 0 ? `(" " + String(${arg}))` : `String(${arg})`;
 		},
 
-		StringS(_stringLit: Node, _open: Node, len: Node, _commaLit: Node, chr: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			// Note: String$: we only support second parameter as string; we do not use charAt(0) to get just one char
+		StringS_str(_stringLit: Node, _open: Node, len: Node, _commaLit: Node, chr: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			// Note: we do not use charAt(0) to get just one char
 			return `(${chr.eval()}).repeat(${len.eval()})`;
+		},
+
+		StringS_num(_stringLit: Node, _open: Node, len: Node, _commaLit: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `String.fromCharCode(${num.eval()}).repeat(${len.eval()})`;
 		},
 
 		Tan(_tanLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars

@@ -327,7 +327,7 @@ REM printResult(): void
 3500 PRINT: PRINT "Throughput for all benchmarks (loops per sec):"
 PRINT "BMR ("; prgLanguage$; ") :";
 FOR bench = bench1 TO bench2
-PRINT DEC$(benchres(bench), "#######.###");" "; 'PRINT USING "#######.### "; benchres(bench);
+PRINT USING "#######.### "; benchres(bench);" ";
 NEXT bench
 PRINT
 RETURN
@@ -360,10 +360,10 @@ IF tDelta < 0 THEN tDelta = -tDelta
 REM  xx IF tEsti > tMeas THEN tDelta = tEsti - tMeas ELSE tDelta = tMeas - tEsti
 loopsPsec = 0
 IF tMeas > 0 THEN loopsPsec = (loops * 1000) / tMeas
-PRINT DEC$(loopsPsec, "######.###"); 'USING "######.###";loopsPsec;
-PRINT "/s (time="; DEC$(tMeas, "#####.###"); 'USING "#####.###"; tMeas;
-PRINT " ms, loops="; DEC$(loops, "#######"); 'USING "#######"; loops;
-PRINT ", delta="; DEC$(tDelta, "#####.###");: PRINT " ms)" 'USING "#####.###"; tDelta;: PRINT " ms)"
+PRINT USING "######.###";loopsPsec;
+PRINT "/s (time="; USING "#####.###"; tMeas;
+PRINT " ms, loops="; USING "#######"; loops;
+PRINT ", delta="; USING "#####.###"; tDelta;: PRINT " ms)"
 IF x <> -1 THEN GOSUB 4200 ELSE throughput = -1
 WEND
 RETURN
@@ -2458,7 +2458,7 @@ a$="key": b$="y": a=INSTR(a$,b$): IF a<>3 THEN ERROR 33
 ''a=instr(start,s$,find$)
 a=INSTR("Amstrad", "m"): IF a<>2 THEN ERROR 33
 a=INSTR("Amstrad", "sr"): IF a<>0 THEN ERROR 33
-''a=INSTR(6,"amstrad", "a"): IF a<>6 THEN ERROR 33
+a=INSTR(6,"amstrad", "a"): IF a<>6 THEN ERROR 33
 ''a=INSTR("", ""): IF a<>0 THEN ERROR 33
 ''a=INSTR(1, "", ""): IF a<>0 THEN ERROR 33
 ''a=INSTR(1, "ab", ""): IF a<>1 THEN ERROR 33
@@ -2710,7 +2710,7 @@ a$="test":PRINT a$;
 a$="test":b=2:PRINT a$;b;
 ''print#2,a$,b
 ''print using"####";ri;
-''print using "##.##";-1.2
+PRINT USING "##.##";-1.2
 ''print using"### ########";a,b
 ''print using "\\   \\";"n1";"n2";" xx3";
 ''print using "!";"a1";"a2";
@@ -2852,8 +2852,8 @@ IF s$<>" 1: 1 2 3  2: 1 2 3  3: 1 2 3  4: 1 2 3  5: 1 2 3 #" THEN ERROR 33
 '
 PRINT "STRING$"
 a$=STRING$(13,"*"): IF a$<>"*************" THEN ERROR 33
-''a$=string$(40,42)
 a=7:b$="x":a$=STRING$(a,b$): IF a$<>"xxxxxxx" THEN ERROR 33
+''a$=STRING$(10,42): IF a$<>"**********" THEN ERROR 33
 ''symbol 255,1,2,3,4,5,6,7,&x10110011
 ''symbol 255,1
 ''symbol after 255

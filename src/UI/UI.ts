@@ -168,6 +168,10 @@ export class UI implements IUI {
 		}
 	}
 
+	private onHelpButtonClick() {
+		window.open("https://github.com/benchmarko/LocoBasic/#readme");
+	}
+
 	private static getErrorEventFn() {
 		if (UI.getErrorEvent) {
 			return UI.getErrorEvent;
@@ -281,6 +285,9 @@ export class UI implements IUI {
 
 		const exampleSelect = window.document.getElementById("exampleSelect") as HTMLSelectElement;
 		exampleSelect.addEventListener('change', (event) => this.onExampleSelectChange(event));
+
+		const helpButton = window.document.getElementById("helpButton") as HTMLButtonElement;
+		helpButton.addEventListener('click', () => this.onHelpButtonClick());
 
 		const WinCodeMirror = window.CodeMirror;
 		if (WinCodeMirror) {

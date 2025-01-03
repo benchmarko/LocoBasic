@@ -100,19 +100,21 @@ keywords should be uppercase but all lowercase is also accepted (not-strict mode
   - same as *INT*
 - `CLS` Clears the output window
 - `COS(number)` Returns the cosine of *number* given in radians
+  - degrees with *DEG* are not supported
 - `DATA ["string", number,...]` Defines string or numerical data to be read by *READ*
   - Separated by commas ","
   - Strings must be quoted
   - Numbers (including hex and binary) are unquoted and can only be read numerically
 - `DEC$(number, format)` Returns the number as a string formatted according to the specified pattern.
-  - Only "#" and "." are supported in the format. Example: "##.###"
+  - Only "#" and "." are supported in the format (no extra characters). Example: "##.###"
+  - No overflow warning
 - `DEF FNname[(arg1, ...)] = expression` Defines a function *FNname*
   - Can be used as `FNname()`
   - No space between *FN* and *name* is allowed
   - If there are no arguments, do not use parentheses
 - `DIM arrayVariable(dim1 [, dim2, ...])` Initializes an array
   - Can be multi-dimensional
-  - Will be initialized to 0 or "" depending on the variable type
+  - Elements Will be initialized with 0 or "" depending on the variable type
 - `END` Ends execution
   - currently the same as `STOP`
 - `ERASE variable, [variable,...]` Erases array variables
@@ -129,8 +131,7 @@ keywords should be uppercase but all lowercase is also accepted (not-strict mode
 - `HEX$(number [, padding])` Converts a number to its hexadecimal representation
 - `IF expression THEN statements [ELSE statements]` control structure (in one line)
 - `INPUT [message;] variable` Prompts the user for input (string or numeric)
-- `INSTR(string1, string2)` Returns the first positon of *string2* in *string1*
-  - **Limitations:** No support for *start position* as first argument
+- `INSTR([startPos,] string1, string2)` Returns the first positon of *string2* in *string1*; starting at optional *StartPos*
 - `INT(number)` Returns the integer part of *number*
 - `LEFT$(string, number)` Returns *number* characters from the left in *string*
 - `LEN(string)` Returns rthe length of the string
@@ -151,7 +152,7 @@ keywords should be uppercase but all lowercase is also accepted (not-strict mode
 - `PRINT argument1 [; argument2; ...]` Outputs text and numbers
   - Arguments must be separated by `;`
   - Numbers are padded with trailinng space, and leading space for positive numbers
-  - **Limitations:** No support for `TAB()`, `SPC()`, or `USING` formatting. Use *DEC$()* to format numbers
+  - **Limitations:** No support for `TAB()`, `SPC()`; `USING` formatting only for one number as with `DEC$()`
 - `READ variable` Reads the next value from a `DATA` statement into *variable*
 - `REM` A comment until end of line, same as `
 - `RESTORE [line]` Resets the `DATA` pointer to a specified *line* number
@@ -171,8 +172,7 @@ keywords should be uppercase but all lowercase is also accepted (not-strict mode
   - Similar to *END*
 - `STR$(number)` Converts a number to its string representation
   - A positive number is passed with a space
-- `STRING$(number, character)` Returns *character* repeated *number* times
-  - requires the second parameter to be a character
+- `STRING$(number, character | ASCIInumber)` Returns *character* (or `CHR$(ASCIInumber)`) repeated *number* times
 - `TAN(number)` Returns the tangens of *number* given in radians
 - `TIME` Returns the current system time in 1/300 sec
 - `UPPER$(string)` Returns string in uppercase
@@ -182,25 +182,8 @@ keywords should be uppercase but all lowercase is also accepted (not-strict mode
 - `WHILE expression` Control structure: repeat until *expression* is false
 - `number XOR number` In Expresions: exclusive-OR
 
-### Misc
-
-- LocoBasic is mainly used for calculations. It runs in a Browser or on the command line with node.js
-- Control structures like IF...ELSE, and FOR and WHILE loops are directly converted to JaveScript
-- GOTO or ON GOTO are not suppoered. Use GOSUB, ON GOSUB instead. The GOSUB line is interpreted as subroutine start.
-- Subroutine style: Line from GOSUB \<line> starts a subroutine which is ended be a single RETURN in a line. Do not nest subroutines.
-- Variable types: No type checking: "$" to mark a string variable is optional; "!", "%" are not supported
-- No automatic rounding to integer for integer parameters
-- Computations are done with JavaScript precision; arity and precedence of operators follows Locomotive BASIC
-- Endless loops are not trapped, ypou may need to restart the browser window.
-- PRINT: output in the output window. Args can be separated by ";" or "," which behave the same. (No TAB(), SPC(), USING)
-- STOP, END: stop only on top level, not in subroutines (where they just return)
-- STRING$(): second parameter must be a character
-- DATA: strings must be quoted; numbers (including hex, bin) are unquoted and can only be read numerical
-
 ### TODO
 
-- `MID$` as assign? `a$="abcde": MID$(a$,3,2)="w": ?a$`
-- command line tool should output a stand alone running JS file for node
 - Do we want keywords all uppercase? And variables all lowercase?
   And maybe new features with capital letter? E.g. If...Then...Else...Endif on multiple lines?
 - Create syntax highlighting for BASIC for CodeMirror, maybe similar to the [amstradbasic-vscode](https://github.com/dfreniche/amstradbasic-vscode/blob/master/syntaxes/amstradbasic.tmLanguage.json) or [CPCReady](https://marketplace.visualstudio.com/items?itemName=CPCReady.basic-language-extension) extension
@@ -221,6 +204,8 @@ keywords should be uppercase but all lowercase is also accepted (not-strict mode
 - load examples.js separately (not as examples.ts in the package)
 - separate UI from core (UI not needed for node), maybe two packages
 - `ERASE var | strVar` sets `var=0; strVar=""`, not really needed, just to run such programs
+- `MID$` as assign? `a$="abcde": MID$(a$,3,2)="w": ?a$`
+- command line tool should output a stand alone running JS file for node
 
 ### Not implemented
 
