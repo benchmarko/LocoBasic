@@ -158,7 +158,7 @@ export class Core implements ICore {
 })({
 	_output: "",
 	cls: () => undefined,
-	print(...args: string[]) { this._output += args.join(''); },
+	print(...args) { this._output += args.join(''); if (this._output.endsWith("\\n")) { console.log(this._output); this._output = ""; } },
 	prompt: (msg) => { console.log(msg); return ""; }
 });`
 		return result;

@@ -29,13 +29,16 @@ LocoBasic Links:
    npm run build
    ```
 
-4. Run some of the following command to execute:
+4. Run some of the following commands to execute:
 
    ```bash
    node dist/locobasic.js example=euler
-   node dist/locobasic.js input='print "Hello!"'
+   node dist/locobasic.js input='PRINT "Hello!"'
    node dist/locobasic.js input="?3 + 5 * (2 - 8)"
    node dist/locobasic.js grammar=strict...  [strict mode: keywords must be uppercase, variables must start with a lowercase character]
+
+   npx ts-node dist/locobasic.js input='PRINT "Hello!"' action='compile' > hello1.js
+   node hello1.js
    ```
 
 ## LocoBasic Language Description

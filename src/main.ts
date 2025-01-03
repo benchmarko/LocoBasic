@@ -12,7 +12,7 @@
 // node dist/locobasic.js grammar="strict" input='a$="Bob":PRINT "Hello ";a$;"!"'
 //
 // - Example for compile only:
-// node dist/locobasic.js action='compile' input='print "Hello!";' > hello1.js
+// node dist/locobasic.js action='compile' input='PRINT "Hello!"' > hello1.js
 //   [Windows: Use node.exe when redirecting into a file; or npx ts-node ...]
 // node hello1.js
 // [When using async functions like FRAME or INPUT, redirect to hello1.mjs]
@@ -55,10 +55,16 @@ interface NodeFs {
 	};
 }
 
+interface NodeVm {
+	runInNewContext: (code: string) => string;
+}
+
 let fs: NodeFs;
 let modulePath: string;
 
-declare function require(name: string): NodeModule | NodeFs;
+let vm: NodeVm;
+
+declare function require(name: string): NodeModule | NodeFs | NodeVm;
 
 async function nodeReadFile(name: string): Promise<string> {
 	if (!fs) {
@@ -73,7 +79,12 @@ async function nodeReadFile(name: string): Promise<string> {
 			console.warn("nodeReadFile: Cannot determine module path");
 		}
 	}
-	return fs.promises.readFile(name, "utf8");
+	try {
+        return await fs.promises.readFile(name, "utf8");
+    } catch (error) {
+        console.error(`Error reading file ${name}:`, String(error));
+        throw error;
+    }
 }
 
 function fnParseArgs(args: string[], config: ConfigType) {
@@ -102,9 +113,43 @@ function keepRunning(fn: () => void, timeout: number) {
 	})();
 }
 
+
+// https://stackoverflow.com/questions/35252731/find-details-of-syntaxerror-thrown-by-javascript-new-function-constructor
+function nodeCheckSyntax(script: string) {
+	if (!vm) {
+		vm = require("vm") as NodeVm;
+	}
+
+	const describeError = (stack: string) => {
+		const match = stack.match(/^\D+(\d+)\n(.+\n( *)\^+)\n\n(SyntaxError.+)/);
+		if (!match) {
+			return ""; // parse successful?
+		}
+		const [, linenoPlusOne, caretString, colSpaces, message] = match;
+		const lineno = Number(linenoPlusOne) - 1;
+		const colno = colSpaces.length + 1;
+		return `Syntax error thrown at: Line ${lineno}, col: ${colno}\n${caretString}\n${message}`;
+	};
+	let output = "";
+
+	try {
+		const scriptInFrame = core.putScriptInFrame(script);
+		vm.runInNewContext(`throw new Error();\n${scriptInFrame}`);
+	}
+	catch (err) { // Error-like object
+		const stack = (err as Error).stack;
+		if (stack) {
+			output = describeError(stack);
+		}
+	}
+	return output;
+}
+
+
 function start(input: string) {
 	const actionConfig = core.getConfig<string>("action");
 	if (input !== "") {
+		core.setOnCheckSyntax((s: string) => Promise.resolve(nodeCheckSyntax(s)));
 		const compiledScript = actionConfig.includes("compile") ? core.compileScript(input) : input;
 
 		if (compiledScript.startsWith("ERROR:")) {
@@ -140,21 +185,21 @@ function main(config: ConfigType) {
 		}, 5000);
 	} else {
 		if (config.example) {
-			const examples = core.getExampleObject();
-			if (!Object.keys(examples).length) {
-				return keepRunning(async () => {
-					const jsFile = await nodeReadFile("./dist/examples/examples.js");
-					// ?? require('./examples/examples.js');
-					const fnScript = new Function("cpcBasic", jsFile);
-					fnScript({
-						addItem: addItem
-					});
+			return keepRunning(async () => {
+				const jsFile = await nodeReadFile("./dist/examples/examples.js");
+				const fnScript = new Function("cpcBasic", jsFile);
+				fnScript({
+					addItem: addItem
+				});
 
-					input = examples[config.example as string];
-					start(input);
-				}, 5000);
-			}
-			input += examples[config.example as string];
+				const exampleScript = core.getExample(config.example as string);
+				if (!exampleScript) {
+					console.error(`ERROR: Example '${config.example}' not found.`);
+					return;
+				}
+				input = exampleScript;
+				start(input);
+			}, 5000);
 		}
 		start(input);
 	}
