@@ -12,7 +12,7 @@
 // node dist/locobasic.js grammar="strict" input='a$="Bob":PRINT "Hello ";a$;"!"'
 //
 // - Example for compile only:
-// node dist/locobasic.js action='compile' input='print "Hello!";' > hello1.js
+// node dist/locobasic.js action='compile' input='PRINT "Hello!"' > hello1.js
 //   [Windows: Use node.exe when redirecting into a file; or npx ts-node ...]
 // node hello1.js
 // [When using async functions like FRAME or INPUT, redirect to hello1.mjs]
@@ -47,6 +47,7 @@ function addItem(key, input) {
 }
 let fs;
 let modulePath;
+let vm;
 function nodeReadFile(name) {
     return __awaiter(this, void 0, void 0, function* () {
         if (!fs) {
@@ -59,7 +60,13 @@ function nodeReadFile(name) {
                 console.warn("nodeReadFile: Cannot determine module path");
             }
         }
-        return fs.promises.readFile(name, "utf8");
+        try {
+            return yield fs.promises.readFile(name, "utf8");
+        }
+        catch (error) {
+            console.error(`Error reading file ${name}:`, String(error));
+            throw error;
+        }
     });
 }
 function fnParseArgs(args, config) {
@@ -85,9 +92,38 @@ function keepRunning(fn, timeout) {
         clearTimeout(timerId);
     }))();
 }
+// https://stackoverflow.com/questions/35252731/find-details-of-syntaxerror-thrown-by-javascript-new-function-constructor
+function nodeCheckSyntax(script) {
+    if (!vm) {
+        vm = require("vm");
+    }
+    const describeError = (stack) => {
+        const match = stack.match(/^\D+(\d+)\n(.+\n( *)\^+)\n\n(SyntaxError.+)/);
+        if (!match) {
+            return ""; // parse successful?
+        }
+        const [, linenoPlusOne, caretString, colSpaces, message] = match;
+        const lineno = Number(linenoPlusOne) - 1;
+        const colno = colSpaces.length + 1;
+        return `Syntax error thrown at: Line ${lineno}, col: ${colno}\n${caretString}\n${message}`;
+    };
+    let output = "";
+    try {
+        const scriptInFrame = core.putScriptInFrame(script);
+        vm.runInNewContext(`throw new Error();\n${scriptInFrame}`);
+    }
+    catch (err) { // Error-like object
+        const stack = err.stack;
+        if (stack) {
+            output = describeError(stack);
+        }
+    }
+    return output;
+}
 function start(input) {
     const actionConfig = core.getConfig("action");
     if (input !== "") {
+        core.setOnCheckSyntax((s) => Promise.resolve(nodeCheckSyntax(s)));
         const compiledScript = actionConfig.includes("compile") ? core.compileScript(input) : input;
         if (compiledScript.startsWith("ERROR:")) {
             console.error(compiledScript);
@@ -121,20 +157,20 @@ function main(config) {
     }
     else {
         if (config.example) {
-            const examples = core.getExampleObject();
-            if (!Object.keys(examples).length) {
-                return keepRunning(() => __awaiter(this, void 0, void 0, function* () {
-                    const jsFile = yield nodeReadFile("./dist/examples/examples.js");
-                    // ?? require('./examples/examples.js');
-                    const fnScript = new Function("cpcBasic", jsFile);
-                    fnScript({
-                        addItem: addItem
-                    });
-                    input = examples[config.example];
-                    start(input);
-                }), 5000);
-            }
-            input += examples[config.example];
+            return keepRunning(() => __awaiter(this, void 0, void 0, function* () {
+                const jsFile = yield nodeReadFile("./dist/examples/examples.js");
+                const fnScript = new Function("cpcBasic", jsFile);
+                fnScript({
+                    addItem: addItem
+                });
+                const exampleScript = core.getExample(config.example);
+                if (!exampleScript) {
+                    console.error(`ERROR: Example '${config.example}' not found.`);
+                    return;
+                }
+                input = exampleScript;
+                start(input);
+            }), 5000);
         }
         start(input);
     }

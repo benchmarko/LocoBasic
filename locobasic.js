@@ -2049,14 +2049,14 @@
     Semantics.reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;
 
     // core.ts
-    const vm = {
+    const vm$1 = {
         _output: "",
         _fnOnCls: (() => undefined),
         _fnOnPrint: ((_msg) => undefined), // eslint-disable-line @typescript-eslint/no-unused-vars
         _fnOnPrompt: ((_msg) => ""), // eslint-disable-line @typescript-eslint/no-unused-vars
         cls: () => {
-            vm._output = "";
-            vm._fnOnCls();
+            vm$1._output = "";
+            vm$1._fnOnCls();
         },
         print(...args) {
             this._output += args.join('');
@@ -2066,13 +2066,13 @@
             }
         },
         prompt: (msg) => {
-            return vm._fnOnPrompt(msg);
+            return vm$1._fnOnPrompt(msg);
         },
-        getOutput: () => vm._output,
-        setOutput: (str) => vm._output = str,
-        setOnCls: (fn) => vm._fnOnCls = fn,
-        setOnPrint: (fn) => vm._fnOnPrint = fn,
-        setOnPrompt: (fn) => vm._fnOnPrompt = fn
+        getOutput: () => vm$1._output,
+        setOutput: (str) => vm$1._output = str,
+        setOnCls: (fn) => vm$1._fnOnCls = fn,
+        setOnPrint: (fn) => vm$1._fnOnPrint = fn,
+        setOnPrompt: (fn) => vm$1._fnOnPrompt = fn
     };
     class Core {
         constructor() {
@@ -2088,7 +2088,7 @@
             };
             this.semantics = new Semantics();
             this.examples = {};
-            this.vm = vm;
+            this.vm = vm$1;
             this.onCheckSyntax = (_s) => __awaiter(this, void 0, void 0, function* () { return ""; }); // eslint-disable-line @typescript-eslint/no-unused-vars
         }
         getConfigObject() {
@@ -2107,13 +2107,13 @@
             return this.examples[name];
         }
         setOnCls(fn) {
-            vm.setOnCls(fn);
+            vm$1.setOnCls(fn);
         }
         setOnPrint(fn) {
-            vm.setOnPrint(fn);
+            vm$1.setOnPrint(fn);
         }
         setOnPrompt(fn) {
-            vm.setOnPrompt(fn);
+            vm$1.setOnPrompt(fn);
         }
         setOnCheckSyntax(fn) {
             this.onCheckSyntax = fn;
@@ -2140,7 +2140,7 @@
                 }
                 const syntaxError = yield this.onCheckSyntax(compiledScript);
                 if (syntaxError) {
-                    vm.cls();
+                    vm$1.cls();
                     return "ERROR: " + syntaxError;
                 }
                 try {
@@ -2181,7 +2181,7 @@
 })({
 	_output: "",
 	cls: () => undefined,
-	print(...args: string[]) { this._output += args.join(''); },
+	print(...args) { this._output += args.join(''); if (this._output.endsWith("\\n")) { console.log(this._output); this._output = ""; } },
 	prompt: (msg) => { console.log(msg); return ""; }
 });`;
             return result;
@@ -2202,7 +2202,7 @@
     // node dist/locobasic.js grammar="strict" input='a$="Bob":PRINT "Hello ";a$;"!"'
     //
     // - Example for compile only:
-    // node dist/locobasic.js action='compile' input='print "Hello!";' > hello1.js
+    // node dist/locobasic.js action='compile' input='PRINT "Hello!"' > hello1.js
     //   [Windows: Use node.exe when redirecting into a file; or npx ts-node ...]
     // node hello1.js
     // [When using async functions like FRAME or INPUT, redirect to hello1.mjs]
@@ -2227,6 +2227,7 @@
     }
     let fs;
     let modulePath;
+    let vm;
     function nodeReadFile(name) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!fs) {
@@ -2239,7 +2240,13 @@
                     console.warn("nodeReadFile: Cannot determine module path");
                 }
             }
-            return fs.promises.readFile(name, "utf8");
+            try {
+                return yield fs.promises.readFile(name, "utf8");
+            }
+            catch (error) {
+                console.error(`Error reading file ${name}:`, String(error));
+                throw error;
+            }
         });
     }
     function fnParseArgs(args, config) {
@@ -2265,9 +2272,38 @@
             clearTimeout(timerId);
         }))();
     }
+    // https://stackoverflow.com/questions/35252731/find-details-of-syntaxerror-thrown-by-javascript-new-function-constructor
+    function nodeCheckSyntax(script) {
+        if (!vm) {
+            vm = require("vm");
+        }
+        const describeError = (stack) => {
+            const match = stack.match(/^\D+(\d+)\n(.+\n( *)\^+)\n\n(SyntaxError.+)/);
+            if (!match) {
+                return ""; // parse successful?
+            }
+            const [, linenoPlusOne, caretString, colSpaces, message] = match;
+            const lineno = Number(linenoPlusOne) - 1;
+            const colno = colSpaces.length + 1;
+            return `Syntax error thrown at: Line ${lineno}, col: ${colno}\n${caretString}\n${message}`;
+        };
+        let output = "";
+        try {
+            const scriptInFrame = core.putScriptInFrame(script);
+            vm.runInNewContext(`throw new Error();\n${scriptInFrame}`);
+        }
+        catch (err) { // Error-like object
+            const stack = err.stack;
+            if (stack) {
+                output = describeError(stack);
+            }
+        }
+        return output;
+    }
     function start(input) {
         const actionConfig = core.getConfig("action");
         if (input !== "") {
+            core.setOnCheckSyntax((s) => Promise.resolve(nodeCheckSyntax(s)));
             const compiledScript = actionConfig.includes("compile") ? core.compileScript(input) : input;
             if (compiledScript.startsWith("ERROR:")) {
                 console.error(compiledScript);
@@ -2301,20 +2337,20 @@
         }
         else {
             if (config.example) {
-                const examples = core.getExampleObject();
-                if (!Object.keys(examples).length) {
-                    return keepRunning(() => __awaiter(this, void 0, void 0, function* () {
-                        const jsFile = yield nodeReadFile("./dist/examples/examples.js");
-                        // ?? require('./examples/examples.js');
-                        const fnScript = new Function("cpcBasic", jsFile);
-                        fnScript({
-                            addItem: addItem
-                        });
-                        input = examples[config.example];
-                        start(input);
-                    }), 5000);
-                }
-                input += examples[config.example];
+                return keepRunning(() => __awaiter(this, void 0, void 0, function* () {
+                    const jsFile = yield nodeReadFile("./dist/examples/examples.js");
+                    const fnScript = new Function("cpcBasic", jsFile);
+                    fnScript({
+                        addItem: addItem
+                    });
+                    const exampleScript = core.getExample(config.example);
+                    if (!exampleScript) {
+                        console.error(`ERROR: Example '${config.example}' not found.`);
+                        return;
+                    }
+                    input = exampleScript;
+                    start(input);
+                }), 5000);
             }
             start(input);
         }
