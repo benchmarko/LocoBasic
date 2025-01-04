@@ -1,12 +1,11 @@
 {
   "name": "locobasic",
-  "version": "0.1.26",
+  "version": "0.1.27",
   "description": "# LocoBasic - Loco BASIC",
   "type": "commonjs",
   "scripts": {
     "lint": "eslint src --ext .ts",
     "clean": "rm -rf dist/src/* && rm dist/*.js && rm dist/*.js.map && rm dist/*.ts && rm dist/*.ts.map",
-    "copyXXX": "cp src/*.html dist/ && mkdirp -p dist/src && cp -r src/*.ts dist/src",
     "build": "tsc --build && npx rollup -c",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"

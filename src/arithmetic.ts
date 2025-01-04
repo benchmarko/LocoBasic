@@ -21,6 +21,7 @@ export const arithmetic = {
       | Cls
       | Data
       | Def
+      | Deg
       | Dim
       | End
       | Erase
@@ -35,6 +36,7 @@ export const arithmetic = {
       | Next
       | On
       | Print
+      | Rad
       | Read
       | Rem
       | Restore
@@ -98,6 +100,9 @@ export const arithmetic = {
     DefAssign
       = ident DefArgs? "=" NumExp
       | strIdent DefArgs? "=" StrExp
+
+    Deg
+      = deg
 
     Dim
       = dim NonemptyListOf<DimArrayIdent, ",">
@@ -186,6 +191,9 @@ export const arithmetic = {
 
     Print
       = (print | "?") ListOf<PrintArg,";"> (";")?
+
+    Rad
+      = rad
 
     Read
       = read NonemptyListOf<AnyIdent, ",">

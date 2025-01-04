@@ -39,7 +39,9 @@ interface SemanticsHelper {
     getVariables(): string[],
     incrementLineIndex(): number,
     nextIndentAdd(num: number): void,
-    setIndent(indent: number): void
+    setIndent(indent: number): void,
+	setDeg(deg: boolean): void,
+	getDeg(): boolean
 }
 
 function getCodeSnippets() {
@@ -307,7 +309,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		Atn(_atnLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.atan(${e.eval()})`;
+			return semanticsHelper.getDeg() ? `(Math.atan(${e.eval()}) * 180 / Math.PI)` : `Math.atan(${e.eval()})`;
 		},
 
 		BinS(_binLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -325,7 +327,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		Cos(_cosLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.cos(${e.eval()})`;
+			return semanticsHelper.getDeg() ? `Math.cos((${e.eval()}) * Math.PI / 180)` : `Math.cos(${e.eval()})`;
 		},
 
 		Cint(_cintLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -376,6 +378,11 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			const fnIdent = semanticsHelper.getVariable(`fn${ident.sourceString}`);
 
 			return `${fnIdent} = ${argStr} => ${e.eval()}`;
+		},
+
+		Deg(_degLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.setDeg(true);
+			return `/* deg active */`;
 		},
 
 		Dim(_dimLit: Node, arrayIdents: Node) {
@@ -627,6 +634,11 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `print(${paramStr}${newlineStr})`;
 		},
 
+		Rad(_radLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.setDeg(false);
+			return `/* rad active */`;
+		},
+
 		Read(_readlit: Node, args: Node) {
 			semanticsHelper.addInstr("read");
 			const argList = args.asIteration().children.map(c => c.eval());
@@ -651,7 +663,9 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		RightS(_rightLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `(${e1.eval()}).slice(-(${e2.eval()}))`;
+			const str = e1.eval();
+			const len = e2.eval();
+			return `(${str}).substring((${str}).length - (${len}))`;
 		},
 
 		Rnd(_rndLit: Node, _open: Node, _e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -674,7 +688,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		Sin(_sinLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.sin(${e.eval()})`;
+			return semanticsHelper.getDeg() ? `Math.sin((${e.eval()}) * Math.PI / 180)` : `Math.sin(${e.eval()})`;
 		},
 
 		SpaceS(_stringLit: Node, _open: Node, len: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -710,7 +724,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		Tan(_tanLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.tan(${e.eval()})`;
+			return semanticsHelper.getDeg() ? `Math.tan((${e.eval()}) * Math.PI / 180)` : `Math.tan(${e.eval()})`;
 		},
 
 		Time(_timeLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -921,6 +935,8 @@ export class Semantics {
 
 	private readonly instrMap: Record<string, number> = {};
 
+	private isDeg = false;
+
 	private addIndent(num: number) {
 		if (num < 0) {
 			this.applyNextIndent();
@@ -1043,6 +1059,7 @@ export class Semantics {
 		this.dataIndex = 0;
 		Semantics.deleteAllItems(this.restoreMap);
 		Semantics.deleteAllItems(this.instrMap);
+		this.isDeg = false;
 	}
 
 	public getSemantics() {
@@ -1066,7 +1083,9 @@ export class Semantics {
 			getVariables: () => this.getVariables(),
 			incrementLineIndex: () => this.incrementLineIndex(),
 			nextIndentAdd: (num: number) => this.nextIndentAdd(num),
-			setIndent: (indent: number) => this.setIndent(indent)
+			setIndent: (indent: number) => this.setIndent(indent),
+			setDeg: (isDeg: boolean) => this.isDeg = isDeg,
+			getDeg: () => this.isDeg
 		};
 		return getSemantics(semanticsHelper);
 	}
