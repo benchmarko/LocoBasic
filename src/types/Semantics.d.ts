@@ -11,6 +11,7 @@ export declare class Semantics {
     private readonly restoreMap;
     private static readonly reJsKeyword;
     private readonly instrMap;
+    private isDeg;
     private addIndent;
     private setIndent;
     private getIndent;

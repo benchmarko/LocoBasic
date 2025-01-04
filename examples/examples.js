@@ -1324,10 +1324,14 @@ digits(0) = 1
 ' e = sum_{n=0}^{infty} frac{1}{n!}
 ' [check also this for an implementation in JavaScript: https://www.i4cy.com/euler/]
 iterationsFor1000=450
-FOR n = iterationsFor1000*d/1000 TO 1 STEP -1
-  IF digits(0) > 0 THEN GOSUB 300
+iterations=iterationsFor1000*d/1000
+iterationsDiv10=iterations\\10
+PRINT "Progress: ";
+FOR n = iterations TO 1 STEP -1
+  IF digits(0) > 0 THEN GOSUB 300: IF n MOD iterationsDiv10 = 0 THEN PRINT n / iterationsDiv10;
   digits(0) = digits(0) + 1
 NEXT
+PRINT
 '
 ' Round the result
 digits(maxnum+1) = digits(maxnum+1) + INT(digits(maxnum+2) / base + 0.5)
@@ -1853,6 +1857,7 @@ RETURN
 
 cpcBasic.addItem("", `
 REM test1 - Test 1
+DEG
 MODE 2
 DIM cx(5),cy(5),r(5),lc(5),s$(80,25)
 cx(1)=320:cy(1)=140
@@ -1882,8 +1887,8 @@ lc(st)=0
 start=1
 WHILE (lc(st) MOD 360)<>0 OR start=1
 start=0
-cx(st+1)=cx(st)+1.7*r(st)*SIN((sa+lc(st))*PI/180)
-cy(st+1)=cy(st)+1.7*r(st)*COS((sa+lc(st))*PI/180)
+cx(st+1)=cx(st)+1.7*r(st)*SIN(sa+lc(st))
+cy(st+1)=cy(st)+1.7*r(st)*COS(sa+lc(st))
 st=st+1
 GOSUB 1000
 st=st-1
@@ -2032,15 +2037,20 @@ DIM a(2), a$(2)
 a(2)=1.4:IF a(2)<>1.4 THEN ERROR 33
 a(2)=1.5:IF a(2)<>1.5 THEN ERROR 33
 a$(2)="1.4":IF a$(2)<>"1.4" THEN ERROR 33
+ERASE a,a$
 DIM a$(2):a$(2)="1.4"
 ''a$[2]="1.4"
+ERASE a$
 DIM a(9),b(1,2):a(9)=b(1,2)
+ERASE a,b
 ''a[9]=b[1,2]
 DIM a(10,10,10),b(10,9):a(10,10,10)=b(10,9)
+ERASE a,b
 DIM a(2),b(2,2,1)
 b(2,2,1)=4:a(ROUND(1.4))=b(ROUND(1.5),ROUND(2.4),1): IF a(1)<>4 THEN ERROR 33
-x=1:b(1,2,1)=5:a(x+1)=b(x,x*2,ROUND(x-0.5)): IF a(x+1)<>5 THEN ERROR 33
-x=1:b(1,2,0)=6:a(x-1)=b(INT(x),x*2,(x-1+&C) MOD 2): IF a(x-1)<>6 THEN ERROR 33
+i=1:b(1,2,1)=5:a(i+1)=b(i,i*2,ROUND(i-0.5)): IF a(i+1)<>5 THEN ERROR 33
+i=1:b(1,2,0)=6:a(i-1)=b(INT(i),i*2,(i-1+&C) MOD 2): IF a(i-1)<>6 THEN ERROR 33
+ERASE a,b
 '
 PRINT "Expressions, Operators +-*..."
 a=1+2+3: IF a<>6 THEN ERROR 33
@@ -2062,7 +2072,7 @@ a=1=1=-1:IF a<>-1 THEN ERROR 33
 ''a=+++++++++---9
 a=(1=0)
 a=(1>0)*(0<1)
-a=(b>=c)*(d<=e)
+a=(b>=c)*(d<=i)
 a=1=1=-1
 a=1>=1>1
 a=(29+1) MOD 10=0 AND 5=7 :' num num
@@ -2109,6 +2119,11 @@ PRINT "ATN; ";
 a=ATN(0):IF a<>0 THEN ERROR 33
 a=INT(ATN(1)*100000000)/100000000:IF a<>0.78539816 THEN ERROR 33
 a=ATN(2.3)
+DEG
+a=ATN(0):IF a<>0 THEN ERROR 33
+a=ATN(1):IF ROUND(a,7)<>45 THEN ERROR 33
+RAD
+'
 ''auto
 ''auto 100
 '
@@ -2163,8 +2178,13 @@ a=CINT(2.3): IF a<>2 THEN ERROR 33
 '
 PRINT "COS, ";
 a=COS(0): IF a<>1 THEN ERROR 33
-a=COS(PI): IF a<>-1 THEN ERROR 33
+a=COS(PI): IF ROUND(a,7)<>-1 THEN ERROR 33
 a=COS(2.3)
+DEG
+a=COS(180): IF ROUND(a,7)<>-1 THEN ERROR 33
+a=COS(180+360): IF ROUND(a,7)<>-1 THEN ERROR 33
+a=COS(0): IF a<>1 THEN ERROR 33
+RAD
 '
 ''a=creal(2.3+a)
 ''cursor
@@ -2224,16 +2244,16 @@ DEF FNclk$(a$,b$)=a$+b$
 ''def fncls1(x+1)=1
 ''def fx=1
 ''def fx y=1
-DEF FNf1(x)=x*x
+DEF FNf1(b)=b*b
 a=FNf1(2.5):IF a<>6.25 THEN ERROR 33
 ''a=FN f1(2.5):IF a<>6.25 THEN ERROR 33
-DEF FN f1$(x$)=x$+x$
+DEF FN f1$(b$)=b$+b$
 a$=FNf1$("a"):IF a$<>"aa" THEN ERROR 33
 ''a$=FN f1$("a"):IF a$<>"aa" THEN ERROR 33
 DEF FNf2=2.5*2.5
 a=FNf2:IF a<>6.25 THEN ERROR 33
 ''a=FNf2(): 'this should not work
-DEF FNf1(o,v,t)=o+v+t
+DEF FNf1(a,b,c)=a+b+c
 a=FNf1(1,2,3):IF a<>6 THEN ERROR 33
 '
 ''defint a
@@ -2286,14 +2306,18 @@ PRINT "DIM, ";
 DIM a(1)
 ''dim a!(1)
 ''dim a%(1)
+ERASE a
 DIM a$(1)
 DIM b(2,13)
-x=1:DIM a(2,13+7),b$(3),c(2*x,7)
+ERASE a$,b
+i=1:DIM a(2,13+7),b$(3),c(2*i,7)
+ERASE a,b$,c
 ''dim a[2,13)
 ''DIM a(4):FOR i=0 TO 4:a(i)=i:NEXT
 ''a=0:FOR i=0 TO 4:a=a+a(i):NEXT:IF a<>10 THEN ERROR 33
 DIM a(4):FOR i=0 TO 4:a(i)=i:NEXT
-x=0:FOR i=0 TO 4:x=x+a(i):NEXT:IF x<>10 THEN ERROR 33
+b=0:FOR i=0 TO 4:b=b+a(i):NEXT:IF b<>10 THEN ERROR 33
+ERASE a
 '
 ''draw 10,20
 ''draw -10,-20,7
@@ -2323,9 +2347,9 @@ x=0:FOR i=0 TO 4:x=x+a(i):NEXT:IF x<>10 THEN ERROR 33
 ''a=eof
 '
 PRINT "ERASE, ";
-DIM e(1):ERASE e
-DIM e$(1):ERASE e$
-DIM e(1),e$(1):ERASE e,e$
+DIM a(1):ERASE a
+DIM a$(1):ERASE a$
+DIM a(1),a$(1):ERASE a,a$
 ''1 erase 5
 '
 ''a=erl
@@ -2350,14 +2374,14 @@ a=FIX(-2.3): IF a<>-2 THEN ERROR 33
 a=FIX(123.466): IF a<>123 THEN ERROR 33
 '
 PRINT "FN, ";
-x=FNclk
-x=FNclk(a)
-x=FNclk(a,b)
-x$=FNclk$(a$,b$)
-''x=fn clk
-''x=fn clk(a)
-''x=fn clk(a,b)
-''x$=fn clk$(a$,b$)
+DEF FNclk=1: c=FNclk
+DEF FNclk(a)=a: c=FNclk(a)
+DEF FNclk(a,b)=a+b: c=FNclk(a,b)
+DEF FNclk$(a$,b$)=a$+b$: c$=FNclk$(a$,b$)
+''c=fn clk
+''c=fn clk(a)
+''c=fn clk(a,b)
+''c$=fn clk$(a$,b$)
 '
 PRINT "FOR, ";
 FOR a=1 TO 10:NEXT
@@ -2368,14 +2392,14 @@ b=1:FOR a=5+b TO -4 STEP -2.3:NEXT
 b=1:c=5:d=2:FOR a=b TO c STEP d:NEXT
 b=1:c=3:FOR a=b TO c:NEXT
 FOR a=1 TO 1 STEP 0+1:NEXT
-b=1:c=3:s=1:FOR a=b TO c STEP s:NEXT
+b=1:c=3:i=1:FOR a=b TO c STEP i:NEXT
 FOR a=1 TO 2 STEP 0+1:NEXT
 FOR a=-1 TO -2 STEP 0-1:NEXT
 FOR a=&A000 TO &A00B STEP &X101:NEXT
 FOR a=2 TO 1 STEP -&1:NEXT
 FOR a=2 TO 1 STEP -&X1:NEXT
 ''1 for a$=1 to 2: next
-FOR abc=1 TO 10 STEP 3:NEXT abc
+FOR next1=1 TO 10 STEP 3:NEXT next1
 ''for a=b to c step s:a=0:next
 '
 PRINT "FRAME, ";
@@ -2455,7 +2479,7 @@ PRINT "INSTR, ";
 ''a=INSTR("", ""): IF a<>0 THEN ERROR 33
 a=INSTR("key","ey"): IF a<>2 THEN ERROR 33
 a$="key": b$="y": a=INSTR(a$,b$): IF a<>3 THEN ERROR 33
-''a=instr(start,s$,find$)
+''a=instr(start,a$,b$)
 a=INSTR("Amstrad", "m"): IF a<>2 THEN ERROR 33
 a=INSTR("Amstrad", "sr"): IF a<>0 THEN ERROR 33
 a=INSTR(6,"amstrad", "a"): IF a<>6 THEN ERROR 33
@@ -2645,12 +2669,12 @@ b=-7:a=NOT -b: IF a<>-8 THEN ERROR 33
 '
 PRINT "ON GOSUB, ";
 ON 1 GOSUB 10010
-x=1:ON x GOSUB 10010,10020 '20 rem
-x=2:ON x+1 GOSUB 10010,10020,10020 '20 rem
+i=1:ON i GOSUB 10010,10020 '20 rem
+i=2:ON i+1 GOSUB 10010,10020,10020 '20 rem
 '
 ''10 on 1 goto 10
-''10 on x goto 10,20 '20 rem
-''10 on x+1 goto 10,20,20 '20 rem
+''10 on i goto 10,20 '20 rem
+''10 on i+1 goto 10,20,20 '20 rem
 ''10 on sq(1) gosub 10010
 ''10 on sq(channel) gosub 10010
 ''openin "file"
@@ -2732,7 +2756,7 @@ DATA "a1", 1, "a2"
 DATA 2, "c1"
 READ a$: IF a$<>"a1" THEN ERROR 33
 READ b: IF b<>1 THEN ERROR 33
-READ a$,b,c$: IF a$<>"a2" OR b<>2 OR c$<>"c1" THEN ERROR 33
+READ a$,b,b$: IF a$<>"a2" OR b<>2 OR b$<>"c1" THEN ERROR 33
 '
 ''release 1
 ''release n+1
@@ -2761,7 +2785,7 @@ RESTORE 10
 ''return
 '
 PRINT "RIGHT$, ";
-a$=RIGHT$("abc",0): IF a$<>"abc" THEN ERROR 33
+a$=RIGHT$("abc",0): IF a$<>"" THEN ERROR 33
 a$=RIGHT$("abc",1): IF a$<>"c" THEN ERROR 33
 a$=RIGHT$("abc",2): IF a$<>"bc" THEN ERROR 33
 a$=RIGHT$("abc",4): IF a$<>"abc" THEN ERROR 33
@@ -2817,7 +2841,14 @@ a=SGN(0): IF a<>0 THEN ERROR 33
 a=SGN(-5): IF a<>-1 THEN ERROR 33
 '
 PRINT "SIN, ";
+a=SIN(0): IF a<>0 THEN ERROR 33
+a=SIN(PI/2): IF ROUND(a,8)<>1 THEN ERROR 33
 a=SIN(2.3)
+DEG
+a=SIN(0): IF a<>0 THEN ERROR 33
+a=SIN(90): IF ROUND(a,8)<>1 THEN ERROR 33
+RAD
+'
 ''sound 1,100
 ''sound 1,100,400
 ''sound 1,100,400,15
@@ -2847,8 +2878,8 @@ a=SQR(9): IF a<>3 THEN ERROR 33
 PRINT "STR$, ";
 a$=STR$(123): IF a$<>" 123" THEN ERROR 33
 a$=STR$(a+b)
-a=1: s$="": WHILE a<=5: s$=s$+STR$(a)+":": a=a+1: b=0: WHILE b<3: b=b+1: s$=s$+STR$(b): WEND: s$=s$+" ": WEND: s$=s$+"#"
-IF s$<>" 1: 1 2 3  2: 1 2 3  3: 1 2 3  4: 1 2 3  5: 1 2 3 #" THEN ERROR 33
+a=1: a$="": WHILE a<=5: a$=a$+STR$(a)+":": a=a+1: b=0: WHILE b<3: b=b+1: a$=a$+STR$(b): WEND: a$=a$+" ": WEND: a$=a$+"#"
+IF a$<>" 1: 1 2 3  2: 1 2 3  3: 1 2 3  4: 1 2 3  5: 1 2 3 #" THEN ERROR 33
 '
 PRINT "STRING$"
 a$=STRING$(13,"*"): IF a$<>"*************" THEN ERROR 33
@@ -2866,8 +2897,14 @@ a=7:b$="x":a$=STRING$(a,b$): IF a$<>"xxxxxxx" THEN ERROR 33
 ''tagoff#stream
 '
 PRINT "TAN, ";
+a=TAN(0): IF a<>0 THEN ERROR 33
 a=TAN(45 * PI/180): IF ROUND(a,8)<>1 THEN ERROR 33
 a=INT(TAN(0.7853981635)*100000000)/100000000: IF a<>1 THEN ERROR 33
+DEG
+a=TAN(0): IF a<>0 THEN ERROR 33
+a=TAN(45): IF ROUND(a,8)<>1 THEN ERROR 33
+RAD
+'
 ''a=test(10,20)
 ''a=test(x,y)
 ''a=testr(10,-20)

@@ -227,7 +227,7 @@ function getSemantics(semanticsHelper) {
             return `(${e.eval()}).charCodeAt(0)`;
         },
         Atn(_atnLit, _open, e, _close) {
-            return `Math.atan(${e.eval()})`;
+            return semanticsHelper.getDeg() ? `(Math.atan(${e.eval()}) * 180 / Math.PI)` : `Math.atan(${e.eval()})`;
         },
         BinS(_binLit, _open, e, _comma, n, _close) {
             var _a;
@@ -242,7 +242,7 @@ function getSemantics(semanticsHelper) {
             return `//${remain.sourceString}`;
         },
         Cos(_cosLit, _open, e, _close) {
-            return `Math.cos(${e.eval()})`;
+            return semanticsHelper.getDeg() ? `Math.cos((${e.eval()}) * Math.PI / 180)` : `Math.cos(${e.eval()})`;
         },
         Cint(_cintLit, _open, e, _close) {
             return `Math.round(${e.eval()})`;
@@ -281,6 +281,10 @@ function getSemantics(semanticsHelper) {
             const argStr = args.children.map(c => c.eval()).join(", ") || "()";
             const fnIdent = semanticsHelper.getVariable(`fn${ident.sourceString}`);
             return `${fnIdent} = ${argStr} => ${e.eval()}`;
+        },
+        Deg(_degLit) {
+            semanticsHelper.setDeg(true);
+            return `/* deg active */`;
         },
         Dim(_dimLit, arrayIdents) {
             const argList = arrayIdents.asIteration().children.map(c => c.eval());
@@ -483,6 +487,10 @@ function getSemantics(semanticsHelper) {
             }
             return `print(${paramStr}${newlineStr})`;
         },
+        Rad(_radLit) {
+            semanticsHelper.setDeg(false);
+            return `/* rad active */`;
+        },
         Read(_readlit, args) {
             semanticsHelper.addInstr("read");
             const argList = args.asIteration().children.map(c => c.eval());
@@ -502,7 +510,9 @@ function getSemantics(semanticsHelper) {
             return "return";
         },
         RightS(_rightLit, _open, e1, _comma, e2, _close) {
-            return `(${e1.eval()}).slice(-(${e2.eval()}))`;
+            const str = e1.eval();
+            const len = e2.eval();
+            return `(${str}).substring((${str}).length - (${len}))`;
         },
         Rnd(_rndLit, _open, _e, _close) {
             // args are ignored
@@ -522,7 +532,7 @@ function getSemantics(semanticsHelper) {
             return `Math.sign(${e.eval()})`;
         },
         Sin(_sinLit, _open, e, _close) {
-            return `Math.sin(${e.eval()})`;
+            return semanticsHelper.getDeg() ? `Math.sin((${e.eval()}) * Math.PI / 180)` : `Math.sin(${e.eval()})`;
         },
         SpaceS(_stringLit, _open, len, _close) {
             return `" ".repeat(${len.eval()})`;
@@ -550,7 +560,7 @@ function getSemantics(semanticsHelper) {
             return `String.fromCharCode(${num.eval()}).repeat(${len.eval()})`;
         },
         Tan(_tanLit, _open, e, _close) {
-            return `Math.tan(${e.eval()})`;
+            return semanticsHelper.getDeg() ? `Math.tan((${e.eval()}) * Math.PI / 180)` : `Math.tan(${e.eval()})`;
         },
         Time(_timeLit) {
             semanticsHelper.addInstr("time");
@@ -719,6 +729,7 @@ export class Semantics {
         this.dataIndex = 0;
         this.restoreMap = {};
         this.instrMap = {};
+        this.isDeg = false;
     }
     addIndent(num) {
         if (num < 0) {
@@ -820,6 +831,7 @@ export class Semantics {
         this.dataIndex = 0;
         Semantics.deleteAllItems(this.restoreMap);
         Semantics.deleteAllItems(this.instrMap);
+        this.isDeg = false;
     }
     getSemantics() {
         const semanticsHelper = {
@@ -842,7 +854,9 @@ export class Semantics {
             getVariables: () => this.getVariables(),
             incrementLineIndex: () => this.incrementLineIndex(),
             nextIndentAdd: (num) => this.nextIndentAdd(num),
-            setIndent: (indent) => this.setIndent(indent)
+            setIndent: (indent) => this.setIndent(indent),
+            setDeg: (isDeg) => this.isDeg = isDeg,
+            getDeg: () => this.isDeg
         };
         return getSemantics(semanticsHelper);
     }
