@@ -261,10 +261,10 @@
       = &StrCmpExp NumExp -- strCmp
       | StrExp
       | NumExp
-      | using StrExp ";" NumExp -- usingNum
+      | using StrExp ";" NonemptyListOf<NumExp, ";"> -- usingNum
 
     Print
-      = (print | "?") ListOf<PrintArg,";"> (";")?
+      = (print | "?") ListOf<PrintArg, ";"> (";")?
 
     Rad
       = rad
@@ -475,16 +475,18 @@
       | ident
 
     FnIdent
-      = fnIdent FnArgs?
+      = fnIdent AnyFnArgs?
 
     StrFnIdent
-      = strFnIdent StrFnArgs?
+      = strFnIdent AnyFnArgs?
 
-    FnArgs
-      = "(" ListOf<NumExp, ","> ")"
+    AnyFnArg
+      = StrExp
+      | NumExp
 
-    StrFnArgs
-      = "(" ListOf<StrExp, ","> ")"
+    AnyFnArgs
+      = "(" ListOf<AnyFnArg, ","> ")"
+
 
     keyword
       = abs | after | and | asc | atn | auto | binS | border | break
@@ -1546,11 +1548,7 @@
             Fix(_fixLit, _open, e, _close) {
                 return `Math.trunc(${e.eval()})`;
             },
-            FnArgs(_open, args, _close) {
-                const argList = args.asIteration().children.map(c => c.eval());
-                return `(${argList.join(", ")})`;
-            },
-            StrFnArgs(_open, args, _close) {
+            AnyFnArgs(_open, args, _close) {
                 const argList = args.asIteration().children.map(c => c.eval());
                 return `(${argList.join(", ")})`;
             },
@@ -1693,9 +1691,12 @@
                 const paramStr = args.children[0].eval();
                 return paramStr;
             },
-            PrintArg_usingNum(_printLit, format, _semi, num) {
+            PrintArg_usingNum(_printLit, format, _semi, numArgs) {
                 semanticsHelper.addInstr("dec$");
-                return `dec$(${num.eval()}, ${format.eval()})`;
+                const formatStr = format.eval();
+                const argList = numArgs.asIteration().children.map(c => c.eval());
+                const paramStr = argList.map((arg) => `dec$(${arg}, ${formatStr})`).join(', ');
+                return paramStr;
             },
             Print(_printLit, args, semi) {
                 semanticsHelper.addInstr("print");
@@ -2338,6 +2339,7 @@
     function start(input) {
         const actionConfig = core.getConfig("action");
         if (input !== "") {
+            core.setOnCls(() => console.clear());
             core.setOnCheckSyntax((s) => Promise.resolve(nodeCheckSyntax(s)));
             const compiledScript = actionConfig.includes("compile") ? core.compileScript(input) : input;
             if (compiledScript.startsWith("ERROR:")) {

@@ -186,10 +186,10 @@ export const arithmetic = {
       = &StrCmpExp NumExp -- strCmp
       | StrExp
       | NumExp
-      | using StrExp ";" NumExp -- usingNum
+      | using StrExp ";" NonemptyListOf<NumExp, ";"> -- usingNum
 
     Print
-      = (print | "?") ListOf<PrintArg,";"> (";")?
+      = (print | "?") ListOf<PrintArg, ";"> (";")?
 
     Rad
       = rad
@@ -400,16 +400,18 @@ export const arithmetic = {
       | ident
 
     FnIdent
-      = fnIdent FnArgs?
+      = fnIdent AnyFnArgs?
 
     StrFnIdent
-      = strFnIdent StrFnArgs?
+      = strFnIdent AnyFnArgs?
 
-    FnArgs
-      = "(" ListOf<NumExp, ","> ")"
+    AnyFnArg
+      = StrExp
+      | NumExp
 
-    StrFnArgs
-      = "(" ListOf<StrExp, ","> ")"
+    AnyFnArgs
+      = "(" ListOf<AnyFnArg, ","> ")"
+
 
     keyword
       = abs | after | and | asc | atn | auto | binS | border | break

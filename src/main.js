@@ -123,6 +123,7 @@ function nodeCheckSyntax(script) {
 function start(input) {
     const actionConfig = core.getConfig("action");
     if (input !== "") {
+        core.setOnCls(() => console.clear());
         core.setOnCheckSyntax((s) => Promise.resolve(nodeCheckSyntax(s)));
         const compiledScript = actionConfig.includes("compile") ? core.compileScript(input) : input;
         if (compiledScript.startsWith("ERROR:")) {

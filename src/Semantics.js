@@ -326,11 +326,7 @@ function getSemantics(semanticsHelper) {
         Fix(_fixLit, _open, e, _close) {
             return `Math.trunc(${e.eval()})`;
         },
-        FnArgs(_open, args, _close) {
-            const argList = args.asIteration().children.map(c => c.eval());
-            return `(${argList.join(", ")})`;
-        },
-        StrFnArgs(_open, args, _close) {
+        AnyFnArgs(_open, args, _close) {
             const argList = args.asIteration().children.map(c => c.eval());
             return `(${argList.join(", ")})`;
         },
@@ -473,9 +469,12 @@ function getSemantics(semanticsHelper) {
             const paramStr = args.children[0].eval();
             return paramStr;
         },
-        PrintArg_usingNum(_printLit, format, _semi, num) {
+        PrintArg_usingNum(_printLit, format, _semi, numArgs) {
             semanticsHelper.addInstr("dec$");
-            return `dec$(${num.eval()}, ${format.eval()})`;
+            const formatStr = format.eval();
+            const argList = numArgs.asIteration().children.map(c => c.eval());
+            const paramStr = argList.map((arg) => `dec$(${arg}, ${formatStr})`).join(', ');
+            return paramStr;
         },
         Print(_printLit, args, semi) {
             semanticsHelper.addInstr("print");
