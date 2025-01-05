@@ -434,17 +434,12 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `Math.trunc(${e.eval()})`;
 		},
 
-		FnArgs(_open: Node, args: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		AnyFnArgs(_open: Node, args: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			const argList = args.asIteration().children.map(c => c.eval());
 
 			return `(${argList.join(", ")})`;
 		},
 
-		StrFnArgs(_open: Node, args: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			const argList = args.asIteration().children.map(c => c.eval());
-
-			return `(${argList.join(", ")})`;
-		},
 
 		FnIdent(fnIdent: Node, args: Node) {
 			const argStr = args.child(0)?.eval() || "()";
@@ -617,9 +612,12 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return paramStr;
 		},
 
-		PrintArg_usingNum(_printLit: Node, format: Node, _semi: Node, num: Node) {
+		PrintArg_usingNum(_printLit: Node, format: Node, _semi: Node, numArgs: Node) {
 			semanticsHelper.addInstr("dec$");
-			return `dec$(${num.eval()}, ${format.eval()})`;
+			const formatStr = format.eval();
+			const argList = numArgs.asIteration().children.map(c => c.eval());
+			const paramStr = argList.map((arg) => `dec$(${arg}, ${formatStr})`).join(', ');
+			return paramStr;
 		},
 
 		Print(_printLit: Node, args: Node, semi: Node) {

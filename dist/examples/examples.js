@@ -327,7 +327,7 @@ REM printResult(): void
 3500 PRINT: PRINT "Throughput for all benchmarks (loops per sec):"
 PRINT "BMR ("; prgLanguage$; ") :";
 FOR bench = bench1 TO bench2
-PRINT USING "#######.### "; benchres(bench);" ";
+PRINT USING "#######.###"; benchres(bench);:?" ";
 NEXT bench
 PRINT
 RETURN
@@ -1509,34 +1509,39 @@ DATA "9051987042300179465536788"
 
 cpcBasic.addItem("", `
 100 REM factoria - Big Factorials
-110 CLS
+110 MODE 2
 120 PRINT "Big Factorials"
-130 INPUT"Which number (up to 252):";n
-140 PRINT:PRINT n;"!="
+130 INPUT "Which number (up to 252):"; n
+140 PRINT : PRINT n; "!="
 150 DIM r(100)
-160 'number of 5-digit-blocks
-170 l=1:r(1)=1
-180 FOR i=2 TO n:l=l+LOG(i):NEXT
-190 l=l*0.434295:ri=INT(l/5+1)
-200 'Multi-Schleife
-210 l=1
-215 FOR i=n TO 2 STEP -1
-220   l=l+LOG(i)*0.434294575:li=l/5+1:u=0
-230   FOR j=1 TO li
-240     h=r(j)*i+u
-250     IF h<-100000 THEN u=0 ELSE u=INT(h/100000):h=h-u*100000
-270     r(j)=h
-275   NEXT j
-277 NEXT i
-280 'Output
-290 WHILE r(ri)=0:ri=ri-1:WEND
-300 FOR i=ri TO 1 STEP -1
-310   r$=STR$(r(i)):r$=RIGHT$(r$,LEN(r$)-1)
-320   PRINT RIGHT$("0000"+r$,5);" ";
-330   IF (ri-i+1) MOD 10=0 THEN PRINT
-340 NEXT
-345 ?
-350 STOP
+160 REM Number of 5-digit blocks
+170 l = 1 : r(1) = 1
+180 FOR i = 2 TO n
+190   l = l + LOG10(i)
+200 NEXT
+210 ri = INT(l / 5 + 1)
+215 'formula used: text{log}{10}(i) approx text{log}{e}(i) times 0.434294575
+220 REM Multi-loop
+230 l = 1
+240 FOR i = n TO 2 STEP -1
+250   l = l + LOG10(i) : li = l / 5 + 1 : u = 0
+260   FOR j = 1 TO li
+270     h = r(j) * i + u
+280     IF h < -100000 THEN u = 0 ELSE u = INT(h / 100000) : h = h - u * 100000
+330     r(j) = h
+340   NEXT j
+350 NEXT i
+360 REM Output
+370 WHILE r(ri) = 0
+380   ri = ri - 1
+390 WEND
+400 FOR i = ri TO 1 STEP -1
+410   r$ = STR$(r(i)) : r$ = RIGHT$(r$, LEN(r$) - 1)
+420   PRINT RIGHT$("0000" + r$, 5); " ";
+430   IF (ri - i + 1) MOD 10 = 0 THEN PRINT
+440 NEXT
+450 PRINT
+460 STOP
 `);
 
 cpcBasic.addItem("", `
@@ -1611,6 +1616,85 @@ RETURN
 550 p=3*x^2+5*x+y
 RETURN
 560 p=15*SQR(ABS(y))*COS(x)
+RETURN
+`);
+
+cpcBasic.addItem("", `
+REM labyrinth - Drawing Labyrinth
+MODE 2
+'
+' Initialize arrays and variables
+DIM directions(4), dx(4), dy(4)
+dx(0) = 0: dy(0) = -1  ' Up
+dx(1) = 1: dy(1) = 0   ' Right
+dx(2) = 0: dy(2) = 1   ' Down
+dx(3) = -1: dy(3) = 0  ' Left
+'
+' Set labyrinth size: cols (1-63), rows (1-49)
+cols = 19
+rows = 12
+totalCells = cols * rows
+cols = cols - 1
+rows = rows - 1
+DIM maze(cols, rows)
+'
+' Compute and output the labyrinth
+GOSUB 200
+GOSUB 610
+STOP
+'
+' Compute the labyrinth
+200 col = INT(RND * cols)
+row = INT(RND * rows)
+r = 1
+WHILE r < totalCells
+  q = 0
+  IF row > 0 THEN IF maze(col, row - 1) = 0 THEN q = q + 1: directions(q) = 0
+  IF col < cols THEN IF maze(col + 1, row) = 0 THEN q = q + 1: directions(q) = 1
+  IF row < rows THEN IF maze(col, row + 1) = 0 THEN q = q + 1: directions(q) = 2
+  IF col > 0 THEN IF maze(col - 1, row) = 0 THEN q = q + 1: directions(q) = 3
+  IF q = 0 THEN GOSUB 565 ELSE GOSUB 580
+  ' Add progress tracking
+  'IF r MOD (totalCells / 10) = 0 THEN PRINT "Progress: "; (r / totalCells) * 100; "%"
+WEND
+maze(0, 0) = maze(0, 0) + 1
+RETURN
+'
+' Find the next starting point
+565 start = 1
+WHILE start = 1 OR maze(col, row) = 0
+  start = 0
+  row = row + 1
+  IF row > rows THEN row = 0: col = col + 1: IF col > cols THEN col = 0
+WEND
+RETURN
+'
+' Update the labyrinth
+580 directionIndex = directions(INT(RND * q) + 1)
+maze(col, row) = maze(col, row) + 2 ^ directionIndex
+col = col + dx(directionIndex)
+row = row + dy(directionIndex)
+oppositeDirection = directionIndex - 2
+IF oppositeDirection < 0 THEN oppositeDirection = oppositeDirection + 4
+maze(col, row) = maze(col, row) + 2 ^ oppositeDirection
+r = r + 1
+RETURN
+'
+' Print textual maze
+610 FOR row = 0 TO rows
+  topPart$ = ""
+  bottomPart$ = ""
+  FOR col = 0 TO cols
+    topPart$ = topPart$ + "#"
+    IF maze(col, row) AND 1 THEN topPart$ = topPart$ + " " ELSE topPart$ = topPart$ + "#"
+    IF maze(col, row) AND 8 THEN bottomPart$ = bottomPart$ + " " ELSE bottomPart$ = bottomPart$ + "#"
+    bottomPart$ = bottomPart$ + " "
+  NEXT
+  PRINT topPart$ + "#"
+  PRINT bottomPart$ + "#"
+NEXT row
+' Bottom border of the labyrinth
+PRINT STRING$(cols * 2, "#") + "# #"
 RETURN
 `);
 
@@ -2255,6 +2339,8 @@ a=FNf2:IF a<>6.25 THEN ERROR 33
 ''a=FNf2(): 'this should not work
 DEF FNf1(a,b,c)=a+b+c
 a=FNf1(1,2,3):IF a<>6 THEN ERROR 33
+DEF FNf1$(num)=MID$(STR$(num),2): DEF FNf2$(zl,cnt)=STRING$(cnt-LEN(FNf1$(zl)),"0")+FNf1$(zl)
+a=67: a$=FNf2$(a, 4): IF a$<>"0067" THEN ERROR 33
 '
 ''defint a
 ''defint a-t
@@ -2719,7 +2805,7 @@ a=PI: IF ROUND(a,8)<>3.14159265 THEN ERROR 33
 ''a=pos(#0)
 ''a=pos(#stream)
 '
-PRINT "PRINT, ";
+PRINT "PRINT: ";
 PRINT
 ''print ,
 PRINT ;
@@ -2733,14 +2819,17 @@ PRINT 1.234567846;
 a$="test":PRINT a$;
 a$="test":b=2:PRINT a$;b;
 ''print#2,a$,b
+PRINT a=(29+1) MOD 10=0 AND 5=7; a$<>"a2" OR b$<>"2"
+'
+PRINT "PRINT USING: ";
 ''print using"####";ri;
-PRINT USING "##.##";-1.2
+PRINT USING "##.##";-1.2;
+PRINT " / ";USING "###.###";-1.2;1.2
 ''print using"### ########";a,b
 ''print using "\\   \\";"n1";"n2";" xx3";
 ''print using "!";"a1";"a2";
 ''print using "&";"a1";"a2";
 ''print#9,tab(t);t$;i;"h1"
-PRINT a=(29+1) MOD 10=0 AND 5=7; a$<>"a2" OR b$<>"2"
 '
 ?;
 ?a$;b

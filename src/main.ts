@@ -149,6 +149,7 @@ function nodeCheckSyntax(script: string) {
 function start(input: string) {
 	const actionConfig = core.getConfig<string>("action");
 	if (input !== "") {
+		core.setOnCls(() => console.clear());
 		core.setOnCheckSyntax((s: string) => Promise.resolve(nodeCheckSyntax(s)));
 		const compiledScript = actionConfig.includes("compile") ? core.compileScript(input) : input;
 
