@@ -11,8 +11,10 @@ FOR s=1 TO 15
   FRAME:FRAME
 NEXT
 ?:?
-STOP
-GOSUB 2000:STOP
+END
+'variant 2
+GOSUB 2000
+END
 '
 1000 ' banner 1
 FOR i=1 TO 4:?:NEXT
@@ -99,7 +101,7 @@ DEF FNconvMs(ts) = ts * 10.0 / 3.0: REM time conversion factor for ms, usually 3
 startTs = FNgetTs
 DIM command$(5)
 GOSUB 6000: REM main
-STOP
+END
 REM
 REM
 REM bench00(n): x
@@ -411,6 +413,7 @@ tMeas = FNconvMs(FNgetTs)
 PRINT "Total elapsed time:"; tMeas; "ms"
 RETURN
 REM end
+'
 `);
 
 cpcBasic.addItem("", `
@@ -424,7 +427,7 @@ cpcBasic.addItem("", `
 1009 REM
 1010 n=178:REM n=AANTAL LANDEN+STEDEN
 1020 GOSUB 5020
-1030 STOP
+1030 END
 1040 '
 5000 REM +++LANDEN EN STEDEN+++
 5020 PRINT "OVERZICHT LANDEN":PRINT 
@@ -822,6 +825,7 @@ cpcBasic.addItem("", `
 32150 REM ******** TROS ************
 32160 REM
 32170 REM TROS-RADIO dd 900411
+32180 '
 `);
 
 cpcBasic.addItem("", `
@@ -846,6 +850,7 @@ FOR i=0 TO loops-1
 NEXT
 mhz=mx/mxcpc*4
 PRINT "":PRINT "=> max:";STR$(mx);", CPC";mhz;"MHz"
+'
 `);
 
 cpcBasic.addItem("", `
@@ -926,7 +931,7 @@ cpcBasic.addItem("", `
 840 '
 850 '
 855 'PRINT:FRAME:'TODO: wait key
-857 STOP
+857 END
 860 '
 870 'Order of frequencies for letters and letter groups in German
 880 '
@@ -1306,6 +1311,7 @@ IF MID$(a$(aw),i,1)="*" THEN GOSUB 3200
 34330 DATA ""
 34340 '
 34350 RETURN
+34360 '
 `);
 
 cpcBasic.addItem("", `
@@ -1357,7 +1363,7 @@ FOR i = 1 TO maxnum
   c=c+dpnum
 NEXT
 PRINT
-STOP
+END
 '
 300 'compute
 FOR i = 0 TO maxnum+1
@@ -1505,43 +1511,132 @@ DATA "57735429301867394397163886117642090040686633988568416810038723892144831760
 DATA "011668450388721236436704331409115573328018297798873659091665961240202177855"
 DATA "885487617616198937079438005666336488436508914480557103976521469602766258359"
 DATA "9051987042300179465536788"
+'
 `);
 
 cpcBasic.addItem("", `
-100 REM factoria - Big Factorials
-110 MODE 2
-120 PRINT "Big Factorials"
-130 INPUT "Which number (up to 252):"; n
-140 PRINT : PRINT n; "!="
-150 DIM r(100)
-160 REM Number of 5-digit blocks
-170 l = 1 : r(1) = 1
-180 FOR i = 2 TO n
-190   l = l + LOG10(i)
-200 NEXT
-210 ri = INT(l / 5 + 1)
-215 'formula used: text{log}{10}(i) approx text{log}{e}(i) times 0.434294575
-220 REM Multi-loop
-230 l = 1
-240 FOR i = n TO 2 STEP -1
-250   l = l + LOG10(i) : li = l / 5 + 1 : u = 0
-260   FOR j = 1 TO li
-270     h = r(j) * i + u
-280     IF h < -100000 THEN u = 0 ELSE u = INT(h / 100000) : h = h - u * 100000
-330     r(j) = h
-340   NEXT j
-350 NEXT i
-360 REM Output
-370 WHILE r(ri) = 0
-380   ri = ri - 1
-390 WEND
-400 FOR i = ri TO 1 STEP -1
-410   r$ = STR$(r(i)) : r$ = RIGHT$(r$, LEN(r$) - 1)
-420   PRINT RIGHT$("0000" + r$, 5); " ";
-430   IF (ri - i + 1) MOD 10 = 0 THEN PRINT
-440 NEXT
-450 PRINT
-460 STOP
+REM factorial - Big Factorials
+MODE 2
+PRINT "Big Factorials"
+n=252
+INPUT "Which number:"; n
+PRINT
+'
+DEF FNnumStr$(x) = RIGHT$(STR$(x), LEN(STR$(x)) - 1)
+'
+GOSUB 500 ' trailing zeroes of n! (for checking the result)
+PRINT
+GOSUB 1000 ' algorithm1
+PRINT
+GOSUB 2000 ' algorithm2
+END
+'
+REM Calculate number of trailing zeroes (to check the result)
+REM https://www.geeksforgeeks.org/count-trailing-zeroes-factorial-number/
+500 trailz = 0
+i = 5
+WHILE n \\ i >= 1
+  trailz = trailz + n \\ i
+  i = i * 5
+WEND
+PRINT "Number of trailing zeroes for "; FNnumStr$(n); "!:"; trailz
+RETURN
+'
+REM factiorial 1
+1000 t = TIME
+REM Calculate number of 5-digit blocks
+l = 1
+FOR i = 2 TO n
+  l = l + LOG10(i)
+NEXT
+ri = INT(l / 5 + 1)
+DIM r(ri)
+r(1) = 1
+'
+REM Calculate factorial using sum of logarithms
+REM log_{10}(n!) = log_{10}(1) + log_{10}(2) + log_{10}(3) + ldots + log_{10}(n)
+l = 1
+FOR i = n TO 2 STEP -1
+  l = l + LOG10(i)
+  li = l / 5 + 1
+  u = 0
+  'multiply each block by the current number i; u=carry over to the next block
+  FOR j = 1 TO li
+    h = r(j) * i + u
+    IF h < -100000 THEN u = 0 ELSE u = INT(h / 100000) : h = h - u * 100000
+    r(j) = h
+  NEXT j
+NEXT i
+t = TIME - t
+'
+REM Output the result
+PRINT "Algorithm 1 (Sum of logarithms):"; ROUND(t * 10 / 3, 3); "ms"
+PRINT FNnumStr$(n); "! ="
+IF ri >= 1 THEN PRINT FNnumStr$(r(ri));
+FOR i = ri - 1 TO 1 STEP -1
+   PRINT RIGHT$("0000" + FNnumStr$(r(i)), 5);
+NEXT
+PRINT
+'
+REM Check result (number of trailing zeroes)
+count = 0
+i = 1
+WHILE i <= ri AND r(i)=0
+  count = count + 5
+  i = i + 1
+WEND
+value = r(i)
+WHILE value MOD 10=0
+  count = count + 1
+  value = value \\ 10
+WEND
+IF count <> trailz THEN PRINT "Error in algorithm 1: trailing zeroes"; count; "<>"; trailz
+RETURN
+'
+REM factorial2
+REM based on: https://www.geeksforgeeks.org/factorial-large-number/
+2000 t = TIME
+l = 1
+FOR i = 2 TO n
+  l = l + LOG10(i)
+NEXT
+ri2 = INT(l) + 1
+DIM res(ri2)
+res(1) = 1
+resSize = 1
+FOR x = 2 TO n
+  carry = 0
+  FOR i = 1 TO resSize
+    prod = res(i) * x + carry
+    res(i) = prod MOD 10
+    carry = INT(prod / 10)
+  NEXT i
+  WHILE carry > 0
+    resSize = resSize + 1
+    res(resSize) = carry MOD 10
+    carry = INT(carry / 10)
+  WEND
+NEXT x
+t = TIME - t
+'
+REM Output the result
+PRINT "Algorithm 2 (Multiplication of numbers 1..n):"; ROUND(t * 10 / 3, 3); "ms"
+PRINT FNnumStr$(n); "! ="
+FOR i = resSize TO 1 STEP -1
+  PRINT FNnumStr$(res(i));
+NEXT i
+PRINT
+'
+REM Check result (number of trailing zeroes)
+count = 0
+i=1
+WHILE i<=resSize AND res(i)=0
+  count = count + 1
+  i = i + 1
+WEND
+IF count <> trailz THEN PRINT "Error in algorithm 2: trailing zeroes"; count; "<>"; trailz
+RETURN
+'
 `);
 
 cpcBasic.addItem("", `
@@ -1617,6 +1712,7 @@ RETURN
 RETURN
 560 p=15*SQR(ABS(y))*COS(x)
 RETURN
+'
 `);
 
 cpcBasic.addItem("", `
@@ -1641,7 +1737,7 @@ DIM maze(cols, rows)
 ' Compute and output the labyrinth
 GOSUB 200
 GOSUB 610
-STOP
+END
 '
 ' Compute the labyrinth
 200 col = INT(RND * cols)
@@ -1696,6 +1792,7 @@ NEXT row
 ' Bottom border of the labyrinth
 PRINT STRING$(cols * 2, "#") + "# #"
 RETURN
+'
 `);
 
 cpcBasic.addItem("", `
@@ -1771,7 +1868,8 @@ NEXT x
  'SLEEP 100
   t=TIME+40:WHILE TIME<t:FRAME:WEND
 NEXT st
-STOP
+END
+'
 `);
 
 cpcBasic.addItem("", `
@@ -1780,12 +1878,12 @@ REM Sample from http://www.cpcwiki.eu/forum/programming/silly-programming-ideas-
 REM
 MODE 2
 FOR ind = 1 TO 20 STEP 2
-CLS
-indent$=SPACE$(ind)
-GOSUB 2000
-t=TIME+30:WHILE TIME<t:FRAME:WEND
+  CLS
+  indent$=SPACE$(ind)
+  GOSUB 2000
+  t=TIME+30:WHILE TIME<t:FRAME:WEND
 NEXT
-STOP
+END
 '
 2000 'output
 RESTORE 3000
@@ -1796,7 +1894,7 @@ FOR y=1 TO 22
     IF p>0 THEN ch$=CHR$(65+p) ELSE ch$=" "
     PRINT STRING$(4,ch$);
   NEXT x
-  ?
+  PRINT
 NEXT y
 RETURN
 '
@@ -1826,49 +1924,159 @@ DATA 0,4,4,4,4,0,4,4,4,4,4
 `);
 
 cpcBasic.addItem("", `
-100 REM ninedig - Das Raetsel
-110 '21.5.1988 Kopf um Kopf
-120 'ab*c=de  de+fg=hi   [dabei sind a-i verschiedene Ziffern 1-9!!]
-135 PRINT "Please wait ...  ( ca. 1 min 34 sec )"
-150 '
-155 z=TIME
-160 FOR a=1 TO 9
-161   FOR b=1 TO 9
-162     FOR c=1 TO 9
-163       FOR f=1 TO 9
-164         FOR g=1 TO 9
-165           cnd = -1
-170           de=(a*10+b)*c
-175           cnd = cnd AND NOT (de>99)
-180           hi=de+(f*10+g)
-185           cnd = cnd AND NOT (hi>99)
-190           d=INT(de/10):e=de MOD 10:h=INT(hi/10):i=hi MOD 10
-200           cnd = cnd AND NOT (a=b OR a=c OR a=d OR a=e OR a=f OR a=g OR a=h OR a=i)
-210           cnd = cnd AND NOT (b=c OR b=d OR b=e OR b=f OR b=g OR b=h OR b=i)
-220           cnd = cnd AND NOT (c=d OR c=e OR c=f OR c=g OR c=h OR c=i)
-230           cnd = cnd AND NOT (d=e OR d=f OR d=g OR d=h OR d=i)
-240           cnd = cnd AND NOT (e=f OR e=g OR e=h OR e=i)
-250           cnd = cnd AND NOT (f=g OR f=h OR f=i)
-260           cnd = cnd AND NOT (g=h OR g=i)
-270           cnd = cnd AND NOT (h=i)
-280           cnd = cnd AND NOT (i=0)
-285           IF cnd<>0 THEN GOSUB 350: STOP
-320         NEXT g
-321       NEXT f
-322     NEXT c
-323   NEXT b
-324 NEXT a
-330 ?"No solution found!"
-340 STOP
-345 '
-350 z=TIME-z
-360 PRINT "The solution:":PRINT
-370 PRINT a*10+b;"*";c;"=";de;" / ";de;"+";f*10+g;"=";hi
-380 PRINT z;z/300
-390 IF (a*10+b)*c<>de OR de<>68 THEN ?"a,b,c,de not ok": ERROR 33
-400 IF de+f*10+g<>hi OR hi<>93 THEN ?"f,g,hi not ok": ERROR 33
-450 RETURN
-460 '
+REM nicholas - House of St. Nicholas
+REM with Characters using Bresenham's Line Algorithm
+REM
+MODE 2
+GOSUB 5000 :'read cooordinates
+'
+DIM house$(25,80),smc(25): 'house will grow so we do not need to init smc
+'
+FOR sc=0.5 TO 1 STEP 0.1
+GOSUB 1000 'init
+GOSUB 2000 'draw
+GOSUB 3000 'print
+'
+t=TIME+30:WHILE TIME<t:FRAME:WEND
+NEXT
+END
+'
+REM Initialize the grid with spaces
+1000 FOR y = 1 TO 25
+  FOR x = 1 TO 80
+    house$(y, x) = " "
+  NEXT x
+NEXT y
+RETURN
+'
+REM Draw the house
+2000 i=0
+x0=xp(i):y0=yp(i)
+FOR i = 1 TO 18
+  x1=xp(i):y1=yp(i)
+  GOSUB 2500 'DrawLine x0, y0, x1, y1
+  x0=x1
+  y0=y1
+NEXT i
+RETURN
+'
+REM Bresenham's Line Algorithm
+'SUB DrawLine(x0, y0, x1, y1)
+2500 dx = ABS(x1 - x0)
+  dy = ABS(y1 - y0)
+  sx = SGN(x1 - x0)
+  sy = SGN(y1 - y0)
+  err1 = dx - dy
+'
+  WHILE x0 <> x1 OR y0 <> y1
+    'house$(y0, x0) = "*"
+    y0s=ROUND(y0*sc): x0s=ROUND(x0*sc)
+    house$(y0s, x0s) = "*"
+    IF x0s>smc(y0s) THEN smc(y0s)=x0s 
+    e2 = 2 * err1
+    IF e2 > -dy THEN err1 = err1 - dy: x0 = x0 + sx
+    IF e2 < dx THEN err1 = err1 + dx: y0 = y0 + sy
+  WEND
+RETURN
+'END SUB
+'
+REM Print the house
+3000 CLS
+FOR y = 1 TO 25
+  FOR x = 1 TO smc(y)
+    PRINT house$(y, x);
+  NEXT x
+  PRINT
+NEXT y
+RETURN
+'
+REM Define the house shape using coordinates
+DATA 40,2 : 'move
+DATA 40,13, 35,18, 35,24, 30,24, 30,20, 25,25, 15,13, 15,2
+DATA 40,13, 15,13, 40,2, 15,2
+DATA 10,2, 10,7, 15,9, 5,12, 10,9, 20,11
+'
+REM Read the coordinates
+5000 DIM xp(18),yp(18) 
+FOR i = 0 TO 18 STEP 1
+  READ xp(i),yp(i)
+  yp(i)=27-yp(i)
+NEXT i
+RETURN
+'
+`);
+
+cpcBasic.addItem("", `
+REM ninedig - Nine Digits Puzzle
+'21.5.1988 Kopf um Kopf
+'
+'The riddle is a mathematical puzzle where you need to find distinct digits from 1 to 9 that satisfy the following conditions:
+'ab * c = de  and  de + fg = hi
+'The goal is to find the values of a, b, c, d, e, f, g, h, and i such that the above equations hold true and all digits are distinct.
+'
+CLS
+PRINT "Nine Digits Puzzle"
+PRINT "ab * c = de ; de + fg = hi"
+PRINT "with a..i are distinct digits from 1 to 9"
+PRINT
+PRINT "Please wait ...  ( on a real CPC approx. 1 min 34 sec )"
+PRINT
+'
+t=TIME
+FOR a=1 TO 9
+  FOR b=1 TO 9
+    FOR c=1 TO 9
+      FOR f=1 TO 9
+        FOR g=1 TO 9
+          cnd = -1
+          de=(a*10+b)*c
+          cnd = cnd AND NOT (de>99)
+          hi=de+(f*10+g)
+          cnd = cnd AND NOT (hi>99)
+          d=INT(de/10):e=de MOD 10:h=INT(hi/10):i=hi MOD 10
+          cnd = cnd AND NOT (a=b OR a=c OR a=d OR a=e OR a=f OR a=g OR a=h OR a=i)
+          cnd = cnd AND NOT (b=c OR b=d OR b=e OR b=f OR b=g OR b=h OR b=i)
+          cnd = cnd AND NOT (c=d OR c=e OR c=f OR c=g OR c=h OR c=i)
+          cnd = cnd AND NOT (d=e OR d=f OR d=g OR d=h OR d=i)
+          cnd = cnd AND NOT (e=f OR e=g OR e=h OR e=i)
+          cnd = cnd AND NOT (f=g OR f=h OR f=i)
+          cnd = cnd AND NOT (g=h OR g=i)
+          cnd = cnd AND NOT (h=i)
+          cnd = cnd AND NOT (i=0)
+          IF cnd<>0 THEN GOSUB 350: STOP
+        NEXT g
+      NEXT f
+    NEXT c
+  NEXT b
+NEXT a
+?"No solution found!"
+STOP
+'
+350 t=TIME-t
+PRINT "The solution (computed in";ROUND(t * 10 / 3, 3); "ms):"
+PRINT
+DEF FNnumStr$(x) = RIGHT$(STR$(x), LEN(STR$(x)) - 1)
+PRINT "ab * c = de ; de + fg = hi"
+PRINT FNnumStr$(a*10+b);" *";c;"=";de;";";de;"+";f*10+g;"=";hi
+PRINT
+IF (a*10+b)*c<>de OR de<>68 THEN ?"a,b,c,de not ok": ERROR 33
+IF de+f*10+g<>hi OR hi<>93 THEN ?"f,g,hi not ok": ERROR 33
+RETURN
+'
+'Here it is:
+'https://brainly.in/question/16558729
+'ab * c = de ; de + fg = hi. values will be from 1 to 9 and no digit should be repeated
+'Oberservations:
+'b , c can not be 1  or 5
+' as  ab * 1 = ab => ab = de ( with same digits)
+' a1 * c will end with c   a5 * c  will end with 5 or 0
+' ab * 5 will end with 0 or 5   ( 0 not available , 5 will be repeated digit in c & i)
+'...
+'17 * 4 = 68   remaining digits 2 , 3 ,  5 , 9  (68 + 25 = 93) we got 1st Solution .
+'
+'or:
+'https://mindyourdecisions.com/blog/2024/02/26/put-the-digits-1-to-9-in-boxes-puzzle/
+'
 `);
 
 cpcBasic.addItem("", `
@@ -1892,8 +2100,9 @@ cpcBasic.addItem("", `
 250   PRINT INT(1000*t1/300)/1000
 260 NEXT
 270 '
-300 'print"Timing 3 (after):"
-310 STOP
+300 'print"Timing 3 (after)"
+310 END
+320 '
 `);
 
 cpcBasic.addItem("", `
@@ -1909,9 +2118,9 @@ FOR loop = 1 TO loops
   GOSUB 1000
 NEXT
 t=TIME-t
-PRINT "Number of primes below ";n;": ";x
-PRINT "Loops:";loops;"; Time:";ROUND(t*10/3, 3);"ms;"
-STOP
+PRINT "Number of primes below ";n;":";x
+PRINT "Loops:";loops;"; Time:";ROUND(t*10/3, 3);"ms"
+END
 '
 1000 'compute
 REM initialize sieve
@@ -1937,14 +2146,15 @@ WHILE m <= n
   m = m + 2
 WEND
 RETURN
+'
 `);
 
 cpcBasic.addItem("", `
 REM test1 - Test 1
 DEG
 MODE 2
-DIM cx(5),cy(5),r(5),lc(5),s$(80,25)
-cx(1)=320:cy(1)=140
+DIM cx(5),cy(5),r(5),lc(5),s$(80,25),smc(25)
+cx(1)=320*80/640:cy(1)=140*25/400
 r(1)=75:r(2)=40:r(3)=20:r(4)=12:r(5)=8
 '
 sa=120
@@ -1952,43 +2162,47 @@ st=1
 GOSUB 800: 'init
 GOSUB 1000: 'compute
 GOSUB 2000: 'output
-STOP
+END
 '
-'init
+' Initialize output array
 800 FOR r1=1 TO 25
-FOR c1=1 TO 79
-s$(c1,r1)=" "
-NEXT
+  FOR c1=1 TO 79
+    s$(c1,r1)=" "
+  NEXT
 NEXT
 RETURN
 '
-'compute
-1000 cx1=ROUND(cx(st)*80/640):cy1=ROUND((400-cy(st))*25/400):lc(st)=0
+' Compute
+1000 cx1=ROUND(cx(st))
+cy1=ROUND((25-cy(st)))
+'lc(st)=0
 s$(cx1,cy1)=chr$(48+st)
+IF cx1>smc(cy1) THEN smc(cy1)=cx1 'update max column
 IF st<5 THEN GOSUB 2000:FRAME: 'intermediate output
 IF st=5 THEN RETURN
 lc(st)=0
 start=1
 WHILE (lc(st) MOD 360)<>0 OR start=1
-start=0
-cx(st+1)=cx(st)+1.7*r(st)*SIN(sa+lc(st))
-cy(st+1)=cy(st)+1.7*r(st)*COS(sa+lc(st))
-st=st+1
-GOSUB 1000
-st=st-1
-lc(st)=lc(st)+2*sa
+  start=0
+  cx(st+1)=cx(st)+1.7*80/640*r(st)*SIN(sa+lc(st))
+  cy(st+1)=cy(st)+1.7*25/400*r(st)*COS(sa+lc(st))
+  st=st+1
+  GOSUB 1000 'recursive call
+  st=st-1
+  lc(st)=lc(st)+2*sa
 WEND
 RETURN
 '
-'output
+' Output
 2000 CLS
 FOR r1=1 TO 25
-FOR c1=1 TO 79
-PRINT s$(c1,r1);
-NEXT
-PRINT
+  FOR c1=1 TO smc(r1)
+    PRINT s$(c1,r1);
+  NEXT
+  PRINT
 NEXT
 RETURN
+'
 `);
 
 cpcBasic.addItem("", `
@@ -2006,7 +2220,7 @@ CLS
 ?"start"
 GOSUB 350
 ?"end"
-STOP
+END
 '
 100 ?"sub100"
 RETURN
@@ -2031,6 +2245,7 @@ GOSUB 300
 a=1
 ON a GOSUB 200, 300
 RETURN
+'
 `);
 
 cpcBasic.addItem("", `
@@ -3089,4 +3304,5 @@ END
 10010 RETURN
 10020 RETURN
 65535 c=1
+'
 `);
