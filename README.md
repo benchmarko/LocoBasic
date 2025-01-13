@@ -198,7 +198,7 @@ keywords should be uppercase but all lowercase is also accepted (not-strict mode
 ### Done
 
 - numbers with exponential notation
-- *dim* and other more complex commands are included on-demand in the compiled JavaScript
+- *DIM* and other more complex commands are included on-demand in the compiled JavaScript
 - TIME: *300/1000
 - DIM, NEXT with multiple arguments
 - DATA, READ, RESTORE
@@ -216,11 +216,11 @@ keywords should be uppercase but all lowercase is also accepted (not-strict mode
 
 ### Not implemented
 
-after auto border break call cat chain clear cog closein closeout cont copychr
+after auto border break call cat chain clear clg closein closeout cont copychr
  creal cursor dec defint defreal defstr deg delete derr di draw drawr edit ei eof erl err every fill  fre
  goto graphics himem ink inkey-$ inp joy key let line list load locate mask memory merge move mover new
- on openin openout origin out paper peek pen plot plotr poke pos rad randomize  release remain renum resume run
- save sound spc speed sq swap symbol tab tag tagoff test testr troff tron unt using vpos wait width window write xpos ypos zone
+ on openin openout origin out paper peek pen plot plotr poke pos rad randomize release remain renum resume run
+ save sound spc speed sq swap symbol tab tag tagoff test testr troff tron unt vpos wait width window write xpos ypos zone
 
 ### Resources
 
