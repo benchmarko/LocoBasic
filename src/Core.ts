@@ -7,12 +7,30 @@ import { Semantics } from "./Semantics";
 
 const vm = {
 	_output: "",
+	_lastPaper: -1,
+	_lastPen: -1,
+	_paperColors: [] as string[],
+	_penColors: [] as string[],
 	_fnOnCls: (() => undefined) as () => void,
 	_fnOnPrint: ((_msg: string) => undefined) as (msg: string) => void, // eslint-disable-line @typescript-eslint/no-unused-vars
 	_fnOnPrompt: ((_msg: string) => "") as (msg: string) => string, // eslint-disable-line @typescript-eslint/no-unused-vars
 	cls: () => {
 		vm._output = "";
+		vm._lastPaper = -1;
+		vm._lastPen = -1;
 		vm._fnOnCls();
+	},
+	paper(n: number) {
+		if (n !== this._lastPaper) {
+			this._output += this._paperColors[n];
+			this._lastPaper = n;
+		}
+	},
+	pen(n: number) {
+		if (n !== this._lastPen) {
+			this._output += this._penColors[n];
+			this._lastPen = n;
+		}
 	},
 	print(...args: string[]) {
 		this._output += args.join('');
@@ -29,7 +47,9 @@ const vm = {
 	setOutput: (str: string) => vm._output = str,
 	setOnCls: (fn: () => void) => vm._fnOnCls = fn,
 	setOnPrint: (fn: (msg: string) => void) => vm._fnOnPrint = fn,
-	setOnPrompt: (fn: (msg: string) => string) => vm._fnOnPrompt = fn
+	setOnPrompt: (fn: (msg: string) => string) => vm._fnOnPrompt = fn,
+	setPaperColors: (paperColors: string[]) => vm._paperColors = paperColors,
+	setPenColors: (penColors: string[]) => vm._penColors = penColors
 };
 
 
@@ -85,8 +105,16 @@ export class Core implements ICore {
 		vm.setOnPrompt(fn);
 	}
 
-	setOnCheckSyntax(fn: (s: string) => Promise<string>) {
+	public setOnCheckSyntax(fn: (s: string) => Promise<string>) {
 		this.onCheckSyntax = fn;
+	}
+
+	public setPaperColors(colors: string[]) {
+		vm.setPaperColors(colors);
+	}
+
+	public setPenColors(colors: string[]) {
+		vm.setPenColors(colors);
 	}
 
 	private arithmeticParser: Parser | undefined;

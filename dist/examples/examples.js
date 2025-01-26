@@ -88,13 +88,11 @@ REM 18.05.2002  0.02
 REM 24.01.2003  0.05  output format changed
 REM 01.04.2023  0.08  adapted for new version
 REM
-'CLEAR
 prgLanguage$ = "Basic"
 prgVersion$ = "0.08"
 startTs = 0
 maxBench = 6
-DEF FNmod1(x,q) = x - INT(x / q) * q: REM x MOD q
-REM Settings for Locomotive Basic
+DEF FNmod1(x,q) = x - INT(x / q) * q: REM x MOD q (without overflow)
 basicver$ = "Locomotive Basic 1.1"
 DEF FNgetTs = TIME - startTs
 DEF FNconvMs(ts) = ts * 10.0 / 3.0: REM time conversion factor for ms, usually 300 Hz
@@ -109,15 +107,15 @@ REM bench00(n): x
 ndiv = INT(n / 65536)
 nmod = (n - ndiv * 65536)
 FOR i = ndiv TO 1 STEP -1
-FOR j = 32767 TO 1 STEP -1
-x = x + j
-NEXT j
-FOR j = -32768 TO -1
-x = x + j
-NEXT j
+  FOR j = 32767 TO 1 STEP -1
+    x = x + j
+  NEXT j
+  FOR j = -32768 TO -1
+    x = x + j
+  NEXT j
 NEXT i
 FOR j = nmod TO 1 STEP -1
-x = x + j
+  x = x + j
 NEXT j
 x = FNmod1(x, 65536)
 RETURN
@@ -152,20 +150,15 @@ i = 0
 m = 3
 x = 1
 WHILE m * m <= n
-IF sieve1(i) = 0 THEN x = x + 1
-j = INT((m * m - 3) / 2)
-WHILE j < nHalf
-sieve1(j) = 1
-j = j + m
-WEND
+  IF sieve1(i) = 0 THEN x = x + 1: j = INT((m * m - 3) / 2): WHILE j < nHalf: sieve1(j) = 1: j = j + m: WEND
   i = i + 1
-m = m + 2
+  m = m + 2
 WEND
 REM count remaining primes
 WHILE m <= n
-IF sieve1(i) = 0 THEN x = x + 1
-i = i + 1
-m = m + 2
+  IF sieve1(i) = 0 THEN x = x + 1
+  i = i + 1
+  m = m + 2
 WEND
 RETURN
 REM
@@ -1680,8 +1673,9 @@ FOR z = 1 TO rows
     x = s - xh
     y = z - yh
     ON k GOSUB 410,420,430,440,450,460,470,480,490,500,510,520,530,540,550,560
-    qu = fchar + ABS((p MOD 16))
-    PRINT CHR$(qu);
+    qu = ROUND(ABS((p MOD 16)))
+    PEN qu
+    PRINT CHR$(fchar + qu);
   NEXT s
   PRINT
 NEXT z
@@ -1806,78 +1800,142 @@ RETURN
 
 cpcBasic.addItem("", `
 REM lifegame - Game of Life
-maxlp=20
-ze=10:sp=10:DIM al(ze,sp+1):DIM ne(ze,sp+1)
-FOR w=1 TO 18
-  x=INT(7*RND(1)+1):y=INT(7*RND(1)+1):IF al(x,y)<>1 THEN al(x,y)=1
-NEXT w
-al(5,4)=1:al(5,5)=1:al(5,6)=1
+maxlp=10
+cols=30:rows=20:DIM grid(cols+1, rows):DIM newg(cols+1, rows):DIM mc(rows)
+'
+mode 1
+GOSUB 700 'random
+c1=5:r1=7:RESTORE 1210:GOSUB 800: 'blinker
+c1=5:r1=r1+3:RESTORE 1210:GOSUB 800: 'blinker (distance 2)
+c1=10:r1=5:RESTORE 1310:GOSUB 800: 'glider
+'
 lp=1:changed=1
 WHILE lp<=maxlp AND changed<>0
+  t=TIME+200
   CLS
   PRINT "L I F E G A M E"
-  GOSUB 300
-  t=TIME+50:WHILE TIME<t:FRAME:WEND
+  GOSUB 300 'output
+  GOSUB 400 'compute
+  GOSUB 500 'copy
+  WHILE TIME<t:FRAME:WEND
   lp=lp+1
 WEND
 PRINT
 PRINT "Stop after";lp;"generations"
 IF changed=0 THEN ?" No change any more"
 STOP
-300 'output
-FOR i=1 TO ze-1:FOR j=1 TO sp
-    IF al(i,j)=0 THEN PRINT " "; ELSE PRINT "*";
-NEXT j: PRINT: NEXT i
-FOR i=1 TO ze-1:FOR j=1 TO sp:an=0:ne(i,j)=0
-    an=al(i-1,j-1)+al(i-1,j)+al(i-1,j+1)+al(i,j-1)+al(i,j+1)+al(i+1,j-1)+al(i+1,j)+al(i+1,j+1)
-    IF al(i,j)<>0 THEN IF an=2 THEN ne(i,j)=1
-    IF an=3 THEN ne(i,j)=1
-NEXT j:NEXT i
 '
-changed=0
-FOR i=1 TO ze-1
-  FOR j=1 TO sp
-    IF al(i,j)<>ne(i,j) THEN al(i,j)=ne(i,j):changed=-1
-'sum=sum+ne(i,j)
-  NEXT j
-NEXT i
+300 'output
+FOR r=1 TO rows-1
+  FOR c=1 TO mc(r)
+    IF grid(c,r)=0 THEN PRINT " "; ELSE PRINT "*";
+  NEXT c
+  PRINT
+NEXT r
 RETURN
 '
-'another implementation
+400 'compute
+FOR r=1 TO rows-1
+  mc1=0
+  FOR c=1 TO cols
+    nbs=grid(c-1,r-1)+grid(c-1,r)+grid(c-1,r+1)+grid(c,r-1)+grid(c,r+1)+grid(c+1,r-1)+grid(c+1,r)+grid(c+1,r+1)
+    IF (nbs=3) or ((nbs=2) and (grid(c,r)=1)) THEN ng1=1 ELSE ng1=0
+    '?? ne(i,j)=-(an=3 OR (al(i,j)=1 AND an=2))
+    newg(c,r)=ng1
+    IF ng1>0 THEN mc1=c
+  NEXT c
+  mc(r)=mc1
+NEXT r
+RETURN
 '
-MODE 2
-rows=15:cols=20
-DIM grid(rows+1, cols+1), nextGrid(rows+1, cols+1)
-REM Initialize grid
-FOR x = 1 TO rows
-  FOR y = 1 TO cols
-    grid(x, y) = INT(RND * 2)
-  NEXT y
-NEXT x
+' copy newg->grid
+500 changed=0
+FOR r=1 TO rows-1
+  FOR c=1 TO cols
+    IF grid(c,r)<>newg(c,r) THEN grid(c,r)=newg(c,r):changed=-1
+  NEXT c
+NEXT r
+RETURN
 '
-REM Main loop
-FOR st = 1 TO 30
- CLS
- FOR x = 1 TO rows
-   FOR y = 1 TO cols
-     IF grid(x, y) = 1 THEN PRINT "*"; ELSE PRINT " ";
-     neighbors = grid(x-1, y-1) + grid(x, y-1) + grid(x+1, y-1) + grid(x-1, y) + grid(x+1, y) + grid(x-1, y+1) + grid(x, y+1) + grid(x+1, y+1)
-     IF grid(x, y) = 1 AND (neighbors < 2 OR neighbors > 3) THEN nextGrid(x, y) = 0
-     IF grid(x, y) = 0 AND neighbors = 3 THEN nextGrid(x, y) = 1
-     IF grid(x, y) = 1 AND neighbors = 2 OR neighbors = 3 THEN nextGrid(x, y) = 1
-   NEXT y
-  PRINT
- NEXT x
- 'SWAP grid, nextGrid
-FOR x = 1 TO rows
-  FOR y = 1 TO cols
-    grid(x, y) = nextGrid(x, y)
-  NEXT y
-NEXT x
- 'SLEEP 100
-  t=TIME+40:WHILE TIME<t:FRAME:WEND
-NEXT st
-END
+'
+' random
+700 FOR w=1 TO 50
+  c=INT(cols*RND(1)+1):r=INT(rows*RND(1)+1): grid(c,r)=1:IF c>mc(r) THEN mc(r)=c
+NEXT w
+'grid(4,5)=1:grid(5,5)=1:grid(6,5)=1
+RETURN
+'
+' draw pattern at pos c1,r1
+800 read n
+FOR r=1 TO n
+  READ pat$
+  FOR c=1 TO LEN(pat$)
+    IF MID$(pat$,c,1)="1" THEN grid(c1+c,r1+r)=1
+  NEXT c
+  IF (c1+LEN(pat$))>mc(r1+r) THEN mc(r1+r)=c1+LEN(pat$)
+NEXT r
+RETURN
+'
+'
+' https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life#Examples_of_patterns
+'
+'1. Still lifes
+' block
+1110 DATA 2
+DATA "11"
+DATA "11"
+'
+' beevive
+1120 DATA 3
+DATA "0110"
+DATA "1001"
+DATA "0110"
+'
+' loaf
+1130 DATA 4
+DATA "0110"
+DATA "1001"
+DATA "0101"
+DATA "0010"
+'
+' boat
+1140 DATA 3
+DATA "110"
+DATA "101"
+DATA "010"
+'
+' tub
+1150 DATA 3
+DATA "010"
+DATA "101"
+DATA "010"
+'
+'2. Oscillators
+' blinker
+1210 DATA 1
+DATA "111"
+'
+' toad
+1220 DATA 2
+DATA "0111"
+DATA "1110"
+'
+' beacon
+1230 DATA 4
+DATA "1100"
+DATA "1100"
+DATA "0011"
+DATA "0011"
+'...
+'
+'3. Spaceships
+' glider (https://conwaylife.com/wiki/Glider)
+1310 DATA 3
+DATA "001"
+DATA "101"
+DATA "011"
+'
+'...
 '
 `);
 
@@ -2210,6 +2268,61 @@ DATA "end"
 `);
 
 cpcBasic.addItem("", `
+REM sandpile - Abelian sandpile model
+REM https://rosettacode.org/wiki/Abelian_sandpile_model#Locomotive_Basic
+REM modified for ASCII output
+REM
+mode 1:'defint a-z
+height=15000:size=25
+'ink 0,0:ink 1,18:ink 2,8:ink 3,24
+t=time
+dim grid(size+1,size+1)
+grid(round(size/2),round(size/2))=height
+moretodo=1
+while moretodo
+moretodo=0
+for x=1 to size
+for y=1 to size
+if grid(x,y)>=4 then gosub 500
+next:next
+wend
+t=time-t
+gosub 600
+?"Time:"; t*10/3
+end
+'
+500 overspill=int(grid(x,y)/4)
+grid(x,y)=grid(x,y) mod 4
+moretodo=1
+if x>1 then grid(x-1,y)=grid(x-1,y)+overspill
+if y>1 then grid(x,y-1)=grid(x,y-1)+overspill
+if x<size then grid(x+1,y)=grid(x+1,y)+overspill
+if y<size then grid(x,y+1)=grid(x,y+1)+overspill
+return
+'
+600 for y=1 to size
+for x=1 to size
+pen grid(x,y)
+PRINT CHR$(48+grid(x,y));
+next
+print
+next
+pen 1
+return
+'
+'graphical output
+'700 for x=1 to size
+'for y=1 to size
+'plot 4*x,4*y,grid(x,y)
+'plot 4*x+2,4*y,grid(x,y)
+'plot 4*x,4*y+2,grid(x,y)
+'plot 4*x+2,4*y+2,grid(x,y)
+'next:next
+'return
+'
+`);
+
+cpcBasic.addItem("", `
 100 REM seconds - Seconds Test
 110 REM Marco Vieth, 2019
 115 CLS
@@ -2260,12 +2373,7 @@ i = 0
 m = 3
 x = 1
 WHILE m * m <= n
-  IF sieve1(i) = 0 THEN x = x + 1
-  j = INT((m * m - 3) / 2)
-  WHILE j < ndiv2
-    sieve1(j) = 1
-    j = j + m
-  WEND
+  IF sieve1(i) = 0 THEN x = x + 1: j = INT((m * m - 3) / 2): WHILE j < ndiv2: sieve1(j) = 1: j = j + m: WEND
   i = i + 1
   m = m + 2
 WEND
@@ -2365,7 +2473,12 @@ GOSUB 200
 '
 300 ?"sub300"
   ?"inside sub300"
-  'gosub 400
+  'PRINT "\\x1b[6A\\x1b[D"; 'cursor up and back
+  'PRINT "Hi -";
+  'PRINT "\\x1b[31m Hello World (red)\\x1b[39m";
+  'PRINT "\\x1b[5;15H";"locate 15,5"
+  'PRINT "\\x1b[4;17H";"locate 17,4"
+  ''gosub 400
 RETURN
 '
 350 'main

@@ -145,11 +145,56 @@ function nodeCheckSyntax(script: string) {
 	return output;
 }
 
+function setColors() {
+	const ansiColorsForPens: string[] = [
+		"\x1b[34m", // Navy
+		"\x1b[93m", // Bright Yellow
+		"\x1b[96m", // Bright Cyan
+		"\x1b[91m", // Bright Red
+		"\x1b[97m", // Bright White
+		"\x1b[30m", // Black
+		"\x1b[94m", // Bright Blue
+		"\x1b[95m", // Bright Magenta
+		"\x1b[36m", // Cyan
+		"\x1b[33m", // Yellow
+		"\x1b[94m", // Pastel Blue (Bright Blue)
+		"\x1b[95m", // Pink (Bright Magenta)
+		"\x1b[92m", // Bright Green
+		"\x1b[92m", // Pastel Green (Bright Green)
+		"\x1b[34m", // Navy (repeated)
+		"\x1b[95m", // Pink (repeated)
+		"\x1b[34m"  // Navy (repeated)
+	];
+	
+	const ansiColorsForPapers: string[] = [
+		"\x1b[44m", // Navy
+		"\x1b[103m", // Bright Yellow
+		"\x1b[106m", // Bright Cyan
+		"\x1b[101m", // Bright Red
+		"\x1b[107m", // Bright White
+		"\x1b[40m", // Black
+		"\x1b[104m", // Bright Blue
+		"\x1b[105m", // Bright Magenta
+		"\x1b[46m", // Cyan
+		"\x1b[43m", // Yellow
+		"\x1b[104m", // Pastel Blue (Bright Blue)
+		"\x1b[105m", // Pink (Bright Magenta)
+		"\x1b[102m", // Bright Green
+		"\x1b[102m", // Pastel Green (Bright Green)
+		"\x1b[44m", // Navy (repeated)
+		"\x1b[105m", // Pink (repeated)
+		"\x1b[44m"  // Navy (repeated)
+	];
+
+	core.setPaperColors(ansiColorsForPapers);
+	core.setPenColors(ansiColorsForPens);
+}
 
 function start(input: string) {
 	const actionConfig = core.getConfig<string>("action");
 	if (input !== "") {
 		core.setOnCls(() => console.clear());
+		setColors();
 		core.setOnCheckSyntax((s: string) => Promise.resolve(nodeCheckSyntax(s)));
 		const compiledScript = actionConfig.includes("compile") ? core.compileScript(input) : input;
 
@@ -219,10 +264,12 @@ if (typeof window !== "undefined") {
 		const args = ui.parseUri(window.location.search.substring(1), config);
 		fnParseArgs(args, config);
 
+		core.setOnCheckSyntax((s: string) => Promise.resolve(ui.checkSyntax(s)));
 		core.setOnCls(() => ui.setOutputText(""));
 		core.setOnPrint((msg) => ui.addOutputText(msg));
 		core.setOnPrompt((msg) => window.prompt(msg));
-		core.setOnCheckSyntax((s: string) => Promise.resolve(ui.checkSyntax(s)));
+		core.setPaperColors(ui.getPaperColors());
+		core.setPenColors(ui.getPenColors());
 		ui.onWindowLoad(new Event("onload"));
 	}
 

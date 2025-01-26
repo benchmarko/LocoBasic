@@ -98,6 +98,12 @@ function getCodeSnippets() {
 			len = Math.min(len ?? newString.length, newString.length, s.length - start);
 			return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
 		},
+		paper: function paper(n : number) {
+			_o.paper(n);
+		},
+		pen: function pen(n : number) {
+			_o.pen(n);
+		},
 		print: function print(...args: (string | number)[]) {
 			const _printNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
 			const output = args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg).join("");
@@ -601,6 +607,16 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			}
 
 			return `[${argList.map((label) => `_${label}`).join(",")}]?.[${index} - 1]()`; // 1-based index
+		},
+
+		Paper(_paperLit: Node, e: Node) {
+			semanticsHelper.addInstr("paper");
+			return `paper(${e.eval()})`;
+		},
+
+		Pen(_penLit: Node, e: Node) {
+			semanticsHelper.addInstr("pen");
+			return `pen(${e.eval()})`;
 		},
 
 		Pi(_piLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars

@@ -3,7 +3,7 @@
 LocoBasic is a streamlined adaptation of Locomotive BASIC, designed primarily for calculations.
 It is lightweight and can run either in a browser or on the command line using Node.js.
 It has **NO GOTO** but supports a subroutine style with *GOSUB*.
-Line numbers are optional and only needed to start a subroutine or a *DATA* line for *RESTORE*
+Line numbers are optional and only needed to start a subroutine or a *DATA* line for *RESTORE*.
 
 LocoBasic Links:
 [LocoBasic](https://benchmarko.github.io/LocoBasic/),
@@ -43,7 +43,7 @@ LocoBasic Links:
 
 ## LocoBasic Language Description
 
-keywords should be uppercase but all lowercase is also accepted (not-strict mode).
+Keywords should be uppercase, but all lowercase is also accepted (not-strict mode).
 
 ### Control Structures
 
@@ -58,20 +58,20 @@ keywords should be uppercase but all lowercase is also accepted (not-strict mode
   - `GOTO` and `ON GOTO` are **not supported**
 
 - **Subroutine Style:**
-  - A line starting with `GOSUB <line>` marks the beginning of a subroutine
-  - Subroutines must end with a single `RETURN` on its own line
-  - **Important:** Subroutines cannot be nested
+  - A line starting with `GOSUB <line>` marks the beginning of a subroutine.
+  - Subroutines must end with a single `RETURN` on its own line.
+  - **Important:** Subroutines cannot be nested.
 
 ### Variable Types
 
-- case does not matter (strict mode: must start with lower case)
-- Usually number
-- Use `$` to denote a string variable
-  - Variable markers like `!` and `%` are **not supported**
+- Case does not matter (strict mode: must start with lower case).
+- Usually number.
+- Use `$` to denote a string variable.
+  - Variable markers like `!` and `%` are **not supported**.
 - **No automatic rounding:**
-  - Integer parameters are not automatically rounded
-- Computations follow JavaScript precision
-- Operator arity and precedence match those of Locomotive BASIC
+  - Integer parameters are not automatically rounded.
+- Computations follow JavaScript precision.
+- Operator arity and precedence match those of Locomotive BASIC.
 
 ### Special Notes
 
@@ -83,7 +83,7 @@ keywords should be uppercase but all lowercase is also accepted (not-strict mode
 ### Operators
 
 - `AND`, `NOT`, `OR`, `XOR`
-- `number MOD number` compute the modulus
+- `number MOD number` Compute the modulus.
 - Comparisons: =, <>, <, <=, >, >=
 - +, -, *, /, \ (integer div), (...)
 - &hexValue, &xBinaryValue
@@ -91,103 +91,105 @@ keywords should be uppercase but all lowercase is also accepted (not-strict mode
 
 ### Supported Commands and Functions
 
-- `ABS(number)` Returns the absolute value of *number*
-- `ASC(character)` Returns the ASCII number of *character*
-- `ÀTN(number)` Returns the arctangent of the give *number*
-  - The returned value is in radians (when *RAD* is active) or in degrees (when *DEG* is active)
-- `BIN$(number [, padding])` Converts a number to its binary representation
-- `CHR$(number)` Returns the character for the ASCII code *number*
-- `CINT(number)` Returns the integer part of *number*
-  - same as *INT*
-- `CLS` Clears the output window
-- `COS(number)` Returns the cosine of the given *number*
-  - *number* should be in radians (when *RAD* is active) or in degrees (when *DEG* is active)
-- `DATA ["string", number,...]` Defines string or numerical data to be read by *READ*
-  - Separated by commas ","
-  - Strings must be quoted
-  - Numbers (including hex and binary) are unquoted and can only be read numerically
+- `ABS(number)` Returns the absolute value of *number*.
+- `ASC(character)` Returns the ASCII number of *character*.
+- `ÀTN(number)` Returns the arctangent of the given *number*.
+  - The returned value is in radians (when *RAD* is active) or in degrees (when *DEG* is active).
+- `BIN$(number [, padding])` Converts a number to its binary representation.
+- `CHR$(number)` Returns the character for the ASCII code *number*.
+- `CINT(number)` Returns the integer part of *number*.
+  - Same as *INT*.
+- `CLS` Clears the output window.
+- `COS(number)` Returns the cosine of the given *number*.
+  - *number* should be in radians (when *RAD* is active) or in degrees (when *DEG* is active).
+- `DATA ["string", number,...]` Defines string or numerical data to be read by *READ*.
+  - Separated by commas ",".
+  - Strings must be quoted.
+  - Numbers (including hex and binary) are unquoted and can only be read numerically.
 - `DEC$(number, format)` Returns the number as a string formatted according to the specified pattern.
-  - Only "#" and "." are supported in the format (no extra characters). Example: "##.###"
-  - No overflow warning
-- `DEF FNname[(arg1, ...)] = expression` Defines a function *FNname*
-  - Can be used as `FNname()`
-  - No space between *FN* and *name* is allowed
-  - If there are no arguments, do not use parentheses
-- `DEG` switch to degrees mode for *ATN*, *COS*, *SIN*, *TAN*
+  - Only "#" and "." are supported in the format (no extra characters). Example: "##.###".
+  - No overflow warning.
+- `DEF FNname[(arg1, ...)] = expression` Defines a function *FNname*.
+  - Can be used as `FNname()`.
+  - No space between *FN* and *name* is allowed.
+  - If there are no arguments, do not use parentheses.
+- `DEG` Switch to degrees mode for *ATN*, *COS*, *SIN*, *TAN*.
   - **Note:** In LocoBasic, the flag is used at compile time starting from its lexical position and not dynamically during execution. Therefore, it is recommended to place it at the top of the code.
-- `DIM arrayVariable(dim1 [, dim2, ...])` Initializes an array
-  - Can be multi-dimensional
-  - Elements Will be initialized with 0 or "" depending on the variable type
-- `END` Ends execution
-  - currently the same as `STOP`
-- `ERASE variable, [variable,...]` Erases array variables
-  - Specify variable name without indices
-- `ERROR number` Throws an error with *number*
-- `EXP(number)` Returns e raised to the power of *number*
-- `FIX(number)` Truncates *number*
-- `FOR variable = start to end [STEP increment]` Control structure
-  - *increment* can also be negative, in which case *start* must be greater than *end*
-  - **Endless Loops:** Not trapped
-- `FRAME` Pauses execution for ~50ms intervals for synchronization
-- `GOSUB line` Calls subroutine starting at *line*
-  - Subroutines must end with a single `RETURN` on its own line
-- `HEX$(number [, padding])` Converts a number to its hexadecimal representation
-- `IF expression THEN statements [ELSE statements]` control structure (in one line)
-- `INPUT [message;] variable` Prompts the user for input (string or numeric)
-- `INSTR([startPos,] string1, string2)` Returns the first positon of *string2* in *string1*, starting at optional *StartPos*
-- `INT(number)` Returns the integer part of *number*
-- `LEFT$(string, number)` Returns *number* characters from the left of *string*
-- `LEN(string)` Returns the length of the string
-  - LocoBasic has no limitaton on the length
-- `LOG(number)` Returns natural logarithm for *number* (based on e)
-- `LOG10(number)` Returns logarithm for *number* based on 10
-- `LOWER$(string)` Returns the string in lowercase
-- `MAX(number [,number,...])` Returns the maximum of the given numbers
-- `MID$(string, first [, length])` Returns a substring starting at positon *first* with *length*
-- `MIN(number [,number,...])` Returns the minimum of the given numbers
-- `MODE number` Sets the screen mode
-  - Currently the same as *CLS* with the mode *number* ignored
-- `NEXT` Closes a *FOR* loop
-- `ON index GOSUB line1 [,line2...]` Calls subroutine at position *index* in the list
-  - Check `GOSUB` for how to define a subroutine
-  - **Limitations:** There must be a subroutine at position *index* in the list
-- `PI` Returns the value of 'pi'
-- `PRINT argument1 [; argument2; ...]` Outputs text and numbers
-  - Arguments must be separated by `;`
-  - Numbers are padded with trailinng space, and leading space for positive numbers
-  - **Limitations:** No support for `TAB()`, `SPC()`. Formatting with `USING` only for one number as with `DEC$()`. No additional characters in the fomrat string.
-- `RAD` switch to radians mode (default) for *ATN*, *COS*, *SIN*, *TAN*
+- `DIM arrayVariable(dim1 [, dim2, ...])` Initializes an array.
+  - Can be multi-dimensional.
+  - Elements will be initialized with 0 or "" depending on the variable type.
+- `END` Ends execution.
+  - Currently the same as `STOP`.
+- `ERASE variable, [variable,...]` Erases array variables.
+  - Specify variable name without indices.
+- `ERROR number` Throws an error with *number*.
+- `EXP(number)` Returns e raised to the power of *number*.
+- `FIX(number)` Truncates *number*.
+- `FOR variable = start to end [STEP increment]` Control structure.
+  - *increment* can also be negative, in which case *start* must be greater than *end*.
+  - **Endless Loops:** Not trapped.
+- `FRAME` Pauses execution for ~50ms intervals for synchronization.
+- `GOSUB line` Calls subroutine starting at *line*.
+  - Subroutines must end with a single `RETURN` on its own line.
+- `HEX$(number [, padding])` Converts a number to its hexadecimal representation.
+- `IF expression THEN statements [ELSE statements]` control structure (in one line).
+- `INPUT [message;] variable` Prompts the user for input (string or numeric).
+- `INSTR([startPos,] string1, string2)` Returns the first position of *string2* in *string1*, starting at optional *startPos*.
+- `INT(number)` Returns the integer part of *number*.
+- `LEFT$(string, number)` Returns *number* characters from the left of *string*.
+- `LEN(string)` Returns the length of the string.
+  - LocoBasic has no limitation on the length.
+- `LOG(number)` Returns natural logarithm for *number* (based on e).
+- `LOG10(number)` Returns logarithm for *number* based on 10.
+- `LOWER$(string)` Returns the string in lowercase.
+- `MAX(number [,number,...])` Returns the maximum of the given numbers.
+- `MID$(string, first [, length])` Returns a substring starting at position *first* with *length*.
+- `MIN(number [,number,...])` Returns the minimum of the given numbers.
+- `MODE number` Sets the screen mode.
+  - Currently the same as *CLS* with the mode *number* ignored.
+- `NEXT` Closes a *FOR* loop.
+- `ON index GOSUB line1 [,line2...]` Calls subroutine at position *index* in the list.
+  - Check `GOSUB` for how to define a subroutine.
+  - **Limitations:** There must be a subroutine at position *index* in the list.
+- `PEN number` Sets the color for the text output with *PRINT*.
+  - For the terminal, [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code#Colors) for colors are used.
+- `PI` Returns the value of 'pi'.
+- `PRINT argument1 [; argument2; ...]` Outputs text and numbers.
+  - Arguments must be separated by `;`.
+  - Numbers are padded with trailing space, and leading space for positive numbers.
+  - **Limitations:** No support for `TAB()`, `SPC()`. Formatting with `USING` only for one number as with `DEC$()`. No additional characters in the format string.
+- `RAD` Switch to radians mode (default) for *ATN*, *COS*, *SIN*, *TAN*.
   - **Note:** In LocoBasic, the flag is used at compile time starting from its lexical position and not dynamically during execution.
-- `READ variable` Reads the next value from a `DATA` statement into *variable*
-- `REM` A comment until end of line, same as `
-- `RESTORE [line]` Resets the `DATA` pointer to a specified *line* number
-- `RETURN` Returns from a subroutine
-  - See *GOSUB*, *ON... GOSUB*
-- `RIGHT$(string, number)` Returns *number* characters from the right of *string*
-- `RND(number)` Returns the next pseudo-random number
-  - Parameter *number* is ignored
-- `ROUND(number [, decimalPlaces])` Rounds a number to a specified number of decimal places
-  - Rounding not exactly the same as in Locomotive BASIC
-- `SGN(number)` Returns the signum of a number (-1, 0 or 1)
-- `SIN(number)` Returns the sine of the given *number*
-  - *number* should be in radians (when *RAD* is active) or in degrees (when *DEG* is active)
-- `SPACE$(number)` Returns *number* spaces
-- `SQR(number)` Returns the square root of *number*
-- `STOP` Halts the execution
-  - Within subroutines, it functions as a *RETURN*
-  - Similar to *END*
-- `STR$(number)` Converts a number to its string representation
-  - A positive number is prefixed with a space
-- `STRING$(number, character | ASCIInumber)` Returns *character* (or `CHR$(ASCIInumber)`) repeated *number* times
-- `TAN(number)` Returns the tangent of the given *number*
-  - *number* should be in radians (when *RAD* is active) or in degrees (when *DEG* is active)
-- `TIME` Returns the current system time in 1/300 sec
-- `UPPER$(string)` Converts the string to uppercase
-- `VAL(string)` Converts a string to a number
-  - Supports hexadecimal and binary formats
-- `WEND` Ends a *WHILE* loop
-- `WHILE expression` Control structure: repeats until *expression* is false
-- `number XOR number` In expressions: exclusive-OR
+- `READ variable` Reads the next value from a `DATA` statement into *variable*.
+- `REM` A comment until end of line, same as "'".
+- `RESTORE [line]` Resets the `DATA` pointer to a specified *line* number.
+- `RETURN` Returns from a subroutine.
+  - See *GOSUB*, *ON... GOSUB*.
+- `RIGHT$(string, number)` Returns *number* characters from the right of *string*.
+- `RND[(number)]` Returns the next pseudo-random number.
+  - Parameter *number* is ignored.
+- `ROUND(number [, decimalPlaces])` Rounds a number to a specified number of decimal places.
+  - Rounding not exactly the same as in Locomotive BASIC.
+- `SGN(number)` Returns the signum of a number (-1, 0, or 1).
+- `SIN(number)` Returns the sine of the given *number*.
+  - *number* should be in radians (when *RAD* is active) or in degrees (when *DEG* is active).
+- `SPACE$(number)` Returns *number* spaces.
+- `SQR(number)` Returns the square root of *number*.
+- `STOP` Halts the execution.
+  - Within subroutines, it functions as a *RETURN*.
+  - Similar to *END*.
+- `STR$(number)` Converts a number to its string representation.
+  - A positive number is prefixed with a space.
+- `STRING$(number, character | ASCIInumber)` Returns *character* (or `CHR$(ASCIInumber)`) repeated *number* times.
+- `TAN(number)` Returns the tangent of the given *number*.
+  - *number* should be in radians (when *RAD* is active) or in degrees (when *DEG* is active).
+- `TIME` Returns the current system time in 1/300 sec.
+- `UPPER$(string)` Converts the string to uppercase.
+- `VAL(string)` Converts a string to a number.
+  - Supports hexadecimal and binary formats.
+- `WEND` Ends a *WHILE* loop.
+- `WHILE expression` Control structure: repeats until *expression* is false.
+- `number XOR number` In expressions: exclusive-OR.
 
 ### TODO
 
@@ -216,10 +218,10 @@ keywords should be uppercase but all lowercase is also accepted (not-strict mode
 
 ### Not implemented
 
-after auto border break call cat chain clear clg closein closeout cont copychr
+after auto border break call cat chain clear clg closein closeout cont copychr$
  creal cursor dec defint defreal defstr deg delete derr di draw drawr edit ei eof erl err every fill  fre
- goto graphics himem ink inkey-$ inp joy key let line list load locate mask memory merge move mover new
- on openin openout origin out paper peek pen plot plotr poke pos rad randomize release remain renum resume run
+ goto graphics himem ink inkey inkey$ inp joy key let line list load locate mask memory merge move mover new
+ on openin openout origin out peek plot plotr poke pos rad randomize release remain renum resume run
  save sound spc speed sq swap symbol tab tag tagoff test testr troff tron unt vpos wait width window write xpos ypos zone
 
 ### Resources

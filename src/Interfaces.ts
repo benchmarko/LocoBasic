@@ -17,7 +17,9 @@ export interface ICore {
 	setOnCls(fn: () => void): void,
 	setOnPrint(fn: (msg: string) => void): void,
 	setOnPrompt(fn: (msg: string) => string): void,
-	setOnCheckSyntax(fn: (s: string) => Promise<string>): void
+	setOnCheckSyntax(fn: (s: string) => Promise<string>): void,
+	setPaperColors(colors: string[]): void,
+	setPenColors(colors: string[]): void
 }
 
 export interface IUI {
@@ -25,11 +27,15 @@ export interface IUI {
 	onWindowLoad(event: Event): void,
 	addOutputText(value: string): void,
 	setOutputText(value: string): void,
+	getPaperColors(): string[],
+	getPenColors(): string[],
 	checkSyntax(str: string): Promise<string>
 }
 
 export interface IVm {
 	cls(): void,
+	paper(color: number): void,
+	pen(color: number): void,
 	print(_msg: string): void,
 	prompt(_msg: string): number|string 
 }

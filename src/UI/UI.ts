@@ -50,6 +50,7 @@ export class UI implements IUI {
 	private readonly core: ICore;
 	private basicCm?: Editor;
 	private compiledCm?: Editor;
+	//private outputAsHtml = false;
 	//private static worker?: Worker;
 	private static getErrorEvent?: (s: string) => Promise<PlainErrorEventType>;
 
@@ -77,15 +78,71 @@ export class UI implements IUI {
 		})();
 	}
 
+	/*
+	public addOutputHtml(value: string) {
+		const outputText = document.getElementById("outputText") as HTMLPreElement;
+		outputText.innerHTML += value;
+		this.outputAsHtml = true;
+	}
+	*/
+
 	public addOutputText(value: string) {
-		const outputText = document.getElementById("outputText") as HTMLTextAreaElement;
-		outputText.value += value;
+		//const outputText = document.getElementById("outputText") as HTMLTextAreaElement;
+		//outputText.value += value;
+		const outputText = document.getElementById("outputText") as HTMLPreElement;
+		//if (this.outputAsHtml) {
+		outputText.innerHTML += value;
+		//} else {
+		//	outputText.innerText += value;
+		//}
 	}
 
 	public setOutputText(value: string) {
-		const outputText = document.getElementById("outputText") as HTMLTextAreaElement;
-		outputText.value = value;
+		//const outputText = document.getElementById("outputText") as HTMLTextAreaElement;
+		//outputText.value = value;
+		const outputText = document.getElementById("outputText") as HTMLPreElement;
+		outputText.innerText = value;
+		//this.outputAsHtml = false;
 	}
+
+	private static readonly colorsForPens: string[] = [
+		"#000080", //  1 Navy
+		"#FFFF00", // 24 Bright Yellow
+		"#00FFFF", // 20 Bright Cyan
+		"#FF0000", //  6 Bright Red
+		"#FFFFFF", // 26 Bright White
+		"#000000", //  0 Black
+		"#0000FF", //  2 Bright Blue
+		"#FF00FF", //  8 Bright Magenta
+		"#008080", // 10 Cyan
+		"#808000", // 12 Yellow
+		"#8080FF", // 14 Pastel Blue
+		"#FF8080", // 16 Pink
+		"#00FF00", // 18 Bright Green
+		"#80FF80", // 22 Pastel Green
+		"#000080", //  1 Navy (repeated)
+		"#FF8080", // 16 Pink (repeated)
+		"#000080"  //  1 Navy (repeated)
+	];
+
+	public getPaperColors() {
+		return UI.colorsForPens.map((color) => `<span style="background-color: ${color}">`);
+	}
+
+	public getPenColors() {
+		return UI.colorsForPens.map((color) => `<span style="color: ${color}">`);
+	}
+
+	/*
+	public setColor(color: number, asBackground: boolean) {
+		const colorStr = UI.colorsForPens[color];
+		if (asBackground) {
+			this.addOutputHtml(`<span="background-color:${colorStr}">`);
+		} else {
+			this.addOutputHtml(`<span="color:${colorStr}">`);
+		}
+	}
+	*/
 
 	private async onExecuteButtonClick(_event: Event) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		const compiledText = document.getElementById("compiledText") as HTMLTextAreaElement;
