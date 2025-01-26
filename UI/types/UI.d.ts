@@ -9,6 +9,9 @@ export declare class UI implements IUI {
     private static asyncDelay;
     addOutputText(value: string): void;
     setOutputText(value: string): void;
+    private static readonly colorsForPens;
+    getPaperColors(): string[];
+    getPenColors(): string[];
     private onExecuteButtonClick;
     private onCompiledTextChange;
     private onCompileButtonClick;

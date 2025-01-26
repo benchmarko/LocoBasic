@@ -109,6 +109,8 @@
       | Mode
       | Next
       | On
+      | Paper
+      | Pen
       | Print
       | Rad
       | Read
@@ -256,6 +258,12 @@
 
     On
       = on NumExp gosub NonemptyListOf<label, ",">
+
+    Paper
+      = paper NumExp
+
+    Pen
+      = pen NumExp
 
     PrintArg
       = &StrCmpExp NumExp -- strCmp
@@ -1272,6 +1280,12 @@
                 len = Math.min(len !== null && len !== void 0 ? len : newString.length, newString.length, s.length - start);
                 return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
             },
+            paper: function paper(n) {
+                _o.paper(n);
+            },
+            pen: function pen(n) {
+                _o.pen(n);
+            },
             print: function print(...args) {
                 const _printNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
                 const output = args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg).join("");
@@ -1684,6 +1698,14 @@
                 }
                 return `[${argList.map((label) => `_${label}`).join(",")}]?.[${index} - 1]()`; // 1-based index
             },
+            Paper(_paperLit, e) {
+                semanticsHelper.addInstr("paper");
+                return `paper(${e.eval()})`;
+            },
+            Pen(_penLit, e) {
+                semanticsHelper.addInstr("pen");
+                return `pen(${e.eval()})`;
+            },
             Pi(_piLit) {
                 return "Math.PI";
             },
@@ -2087,12 +2109,30 @@
     // core.ts
     const vm$1 = {
         _output: "",
+        _lastPaper: -1,
+        _lastPen: -1,
+        _paperColors: [],
+        _penColors: [],
         _fnOnCls: (() => undefined),
         _fnOnPrint: ((_msg) => undefined), // eslint-disable-line @typescript-eslint/no-unused-vars
         _fnOnPrompt: ((_msg) => ""), // eslint-disable-line @typescript-eslint/no-unused-vars
         cls: () => {
             vm$1._output = "";
+            vm$1._lastPaper = -1;
+            vm$1._lastPen = -1;
             vm$1._fnOnCls();
+        },
+        paper(n) {
+            if (n !== this._lastPaper) {
+                this._output += this._paperColors[n];
+                this._lastPaper = n;
+            }
+        },
+        pen(n) {
+            if (n !== this._lastPen) {
+                this._output += this._penColors[n];
+                this._lastPen = n;
+            }
         },
         print(...args) {
             this._output += args.join('');
@@ -2108,7 +2148,9 @@
         setOutput: (str) => vm$1._output = str,
         setOnCls: (fn) => vm$1._fnOnCls = fn,
         setOnPrint: (fn) => vm$1._fnOnPrint = fn,
-        setOnPrompt: (fn) => vm$1._fnOnPrompt = fn
+        setOnPrompt: (fn) => vm$1._fnOnPrompt = fn,
+        setPaperColors: (paperColors) => vm$1._paperColors = paperColors,
+        setPenColors: (penColors) => vm$1._penColors = penColors
     };
     class Core {
         constructor() {
@@ -2153,6 +2195,12 @@
         }
         setOnCheckSyntax(fn) {
             this.onCheckSyntax = fn;
+        }
+        setPaperColors(colors) {
+            vm$1.setPaperColors(colors);
+        }
+        setPenColors(colors) {
+            vm$1.setPenColors(colors);
         }
         compileScript(script) {
             if (!this.arithmeticParser) {
@@ -2336,10 +2384,53 @@
         }
         return output;
     }
+    function setColors() {
+        const ansiColorsForPens = [
+            "\x1b[34m", // Navy
+            "\x1b[93m", // Bright Yellow
+            "\x1b[96m", // Bright Cyan
+            "\x1b[91m", // Bright Red
+            "\x1b[97m", // Bright White
+            "\x1b[30m", // Black
+            "\x1b[94m", // Bright Blue
+            "\x1b[95m", // Bright Magenta
+            "\x1b[36m", // Cyan
+            "\x1b[33m", // Yellow
+            "\x1b[94m", // Pastel Blue (Bright Blue)
+            "\x1b[95m", // Pink (Bright Magenta)
+            "\x1b[92m", // Bright Green
+            "\x1b[92m", // Pastel Green (Bright Green)
+            "\x1b[34m", // Navy (repeated)
+            "\x1b[95m", // Pink (repeated)
+            "\x1b[34m" // Navy (repeated)
+        ];
+        const ansiColorsForPapers = [
+            "\x1b[44m", // Navy
+            "\x1b[103m", // Bright Yellow
+            "\x1b[106m", // Bright Cyan
+            "\x1b[101m", // Bright Red
+            "\x1b[107m", // Bright White
+            "\x1b[40m", // Black
+            "\x1b[104m", // Bright Blue
+            "\x1b[105m", // Bright Magenta
+            "\x1b[46m", // Cyan
+            "\x1b[43m", // Yellow
+            "\x1b[104m", // Pastel Blue (Bright Blue)
+            "\x1b[105m", // Pink (Bright Magenta)
+            "\x1b[102m", // Bright Green
+            "\x1b[102m", // Pastel Green (Bright Green)
+            "\x1b[44m", // Navy (repeated)
+            "\x1b[105m", // Pink (repeated)
+            "\x1b[44m" // Navy (repeated)
+        ];
+        core.setPaperColors(ansiColorsForPapers);
+        core.setPenColors(ansiColorsForPens);
+    }
     function start(input) {
         const actionConfig = core.getConfig("action");
         if (input !== "") {
             core.setOnCls(() => console.clear());
+            setColors();
             core.setOnCheckSyntax((s) => Promise.resolve(nodeCheckSyntax(s)));
             const compiledScript = actionConfig.includes("compile") ? core.compileScript(input) : input;
             if (compiledScript.startsWith("ERROR:")) {
@@ -2402,10 +2493,12 @@
             ui = new UI(core);
             const args = ui.parseUri(window.location.search.substring(1), config);
             fnParseArgs(args, config);
+            core.setOnCheckSyntax((s) => Promise.resolve(ui.checkSyntax(s)));
             core.setOnCls(() => ui.setOutputText(""));
             core.setOnPrint((msg) => ui.addOutputText(msg));
             core.setOnPrompt((msg) => window.prompt(msg));
-            core.setOnCheckSyntax((s) => Promise.resolve(ui.checkSyntax(s)));
+            core.setPaperColors(ui.getPaperColors());
+            core.setPenColors(ui.getPenColors());
             ui.onWindowLoad(new Event("onload"));
         };
     }

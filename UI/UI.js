@@ -55,14 +55,46 @@ export class UI {
             return timerId;
         }))();
     }
+    /*
+    public addOutputHtml(value: string) {
+        const outputText = document.getElementById("outputText") as HTMLPreElement;
+        outputText.innerHTML += value;
+        this.outputAsHtml = true;
+    }
+    */
     addOutputText(value) {
+        //const outputText = document.getElementById("outputText") as HTMLTextAreaElement;
+        //outputText.value += value;
         const outputText = document.getElementById("outputText");
-        outputText.value += value;
+        //if (this.outputAsHtml) {
+        outputText.innerHTML += value;
+        //} else {
+        //	outputText.innerText += value;
+        //}
     }
     setOutputText(value) {
+        //const outputText = document.getElementById("outputText") as HTMLTextAreaElement;
+        //outputText.value = value;
         const outputText = document.getElementById("outputText");
-        outputText.value = value;
+        outputText.innerText = value;
+        //this.outputAsHtml = false;
     }
+    getPaperColors() {
+        return UI.colorsForPens.map((color) => `<span style="background-color: ${color}">`);
+    }
+    getPenColors() {
+        return UI.colorsForPens.map((color) => `<span style="color: ${color}">`);
+    }
+    /*
+    public setColor(color: number, asBackground: boolean) {
+        const colorStr = UI.colorsForPens[color];
+        if (asBackground) {
+            this.addOutputHtml(`<span="background-color:${colorStr}">`);
+        } else {
+            this.addOutputHtml(`<span="color:${colorStr}">`);
+        }
+    }
+    */
     onExecuteButtonClick(_event) {
         return __awaiter(this, void 0, void 0, function* () {
             const compiledText = document.getElementById("compiledText");
@@ -252,4 +284,23 @@ export class UI {
         }, 10);
     }
 }
+UI.colorsForPens = [
+    "#000080", //  1 Navy
+    "#FFFF00", // 24 Bright Yellow
+    "#00FFFF", // 20 Bright Cyan
+    "#FF0000", //  6 Bright Red
+    "#FFFFFF", // 26 Bright White
+    "#000000", //  0 Black
+    "#0000FF", //  2 Bright Blue
+    "#FF00FF", //  8 Bright Magenta
+    "#008080", // 10 Cyan
+    "#808000", // 12 Yellow
+    "#8080FF", // 14 Pastel Blue
+    "#FF8080", // 16 Pink
+    "#00FF00", // 18 Bright Green
+    "#80FF80", // 22 Pastel Green
+    "#000080", //  1 Navy (repeated)
+    "#FF8080", // 16 Pink (repeated)
+    "#000080" //  1 Navy (repeated)
+];
 //# sourceMappingURL=UI.js.map

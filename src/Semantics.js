@@ -50,6 +50,12 @@ function getCodeSnippets() {
             len = Math.min(len !== null && len !== void 0 ? len : newString.length, newString.length, s.length - start);
             return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
         },
+        paper: function paper(n) {
+            _o.paper(n);
+        },
+        pen: function pen(n) {
+            _o.pen(n);
+        },
         print: function print(...args) {
             const _printNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
             const output = args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg).join("");
@@ -461,6 +467,14 @@ function getSemantics(semanticsHelper) {
                 semanticsHelper.addGosubLabel(argList[i]);
             }
             return `[${argList.map((label) => `_${label}`).join(",")}]?.[${index} - 1]()`; // 1-based index
+        },
+        Paper(_paperLit, e) {
+            semanticsHelper.addInstr("paper");
+            return `paper(${e.eval()})`;
+        },
+        Pen(_penLit, e) {
+            semanticsHelper.addInstr("pen");
+            return `pen(${e.eval()})`;
         },
         Pi(_piLit) {
             return "Math.PI";

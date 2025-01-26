@@ -14,16 +14,22 @@ export interface ICore {
     setOnPrint(fn: (msg: string) => void): void;
     setOnPrompt(fn: (msg: string) => string): void;
     setOnCheckSyntax(fn: (s: string) => Promise<string>): void;
+    setPaperColors(colors: string[]): void;
+    setPenColors(colors: string[]): void;
 }
 export interface IUI {
     parseUri(urlQuery: string, config: ConfigType): string[];
     onWindowLoad(event: Event): void;
     addOutputText(value: string): void;
     setOutputText(value: string): void;
+    getPaperColors(): string[];
+    getPenColors(): string[];
     checkSyntax(str: string): Promise<string>;
 }
 export interface IVm {
     cls(): void;
+    paper(color: number): void;
+    pen(color: number): void;
     print(_msg: string): void;
     prompt(_msg: string): number | string;
 }

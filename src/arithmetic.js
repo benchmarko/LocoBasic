@@ -34,6 +34,8 @@ export const arithmetic = {
       | Mode
       | Next
       | On
+      | Paper
+      | Pen
       | Print
       | Rad
       | Read
@@ -181,6 +183,12 @@ export const arithmetic = {
 
     On
       = on NumExp gosub NonemptyListOf<label, ",">
+
+    Paper
+      = paper NumExp
+
+    Pen
+      = pen NumExp
 
     PrintArg
       = &StrCmpExp NumExp -- strCmp

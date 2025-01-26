@@ -13,12 +13,30 @@ import { arithmetic } from "./arithmetic";
 import { Semantics } from "./Semantics";
 const vm = {
     _output: "",
+    _lastPaper: -1,
+    _lastPen: -1,
+    _paperColors: [],
+    _penColors: [],
     _fnOnCls: (() => undefined),
     _fnOnPrint: ((_msg) => undefined), // eslint-disable-line @typescript-eslint/no-unused-vars
     _fnOnPrompt: ((_msg) => ""), // eslint-disable-line @typescript-eslint/no-unused-vars
     cls: () => {
         vm._output = "";
+        vm._lastPaper = -1;
+        vm._lastPen = -1;
         vm._fnOnCls();
+    },
+    paper(n) {
+        if (n !== this._lastPaper) {
+            this._output += this._paperColors[n];
+            this._lastPaper = n;
+        }
+    },
+    pen(n) {
+        if (n !== this._lastPen) {
+            this._output += this._penColors[n];
+            this._lastPen = n;
+        }
     },
     print(...args) {
         this._output += args.join('');
@@ -34,7 +52,9 @@ const vm = {
     setOutput: (str) => vm._output = str,
     setOnCls: (fn) => vm._fnOnCls = fn,
     setOnPrint: (fn) => vm._fnOnPrint = fn,
-    setOnPrompt: (fn) => vm._fnOnPrompt = fn
+    setOnPrompt: (fn) => vm._fnOnPrompt = fn,
+    setPaperColors: (paperColors) => vm._paperColors = paperColors,
+    setPenColors: (penColors) => vm._penColors = penColors
 };
 export class Core {
     constructor() {
@@ -79,6 +99,12 @@ export class Core {
     }
     setOnCheckSyntax(fn) {
         this.onCheckSyntax = fn;
+    }
+    setPaperColors(colors) {
+        vm.setPaperColors(colors);
+    }
+    setPenColors(colors) {
+        vm.setPenColors(colors);
     }
     compileScript(script) {
         if (!this.arithmeticParser) {

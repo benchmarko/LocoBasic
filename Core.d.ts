@@ -14,6 +14,8 @@ export declare class Core implements ICore {
     setOnPrint(fn: (msg: string) => void): void;
     setOnPrompt(fn: (msg: string) => string): void;
     setOnCheckSyntax(fn: (s: string) => Promise<string>): void;
+    setPaperColors(colors: string[]): void;
+    setPenColors(colors: string[]): void;
     private arithmeticParser;
     compileScript(script: string): any;
     executeScript(compiledScript: string): Promise<string>;
