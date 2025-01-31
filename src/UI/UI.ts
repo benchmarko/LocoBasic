@@ -50,8 +50,6 @@ export class UI implements IUI {
 	private readonly core: ICore;
 	private basicCm?: Editor;
 	private compiledCm?: Editor;
-	//private outputAsHtml = false;
-	//private static worker?: Worker;
 	private static getErrorEvent?: (s: string) => Promise<PlainErrorEventType>;
 
 	constructor(core: ICore) {
@@ -78,31 +76,14 @@ export class UI implements IUI {
 		})();
 	}
 
-	/*
-	public addOutputHtml(value: string) {
-		const outputText = document.getElementById("outputText") as HTMLPreElement;
-		outputText.innerHTML += value;
-		this.outputAsHtml = true;
-	}
-	*/
-
 	public addOutputText(value: string) {
-		//const outputText = document.getElementById("outputText") as HTMLTextAreaElement;
-		//outputText.value += value;
 		const outputText = document.getElementById("outputText") as HTMLPreElement;
-		//if (this.outputAsHtml) {
 		outputText.innerHTML += value;
-		//} else {
-		//	outputText.innerText += value;
-		//}
 	}
 
 	public setOutputText(value: string) {
-		//const outputText = document.getElementById("outputText") as HTMLTextAreaElement;
-		//outputText.value = value;
 		const outputText = document.getElementById("outputText") as HTMLPreElement;
 		outputText.innerText = value;
-		//this.outputAsHtml = false;
 	}
 
 	private static readonly colorsForPens: string[] = [
@@ -132,17 +113,6 @@ export class UI implements IUI {
 	public getPenColors() {
 		return UI.colorsForPens.map((color) => `<span style="color: ${color}">`);
 	}
-
-	/*
-	public setColor(color: number, asBackground: boolean) {
-		const colorStr = UI.colorsForPens[color];
-		if (asBackground) {
-			this.addOutputHtml(`<span="background-color:${colorStr}">`);
-		} else {
-			this.addOutputHtml(`<span="color:${colorStr}">`);
-		}
-	}
-	*/
 
 	private async onExecuteButtonClick(_event: Event) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		const compiledText = document.getElementById("compiledText") as HTMLTextAreaElement;

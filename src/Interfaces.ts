@@ -34,6 +34,10 @@ export interface IUI {
 
 export interface IVm {
 	cls(): void,
+	drawMovePlot(type: string, x: number, y: number): void,
+	flush(): void,
+	graphicsPen(num: number): void,
+	mode(num: number): void,
 	paper(color: number): void,
 	pen(color: number): void,
 	print(_msg: string): void,

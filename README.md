@@ -75,10 +75,14 @@ Keywords should be uppercase, but all lowercase is also accepted (not-strict mod
 
 ### Special Notes
 
-- **Endless Loops:**
+- **Endless Loops**
   - Not trapped automatically. Restarting the browser window may be required to recover.
-- **STOP and END:**
+- **STOP and END**
   - These halt execution only at the top level. Within subroutines, they simply return.
+- **PEN and PAPER**
+  - When using node.js in a terminal, ANSI colors are used.
+- **GRAPHICS PEN, DRAW, DRAWR, MOVE, MOVER, PLOT, PLOTR**
+  - These can be used to create SVG graphics. Graphics is separate from text.
 
 ### Operators
 
@@ -118,6 +122,8 @@ Keywords should be uppercase, but all lowercase is also accepted (not-strict mod
 - `DIM arrayVariable(dim1 [, dim2, ...])` Initializes an array.
   - Can be multi-dimensional.
   - Elements will be initialized with 0 or "" depending on the variable type.
+- `DRAW x,y`: Draw a line to position x,y.
+- `DRAWR x,y`: Draw a line relative with offset x,y.
 - `END` Ends execution.
   - Currently the same as `STOP`.
 - `ERASE variable, [variable,...]` Erases array variables.
@@ -129,8 +135,10 @@ Keywords should be uppercase, but all lowercase is also accepted (not-strict mod
   - *increment* can also be negative, in which case *start* must be greater than *end*.
   - **Endless Loops:** Not trapped.
 - `FRAME` Pauses execution for ~50ms intervals for synchronization.
+  - This command will also flush text and graphical output.
 - `GOSUB line` Calls subroutine starting at *line*.
   - Subroutines must end with a single `RETURN` on its own line.
+- `GRAPHICS PEN number` Sets the graphics pen.
 - `HEX$(number [, padding])` Converts a number to its hexadecimal representation.
 - `IF expression THEN statements [ELSE statements]` control structure (in one line).
 - `INPUT [message;] variable` Prompts the user for input (string or numeric).
@@ -145,15 +153,20 @@ Keywords should be uppercase, but all lowercase is also accepted (not-strict mod
 - `MAX(number [,number,...])` Returns the maximum of the given numbers.
 - `MID$(string, first [, length])` Returns a substring starting at position *first* with *length*.
 - `MIN(number [,number,...])` Returns the minimum of the given numbers.
-- `MODE number` Sets the screen mode.
-  - Currently the same as *CLS* with the mode *number* ignored.
+- `MODE number` Sets the screen mode (0..3).
+  - Nearly the same as *CLS*. For graphical output, it sets the stroke width.
+- `MOVE x,y`: Move the graphical cursor to position x,y.
+- `MOVER x,y`: Move the graphical cursor relative with offset x,y.
 - `NEXT` Closes a *FOR* loop.
 - `ON index GOSUB line1 [,line2...]` Calls subroutine at position *index* in the list.
   - Check `GOSUB` for how to define a subroutine.
   - **Limitations:** There must be a subroutine at position *index* in the list.
+- `PAPER number` Sets the background color for the text output with *PRINT*.
 - `PEN number` Sets the color for the text output with *PRINT*.
   - For the terminal, [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code#Colors) for colors are used.
 - `PI` Returns the value of 'pi'.
+- `PLOT x,y`: Plot a point at position x,y.
+- `PLOTR x,y`: Plot a point relative with offset x,y.
 - `PRINT argument1 [; argument2; ...]` Outputs text and numbers.
   - Arguments must be separated by `;`.
   - Numbers are padded with trailing space, and leading space for positive numbers.
@@ -219,9 +232,9 @@ Keywords should be uppercase, but all lowercase is also accepted (not-strict mod
 ### Not implemented
 
 after auto border break call cat chain clear clg closein closeout cont copychr$
- creal cursor dec defint defreal defstr deg delete derr di draw drawr edit ei eof erl err every fill  fre
- goto graphics himem ink inkey inkey$ inp joy key let line list load locate mask memory merge move mover new
- on openin openout origin out peek plot plotr poke pos rad randomize release remain renum resume run
+ creal cursor dec defint defreal defstr deg delete derr di edit ei eof erl err every fill  fre
+ goto graphicsPaper himem ink inkey inkey$ inp joy key let line list load locate mask memory merge new
+ on openin openout origin out peek poke pos rad randomize release remain renum resume run
  save sound spc speed sq swap symbol tab tag tagoff test testr troff tron unt vpos wait width window write xpos ypos zone
 
 ### Resources

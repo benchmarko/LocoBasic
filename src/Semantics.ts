@@ -41,7 +41,8 @@ interface SemanticsHelper {
     nextIndentAdd(num: number): void,
     setIndent(indent: number): void,
 	setDeg(deg: boolean): void,
-	getDeg(): boolean
+	getDeg(): boolean,
+	setDefContext(defContext: boolean): void
 }
 
 function getCodeSnippets() {
@@ -64,11 +65,9 @@ function getCodeSnippets() {
 			_o.cls();
 		},
 		dec$: function dec$(num: number, format: string) {
-			const [, decimalPart] = format.split(".", 2);
-			const decimals = decimalPart ? decimalPart.length : 0;
+			const decimals = (format.split(".")[1] || "").length;
 			const str = num.toFixed(decimals);
-			const padLen = format.length - str.length;
-			const pad = padLen > 0 ? " ".repeat(padLen) : "";
+			const pad = " ".repeat(Math.max(0, format.length - str.length));
 			return pad + str;
 		},
 		dim: function dim(dims: number[], initVal: string | number = 0) {
@@ -81,28 +80,58 @@ function getCodeSnippets() {
 			};
 			return createRecursiveArray(0);
 		},
+		draw: function draw(x: number, y: number) {
+			_o.drawMovePlot("L", x, y);
+		},
+		drawr: function drawr(x: number, y: number) {
+			_o.drawMovePlot("l", x, y);
+		},
+		end: function end() {
+			_o.flush();
+			return "end";
+		},
 		frame: function frame() { // async
+			_o.flush();
 			return new Promise<void>(resolve => setTimeout(() => resolve(), Date.now() % 50));
+		},
+		graphicsPen: function graphicsPen(num: number) {
+			_o.graphicsPen(num);
 		},
 		hex$: function hex$(num: number, pad?: number) {
 			return num.toString(16).toUpperCase().padStart(pad || 0, "0");
 		},
 		input: function input(msg: string, isNum: boolean) { // async
+			_o.flush();
 			return new Promise(resolve => setTimeout(() => {
 				const input = _o.prompt(msg);
 				resolve(isNum ? Number(input) : input);
-			}, 0));
+			}, 5));
 		},
 		mid$Assign: function mid$Assign(s: string, start: number, newString: string, len?: number) {
 			start -= 1;
 			len = Math.min(len ?? newString.length, newString.length, s.length - start);
 			return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
 		},
+		mode: function mode(num: number) {
+			_o.mode(num);
+		},
+		move: function move(x: number, y: number) {
+			_o.drawMovePlot("M", x, y);
+		},
+		mover: function mover(x: number, y: number) {
+			_o.drawMovePlot("m", x, y);
+		},
 		paper: function paper(n : number) {
 			_o.paper(n);
 		},
 		pen: function pen(n : number) {
 			_o.pen(n);
+		},
+		plot: function plot(x: number, y: number) {
+			_o.drawMovePlot("P", x, y);
+		},
+		plotr: function plotr(x: number, y: number) {
+			_o.drawMovePlot("p", x, y);
 		},
 		print: function print(...args: (string | number)[]) {
 			const _printNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
@@ -117,6 +146,10 @@ function getCodeSnippets() {
 		},
 		round: function round(num: number, dec: number) {
 			return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
+		},
+		stop: function stop() {
+			 _o.flush();
+			 return "stop";
 		},
 		str$: function str$(num: number) {
 			return num >= 0 ? ` ${num}`: String(num);
@@ -161,6 +194,24 @@ function evalChildren(children: Node[]) {
 }
 
 function getSemantics(semanticsHelper: SemanticsHelper) {
+
+	const drawMovePlot = (lit: Node, x: Node, _comma1: Node, y: Node, _comma2: Node, e3: Node) => {
+		const command = lit.sourceString.toLowerCase();
+		semanticsHelper.addInstr(command);
+		const pen = e3.child(0)?.eval();
+		let penStr = "";
+		if (pen !== undefined) {
+			semanticsHelper.addInstr("graphicsPen");
+			penStr = `graphicsPen(${pen}); `;
+		}
+		return penStr + `${command}(${x.eval()}, ${y.eval()})`;
+	};
+
+	const cosSinTan = (lit: Node, _open: Node, e: Node, _close: Node) => { // eslint-disable-line @typescript-eslint/no-unused-vars
+		const func = lit.sourceString.toLowerCase();
+		return semanticsHelper.getDeg() ? `Math.${func}((${e.eval()}) * Math.PI / 180)` : `Math.${func}(${e.eval()})`;
+	}
+
 	// Semantics to evaluate an arithmetic expression
 	const semantics: ActionDict<string | string[]> = {
 		Program(lines: Node) {
@@ -332,9 +383,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `//${remain.sourceString}`;
 		},
 
-		Cos(_cosLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return semanticsHelper.getDeg() ? `Math.cos((${e.eval()}) * Math.PI / 180)` : `Math.cos(${e.eval()})`;
-		},
+		Cos: cosSinTan,
 
 		Cint(_cintLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `Math.round(${e.eval()})`;
@@ -380,10 +429,14 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		DefAssign(ident: Node, args: Node, _equal: Node, e: Node) {
-			const argStr = args.children.map(c => c.eval()).join(", ") || "()";
 			const fnIdent = semanticsHelper.getVariable(`fn${ident.sourceString}`);
 
-			return `${fnIdent} = ${argStr} => ${e.eval()}`;
+			semanticsHelper.setDefContext(true); // do not create global variables in this context
+			const argStr = args.children.map(c => c.eval()).join(", ") || "()";
+			const defBody = e.eval();
+			semanticsHelper.setDefContext(false);
+
+			return `${fnIdent} = ${argStr} => ${defBody}`;
 		},
 
 		Deg(_degLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -412,8 +465,13 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return results.join("; ");
 		},
 
+		Draw: drawMovePlot,
+
+		Drawr: drawMovePlot,
+
 		End(_endLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `return "end"`;
+			semanticsHelper.addInstr("end");
+			return `return end()`;
 		},
 
 		Erase(_eraseLit: Node, arrayIdents: Node) { // erase not really needed
@@ -488,6 +546,11 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			semanticsHelper.addGosubLabel(labelStr);
 
 			return `_${labelStr}()`;
+		},
+
+		GraphicsPen(_graphicsLit: Node, _penLit: Node, e: Node) {
+			semanticsHelper.addInstr("graphicsPen");
+			return `graphicsPen(${e.eval()})`;
 		},
 
 		HexS(_hexLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -584,10 +647,14 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `Math.min(${argList})`;
 		},
 
-		Mode(_clsLit: Node, _num: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			semanticsHelper.addInstr("cls"); // currently MODE is the same as CLS
-			return `cls()`;
+		Mode(_modeLit: Node, e: Node) {
+			semanticsHelper.addInstr("mode");
+			return `mode(${e.eval()})`;
 		},
+
+		Move: drawMovePlot,
+
+		Mover: drawMovePlot,
 
 		Next(_nextLit: Node, variables: Node) {
 			const argList = variables.asIteration().children.map(c => c.eval());
@@ -622,6 +689,10 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		Pi(_piLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return "Math.PI";
 		},
+
+		Plot: drawMovePlot,
+
+		Plotr: drawMovePlot,
 
 		PrintArg_strCmp(_cmp: Node, args: Node) {
 			const paramStr = args.children[0].eval();
@@ -701,9 +772,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `Math.sign(${e.eval()})`;
 		},
 
-		Sin(_sinLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return semanticsHelper.getDeg() ? `Math.sin((${e.eval()}) * Math.PI / 180)` : `Math.sin(${e.eval()})`;
-		},
+		Sin: cosSinTan,
 
 		SpaceS(_stringLit: Node, _open: Node, len: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `" ".repeat(${len.eval()})`;
@@ -714,7 +783,8 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		Stop(_stopLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `return "stop"`;
+			semanticsHelper.addInstr("stop");
+			return `return stop()`;
 		},
 
 		StrS(_strLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -737,9 +807,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			return `String.fromCharCode(${num.eval()}).repeat(${len.eval()})`;
 		},
 
-		Tan(_tanLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return semanticsHelper.getDeg() ? `Math.tan((${e.eval()}) * Math.PI / 180)` : `Math.tan(${e.eval()})`;
-		},
+		Tan: cosSinTan,
 
 		Time(_timeLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.addInstr("time");
@@ -950,6 +1018,7 @@ export class Semantics {
 	private readonly instrMap: Record<string, number> = {};
 
 	private isDeg = false;
+	private isDefContext = false;
 
 	private addIndent(num: number) {
 		if (num < 0) {
@@ -1035,8 +1104,14 @@ export class Semantics {
 			name = `_${name}`;
 		}
 
-		this.variables[name] = (this.variables[name] || 0) + 1;
+		if (!this.isDefContext) {
+			this.variables[name] = (this.variables[name] || 0) + 1;
+		}
 		return name;
+	}
+
+	private setDefContext(isDef: boolean) {
+		this.isDefContext = isDef;
 	}
 
 	private static deleteAllItems(items: Record<string, unknown>) {
@@ -1074,6 +1149,7 @@ export class Semantics {
 		Semantics.deleteAllItems(this.restoreMap);
 		Semantics.deleteAllItems(this.instrMap);
 		this.isDeg = false;
+		this.isDefContext = false;
 	}
 
 	public getSemantics() {
@@ -1099,7 +1175,8 @@ export class Semantics {
 			nextIndentAdd: (num: number) => this.nextIndentAdd(num),
 			setIndent: (indent: number) => this.setIndent(indent),
 			setDeg: (isDeg: boolean) => this.isDeg = isDeg,
-			getDeg: () => this.isDeg
+			getDeg: () => this.isDeg,
+			setDefContext: (isDef: boolean) => this.setDefContext(isDef)
 		};
 		return getSemantics(semanticsHelper);
 	}

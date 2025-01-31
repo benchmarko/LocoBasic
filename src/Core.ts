@@ -5,12 +5,39 @@ import { Parser } from "./Parser";
 import { arithmetic } from "./arithmetic";
 import { Semantics } from "./Semantics";
 
+
+//TTT: should not be here:
+const colorsForPens: string[] = [
+	"#000080", //  1 Navy
+	"#FFFF00", // 24 Bright Yellow
+	"#00FFFF", // 20 Bright Cyan
+	"#FF0000", //  6 Bright Red
+	"#FFFFFF", // 26 Bright White
+	"#000000", //  0 Black
+	"#0000FF", //  2 Bright Blue
+	"#FF00FF", //  8 Bright Magenta
+	"#008080", // 10 Cyan
+	"#808000", // 12 Yellow
+	"#8080FF", // 14 Pastel Blue
+	"#FF8080", // 16 Pink
+	"#00FF00", // 18 Bright Green
+	"#80FF80", // 22 Pastel Green
+	"#000080", //  1 Navy (repeated)
+	"#FF8080", // 16 Pink (repeated)
+	"#000080"  //  1 Navy (repeated)
+];
+
 const vm = {
 	_output: "",
 	_lastPaper: -1,
 	_lastPen: -1,
+	_mode: 2,
 	_paperColors: [] as string[],
 	_penColors: [] as string[],
+	_graphicsBuffer: "",
+	_graphicsPen: 1,
+	_graphicsX: 0,
+	_graphicsY: 0,
 	_fnOnCls: (() => undefined) as () => void,
 	_fnOnPrint: ((_msg: string) => undefined) as (msg: string) => void, // eslint-disable-line @typescript-eslint/no-unused-vars
 	_fnOnPrompt: ((_msg: string) => "") as (msg: string) => string, // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -18,7 +45,84 @@ const vm = {
 		vm._output = "";
 		vm._lastPaper = -1;
 		vm._lastPen = -1;
+		vm._graphicsBuffer = "";
+		vm._graphicsPen = -1;
+		vm._graphicsX = 0;
+		vm._graphicsY = 0;
 		vm._fnOnCls();
+	},
+	drawMovePlot: (type: string, x: number, y: number) => {
+		x = Math.round(x);
+		y = Math.round(y);
+		if (!vm._graphicsBuffer) {
+			vm._graphicsBuffer = `<path d="`;
+		}
+
+		if (vm._graphicsBuffer.endsWith('d="')) {
+			// avoid 'Error: <path> attribute d: Expected moveto path command ('M' or 'm')'
+			if (type !== "M") {
+				vm._graphicsBuffer += `M${vm._graphicsX} ${vm._graphicsY}`;
+			}
+		}
+
+		let svg = "";
+		switch (type) {
+			case "L":
+			case "M":
+				y = 399 - y;
+				svg = `${type}${x} ${y}`;
+				break;
+			case "P":
+				y = 399 - y;
+				svg = `M${x - 1} ${y + 1}h1v1h-1v-1`;
+				break;
+			case "l":
+			case "m":
+				y = -y;
+				svg = `${type}${x} ${y}`;
+				x = vm._graphicsX + x;
+				y = vm._graphicsY + y;
+				break;
+			case "p":
+				y = -y;
+				svg = `m${x - 1} ${y + 1}h1v1h-1v-1`;
+				x = vm._graphicsX + x;
+				y = vm._graphicsY + y;
+				break;
+			default:
+				console.error(`drawMovePlot: Unknown type: ${type}`);
+				break;
+		}
+		vm._graphicsBuffer += svg;
+		vm._graphicsX = x;
+		vm._graphicsY = y;
+	},
+	flush: () => {
+		if (vm._graphicsBuffer) {
+			//vm._output += `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" transform="scale(1, -1) translate(0, -400)" stroke-width="1px" stroke="currentColor">${vm._drawBuffer}" /> </svg>`;
+			const strokeWidth = vm._mode >= 2 ? "1px" : vm._mode === 1 ? "2px" : "4px";
+			vm._output += `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidth}" stroke="currentColor">${vm._graphicsBuffer}" /> </svg>`;
+			vm._graphicsBuffer = "";
+		}
+		if (vm._output) {
+			vm._fnOnPrint(vm._output);
+			vm._output = "";
+		}
+	},
+	graphicsPen: (num: number) => {
+		if (num === vm._graphicsPen) {
+			return;
+		}
+		vm._graphicsPen = num;
+
+		if (vm._graphicsBuffer) {
+			vm._graphicsBuffer += `" />`; // close the path
+		}
+		vm._graphicsBuffer += `<path stroke="${colorsForPens[num]}" d="`;
+	},
+	mode: (num: number) => {
+		vm._mode = num;
+		vm.cls();
 	},
 	paper(n: number) {
 		if (n !== this._lastPaper) {
@@ -34,12 +138,9 @@ const vm = {
 	},
 	print(...args: string[]) {
 		this._output += args.join('');
-		if (this._output.endsWith("\n")) {
-			this._fnOnPrint(this._output);
-			this._output = "";
-		}
 	},
 	prompt: (msg: string) => {
+		vm.flush();
 		return vm._fnOnPrompt(msg);
 	},
 
@@ -154,9 +255,11 @@ export class Core implements ICore {
 			let output: string;
 			if (result instanceof Promise) {
 				output = await result;
-				output = this.vm.getOutput() + output;
+				this.vm.flush();
+				output = this.vm.getOutput();
 			} else {
-				output = this.vm.getOutput() + result;
+				this.vm.flush();
+				output = this.vm.getOutput();
 			}
 			return output;
 		} catch (error) {
@@ -186,7 +289,10 @@ export class Core implements ICore {
 })({
 	_output: "",
 	cls: () => undefined,
-	print(...args) { this._output += args.join(''); if (this._output.endsWith("\\n")) { console.log(this._output); this._output = ""; } },
+	flush() { if (this._output) { console.log(this._output); this._output = ""; } },
+	paper: () => undefined,
+	pen: () => undefined,
+	print(...args) { this._output += args.join(''); },
 	prompt: (msg) => { console.log(msg); return ""; }
 });`
 		return result;

@@ -23,20 +23,27 @@ export const arithmetic = {
       | Def
       | Deg
       | Dim
+      | Draw
+      | Drawr
       | End
       | Erase
       | Error
       | For
       | Frame
       | Gosub
+      | GraphicsPen
       | If
       | Input
       | MidSAssign
       | Mode
+      | Move
+      | Mover
       | Next
       | On
       | Paper
       | Pen
+      | Plot
+      | Plotr
       | Print
       | Rad
       | Read
@@ -109,6 +116,12 @@ export const arithmetic = {
     Dim
       = dim NonemptyListOf<DimArrayIdent, ",">
 
+    Draw
+      = draw NumExp "," NumExp ("," NumExp)?
+
+    Drawr
+      = drawr NumExp "," NumExp ("," NumExp)?
+
     End
       = endLit
 
@@ -132,6 +145,9 @@ export const arithmetic = {
 
     Gosub
       = gosub label
+
+    GraphicsPen
+      = graphics pen NumExp
 
     HexS
       = hexS "(" NumExp ("," NumExp)? ")"
@@ -176,6 +192,12 @@ export const arithmetic = {
     Mode
       = mode NumExp
 
+    Move
+      = move NumExp "," NumExp ("," NumExp)?
+    
+    Mover
+      = mover NumExp "," NumExp ("," NumExp)?
+
     Pi
       = pi
 
@@ -190,6 +212,12 @@ export const arithmetic = {
 
     Pen
       = pen NumExp
+
+    Plot
+      = plot NumExp "," NumExp ("," NumExp)?
+
+    Plotr
+      = plotr NumExp "," NumExp ("," NumExp)?
 
     PrintArg
       = &StrCmpExp NumExp -- strCmp
