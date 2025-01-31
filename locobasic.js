@@ -97,20 +97,27 @@
       | Def
       | Deg
       | Dim
+      | Draw
+      | Drawr
       | End
       | Erase
       | Error
       | For
       | Frame
       | Gosub
+      | GraphicsPen
       | If
       | Input
       | MidSAssign
       | Mode
+      | Move
+      | Mover
       | Next
       | On
       | Paper
       | Pen
+      | Plot
+      | Plotr
       | Print
       | Rad
       | Read
@@ -183,6 +190,12 @@
     Dim
       = dim NonemptyListOf<DimArrayIdent, ",">
 
+    Draw
+      = draw NumExp "," NumExp ("," NumExp)?
+
+    Drawr
+      = drawr NumExp "," NumExp ("," NumExp)?
+
     End
       = endLit
 
@@ -206,6 +219,9 @@
 
     Gosub
       = gosub label
+
+    GraphicsPen
+      = graphics pen NumExp
 
     HexS
       = hexS "(" NumExp ("," NumExp)? ")"
@@ -250,6 +266,12 @@
     Mode
       = mode NumExp
 
+    Move
+      = move NumExp "," NumExp ("," NumExp)?
+    
+    Mover
+      = mover NumExp "," NumExp ("," NumExp)?
+
     Pi
       = pi
 
@@ -264,6 +286,12 @@
 
     Pen
       = pen NumExp
+
+    Plot
+      = plot NumExp "," NumExp ("," NumExp)?
+
+    Plotr
+      = plotr NumExp "," NumExp ("," NumExp)?
 
     PrintArg
       = &StrCmpExp NumExp -- strCmp
@@ -1248,11 +1276,9 @@
                 _o.cls();
             },
             dec$: function dec$(num, format) {
-                const [, decimalPart] = format.split(".", 2);
-                const decimals = decimalPart ? decimalPart.length : 0;
+                const decimals = (format.split(".")[1] || "").length;
                 const str = num.toFixed(decimals);
-                const padLen = format.length - str.length;
-                const pad = padLen > 0 ? " ".repeat(padLen) : "";
+                const pad = " ".repeat(Math.max(0, format.length - str.length));
                 return pad + str;
             },
             dim: function dim(dims, initVal = 0) {
@@ -1263,28 +1289,58 @@
                 };
                 return createRecursiveArray(0);
             },
+            draw: function draw(x, y) {
+                _o.drawMovePlot("L", x, y);
+            },
+            drawr: function drawr(x, y) {
+                _o.drawMovePlot("l", x, y);
+            },
+            end: function end() {
+                _o.flush();
+                return "end";
+            },
             frame: function frame() {
+                _o.flush();
                 return new Promise(resolve => setTimeout(() => resolve(), Date.now() % 50));
+            },
+            graphicsPen: function graphicsPen(num) {
+                _o.graphicsPen(num);
             },
             hex$: function hex$(num, pad) {
                 return num.toString(16).toUpperCase().padStart(pad || 0, "0");
             },
             input: function input(msg, isNum) {
+                _o.flush();
                 return new Promise(resolve => setTimeout(() => {
                     const input = _o.prompt(msg);
                     resolve(isNum ? Number(input) : input);
-                }, 0));
+                }, 5));
             },
             mid$Assign: function mid$Assign(s, start, newString, len) {
                 start -= 1;
                 len = Math.min(len !== null && len !== void 0 ? len : newString.length, newString.length, s.length - start);
                 return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
             },
+            mode: function mode(num) {
+                _o.mode(num);
+            },
+            move: function move(x, y) {
+                _o.drawMovePlot("M", x, y);
+            },
+            mover: function mover(x, y) {
+                _o.drawMovePlot("m", x, y);
+            },
             paper: function paper(n) {
                 _o.paper(n);
             },
             pen: function pen(n) {
                 _o.pen(n);
+            },
+            plot: function plot(x, y) {
+                _o.drawMovePlot("P", x, y);
+            },
+            plotr: function plotr(x, y) {
+                _o.drawMovePlot("p", x, y);
             },
             print: function print(...args) {
                 const _printNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
@@ -1299,6 +1355,10 @@
             },
             round: function round(num, dec) {
                 return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
+            },
+            stop: function stop() {
+                _o.flush();
+                return "stop";
             },
             str$: function str$(num) {
                 return num >= 0 ? ` ${num}` : String(num);
@@ -1337,6 +1397,22 @@
         return children.map(c => c.eval());
     }
     function getSemantics(semanticsHelper) {
+        const drawMovePlot = (lit, x, _comma1, y, _comma2, e3) => {
+            var _a;
+            const command = lit.sourceString.toLowerCase();
+            semanticsHelper.addInstr(command);
+            const pen = (_a = e3.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
+            let penStr = "";
+            if (pen !== undefined) {
+                semanticsHelper.addInstr("graphicsPen");
+                penStr = `graphicsPen(${pen}); `;
+            }
+            return penStr + `${command}(${x.eval()}, ${y.eval()})`;
+        };
+        const cosSinTan = (lit, _open, e, _close) => {
+            const func = lit.sourceString.toLowerCase();
+            return semanticsHelper.getDeg() ? `Math.${func}((${e.eval()}) * Math.PI / 180)` : `Math.${func}(${e.eval()})`;
+        };
         // Semantics to evaluate an arithmetic expression
         const semantics = {
             Program(lines) {
@@ -1477,9 +1553,7 @@
             Comment(_commentLit, remain) {
                 return `//${remain.sourceString}`;
             },
-            Cos(_cosLit, _open, e, _close) {
-                return semanticsHelper.getDeg() ? `Math.cos((${e.eval()}) * Math.PI / 180)` : `Math.cos(${e.eval()})`;
-            },
+            Cos: cosSinTan,
             Cint(_cintLit, _open, e, _close) {
                 return `Math.round(${e.eval()})`;
             },
@@ -1514,9 +1588,12 @@
                 return `(${argList.join(", ")})`;
             },
             DefAssign(ident, args, _equal, e) {
-                const argStr = args.children.map(c => c.eval()).join(", ") || "()";
                 const fnIdent = semanticsHelper.getVariable(`fn${ident.sourceString}`);
-                return `${fnIdent} = ${argStr} => ${e.eval()}`;
+                semanticsHelper.setDefContext(true); // do not create global variables in this context
+                const argStr = args.children.map(c => c.eval()).join(", ") || "()";
+                const defBody = e.eval();
+                semanticsHelper.setDefContext(false);
+                return `${fnIdent} = ${argStr} => ${defBody}`;
             },
             Deg(_degLit) {
                 semanticsHelper.setDeg(true);
@@ -1541,8 +1618,11 @@
                 }
                 return results.join("; ");
             },
+            Draw: drawMovePlot,
+            Drawr: drawMovePlot,
             End(_endLit) {
-                return `return "end"`;
+                semanticsHelper.addInstr("end");
+                return `return end()`;
             },
             Erase(_eraseLit, arrayIdents) {
                 const argList = arrayIdents.asIteration().children.map(c => c.eval());
@@ -1602,6 +1682,10 @@
                 const labelStr = e.sourceString;
                 semanticsHelper.addGosubLabel(labelStr);
                 return `_${labelStr}()`;
+            },
+            GraphicsPen(_graphicsLit, _penLit, e) {
+                semanticsHelper.addInstr("graphicsPen");
+                return `graphicsPen(${e.eval()})`;
             },
             HexS(_hexLit, _open, e, _comma, n, _close) {
                 var _a;
@@ -1678,10 +1762,12 @@
                 const argList = args.asIteration().children.map(c => c.eval()); // see also: ArrayArgs
                 return `Math.min(${argList})`;
             },
-            Mode(_clsLit, _num) {
-                semanticsHelper.addInstr("cls"); // currently MODE is the same as CLS
-                return `cls()`;
+            Mode(_modeLit, e) {
+                semanticsHelper.addInstr("mode");
+                return `mode(${e.eval()})`;
             },
+            Move: drawMovePlot,
+            Mover: drawMovePlot,
             Next(_nextLit, variables) {
                 const argList = variables.asIteration().children.map(c => c.eval());
                 if (!argList.length) {
@@ -1709,6 +1795,8 @@
             Pi(_piLit) {
                 return "Math.PI";
             },
+            Plot: drawMovePlot,
+            Plotr: drawMovePlot,
             PrintArg_strCmp(_cmp, args) {
                 const paramStr = args.children[0].eval();
                 return paramStr;
@@ -1774,9 +1862,7 @@
             Sgn(_sgnLit, _open, e, _close) {
                 return `Math.sign(${e.eval()})`;
             },
-            Sin(_sinLit, _open, e, _close) {
-                return semanticsHelper.getDeg() ? `Math.sin((${e.eval()}) * Math.PI / 180)` : `Math.sin(${e.eval()})`;
-            },
+            Sin: cosSinTan,
             SpaceS(_stringLit, _open, len, _close) {
                 return `" ".repeat(${len.eval()})`;
             },
@@ -1784,7 +1870,8 @@
                 return `Math.sqrt(${e.eval()})`;
             },
             Stop(_stopLit) {
-                return `return "stop"`;
+                semanticsHelper.addInstr("stop");
+                return `return stop()`;
             },
             StrS(_strLit, _open, e, _close) {
                 const arg = e.eval();
@@ -1802,9 +1889,7 @@
             StringS_num(_stringLit, _open, len, _commaLit, num, _close) {
                 return `String.fromCharCode(${num.eval()}).repeat(${len.eval()})`;
             },
-            Tan(_tanLit, _open, e, _close) {
-                return semanticsHelper.getDeg() ? `Math.tan((${e.eval()}) * Math.PI / 180)` : `Math.tan(${e.eval()})`;
-            },
+            Tan: cosSinTan,
             Time(_timeLit) {
                 semanticsHelper.addInstr("time");
                 return `time()`;
@@ -1973,6 +2058,7 @@
             this.restoreMap = {};
             this.instrMap = {};
             this.isDeg = false;
+            this.isDefContext = false;
         }
         addIndent(num) {
             if (num < 0) {
@@ -2042,8 +2128,13 @@
             if (Semantics.reJsKeyword.test(name)) {
                 name = `_${name}`;
             }
-            this.variables[name] = (this.variables[name] || 0) + 1;
+            if (!this.isDefContext) {
+                this.variables[name] = (this.variables[name] || 0) + 1;
+            }
             return name;
+        }
+        setDefContext(isDef) {
+            this.isDefContext = isDef;
         }
         static deleteAllItems(items) {
             for (const name in items) {
@@ -2075,6 +2166,7 @@
             Semantics.deleteAllItems(this.restoreMap);
             Semantics.deleteAllItems(this.instrMap);
             this.isDeg = false;
+            this.isDefContext = false;
         }
         getSemantics() {
             const semanticsHelper = {
@@ -2099,7 +2191,8 @@
                 nextIndentAdd: (num) => this.nextIndentAdd(num),
                 setIndent: (indent) => this.setIndent(indent),
                 setDeg: (isDeg) => this.isDeg = isDeg,
-                getDeg: () => this.isDeg
+                getDeg: () => this.isDeg,
+                setDefContext: (isDef) => this.setDefContext(isDef)
             };
             return getSemantics(semanticsHelper);
         }
@@ -2107,12 +2200,37 @@
     Semantics.reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;
 
     // core.ts
+    //TTT: should not be here:
+    const colorsForPens = [
+        "#000080", //  1 Navy
+        "#FFFF00", // 24 Bright Yellow
+        "#00FFFF", // 20 Bright Cyan
+        "#FF0000", //  6 Bright Red
+        "#FFFFFF", // 26 Bright White
+        "#000000", //  0 Black
+        "#0000FF", //  2 Bright Blue
+        "#FF00FF", //  8 Bright Magenta
+        "#008080", // 10 Cyan
+        "#808000", // 12 Yellow
+        "#8080FF", // 14 Pastel Blue
+        "#FF8080", // 16 Pink
+        "#00FF00", // 18 Bright Green
+        "#80FF80", // 22 Pastel Green
+        "#000080", //  1 Navy (repeated)
+        "#FF8080", // 16 Pink (repeated)
+        "#000080" //  1 Navy (repeated)
+    ];
     const vm$1 = {
         _output: "",
         _lastPaper: -1,
         _lastPen: -1,
+        _mode: 2,
         _paperColors: [],
         _penColors: [],
+        _graphicsBuffer: "",
+        _graphicsPen: 1,
+        _graphicsX: 0,
+        _graphicsY: 0,
         _fnOnCls: (() => undefined),
         _fnOnPrint: ((_msg) => undefined), // eslint-disable-line @typescript-eslint/no-unused-vars
         _fnOnPrompt: ((_msg) => ""), // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -2120,7 +2238,81 @@
             vm$1._output = "";
             vm$1._lastPaper = -1;
             vm$1._lastPen = -1;
+            vm$1._graphicsBuffer = "";
+            vm$1._graphicsPen = -1;
+            vm$1._graphicsX = 0;
+            vm$1._graphicsY = 0;
             vm$1._fnOnCls();
+        },
+        drawMovePlot: (type, x, y) => {
+            x = Math.round(x);
+            y = Math.round(y);
+            if (!vm$1._graphicsBuffer) {
+                vm$1._graphicsBuffer = `<path d="`;
+            }
+            if (vm$1._graphicsBuffer.endsWith('d="')) {
+                // avoid 'Error: <path> attribute d: Expected moveto path command ('M' or 'm')'
+                if (type !== "M") {
+                    vm$1._graphicsBuffer += `M${vm$1._graphicsX} ${vm$1._graphicsY}`;
+                }
+            }
+            let svg = "";
+            switch (type) {
+                case "L":
+                case "M":
+                    y = 399 - y;
+                    svg = `${type}${x} ${y}`;
+                    break;
+                case "P":
+                    y = 399 - y;
+                    svg = `M${x - 1} ${y + 1}h1v1h-1v-1`;
+                    break;
+                case "l":
+                case "m":
+                    y = -y;
+                    svg = `${type}${x} ${y}`;
+                    x = vm$1._graphicsX + x;
+                    y = vm$1._graphicsY + y;
+                    break;
+                case "p":
+                    y = -y;
+                    svg = `m${x - 1} ${y + 1}h1v1h-1v-1`;
+                    x = vm$1._graphicsX + x;
+                    y = vm$1._graphicsY + y;
+                    break;
+                default:
+                    console.error(`drawMovePlot: Unknown type: ${type}`);
+                    break;
+            }
+            vm$1._graphicsBuffer += svg;
+            vm$1._graphicsX = x;
+            vm$1._graphicsY = y;
+        },
+        flush: () => {
+            if (vm$1._graphicsBuffer) {
+                //vm._output += `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" transform="scale(1, -1) translate(0, -400)" stroke-width="1px" stroke="currentColor">${vm._drawBuffer}" /> </svg>`;
+                const strokeWidth = vm$1._mode >= 2 ? "1px" : vm$1._mode === 1 ? "2px" : "4px";
+                vm$1._output += `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidth}" stroke="currentColor">${vm$1._graphicsBuffer}" /> </svg>`;
+                vm$1._graphicsBuffer = "";
+            }
+            if (vm$1._output) {
+                vm$1._fnOnPrint(vm$1._output);
+                vm$1._output = "";
+            }
+        },
+        graphicsPen: (num) => {
+            if (num === vm$1._graphicsPen) {
+                return;
+            }
+            vm$1._graphicsPen = num;
+            if (vm$1._graphicsBuffer) {
+                vm$1._graphicsBuffer += `" />`; // close the path
+            }
+            vm$1._graphicsBuffer += `<path stroke="${colorsForPens[num]}" d="`;
+        },
+        mode: (num) => {
+            vm$1._mode = num;
+            vm$1.cls();
         },
         paper(n) {
             if (n !== this._lastPaper) {
@@ -2136,12 +2328,9 @@
         },
         print(...args) {
             this._output += args.join('');
-            if (this._output.endsWith("\n")) {
-                this._fnOnPrint(this._output);
-                this._output = "";
-            }
         },
         prompt: (msg) => {
+            vm$1.flush();
             return vm$1._fnOnPrompt(msg);
         },
         getOutput: () => vm$1._output,
@@ -2233,10 +2422,12 @@
                     let output;
                     if (result instanceof Promise) {
                         output = yield result;
-                        output = this.vm.getOutput() + output;
+                        this.vm.flush();
+                        output = this.vm.getOutput();
                     }
                     else {
-                        output = this.vm.getOutput() + result;
+                        this.vm.flush();
+                        output = this.vm.getOutput();
                     }
                     return output;
                 }
@@ -2265,7 +2456,10 @@
 })({
 	_output: "",
 	cls: () => undefined,
-	print(...args) { this._output += args.join(''); if (this._output.endsWith("\\n")) { console.log(this._output); this._output = ""; } },
+	flush() { if (this._output) { console.log(this._output); this._output = ""; } },
+	paper: () => undefined,
+	pen: () => undefined,
+	print(...args) { this._output += args.join(''); },
 	prompt: (msg) => { console.log(msg); return ""; }
 });`;
             return result;

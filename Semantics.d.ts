@@ -12,6 +12,7 @@ export declare class Semantics {
     private static readonly reJsKeyword;
     private readonly instrMap;
     private isDeg;
+    private isDefContext;
     private addIndent;
     private setIndent;
     private getIndent;
@@ -28,6 +29,7 @@ export declare class Semantics {
     private addInstr;
     private getVariables;
     private getVariable;
+    private setDefContext;
     private static deleteAllItems;
     private incrementLineIndex;
     private getRestoreMap;

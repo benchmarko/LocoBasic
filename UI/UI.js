@@ -55,29 +55,13 @@ export class UI {
             return timerId;
         }))();
     }
-    /*
-    public addOutputHtml(value: string) {
-        const outputText = document.getElementById("outputText") as HTMLPreElement;
-        outputText.innerHTML += value;
-        this.outputAsHtml = true;
-    }
-    */
     addOutputText(value) {
-        //const outputText = document.getElementById("outputText") as HTMLTextAreaElement;
-        //outputText.value += value;
         const outputText = document.getElementById("outputText");
-        //if (this.outputAsHtml) {
         outputText.innerHTML += value;
-        //} else {
-        //	outputText.innerText += value;
-        //}
     }
     setOutputText(value) {
-        //const outputText = document.getElementById("outputText") as HTMLTextAreaElement;
-        //outputText.value = value;
         const outputText = document.getElementById("outputText");
         outputText.innerText = value;
-        //this.outputAsHtml = false;
     }
     getPaperColors() {
         return UI.colorsForPens.map((color) => `<span style="background-color: ${color}">`);
@@ -85,16 +69,6 @@ export class UI {
     getPenColors() {
         return UI.colorsForPens.map((color) => `<span style="color: ${color}">`);
     }
-    /*
-    public setColor(color: number, asBackground: boolean) {
-        const colorStr = UI.colorsForPens[color];
-        if (asBackground) {
-            this.addOutputHtml(`<span="background-color:${colorStr}">`);
-        } else {
-            this.addOutputHtml(`<span="color:${colorStr}">`);
-        }
-    }
-    */
     onExecuteButtonClick(_event) {
         return __awaiter(this, void 0, void 0, function* () {
             const compiledText = document.getElementById("compiledText");
