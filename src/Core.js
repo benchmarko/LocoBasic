@@ -31,6 +31,7 @@ const colorsForPens = [
     "#FF8080", // 16 Pink (repeated)
     "#000080" //  1 Navy (repeated)
 ];
+const strokeWidthForMode = [4, 2, 1, 1];
 const vm = {
     _output: "",
     _lastPaper: -1,
@@ -38,7 +39,8 @@ const vm = {
     _mode: 2,
     _paperColors: [],
     _penColors: [],
-    _graphicsBuffer: "",
+    _graphicsBuffer: [],
+    _graphicsPathBuffer: [],
     _graphicsPen: 1,
     _graphicsX: 0,
     _graphicsY: 0,
@@ -49,7 +51,8 @@ const vm = {
         vm._output = "";
         vm._lastPaper = -1;
         vm._lastPen = -1;
-        vm._graphicsBuffer = "";
+        vm._graphicsBuffer.length = 0;
+        vm._graphicsPathBuffer.length = 0;
         vm._graphicsPen = -1;
         vm._graphicsX = 0;
         vm._graphicsY = 0;
@@ -58,36 +61,29 @@ const vm = {
     drawMovePlot: (type, x, y) => {
         x = Math.round(x);
         y = Math.round(y);
-        if (!vm._graphicsBuffer) {
-            vm._graphicsBuffer = `<path d="`;
-        }
-        if (vm._graphicsBuffer.endsWith('d="')) {
-            // avoid 'Error: <path> attribute d: Expected moveto path command ('M' or 'm')'
-            if (type !== "M") {
-                vm._graphicsBuffer += `M${vm._graphicsX} ${vm._graphicsY}`;
-            }
-        }
-        let svg = "";
+        let svgPathCmd = "";
         switch (type) {
             case "L":
             case "M":
                 y = 399 - y;
-                svg = `${type}${x} ${y}`;
+                svgPathCmd = `${type}${x} ${y}`;
                 break;
             case "P":
                 y = 399 - y;
-                svg = `M${x - 1} ${y + 1}h1v1h-1v-1`;
+                svgPathCmd = `M${x} ${y}h1v1h-1v-1`;
+                //or circle: vm.flushGraphicsPath(); svgPathCmd = ""; vm._graphicsBuffer.push(`<circle cx="${x}" cy="${y}" r="${strokeWidthForMode[vm._mode]}" stroke="${colorsForPens[vm._graphicsPen]}" />`);
+                //or rect (slow): vm.flushGraphicsPath(); svgPathCmd = ""; vm._graphicsBuffer.push(`<rect x="${x}" y="${y}" width="${strokeWidthForMode[vm._mode]}" height="${strokeWidthForMode[vm._mode]}" fill="${colorsForPens[vm._graphicsPen]}" />`);
                 break;
             case "l":
             case "m":
                 y = -y;
-                svg = `${type}${x} ${y}`;
+                svgPathCmd = `${type}${x} ${y}`;
                 x = vm._graphicsX + x;
                 y = vm._graphicsY + y;
                 break;
             case "p":
                 y = -y;
-                svg = `m${x - 1} ${y + 1}h1v1h-1v-1`;
+                svgPathCmd = `m${x} ${y}h1v1h-1v-1`;
                 x = vm._graphicsX + x;
                 y = vm._graphicsY + y;
                 break;
@@ -95,16 +91,27 @@ const vm = {
                 console.error(`drawMovePlot: Unknown type: ${type}`);
                 break;
         }
-        vm._graphicsBuffer += svg;
+        if (svgPathCmd) {
+            if (!vm._graphicsPathBuffer.length && svgPathCmd[0] !== "M") {
+                // avoid 'Error: <path> attribute d: Expected moveto path command ('M' or 'm')'
+                vm._graphicsPathBuffer.push(`M${vm._graphicsX} ${vm._graphicsY}`);
+            }
+            vm._graphicsPathBuffer.push(svgPathCmd);
+        }
         vm._graphicsX = x;
         vm._graphicsY = y;
     },
+    flushGraphicsPath: () => {
+        if (vm._graphicsPathBuffer.length) {
+            vm._graphicsBuffer.push(`<path stroke="${colorsForPens[vm._graphicsPen]}" d="${vm._graphicsPathBuffer.join("")}" />`);
+            vm._graphicsPathBuffer.length = 0;
+        }
+    },
     flush: () => {
-        if (vm._graphicsBuffer) {
-            //vm._output += `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" transform="scale(1, -1) translate(0, -400)" stroke-width="1px" stroke="currentColor">${vm._drawBuffer}" /> </svg>`;
-            const strokeWidth = vm._mode >= 2 ? "1px" : vm._mode === 1 ? "2px" : "4px";
-            vm._output += `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidth}" stroke="currentColor">${vm._graphicsBuffer}" /> </svg>`;
-            vm._graphicsBuffer = "";
+        vm.flushGraphicsPath();
+        if (vm._graphicsBuffer.length) {
+            vm._output += `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[vm._mode]}px" stroke="currentColor">${vm._graphicsBuffer.join("\n")}" /> </svg>\n`;
+            vm._graphicsBuffer.length = 0;
         }
         if (vm._output) {
             vm._fnOnPrint(vm._output);
@@ -115,11 +122,8 @@ const vm = {
         if (num === vm._graphicsPen) {
             return;
         }
+        vm.flushGraphicsPath();
         vm._graphicsPen = num;
-        if (vm._graphicsBuffer) {
-            vm._graphicsBuffer += `" />`; // close the path
-        }
-        vm._graphicsBuffer += `<path stroke="${colorsForPens[num]}" d="`;
     },
     mode: (num) => {
         vm._mode = num;
@@ -151,6 +155,23 @@ const vm = {
     setOnPrompt: (fn) => vm._fnOnPrompt = fn,
     setPaperColors: (paperColors) => vm._paperColors = paperColors,
     setPenColors: (penColors) => vm._penColors = penColors
+};
+// The functions from dummyVm will be stringified in the putScriptInFrame function
+const dummyVm = {
+    _output: "",
+    debug(..._args) { }, // eslint-disable-line @typescript-eslint/no-unused-vars
+    cls() { },
+    drawMovePlot(type, x, y) { this.debug("drawMovePlot:", type, x, y); },
+    flush() { if (this._output) {
+        console.log(this._output);
+        this._output = "";
+    } },
+    graphicsPen(num) { this.debug("graphicsPen:", num); },
+    mode(num) { this.debug("mode:", num); },
+    paper(num) { this.debug("paper:", num); },
+    pen(num) { this.debug("pen:", num); },
+    print(...args) { this._output += args.join(''); },
+    prompt(msg) { console.log(msg); return ""; }
 };
 export class Core {
     constructor() {
@@ -262,16 +283,12 @@ export class Core {
         });
     }
     putScriptInFrame(script) {
+        const dummyFunctions = Object.values(dummyVm).filter((value) => value).map((value) => `${value}`).join(",\n  ");
         const result = `(function(_o) {
 	${script}
 })({
 	_output: "",
-	cls: () => undefined,
-	flush() { if (this._output) { console.log(this._output); this._output = ""; } },
-	paper: () => undefined,
-	pen: () => undefined,
-	print(...args) { this._output += args.join(''); },
-	prompt: (msg) => { console.log(msg); return ""; }
+	${dummyFunctions}
 });`;
         return result;
     }
