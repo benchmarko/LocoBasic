@@ -2199,152 +2199,131 @@
     }
     Semantics.reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;
 
-    // core.ts
-    //TTT: should not be here:
-    const colorsForPens = [
-        "#000080", //  1 Navy
-        "#FFFF00", // 24 Bright Yellow
-        "#00FFFF", // 20 Bright Cyan
-        "#FF0000", //  6 Bright Red
-        "#FFFFFF", // 26 Bright White
-        "#000000", //  0 Black
-        "#0000FF", //  2 Bright Blue
-        "#FF00FF", //  8 Bright Magenta
-        "#008080", // 10 Cyan
-        "#808000", // 12 Yellow
-        "#8080FF", // 14 Pastel Blue
-        "#FF8080", // 16 Pink
-        "#00FF00", // 18 Bright Green
-        "#80FF80", // 22 Pastel Green
-        "#000080", //  1 Navy (repeated)
-        "#FF8080", // 16 Pink (repeated)
-        "#000080" //  1 Navy (repeated)
-    ];
-    const strokeWidthForMode = [4, 2, 1, 1];
-    const vm$1 = {
-        _output: "",
-        _lastPaper: -1,
-        _lastPen: -1,
-        _mode: 2,
-        _paperColors: [],
-        _penColors: [],
-        _graphicsBuffer: [],
-        _graphicsPathBuffer: [],
-        _graphicsPen: 1,
-        _graphicsX: 0,
-        _graphicsY: 0,
-        _fnOnCls: (() => undefined),
-        _fnOnPrint: ((_msg) => undefined), // eslint-disable-line @typescript-eslint/no-unused-vars
-        _fnOnPrompt: ((_msg) => ""), // eslint-disable-line @typescript-eslint/no-unused-vars
-        cls: () => {
-            vm$1._output = "";
-            vm$1._lastPaper = -1;
-            vm$1._lastPen = -1;
-            vm$1._graphicsBuffer.length = 0;
-            vm$1._graphicsPathBuffer.length = 0;
-            vm$1._graphicsPen = -1;
-            vm$1._graphicsX = 0;
-            vm$1._graphicsY = 0;
-            vm$1._fnOnCls();
-        },
-        drawMovePlot: (type, x, y) => {
-            x = Math.round(x);
-            y = Math.round(y);
-            let svgPathCmd = "";
-            switch (type) {
-                case "L":
-                case "M":
-                    y = 399 - y;
-                    svgPathCmd = `${type}${x} ${y}`;
-                    break;
-                case "P":
-                    y = 399 - y;
-                    svgPathCmd = `M${x} ${y}h1v1h-1v-1`;
-                    //or circle: vm.flushGraphicsPath(); svgPathCmd = ""; vm._graphicsBuffer.push(`<circle cx="${x}" cy="${y}" r="${strokeWidthForMode[vm._mode]}" stroke="${colorsForPens[vm._graphicsPen]}" />`);
-                    //or rect (slow): vm.flushGraphicsPath(); svgPathCmd = ""; vm._graphicsBuffer.push(`<rect x="${x}" y="${y}" width="${strokeWidthForMode[vm._mode]}" height="${strokeWidthForMode[vm._mode]}" fill="${colorsForPens[vm._graphicsPen]}" />`);
-                    break;
-                case "l":
-                case "m":
-                    y = -y;
-                    svgPathCmd = `${type}${x} ${y}`;
-                    x = vm$1._graphicsX + x;
-                    y = vm$1._graphicsY + y;
-                    break;
-                case "p":
-                    y = -y;
-                    svgPathCmd = `m${x} ${y}h1v1h-1v-1`;
-                    x = vm$1._graphicsX + x;
-                    y = vm$1._graphicsY + y;
-                    break;
-                default:
-                    console.error(`drawMovePlot: Unknown type: ${type}`);
-                    break;
-            }
-            if (svgPathCmd) {
-                if (!vm$1._graphicsPathBuffer.length && svgPathCmd[0] !== "M") {
-                    // avoid 'Error: <path> attribute d: Expected moveto path command ('M' or 'm')'
-                    vm$1._graphicsPathBuffer.push(`M${vm$1._graphicsX} ${vm$1._graphicsY}`);
+    // Core.ts
+    function fnHereDoc(fn) {
+        return String(fn).replace(/^[^/]+\/\*\S*/, "").replace(/\*\/[^/]+$/, "");
+    }
+    class Core {
+        constructor(defaultConfig) {
+            this.semantics = new Semantics();
+            this.examples = {};
+            this.onCheckSyntax = (_s) => __awaiter(this, void 0, void 0, function* () { return ""; }); // eslint-disable-line @typescript-eslint/no-unused-vars
+            this.addItem = (key, input) => {
+                let inputString = (typeof input !== "string") ? fnHereDoc(input) : input;
+                inputString = inputString.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
+                // beware of data files ending with newlines! (do not use trimEnd)
+                if (!key) { // maybe ""
+                    const firstLine = inputString.slice(0, inputString.indexOf("\n"));
+                    const matches = firstLine.match(/^\s*\d*\s*(?:REM|rem|')\s*(\w+)/);
+                    key = matches ? matches[1] : "unknown";
                 }
-                vm$1._graphicsPathBuffer.push(svgPathCmd);
+                this.setExample(key, inputString);
+            };
+            this.config = defaultConfig;
+        }
+        setVm(vm) {
+            this.vm = vm;
+        }
+        getConfigObject() {
+            return this.config;
+        }
+        /*
+        public getConfigAsMap() {
+            return this.config as Record<string, ConfigEntryType>;
+        }
+        */
+        getExampleObject() {
+            return this.examples;
+        }
+        setExample(name, script) {
+            this.examples[name] = script;
+        }
+        getExample(name) {
+            return this.examples[name];
+        }
+        setOnCheckSyntax(fn) {
+            this.onCheckSyntax = fn;
+        }
+        compileScript(script) {
+            if (!this.arithmeticParser) {
+                const semantics = this.semantics.getSemantics();
+                if (this.config.grammar === "strict") {
+                    const basicParser = new Parser(arithmetic.basicGrammar, semantics);
+                    this.arithmeticParser = new Parser(arithmetic.strictGrammar, semantics, basicParser);
+                }
+                else {
+                    this.arithmeticParser = new Parser(arithmetic.basicGrammar, semantics);
+                }
             }
-            vm$1._graphicsX = x;
-            vm$1._graphicsY = y;
-        },
-        flushGraphicsPath: () => {
-            if (vm$1._graphicsPathBuffer.length) {
-                vm$1._graphicsBuffer.push(`<path stroke="${colorsForPens[vm$1._graphicsPen]}" d="${vm$1._graphicsPathBuffer.join("")}" />`);
-                vm$1._graphicsPathBuffer.length = 0;
+            this.semantics.resetParser();
+            return this.arithmeticParser.parseAndEval(script);
+        }
+        executeScript(compiledScript) {
+            return __awaiter(this, void 0, void 0, function* () {
+                var _a, _b, _c, _d, _e, _f, _g;
+                (_a = this.vm) === null || _a === void 0 ? void 0 : _a.setOutput("");
+                if (compiledScript.startsWith("ERROR")) {
+                    return "ERROR";
+                }
+                const syntaxError = yield this.onCheckSyntax(compiledScript);
+                if (syntaxError) {
+                    (_b = this.vm) === null || _b === void 0 ? void 0 : _b.cls();
+                    return "ERROR: " + syntaxError;
+                }
+                try {
+                    const fnScript = new Function("_o", compiledScript);
+                    const result = fnScript(this.vm) || "";
+                    let output;
+                    if (result instanceof Promise) {
+                        output = yield result;
+                        (_c = this.vm) === null || _c === void 0 ? void 0 : _c.flush();
+                        output = ((_d = this.vm) === null || _d === void 0 ? void 0 : _d.getOutput()) || "";
+                    }
+                    else {
+                        (_e = this.vm) === null || _e === void 0 ? void 0 : _e.flush();
+                        output = ((_f = this.vm) === null || _f === void 0 ? void 0 : _f.getOutput()) || "";
+                    }
+                    return output;
+                }
+                catch (error) {
+                    let errorMessage = "ERROR: ";
+                    if (error instanceof Error) {
+                        errorMessage += ((_g = this.vm) === null || _g === void 0 ? void 0 : _g.getOutput()) + "\n" + String(error);
+                        const anyErr = error;
+                        const lineNumber = anyErr.lineNumber; // only on FireFox
+                        const columnNumber = anyErr.columnNumber; // only on FireFox
+                        if (lineNumber || columnNumber) {
+                            const errLine = lineNumber - 2; // lineNumber -2 because of anonymous function added by new Function() constructor
+                            errorMessage += ` (Line ${errLine}, column ${columnNumber})`;
+                        }
+                    }
+                    else {
+                        errorMessage += "unknown";
+                    }
+                    return errorMessage;
+                }
+            });
+        }
+        parseArgs(args, config) {
+            for (let i = 0; i < args.length; i += 1) {
+                const [name, ...valueParts] = args[i].split("="), nameType = typeof config[name];
+                let value = valueParts.join("=");
+                if (value !== undefined) {
+                    if (nameType === "boolean") {
+                        value = (value === "true");
+                    }
+                    else if (nameType === "number") {
+                        value = Number(value);
+                    }
+                    config[name] = value;
+                }
             }
-        },
-        flush: () => {
-            vm$1.flushGraphicsPath();
-            if (vm$1._graphicsBuffer.length) {
-                vm$1._output += `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[vm$1._mode]}px" stroke="currentColor">${vm$1._graphicsBuffer.join("\n")}" /> </svg>\n`;
-                vm$1._graphicsBuffer.length = 0;
-            }
-            if (vm$1._output) {
-                vm$1._fnOnPrint(vm$1._output);
-                vm$1._output = "";
-            }
-        },
-        graphicsPen: (num) => {
-            if (num === vm$1._graphicsPen) {
-                return;
-            }
-            vm$1.flushGraphicsPath();
-            vm$1._graphicsPen = num;
-        },
-        mode: (num) => {
-            vm$1._mode = num;
-            vm$1.cls();
-        },
-        paper(n) {
-            if (n !== this._lastPaper) {
-                this._output += this._paperColors[n];
-                this._lastPaper = n;
-            }
-        },
-        pen(n) {
-            if (n !== this._lastPen) {
-                this._output += this._penColors[n];
-                this._lastPen = n;
-            }
-        },
-        print(...args) {
-            this._output += args.join('');
-        },
-        prompt: (msg) => {
-            vm$1.flush();
-            return vm$1._fnOnPrompt(msg);
-        },
-        getOutput: () => vm$1._output,
-        setOutput: (str) => vm$1._output = str,
-        setOnCls: (fn) => vm$1._fnOnCls = fn,
-        setOnPrint: (fn) => vm$1._fnOnPrint = fn,
-        setOnPrompt: (fn) => vm$1._fnOnPrompt = fn,
-        setPaperColors: (paperColors) => vm$1._paperColors = paperColors,
-        setPenColors: (penColors) => vm$1._penColors = penColors
-    };
+            return config;
+        }
+    }
+
+    // NodeParts.ts
+    // node.js specific parts
     // The functions from dummyVm will be stringified in the putScriptInFrame function
     const dummyVm = {
         _output: "",
@@ -2362,114 +2341,38 @@
         print(...args) { this._output += args.join(''); },
         prompt(msg) { console.log(msg); return ""; }
     };
-    class Core {
-        constructor() {
-            this.startConfig = {
-                action: "compile,run",
-                debug: 0,
-                example: "",
-                fileName: "",
-                grammar: "basic", // basic or strict
-                input: "",
-                debounceCompile: 800,
-                debounceExecute: 400
-            };
-            this.semantics = new Semantics();
-            this.examples = {};
-            this.vm = vm$1;
-            this.onCheckSyntax = (_s) => __awaiter(this, void 0, void 0, function* () { return ""; }); // eslint-disable-line @typescript-eslint/no-unused-vars
+    class NodeParts {
+        constructor(core) {
+            this.core = core;
+            this.modulePath = "";
         }
-        getConfigObject() {
-            return this.startConfig;
-        }
-        getConfig(name) {
-            return this.startConfig[name];
-        }
-        getExampleObject() {
-            return this.examples;
-        }
-        setExample(name, script) {
-            this.examples[name] = script;
-        }
-        getExample(name) {
-            return this.examples[name];
-        }
-        setOnCls(fn) {
-            vm$1.setOnCls(fn);
-        }
-        setOnPrint(fn) {
-            vm$1.setOnPrint(fn);
-        }
-        setOnPrompt(fn) {
-            vm$1.setOnPrompt(fn);
-        }
-        setOnCheckSyntax(fn) {
-            this.onCheckSyntax = fn;
-        }
-        setPaperColors(colors) {
-            vm$1.setPaperColors(colors);
-        }
-        setPenColors(colors) {
-            vm$1.setPenColors(colors);
-        }
-        compileScript(script) {
-            if (!this.arithmeticParser) {
-                const semantics = this.semantics.getSemantics();
-                if (this.getConfig("grammar") === "strict") {
-                    const basicParser = new Parser(arithmetic.basicGrammar, semantics);
-                    this.arithmeticParser = new Parser(arithmetic.strictGrammar, semantics, basicParser);
-                }
-                else {
-                    this.arithmeticParser = new Parser(arithmetic.basicGrammar, semantics);
-                }
-            }
-            this.semantics.resetParser();
-            return this.arithmeticParser.parseAndEval(script);
-        }
-        executeScript(compiledScript) {
+        nodeReadFile(name) {
             return __awaiter(this, void 0, void 0, function* () {
-                this.vm.setOutput("");
-                if (compiledScript.startsWith("ERROR")) {
-                    return "ERROR";
+                if (!this.nodeFs) {
+                    this.nodeFs = require("fs");
                 }
-                const syntaxError = yield this.onCheckSyntax(compiledScript);
-                if (syntaxError) {
-                    vm$1.cls();
-                    return "ERROR: " + syntaxError;
+                if (!module) {
+                    const module = require("module");
+                    this.modulePath = module.path || "";
+                    if (!this.modulePath) {
+                        console.warn("nodeReadFile: Cannot determine module path");
+                    }
                 }
                 try {
-                    const fnScript = new Function("_o", compiledScript);
-                    const result = fnScript(this.vm) || "";
-                    let output;
-                    if (result instanceof Promise) {
-                        output = yield result;
-                        this.vm.flush();
-                        output = this.vm.getOutput();
-                    }
-                    else {
-                        this.vm.flush();
-                        output = this.vm.getOutput();
-                    }
-                    return output;
+                    return yield this.nodeFs.promises.readFile(name, "utf8");
                 }
                 catch (error) {
-                    let errorMessage = "ERROR: ";
-                    if (error instanceof Error) {
-                        errorMessage += this.vm.getOutput() + "\n" + String(error);
-                        const anyErr = error;
-                        const lineNumber = anyErr.lineNumber; // only on FireFox
-                        const columnNumber = anyErr.columnNumber; // only on FireFox
-                        if (lineNumber || columnNumber) {
-                            const errLine = lineNumber - 2; // lineNumber -2 because of anonymous function added by new Function() constructor
-                            errorMessage += ` (Line ${errLine}, column ${columnNumber})`;
-                        }
-                    }
-                    else {
-                        errorMessage += "unknown";
-                    }
-                    return errorMessage;
+                    console.error(`Error reading file ${name}:`, String(error));
+                    throw error;
                 }
             });
+        }
+        keepRunning(fn, timeout) {
+            const timerId = setTimeout(() => { }, timeout);
+            return (() => __awaiter(this, void 0, void 0, function* () {
+                fn();
+                clearTimeout(timerId);
+            }))();
         }
         putScriptInFrame(script) {
             const dummyFunctions = Object.values(dummyVm).filter((value) => value).map((value) => `${value}`).join(",\n  ");
@@ -2480,6 +2383,313 @@
 	${dummyFunctions}
 });`;
             return result;
+        }
+        nodeCheckSyntax(script) {
+            if (!this.nodeVm) {
+                this.nodeVm = require("vm");
+            }
+            const describeError = (stack) => {
+                const match = stack.match(/^\D+(\d+)\n(.+\n( *)\^+)\n\n(SyntaxError.+)/);
+                if (!match) {
+                    return ""; // parse successful?
+                }
+                const [, linenoPlusOne, caretString, colSpaces, message] = match;
+                const lineno = Number(linenoPlusOne) - 1;
+                const colno = colSpaces.length + 1;
+                return `Syntax error thrown at: Line ${lineno}, col: ${colno}\n${caretString}\n${message}`;
+            };
+            let output = "";
+            try {
+                const scriptInFrame = this.putScriptInFrame(script);
+                this.nodeVm.runInNewContext(`throw new Error();\n${scriptInFrame}`);
+            }
+            catch (err) { // Error-like object
+                const stack = err.stack;
+                if (stack) {
+                    output = describeError(stack);
+                }
+            }
+            return output;
+        }
+        start(input) {
+            const core = this.core;
+            const actionConfig = core.getConfigObject().action;
+            if (input !== "") {
+                core.setOnCheckSyntax((s) => Promise.resolve(this.nodeCheckSyntax(s)));
+                const compiledScript = actionConfig.includes("compile") ? core.compileScript(input) : input;
+                if (compiledScript.startsWith("ERROR:")) {
+                    console.error(compiledScript);
+                    return;
+                }
+                if (actionConfig.includes("run")) {
+                    return this.keepRunning(() => __awaiter(this, void 0, void 0, function* () {
+                        const output = yield core.executeScript(compiledScript);
+                        console.log(output.replace(/\n$/, ""));
+                    }), 5000);
+                }
+                else {
+                    const inFrame = this.putScriptInFrame(compiledScript);
+                    console.log(inFrame);
+                }
+            }
+            else {
+                console.log("No input");
+            }
+        }
+        nodeMain() {
+            return __awaiter(this, void 0, void 0, function* () {
+                const core = this.core;
+                const config = this.core.getConfigObject();
+                let input = config.input || "";
+                if (config.fileName) {
+                    return this.keepRunning(() => __awaiter(this, void 0, void 0, function* () {
+                        input = yield this.nodeReadFile(config.fileName);
+                        this.start(input);
+                    }), 5000);
+                }
+                else {
+                    if (config.example) {
+                        return this.keepRunning(() => __awaiter(this, void 0, void 0, function* () {
+                            const jsFile = yield this.nodeReadFile("./dist/examples/examples.js");
+                            const fnScript = new Function("cpcBasic", jsFile);
+                            fnScript({
+                                addItem: core.addItem
+                            });
+                            const exampleScript = this.core.getExample(config.example);
+                            if (!exampleScript) {
+                                console.error(`ERROR: Example '${config.example}' not found.`);
+                                return;
+                            }
+                            input = exampleScript;
+                            this.start(input);
+                        }), 5000);
+                    }
+                    this.start(input);
+                }
+            });
+        }
+    }
+
+    // BasicVmCore.ts
+    const colorsForPens = [
+        "#000080", "#FFFF00", "#00FFFF", "#FF0000", "#FFFFFF", "#000000", "#0000FF", "#FF00FF",
+        "#008080", "#808000", "#8080FF", "#FF8080", "#00FF00", "#80FF80", "#000080", "#FF8080", "#000080"
+    ];
+    const strokeWidthForMode = [4, 2, 1, 1];
+    class BasicVmCore {
+        constructor() {
+            this.output = "";
+            this.currPaper = -1;
+            this.currPen = -1;
+            this.currMode = 2;
+            this.graphicsBuffer = [];
+            this.graphicsPathBuffer = [];
+            this.currGraphicsPen = 1;
+            this.graphicsX = 0;
+            this.graphicsY = 0;
+        }
+        fnOnCls() {
+            // override
+        }
+        fnOnPrint(_msg) {
+            // override
+        }
+        fnOnPrompt(_msg) {
+            // override
+            return "";
+        }
+        fnGetPenColor(_num) {
+            // override
+            return "";
+        }
+        fnGetPaperColor(_num) {
+            // override
+            return "";
+        }
+        getColorsForPens() {
+            return colorsForPens;
+        }
+        cls() {
+            this.output = "";
+            this.currPaper = -1;
+            this.currPen = -1;
+            this.graphicsBuffer.length = 0;
+            this.graphicsPathBuffer.length = 0;
+            this.currGraphicsPen = -1;
+            this.graphicsX = 0;
+            this.graphicsY = 0;
+            this.fnOnCls();
+        }
+        drawMovePlot(type, x, y) {
+            x = Math.round(x);
+            y = Math.round(y);
+            const isAbsolute = type === type.toUpperCase();
+            y = isAbsolute ? 399 - y : -y;
+            const isPlot = type.toLowerCase() === "p";
+            const svgPathCmd = isPlot
+                ? `${isAbsolute ? "M" : "m"}${x} ${y}h1v1h-1v-1`
+                : `${type}${x} ${y}`;
+            if (!this.graphicsPathBuffer.length && svgPathCmd[0].toLowerCase() !== "m") {
+                this.graphicsPathBuffer.push(`M${this.graphicsX} ${this.graphicsY}`);
+            }
+            this.graphicsPathBuffer.push(svgPathCmd);
+            if (isAbsolute) {
+                this.graphicsX = x;
+                this.graphicsY = y;
+            }
+            else {
+                this.graphicsX += x;
+                this.graphicsY += y;
+            }
+        }
+        flushGraphicsPath() {
+            if (this.graphicsPathBuffer.length) {
+                this.graphicsBuffer.push(`<path stroke="${colorsForPens[this.currGraphicsPen]}" d="${this.graphicsPathBuffer.join("")}" />`);
+                this.graphicsPathBuffer.length = 0;
+            }
+        }
+        flush() {
+            this.flushGraphicsPath();
+            if (this.graphicsBuffer.length) {
+                this.output += `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" stroke="currentColor">\n${this.graphicsBuffer.join("\n")}"\n</svg>\n`;
+                this.graphicsBuffer.length = 0;
+            }
+            if (this.output) {
+                this.fnOnPrint(this.output);
+                this.output = "";
+            }
+        }
+        graphicsPen(num) {
+            if (num === this.currGraphicsPen) {
+                return;
+            }
+            this.flushGraphicsPath();
+            this.currGraphicsPen = num;
+        }
+        mode(num) {
+            this.currMode = num;
+            this.cls();
+        }
+        paper(n) {
+            if (n !== this.currPaper) {
+                this.output += this.fnGetPaperColor(n);
+                this.currPaper = n;
+            }
+        }
+        ;
+        pen(n) {
+            if (n !== this.currPen) {
+                this.output += this.fnGetPenColor(n);
+                this.currPen = n;
+            }
+        }
+        print(...args) {
+            this.output += args.join('');
+        }
+        prompt(msg) {
+            this.flush();
+            return this.fnOnPrompt(msg);
+        }
+        ;
+        getOutput() {
+            return this.output;
+        }
+        setOutput(str) {
+            this.output = str;
+        }
+    }
+
+    // BasicVmBrowser.ts
+    class BasicVmBrowser extends BasicVmCore {
+        constructor(ui) {
+            super();
+            this.ui = ui;
+            const colorsForPens = this.getColorsForPens();
+            this.penColors = ui.getPenColors(colorsForPens);
+            this.paperColors = ui.getPaperColors(colorsForPens);
+        }
+        fnOnCls() {
+            this.ui.setOutputText("");
+        }
+        fnOnPrint(msg) {
+            this.ui.addOutputText(msg);
+        }
+        fnOnPrompt(msg) {
+            const input = this.ui.prompt(msg);
+            return input;
+        }
+        fnGetPenColor(num) {
+            return this.penColors[num];
+        }
+        fnGetPaperColor(num) {
+            return this.paperColors[num];
+        }
+    }
+
+    // BasicVmNode.ts
+    function getAnsiColorsForPens() {
+        return [
+            "\x1b[34m", // Navy
+            "\x1b[93m", // Bright Yellow
+            "\x1b[96m", // Bright Cyan
+            "\x1b[91m", // Bright Red
+            "\x1b[97m", // Bright White
+            "\x1b[30m", // Black
+            "\x1b[94m", // Bright Blue
+            "\x1b[95m", // Bright Magenta
+            "\x1b[36m", // Cyan
+            "\x1b[33m", // Yellow
+            "\x1b[94m", // Pastel Blue (Bright Blue)
+            "\x1b[95m", // Pink (Bright Magenta)
+            "\x1b[92m", // Bright Green
+            "\x1b[92m", // Pastel Green (Bright Green)
+            "\x1b[34m", // Navy (repeated)
+            "\x1b[95m", // Pink (repeated)
+            "\x1b[34m" // Navy (repeated)
+        ];
+    }
+    function getAnsiColorsForPapers() {
+        return [
+            "\x1b[44m", // Navy
+            "\x1b[103m", // Bright Yellow
+            "\x1b[106m", // Bright Cyan
+            "\x1b[101m", // Bright Red
+            "\x1b[107m", // Bright White
+            "\x1b[40m", // Black
+            "\x1b[104m", // Bright Blue
+            "\x1b[105m", // Bright Magenta
+            "\x1b[46m", // Cyan
+            "\x1b[43m", // Yellow
+            "\x1b[104m", // Pastel Blue (Bright Blue)
+            "\x1b[105m", // Pink (Bright Magenta)
+            "\x1b[102m", // Bright Green
+            "\x1b[102m", // Pastel Green (Bright Green)
+            "\x1b[44m", // Navy (repeated)
+            "\x1b[105m", // Pink (repeated)
+            "\x1b[44m" // Navy (repeated)
+        ];
+    }
+    class BasicVmNode extends BasicVmCore {
+        constructor() {
+            super();
+            this.penColors = getAnsiColorsForPens();
+            this.paperColors = getAnsiColorsForPapers();
+        }
+        fnOnCls() {
+            console.clear();
+        }
+        fnOnPrint(msg) {
+            console.log(msg.replace(/\n$/, ""));
+        }
+        fnOnPrompt(msg) {
+            console.log(msg);
+            return "";
+        }
+        fnGetPenColor(num) {
+            return this.penColors[num];
+        }
+        fnGetPaperColor(num) {
+            return this.paperColors[num];
         }
     }
 
@@ -2502,219 +2712,34 @@
     // node hello1.js
     // [When using async functions like FRAME or INPUT, redirect to hello1.mjs]
     //
-    const core = new Core();
-    let ui;
-    function fnHereDoc(fn) {
-        return String(fn).
-            replace(/^[^/]+\/\*\S*/, "").
-            replace(/\*\/[^/]+$/, "");
-    }
-    function addItem(key, input) {
-        let inputString = (typeof input !== "string") ? fnHereDoc(input) : input;
-        inputString = inputString.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
-        // beware of data files ending with newlines! (do not use trimEnd)
-        if (!key) { // maybe ""
-            const firstLine = inputString.slice(0, inputString.indexOf("\n"));
-            const matches = firstLine.match(/^\s*\d*\s*(?:REM|rem|')\s*(\w+)/);
-            key = matches ? matches[1] : "unknown";
-        }
-        core.setExample(key, inputString);
-    }
-    let fs;
-    let modulePath;
-    let vm;
-    function nodeReadFile(name) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!fs) {
-                fs = require("fs");
-            }
-            if (!module) {
-                module = require("module");
-                modulePath = module.path || "";
-                if (!modulePath) {
-                    console.warn("nodeReadFile: Cannot determine module path");
-                }
-            }
-            try {
-                return yield fs.promises.readFile(name, "utf8");
-            }
-            catch (error) {
-                console.error(`Error reading file ${name}:`, String(error));
-                throw error;
-            }
-        });
-    }
-    function fnParseArgs(args, config) {
-        for (let i = 0; i < args.length; i += 1) {
-            const [name, ...valueParts] = args[i].split("="), nameType = typeof config[name];
-            let value = valueParts.join("=");
-            if (value !== undefined) {
-                if (nameType === "boolean") {
-                    value = (value === "true");
-                }
-                else if (nameType === "number") {
-                    value = Number(value);
-                }
-                config[name] = value;
-            }
-        }
-        return config;
-    }
-    function keepRunning(fn, timeout) {
-        const timerId = setTimeout(() => { }, timeout);
-        return (() => __awaiter(this, void 0, void 0, function* () {
-            fn();
-            clearTimeout(timerId);
-        }))();
-    }
-    // https://stackoverflow.com/questions/35252731/find-details-of-syntaxerror-thrown-by-javascript-new-function-constructor
-    function nodeCheckSyntax(script) {
-        if (!vm) {
-            vm = require("vm");
-        }
-        const describeError = (stack) => {
-            const match = stack.match(/^\D+(\d+)\n(.+\n( *)\^+)\n\n(SyntaxError.+)/);
-            if (!match) {
-                return ""; // parse successful?
-            }
-            const [, linenoPlusOne, caretString, colSpaces, message] = match;
-            const lineno = Number(linenoPlusOne) - 1;
-            const colno = colSpaces.length + 1;
-            return `Syntax error thrown at: Line ${lineno}, col: ${colno}\n${caretString}\n${message}`;
-        };
-        let output = "";
-        try {
-            const scriptInFrame = core.putScriptInFrame(script);
-            vm.runInNewContext(`throw new Error();\n${scriptInFrame}`);
-        }
-        catch (err) { // Error-like object
-            const stack = err.stack;
-            if (stack) {
-                output = describeError(stack);
-            }
-        }
-        return output;
-    }
-    function setColors() {
-        const ansiColorsForPens = [
-            "\x1b[34m", // Navy
-            "\x1b[93m", // Bright Yellow
-            "\x1b[96m", // Bright Cyan
-            "\x1b[91m", // Bright Red
-            "\x1b[97m", // Bright White
-            "\x1b[30m", // Black
-            "\x1b[94m", // Bright Blue
-            "\x1b[95m", // Bright Magenta
-            "\x1b[36m", // Cyan
-            "\x1b[33m", // Yellow
-            "\x1b[94m", // Pastel Blue (Bright Blue)
-            "\x1b[95m", // Pink (Bright Magenta)
-            "\x1b[92m", // Bright Green
-            "\x1b[92m", // Pastel Green (Bright Green)
-            "\x1b[34m", // Navy (repeated)
-            "\x1b[95m", // Pink (repeated)
-            "\x1b[34m" // Navy (repeated)
-        ];
-        const ansiColorsForPapers = [
-            "\x1b[44m", // Navy
-            "\x1b[103m", // Bright Yellow
-            "\x1b[106m", // Bright Cyan
-            "\x1b[101m", // Bright Red
-            "\x1b[107m", // Bright White
-            "\x1b[40m", // Black
-            "\x1b[104m", // Bright Blue
-            "\x1b[105m", // Bright Magenta
-            "\x1b[46m", // Cyan
-            "\x1b[43m", // Yellow
-            "\x1b[104m", // Pastel Blue (Bright Blue)
-            "\x1b[105m", // Pink (Bright Magenta)
-            "\x1b[102m", // Bright Green
-            "\x1b[102m", // Pastel Green (Bright Green)
-            "\x1b[44m", // Navy (repeated)
-            "\x1b[105m", // Pink (repeated)
-            "\x1b[44m" // Navy (repeated)
-        ];
-        core.setPaperColors(ansiColorsForPapers);
-        core.setPenColors(ansiColorsForPens);
-    }
-    function start(input) {
-        const actionConfig = core.getConfig("action");
-        if (input !== "") {
-            core.setOnCls(() => console.clear());
-            setColors();
-            core.setOnCheckSyntax((s) => Promise.resolve(nodeCheckSyntax(s)));
-            const compiledScript = actionConfig.includes("compile") ? core.compileScript(input) : input;
-            if (compiledScript.startsWith("ERROR:")) {
-                console.error(compiledScript);
-                return;
-            }
-            if (actionConfig.includes("run")) {
-                core.setOnPrint((msg) => {
-                    console.log(msg.replace(/\n$/, ""));
-                });
-                return keepRunning(() => __awaiter(this, void 0, void 0, function* () {
-                    const output = yield core.executeScript(compiledScript);
-                    console.log(output.replace(/\n$/, ""));
-                }), 5000);
-            }
-            else {
-                const inFrame = core.putScriptInFrame(compiledScript);
-                console.log(inFrame);
-            }
-        }
-        else {
-            console.log("No input");
-        }
-    }
-    function main(config) {
-        let input = config.input || "";
-        if (config.fileName) {
-            return keepRunning(() => __awaiter(this, void 0, void 0, function* () {
-                input = yield nodeReadFile(config.fileName);
-                start(input);
-            }), 5000);
-        }
-        else {
-            if (config.example) {
-                return keepRunning(() => __awaiter(this, void 0, void 0, function* () {
-                    const jsFile = yield nodeReadFile("./dist/examples/examples.js");
-                    const fnScript = new Function("cpcBasic", jsFile);
-                    fnScript({
-                        addItem: addItem
-                    });
-                    const exampleScript = core.getExample(config.example);
-                    if (!exampleScript) {
-                        console.error(`ERROR: Example '${config.example}' not found.`);
-                        return;
-                    }
-                    input = exampleScript;
-                    start(input);
-                }), 5000);
-            }
-            start(input);
-        }
-    }
-    const config = core.getConfigObject();
+    const core = new Core({
+        action: "compile,run",
+        debug: 0,
+        example: "",
+        fileName: "",
+        grammar: "basic", // basic or strict
+        input: "",
+        debounceCompile: 800,
+        debounceExecute: 400
+    });
     if (typeof window !== "undefined") {
-        window.cpcBasic = {
-            addItem: addItem
-        };
+        window.cpcBasic = { addItem: core.addItem };
         window.onload = () => {
-            const UI = window.locobasicUI.UI;
-            ui = new UI(core);
+            const UI = window.locobasicUI.UI; // we expaect that it is already loaded in the html page
+            const ui = new UI(core);
+            core.setVm(new BasicVmBrowser(ui));
+            const config = core.getConfigObject();
             const args = ui.parseUri(window.location.search.substring(1), config);
-            fnParseArgs(args, config);
+            core.parseArgs(args, config);
             core.setOnCheckSyntax((s) => Promise.resolve(ui.checkSyntax(s)));
-            core.setOnCls(() => ui.setOutputText(""));
-            core.setOnPrint((msg) => ui.addOutputText(msg));
-            core.setOnPrompt((msg) => window.prompt(msg));
-            core.setPaperColors(ui.getPaperColors());
-            core.setPenColors(ui.getPenColors());
             ui.onWindowLoad(new Event("onload"));
         };
     }
-    else {
-        main(fnParseArgs(global.process.argv.slice(2), config));
+    else { // node.js
+        core.setVm(new BasicVmNode());
+        core.parseArgs(global.process.argv.slice(2), core.getConfigObject());
+        const nodeParts = new NodeParts(core);
+        nodeParts.nodeMain();
     }
 
 }));

@@ -66,12 +66,11 @@
         constructor(core) {
             this.core = core;
         }
-        debounce(func, delayPara) {
+        debounce(func, fngetDelay) {
             let timeoutId;
-            const core = this.core;
             return function (...args) {
                 const context = this;
-                const delay = core.getConfig(delayPara);
+                const delay = fngetDelay();
                 clearTimeout(timeoutId);
                 timeoutId = setTimeout(() => {
                     func.apply(context, args);
@@ -92,17 +91,21 @@
             const outputText = document.getElementById("outputText");
             outputText.innerText = value;
         }
-        getPaperColors() {
-            return UI.colorsForPens.map((color) => `<span style="background-color: ${color}">`);
+        getPaperColors(colorsForPens) {
+            return colorsForPens.map((color) => `<span style="background-color: ${color}">`);
         }
-        getPenColors() {
-            return UI.colorsForPens.map((color) => `<span style="color: ${color}">`);
+        getPenColors(colorsForPens) {
+            return colorsForPens.map((color) => `<span style="color: ${color}">`);
+        }
+        prompt(msg) {
+            const input = window.prompt(msg);
+            return input;
         }
         onExecuteButtonClick(_event) {
             return __awaiter(this, void 0, void 0, function* () {
                 const compiledText = document.getElementById("compiledText");
                 const compiledScript = this.compiledCm ? this.compiledCm.getValue() : compiledText.value;
-                const output = yield this.core.executeScript(compiledScript);
+                const output = (yield this.core.executeScript(compiledScript)) || "";
                 this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
             });
         }
@@ -117,7 +120,7 @@
             const basicText = document.getElementById("basicText");
             const compiledText = document.getElementById("compiledText");
             const input = this.basicCm ? this.basicCm.getValue() : basicText.value;
-            const compiledScript = this.core.compileScript(input);
+            const compiledScript = this.core.compileScript(input) || "";
             if (this.compiledCm) {
                 this.compiledCm.setValue(compiledScript);
             }
@@ -146,7 +149,7 @@
         onExampleSelectChange(event) {
             const exampleSelect = event.target;
             const basicText = document.getElementById("basicText");
-            const value = this.core.getExample(exampleSelect.value);
+            const value = this.core.getExample(exampleSelect.value) || "";
             this.setOutputText("");
             if (this.basicCm) {
                 this.basicCm.setValue(value);
@@ -263,23 +266,24 @@
             exampleSelect.addEventListener('change', (event) => this.onExampleSelectChange(event));
             const helpButton = window.document.getElementById("helpButton");
             helpButton.addEventListener('click', () => this.onHelpButtonClick());
+            const config = this.core.getConfigObject();
             const WinCodeMirror = window.CodeMirror;
             if (WinCodeMirror) {
                 this.basicCm = WinCodeMirror.fromTextArea(basicText, {
                     lineNumbers: true,
                     mode: 'javascript'
                 });
-                this.basicCm.on('changes', this.debounce(() => this.onbasicTextChange(), "debounceCompile"));
+                this.basicCm.on('changes', this.debounce(() => this.onbasicTextChange(), () => config.debounceCompile));
                 this.compiledCm = WinCodeMirror.fromTextArea(compiledText, {
                     lineNumbers: true,
                     mode: 'javascript'
                 });
-                this.compiledCm.on('changes', this.debounce(() => this.onCompiledTextChange(), "debounceExecute"));
+                this.compiledCm.on('changes', this.debounce(() => this.onCompiledTextChange(), () => config.debounceExecute));
             }
             UI.asyncDelay(() => {
-                const core = this.core;
-                this.setExampleSelectOptions(core.getExampleObject());
-                const example = this.core.getConfig("example");
+                const exampleObject = this.core.getExampleObject() || {};
+                this.setExampleSelectOptions(exampleObject);
+                const example = config.example;
                 if (example) {
                     this.setExampleSelect(example);
                 }
@@ -287,25 +291,6 @@
             }, 10);
         }
     }
-    UI.colorsForPens = [
-        "#000080", //  1 Navy
-        "#FFFF00", // 24 Bright Yellow
-        "#00FFFF", // 20 Bright Cyan
-        "#FF0000", //  6 Bright Red
-        "#FFFFFF", // 26 Bright White
-        "#000000", //  0 Black
-        "#0000FF", //  2 Bright Blue
-        "#FF00FF", //  8 Bright Magenta
-        "#008080", // 10 Cyan
-        "#808000", // 12 Yellow
-        "#8080FF", // 14 Pastel Blue
-        "#FF8080", // 16 Pink
-        "#00FF00", // 18 Bright Green
-        "#80FF80", // 22 Pastel Green
-        "#000080", //  1 Navy (repeated)
-        "#FF8080", // 16 Pink (repeated)
-        "#000080" //  1 Navy (repeated)
-    ];
 
     exports.UI = UI;
 

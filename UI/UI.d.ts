@@ -1,6 +1,6 @@
-import type { ICore, IUI, ConfigType } from "../Interfaces";
+import type { ConfigEntryType, ICore, IUI } from "../Interfaces";
 export declare class UI implements IUI {
-    private readonly core;
+    private core;
     private basicCm?;
     private compiledCm?;
     private static getErrorEvent?;
@@ -9,9 +9,9 @@ export declare class UI implements IUI {
     private static asyncDelay;
     addOutputText(value: string): void;
     setOutputText(value: string): void;
-    private static readonly colorsForPens;
-    getPaperColors(): string[];
-    getPenColors(): string[];
+    getPaperColors(colorsForPens: string[]): string[];
+    getPenColors(colorsForPens: string[]): string[];
+    prompt(msg: string): string | null;
     private onExecuteButtonClick;
     private onCompiledTextChange;
     private onCompileButtonClick;
@@ -24,7 +24,7 @@ export declare class UI implements IUI {
     private static describeError;
     checkSyntax(str: string): Promise<string>;
     private fnDecodeUri;
-    parseUri(urlQuery: string, config: ConfigType): string[];
+    parseUri(urlQuery: string, config: Record<string, ConfigEntryType>): string[];
     onWindowLoad(_event: Event): void;
 }
 //# sourceMappingURL=UI.d.ts.map
