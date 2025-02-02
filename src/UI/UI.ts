@@ -1,7 +1,7 @@
 // UI.ts
 
 import type { Editor } from 'codemirror';
-import type { ICore, IUI, ConfigType } from "../Interfaces";
+import type { ConfigEntryType, ICore, IUI } from "../Interfaces";
 
 // Worker:
 type PlainErrorEventType = {
@@ -47,21 +47,21 @@ const workerFn = () => {
 
 
 export class UI implements IUI {
-	private readonly core: ICore;
+	private core: ICore;
 	private basicCm?: Editor;
 	private compiledCm?: Editor;
+
 	private static getErrorEvent?: (s: string) => Promise<PlainErrorEventType>;
 
 	constructor(core: ICore) {
 		this.core = core;
 	}
 
-	private debounce<T extends (...args: unknown[]) => void | Promise<void>>(func: T, delayPara: string): (...args: Parameters<T>) => void {
+	private debounce<T extends (...args: unknown[]) => void | Promise<void>>(func: T, fngetDelay:() => number): (...args: Parameters<T>) => void {
 		let timeoutId: ReturnType<typeof setTimeout>;
-		const core = this.core;
 		return function (this: unknown, ...args: Parameters<T>) {
 			const context = this;
-			const delay = core.getConfig<number>(delayPara);
+			const delay = fngetDelay();
 			clearTimeout(timeoutId);
 			timeoutId = setTimeout(() => {
 				func.apply(context, args);
@@ -86,40 +86,25 @@ export class UI implements IUI {
 		outputText.innerText = value;
 	}
 
-	private static readonly colorsForPens: string[] = [
-		"#000080", //  1 Navy
-		"#FFFF00", // 24 Bright Yellow
-		"#00FFFF", // 20 Bright Cyan
-		"#FF0000", //  6 Bright Red
-		"#FFFFFF", // 26 Bright White
-		"#000000", //  0 Black
-		"#0000FF", //  2 Bright Blue
-		"#FF00FF", //  8 Bright Magenta
-		"#008080", // 10 Cyan
-		"#808000", // 12 Yellow
-		"#8080FF", // 14 Pastel Blue
-		"#FF8080", // 16 Pink
-		"#00FF00", // 18 Bright Green
-		"#80FF80", // 22 Pastel Green
-		"#000080", //  1 Navy (repeated)
-		"#FF8080", // 16 Pink (repeated)
-		"#000080"  //  1 Navy (repeated)
-	];
-
-	public getPaperColors() {
-		return UI.colorsForPens.map((color) => `<span style="background-color: ${color}">`);
+	public getPaperColors(colorsForPens: string[]) {
+		return colorsForPens.map((color) => `<span style="background-color: ${color}">`);
 	}
 
-	public getPenColors() {
-		return UI.colorsForPens.map((color) => `<span style="color: ${color}">`);
+	public getPenColors(colorsForPens: string[]) {
+		return colorsForPens.map((color) => `<span style="color: ${color}">`);
 	}
+
+	public prompt(msg: string): string | null {
+        const input = window.prompt(msg);
+        return input;
+    }
 
 	private async onExecuteButtonClick(_event: Event) { // eslint-disable-line @typescript-eslint/no-unused-vars
 		const compiledText = document.getElementById("compiledText") as HTMLTextAreaElement;
 
 		const compiledScript = this.compiledCm ? this.compiledCm.getValue() as string : compiledText.value;
 
-		const output = await this.core.executeScript(compiledScript);
+		const output = await this.core.executeScript(compiledScript) || "";
 
 		this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
 	}
@@ -136,7 +121,7 @@ export class UI implements IUI {
 		const basicText = document.getElementById("basicText") as HTMLTextAreaElement;
 		const compiledText = document.getElementById("compiledText") as HTMLTextAreaElement;
 		const input = this.basicCm ? this.basicCm.getValue() : basicText.value;
-		const compiledScript = this.core.compileScript(input);
+		const compiledScript = this.core.compileScript(input) || "";
 
 		if (this.compiledCm) {
 			this.compiledCm.setValue(compiledScript);
@@ -167,7 +152,7 @@ export class UI implements IUI {
 		const exampleSelect = event.target as HTMLSelectElement;
 
 		const basicText = document.getElementById("basicText") as HTMLTextAreaElement;
-		const value = this.core.getExample(exampleSelect.value);
+		const value = this.core.getExample(exampleSelect.value) || "";
 
 		this.setOutputText("");
 
@@ -280,7 +265,7 @@ export class UI implements IUI {
 	}
 
 	// https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
-	public parseUri(urlQuery: string, config: ConfigType): string[] {
+	public parseUri(urlQuery: string, config: Record<string, ConfigEntryType>): string[] {
 		const rSearch = /([^&=]+)=?([^&]*)/g,
 			args: string[] = [];
 
@@ -316,31 +301,32 @@ export class UI implements IUI {
 		const helpButton = window.document.getElementById("helpButton") as HTMLButtonElement;
 		helpButton.addEventListener('click', () => this.onHelpButtonClick());
 
+		const config = this.core.getConfigObject();
+
 		const WinCodeMirror = window.CodeMirror;
 		if (WinCodeMirror) {
 			this.basicCm = WinCodeMirror.fromTextArea(basicText, {
 				lineNumbers: true,
 				mode: 'javascript'
 			});
-			this.basicCm.on('changes', this.debounce(() => this.onbasicTextChange(), "debounceCompile"));
+			this.basicCm.on('changes', this.debounce(() => this.onbasicTextChange(), () => config.debounceCompile));
 
 			this.compiledCm = WinCodeMirror.fromTextArea(compiledText, {
 				lineNumbers: true,
 				mode: 'javascript'
 			});
-			this.compiledCm.on('changes', this.debounce(() => this.onCompiledTextChange(), "debounceExecute"));
+			this.compiledCm.on('changes', this.debounce(() => this.onCompiledTextChange(), () => config.debounceExecute));
 		}
 
 		UI.asyncDelay(() => {
-			const core = this.core;
-			this.setExampleSelectOptions(core.getExampleObject());
+			const exampleObject = this.core.getExampleObject() || {};
+			this.setExampleSelectOptions(exampleObject);
 
-			const example = this.core.getConfig("example");
+			const example = config.example;
 			if (example) {
-				this.setExampleSelect(example as string);
+				this.setExampleSelect(example);
 			}
 			exampleSelect.dispatchEvent(new Event('change'));
 		}, 10);
 	}
-
 }
