@@ -1,5 +1,3 @@
-// NodeParts.ts
-// node.js specific parts
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -62,11 +60,11 @@ export class NodeParts {
     putScriptInFrame(script) {
         const dummyFunctions = Object.values(dummyVm).filter((value) => value).map((value) => `${value}`).join(",\n  ");
         const result = `(function(_o) {
-	${script}
-})({
-	_output: "",
-	${dummyFunctions}
-});`;
+                ${script}
+            })({
+                _output: "",
+                ${dummyFunctions}
+            });`;
         return result;
     }
     nodeCheckSyntax(script) {
@@ -119,6 +117,7 @@ export class NodeParts {
         }
         else {
             console.log("No input");
+            console.log(NodeParts.getHelpString());
         }
     }
     nodeMain() {
@@ -152,6 +151,26 @@ export class NodeParts {
                 this.start(input);
             }
         });
+    }
+    static getHelpString() {
+        return `
+Usage:
+node dist/locobasic.js [action='compile,run'] [input=<statements>] [example=<name>] [fileName=<file>] [grammar=<name>] [debug=0] [debounceCompile=800] [debounceExecute=400]
+
+- Examples for compile and run:
+node dist/locobasic.js input='PRINT "Hello!"'
+npx ts-node dist/locobasic.js input='PRINT "Hello!"'
+node dist/locobasic.js input='?3 + 5 * (2 - 8)'
+node dist/locobasic.js example=euler
+node dist/locobasic.js fileName=dist/examples/example.bas
+node dist/locobasic.js grammar='strict' input='a$="Bob":PRINT "Hello ";a$;"!"'
+
+- Example for compile only:
+node dist/locobasic.js action='compile' input='PRINT "Hello!"' > hello1.js
+[Windows: Use node.exe when redirecting into a file; or npx ts-node ...]
+node hello1.js
+[When using async functions like FRAME or INPUT, redirect to hello1.mjs]
+`;
     }
 }
 //# sourceMappingURL=NodeParts.js.map

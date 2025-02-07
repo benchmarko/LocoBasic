@@ -3694,6 +3694,7 @@ b=5:c=7:a=b XOR c: IF a<>2 THEN ERROR 33
 ' keepSpaces
 ' PRG
 '
+PRINT "Completed."
 STOP
 END
 '

@@ -13,9 +13,9 @@ export declare class Core implements ICore {
     setExample(name: string, script: string): void;
     getExample(name: string): string;
     setOnCheckSyntax(fn: (s: string) => Promise<string>): void;
-    compileScript(script: string): any;
+    compileScript(script: string): string;
     executeScript(compiledScript: string): Promise<string>;
-    addItem: (key: string, input: (string | (() => void))) => void;
+    addItem: (key: string, input: string | (() => void)) => void;
     parseArgs(args: string[], config: Record<string, ConfigEntryType>): Record<string, ConfigEntryType>;
 }
 //# sourceMappingURL=Core.d.ts.map

@@ -36,21 +36,16 @@
         return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
     };
 
-    // UI.ts
-    // based on: https://stackoverflow.com/questions/35252731/find-details-of-syntaxerror-thrown-by-javascript-new-function-constructor
-    // https://stackoverflow.com/a/55555357
+    // Worker function to handle JavaScript evaluation and error reporting
     const workerFn = () => {
         const doEvalAndReply = (jsText) => {
             self.addEventListener('error', (errorEvent) => {
-                // Don't pollute the browser console:
                 errorEvent.preventDefault();
-                // The properties we want are actually getters on the prototype;
-                // they won't be retrieved when just stringifying so, extract them manually, and put them into a new object:
                 const { lineno, colno, message } = errorEvent;
                 const plainErrorEventObj = { lineno, colno, message };
                 self.postMessage(JSON.stringify(plainErrorEventObj));
             }, { once: true });
-            /* const fn = */ new Function("_o", jsText);
+            new Function("_o", jsText);
             const plainErrorEventObj = {
                 lineno: -1,
                 colno: -1,
@@ -79,7 +74,7 @@
         }
         static asyncDelay(fn, timeout) {
             return (() => __awaiter(this, void 0, void 0, function* () {
-                const timerId = setTimeout(fn, timeout);
+                const timerId = window.setTimeout(fn, timeout);
                 return timerId;
             }))();
         }
@@ -181,7 +176,6 @@
             }
             const blob = new Blob([`(${workerFn})();`], { type: "text/javascript" });
             const worker = new Worker(window.URL.createObjectURL(blob));
-            // Use a queue to ensure processNext only calls the worker once the worker is idle
             const processingQueue = [];
             let isProcessing = false;
             const processNext = () => {
@@ -222,7 +216,7 @@
                 if (message === 'No Error: Parsing successful!') {
                     return "";
                 }
-                output += `Syntax error thrown at: Line ${lineno - 2}, col: ${colno}\n`; // lineNo -2 because of anonymous function added by new Function() constructor
+                output += `Syntax error thrown at: Line ${lineno - 2}, col: ${colno}\n`;
                 output += UI.describeError(str, lineno - 2, colno) + "\n";
                 output += message;
                 return output;
@@ -241,12 +235,13 @@
             }
             return decoded;
         }
-        // https://stackoverflow.com/questions/901115/how-can-i-get-query-string-values-in-javascript
         parseUri(urlQuery, config) {
-            const rSearch = /([^&=]+)=?([^&]*)/g, args = [];
+            const rSearch = /([^&=]+)=?([^&]*)/g;
+            const args = [];
             let match;
             while ((match = rSearch.exec(urlQuery)) !== null) {
-                const name = this.fnDecodeUri(match[1]), value = this.fnDecodeUri(match[2]);
+                const name = this.fnDecodeUri(match[1]);
+                const value = this.fnDecodeUri(match[2]);
                 if (value !== null && config[name] !== undefined) {
                     args.push(name + "=" + value);
                 }

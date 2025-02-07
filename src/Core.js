@@ -1,4 +1,3 @@
-// Core.ts
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -20,9 +19,8 @@ export class Core {
         this.examples = {};
         this.onCheckSyntax = (_s) => __awaiter(this, void 0, void 0, function* () { return ""; }); // eslint-disable-line @typescript-eslint/no-unused-vars
         this.addItem = (key, input) => {
-            let inputString = (typeof input !== "string") ? fnHereDoc(input) : input;
+            let inputString = typeof input !== "string" ? fnHereDoc(input) : input;
             inputString = inputString.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
-            // beware of data files ending with newlines! (do not use trimEnd)
             if (!key) { // maybe ""
                 const firstLine = inputString.slice(0, inputString.indexOf("\n"));
                 const matches = firstLine.match(/^\s*\d*\s*(?:REM|rem|')\s*(\w+)/);
@@ -38,11 +36,6 @@ export class Core {
     getConfigObject() {
         return this.config;
     }
-    /*
-    public getConfigAsMap() {
-        return this.config as Record<string, ConfigEntryType>;
-    }
-    */
     getExampleObject() {
         return this.examples;
     }
@@ -116,12 +109,13 @@ export class Core {
         });
     }
     parseArgs(args, config) {
-        for (let i = 0; i < args.length; i += 1) {
-            const [name, ...valueParts] = args[i].split("="), nameType = typeof config[name];
+        for (const arg of args) {
+            const [name, ...valueParts] = arg.split("=");
+            const nameType = typeof config[name];
             let value = valueParts.join("=");
             if (value !== undefined) {
                 if (nameType === "boolean") {
-                    value = (value === "true");
+                    value = value === "true";
                 }
                 else if (nameType === "number") {
                     value = Number(value);

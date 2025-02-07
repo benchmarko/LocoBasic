@@ -36,7 +36,6 @@
         return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
     };
 
-    // Parser.ts
     class Parser {
         constructor(grammarString, semanticsMap, superParser) {
             if (superParser) {
@@ -64,11 +63,11 @@
                     return this.ohmSemantics(matchResult).eval();
                 }
                 else {
-                    return 'ERROR: Parsing failed: ' + matchResult.message;
+                    return `ERROR: Parsing failed: ${matchResult.message}`;
                 }
             }
             catch (error) {
-                return 'ERROR: Parsing evaluator failed: ' + (error instanceof Error ? error.message : "unknown");
+                return `ERROR: Parsing evaluator failed: ${error instanceof Error ? error.message : "unknown"}`;
             }
         }
     }
@@ -496,9 +495,12 @@
     StrArrayIdent
       = strIdent "(" ArrayArgs ")"
 
+    DimArrayArgs
+      = NonemptyListOf<NumExp, ",">
+
     DimArrayIdent
-      = ident "(" ArrayArgs ")"
-      | strIdent "(" ArrayArgs ")"
+      = ident "(" DimArrayArgs ")"
+      | strIdent "(" DimArrayArgs ")"
 
     SimpleIdent
       = strIdent
@@ -1256,19 +1258,12 @@
   `
     };
 
-    // Semantics.ts
     function getCodeSnippets() {
         const _o = {};
-        let _data = [];
+        const _data = [];
         let _dataPtr = 0;
-        let _restoreMap = {};
+        const _restoreMap = {};
         const codeSnippets = {
-            _setDataDummy: function _setDataDummy() {
-                _data = [];
-                _dataPtr = 0;
-                _restoreMap = {};
-                //Object.assign(_o, vm);
-            },
             bin$: function bin$(num, pad = 0) {
                 return num.toString(2).toUpperCase().padStart(pad, "0");
             },
@@ -1372,16 +1367,6 @@
         };
         return codeSnippets;
     }
-    /*
-    // round with higher precision: https://www.jacklmoore.com/notes/rounding-in-javascript
-    round: function round(num: number, dec: number) {
-        const maxDecimals = 20 - Math.floor(Math.log10(Math.abs(num))); // limit for JS
-        if (dec >= 0 && dec > maxDecimals) {
-            dec = maxDecimals;
-        }
-        return Math.sign(num) * Number(Math.round(Number(Math.abs(num) + "e" + dec)) + "e" + (dec >= 0 ? -dec : -dec));
-    }
-    */
     function trimIndent(code) {
         const lines = code.split("\n");
         const lastLine = lines[lines.length - 1];
@@ -1394,7 +1379,10 @@
         return code;
     }
     function evalChildren(children) {
-        return children.map(c => c.eval());
+        return children.map(child => child.eval());
+    }
+    function createComparisonExpression(a, op, b) {
+        return `-(${a.eval()} ${op} ${b.eval()})`;
     }
     function getSemantics(semanticsHelper) {
         const drawMovePlot = (lit, x, _comma1, y, _comma2, e3) => {
@@ -1442,7 +1430,7 @@
                         }
                         const asyncStr = hasAwait ? "async " : "";
                         lineList[first] = `${indentStr}${asyncStr}function _${subroutineStart.label}() {${indentStr}\n` + lineList[first];
-                        lineList[label.last] += `\n${indentStr}` + "}"; //TS issue when using the following? `\n${indentStr}};`
+                        lineList[label.last] += `\n${indentStr}}`;
                         if (hasAwait) {
                             awaitLabels.push(subroutineStart.label);
                         }
@@ -1470,7 +1458,7 @@
                 let needsAsync = false;
                 for (const key of Object.keys(codeSnippets)) {
                     if (instrMap[key]) {
-                        const code = String(codeSnippets[key]);
+                        const code = String((codeSnippets[key]).toString());
                         const adaptedCode = trimIndent(code);
                         if (adaptedCode.includes("Promise") || adaptedCode.includes("await")) {
                             lineList.push("async " + adaptedCode);
@@ -1562,7 +1550,7 @@
                 return `cls()`;
             },
             Data(_datalit, args) {
-                const argList = args.asIteration().children.map(c => c.eval());
+                const argList = evalChildren(args.asIteration().children);
                 const definedLabels = semanticsHelper.getDefinedLabels();
                 if (definedLabels.length) {
                     const currentLabel = definedLabels[definedLabels.length - 1];
@@ -1584,13 +1572,13 @@
                 return `${assign.eval()}`;
             },
             DefArgs(_open, arrayIdents, _close) {
-                const argList = arrayIdents.asIteration().children.map(c => c.eval());
+                const argList = evalChildren(arrayIdents.asIteration().children);
                 return `(${argList.join(", ")})`;
             },
             DefAssign(ident, args, _equal, e) {
                 const fnIdent = semanticsHelper.getVariable(`fn${ident.sourceString}`);
                 semanticsHelper.setDefContext(true); // do not create global variables in this context
-                const argStr = args.children.map(c => c.eval()).join(", ") || "()";
+                const argStr = evalChildren(args.children).join(", ") || "()";
                 const defBody = e.eval();
                 semanticsHelper.setDefContext(false);
                 return `${fnIdent} = ${argStr} => ${defBody}`;
@@ -1599,24 +1587,10 @@
                 semanticsHelper.setDeg(true);
                 return `/* deg active */`;
             },
-            Dim(_dimLit, arrayIdents) {
-                const argList = arrayIdents.asIteration().children.map(c => c.eval());
-                const results = [];
-                for (const arg of argList) {
-                    const [ident, ...indices] = arg;
-                    let createArrStr;
-                    if (indices.length > 1) { // multi-dimensional?
-                        const initValStr = ident.endsWith("$") ? ', ""' : '';
-                        createArrStr = `dim([${indices}]${initValStr})`; // indices are automatically joined with comma
-                        semanticsHelper.addInstr("dim");
-                    }
-                    else {
-                        const fillStr = ident.endsWith("$") ? `""` : "0";
-                        createArrStr = `new Array(${indices[0]} + 1).fill(${fillStr})`; // +1 because of 0-based index
-                    }
-                    results.push(`${ident} = ${createArrStr}`);
-                }
-                return results.join("; ");
+            Dim(_dimLit, dimArgs) {
+                const argumentList = evalChildren(dimArgs.asIteration().children);
+                semanticsHelper.addInstr("dim");
+                return argumentList.join("; ");
             },
             Draw: drawMovePlot,
             Drawr: drawMovePlot,
@@ -1625,9 +1599,9 @@
                 return `return end()`;
             },
             Erase(_eraseLit, arrayIdents) {
-                const argList = arrayIdents.asIteration().children.map(c => c.eval());
+                const arrayIdentifiers = evalChildren(arrayIdents.asIteration().children);
                 const results = [];
-                for (const ident of argList) {
+                for (const ident of arrayIdentifiers) {
                     const initValStr = ident.endsWith("$") ? '""' : '0';
                     results.push(`${ident} = ${initValStr}`);
                 }
@@ -1643,13 +1617,13 @@
                 return `Math.trunc(${e.eval()})`;
             },
             AnyFnArgs(_open, args, _close) {
-                const argList = args.asIteration().children.map(c => c.eval());
-                return `(${argList.join(", ")})`;
+                const argumentList = evalChildren(args.asIteration().children);
+                return `(${argumentList.join(", ")})`;
             },
             FnIdent(fnIdent, args) {
                 var _a;
-                const argStr = ((_a = args.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "()";
-                return `${fnIdent.eval()}${argStr}`;
+                const argumentString = ((_a = args.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "()";
+                return `${fnIdent.eval()}${argumentString}`;
             },
             StrFnIdent(fnIdent, args) {
                 var _a;
@@ -1658,20 +1632,20 @@
             },
             For(_forLit, variable, _eqSign, start, _dirLit, end, _stepLit, step) {
                 var _a;
-                const varExp = variable.eval();
-                const startExp = start.eval();
-                const endExp = end.eval();
-                const stepExp = ((_a = step.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "1";
-                const stepAsNum = Number(stepExp);
-                let cmpSt = "";
-                if (isNaN(stepAsNum)) {
-                    cmpSt = `${stepExp} >= 0 ? ${varExp} <= ${endExp} : ${varExp} >= ${endExp}`;
+                const variableExpression = variable.eval();
+                const startExpression = start.eval();
+                const endExpression = end.eval();
+                const stepExpression = ((_a = step.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "1";
+                const stepAsNumber = Number(stepExpression);
+                let comparisonStatement = "";
+                if (isNaN(stepAsNumber)) {
+                    comparisonStatement = `${stepExpression} >= 0 ? ${variableExpression} <= ${endExpression} : ${variableExpression} >= ${endExpression}`;
                 }
                 else {
-                    cmpSt = stepExp >= 0 ? `${varExp} <= ${endExp}` : `${varExp} >= ${endExp}`;
+                    comparisonStatement = stepAsNumber >= 0 ? `${variableExpression} <= ${endExpression}` : `${variableExpression} >= ${endExpression}`;
                 }
                 semanticsHelper.nextIndentAdd(2);
-                const result = `for (${varExp} = ${startExp}; ${cmpSt}; ${varExp} += ${stepExp}) {`;
+                const result = `for (${variableExpression} = ${startExpression}; ${comparisonStatement}; ${variableExpression} += ${stepExpression}) {`;
                 return result;
             },
             Frame(_frameLit) {
@@ -1679,9 +1653,9 @@
                 return `await frame()`;
             },
             Gosub(_gosubLit, e) {
-                const labelStr = e.sourceString;
-                semanticsHelper.addGosubLabel(labelStr);
-                return `_${labelStr}()`;
+                const labelString = e.sourceString;
+                semanticsHelper.addGosubLabel(labelString);
+                return `_${labelString}()`;
             },
             GraphicsPen(_graphicsLit, _penLit, e) {
                 semanticsHelper.addInstr("graphicsPen");
@@ -1697,22 +1671,22 @@
                 const initialIndent = semanticsHelper.getIndentStr();
                 semanticsHelper.addIndent(2);
                 const increasedIndent = semanticsHelper.getIndentStr();
-                const cond = condExp.eval();
-                const thSt = thenStat.eval();
-                let result = `if (${cond}) {\n${increasedIndent}${thSt}\n${initialIndent}}`; // put in newlines to also allow line comments
+                const condition = condExp.eval();
+                const thenStatement = thenStat.eval();
+                let result = `if (${condition}) {\n${increasedIndent}${thenStatement}\n${initialIndent}}`; // put in newlines to also allow line comments
                 if (elseLit.sourceString) {
-                    const elseSt = evalChildren(elseStat.children).join('; ');
-                    result += ` else {\n${increasedIndent}${elseSt}\n${initialIndent}}`;
+                    const elseStatement = evalChildren(elseStat.children).join('; ');
+                    result += ` else {\n${increasedIndent}${elseStatement}\n${initialIndent}}`;
                 }
                 semanticsHelper.addIndent(-2);
                 return result;
             },
             Input(_inputLit, message, _semi, e) {
                 semanticsHelper.addInstr("input");
-                const msgStr = message.sourceString.replace(/\s*[;,]$/, "");
-                const ident = e.eval();
-                const isNumStr = ident.includes("$") ? "" : ", true";
-                return `${ident} = await input(${msgStr}${isNumStr})`;
+                const messageString = message.sourceString.replace(/\s*[;,]$/, "");
+                const identifier = e.eval();
+                const isNumberString = identifier.includes("$") ? "" : ", true";
+                return `${identifier} = await input(${messageString}${isNumberString})`;
             },
             Instr_noLen(_instrLit, _open, e1, _comma, e2, _close) {
                 return `((${e1.eval()}).indexOf(${e2.eval()}) + 1)`;
@@ -1739,14 +1713,14 @@
                 return `(${e.eval()}).toLowerCase()`;
             },
             Max(_maxLit, _open, args, _close) {
-                const argList = args.asIteration().children.map(c => c.eval()); // see also: ArrayArgs
-                return `Math.max(${argList})`;
+                const argumentList = evalChildren(args.asIteration().children);
+                return `Math.max(${argumentList})`;
             },
             MidS(_midLit, _open, e1, _comma1, e2, _comma2, e3, _close) {
                 var _a;
                 const length = (_a = e3.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
-                const lengthStr = length === undefined ? "" : `, ${length}`;
-                return `(${e1.eval()}).substr(${e2.eval()} - 1${lengthStr})`;
+                const lengthString = length === undefined ? "" : `, ${length}`;
+                return `(${e1.eval()}).substr(${e2.eval()} - 1${lengthString})`;
             },
             MidSAssign(_midLit, _open, ident, _comma1, e2, _comma2, e3, _close, _op, e) {
                 var _a;
@@ -1759,8 +1733,8 @@
                 return `${resolvedVariableName} = mid$Assign(${resolvedVariableName}, ${start}, ${newString}, ${length})`;
             },
             Min(_minLit, _open, args, _close) {
-                const argList = args.asIteration().children.map(c => c.eval()); // see also: ArrayArgs
-                return `Math.min(${argList})`;
+                const argumentList = evalChildren(args.asIteration().children);
+                return `Math.min(${argumentList})`;
             },
             Mode(_modeLit, e) {
                 semanticsHelper.addInstr("mode");
@@ -1769,20 +1743,20 @@
             Move: drawMovePlot,
             Mover: drawMovePlot,
             Next(_nextLit, variables) {
-                const argList = variables.asIteration().children.map(c => c.eval());
-                if (!argList.length) {
-                    argList.push("_any");
+                const argumentList = evalChildren(variables.asIteration().children);
+                if (!argumentList.length) {
+                    argumentList.push("_any");
                 }
-                semanticsHelper.addIndent(-2 * argList.length);
-                return '} '.repeat(argList.length).slice(0, -1);
+                semanticsHelper.addIndent(-2 * argumentList.length);
+                return '} '.repeat(argumentList.length).slice(0, -1);
             },
             On(_nLit, e1, _gosubLit, args) {
                 const index = e1.eval();
-                const argList = args.asIteration().children.map(c => c.sourceString);
-                for (let i = 0; i < argList.length; i += 1) {
-                    semanticsHelper.addGosubLabel(argList[i]);
+                const argumentList = args.asIteration().children.map(child => child.sourceString);
+                for (let i = 0; i < argumentList.length; i += 1) {
+                    semanticsHelper.addGosubLabel(argumentList[i]);
                 }
-                return `[${argList.map((label) => `_${label}`).join(",")}]?.[${index} - 1]()`; // 1-based index
+                return `[${argumentList.map((label) => `_${label}`).join(",")}]?.[${index} - 1]()`; // 1-based index
             },
             Paper(_paperLit, e) {
                 semanticsHelper.addInstr("paper");
@@ -1798,25 +1772,25 @@
             Plot: drawMovePlot,
             Plotr: drawMovePlot,
             PrintArg_strCmp(_cmp, args) {
-                const paramStr = args.children[0].eval();
-                return paramStr;
+                const parameterString = args.children[0].eval();
+                return parameterString;
             },
             PrintArg_usingNum(_printLit, format, _semi, numArgs) {
                 semanticsHelper.addInstr("dec$");
-                const formatStr = format.eval();
-                const argList = numArgs.asIteration().children.map(c => c.eval());
-                const paramStr = argList.map((arg) => `dec$(${arg}, ${formatStr})`).join(', ');
-                return paramStr;
+                const formatString = format.eval();
+                const argumentList = evalChildren(numArgs.asIteration().children);
+                const parameterString = argumentList.map((arg) => `dec$(${arg}, ${formatString})`).join(', ');
+                return parameterString;
             },
             Print(_printLit, args, semi) {
                 semanticsHelper.addInstr("print");
-                const argList = args.asIteration().children.map(c => c.eval());
-                const paramStr = argList.join(', ') || "";
-                let newlineStr = "";
+                const argumentList = evalChildren(args.asIteration().children);
+                const parameterString = argumentList.join(', ') || "";
+                let newlineString = "";
                 if (!semi.sourceString) {
-                    newlineStr = paramStr ? `, "\\n"` : `"\\n"`;
+                    newlineString = parameterString ? `, "\\n"` : `"\\n"`;
                 }
-                return `print(${paramStr}${newlineStr})`;
+                return `print(${parameterString}${newlineString})`;
             },
             Rad(_radLit) {
                 semanticsHelper.setDeg(false);
@@ -1824,26 +1798,26 @@
             },
             Read(_readlit, args) {
                 semanticsHelper.addInstr("read");
-                const argList = args.asIteration().children.map(c => c.eval());
-                const results = argList.map(identifier => `${identifier} = read()`);
+                const argumentList = evalChildren(args.asIteration().children);
+                const results = argumentList.map(identifier => `${identifier} = read()`);
                 return results.join("; ");
             },
             Rem(_remLit, remain) {
                 return `// ${remain.sourceString}`;
             },
             Restore(_restoreLit, e) {
-                const labelStr = e.sourceString || "0";
-                semanticsHelper.addRestoreLabel(labelStr);
+                const labelString = e.sourceString || "0";
+                semanticsHelper.addRestoreLabel(labelString);
                 semanticsHelper.addInstr("restore");
-                return `restore(${labelStr})`;
+                return `restore(${labelString})`;
             },
             Return(_returnLit) {
                 return "return";
             },
             RightS(_rightLit, _open, e1, _comma, e2, _close) {
-                const str = e1.eval();
-                const len = e2.eval();
-                return `(${str}).substring((${str}).length - (${len}))`;
+                const string = e1.eval();
+                const length = e2.eval();
+                return `(${string}).substring((${string}).length - (${length}))`;
             },
             Rnd(_rndLit, _open, _e, _close) {
                 // args are ignored
@@ -1874,13 +1848,13 @@
                 return `return stop()`;
             },
             StrS(_strLit, _open, e, _close) {
-                const arg = e.eval();
-                if (isNaN(Number(arg))) {
+                const argument = e.eval();
+                if (isNaN(Number(argument))) {
                     semanticsHelper.addInstr("str$");
-                    return `str$(${arg})`;
+                    return `str$(${argument})`;
                 }
                 // simplify if we know at compile time that arg is a positive number
-                return arg >= 0 ? `(" " + String(${arg}))` : `String(${arg})`;
+                return argument >= 0 ? `(" " + String(${argument}))` : `String(${argument})`;
             },
             StringS_str(_stringLit, _open, len, _commaLit, chr, _close) {
                 // Note: we do not use charAt(0) to get just one char
@@ -1928,22 +1902,22 @@
                 return `~(${e.eval()})`;
             },
             CmpExp_eq(a, _op, b) {
-                return `-(${a.eval()} === ${b.eval()})`; // or -Number(...), or -(...), or: ? -1 : 0
+                return createComparisonExpression(a, "===", b);
             },
             CmpExp_ne(a, _op, b) {
-                return `-(${a.eval()} !== ${b.eval()})`;
+                return createComparisonExpression(a, "!==", b);
             },
             CmpExp_lt(a, _op, b) {
-                return `-(${a.eval()} < ${b.eval()})`;
+                return createComparisonExpression(a, "<", b);
             },
             CmpExp_le(a, _op, b) {
-                return `-(${a.eval()} <= ${b.eval()})`;
+                return createComparisonExpression(a, "<=", b);
             },
             CmpExp_gt(a, _op, b) {
-                return `-(${a.eval()} > ${b.eval()})`;
+                return createComparisonExpression(a, ">", b);
             },
             CmpExp_ge(a, _op, b) {
-                return `-(${a.eval()} >= ${b.eval()})`;
+                return createComparisonExpression(a, ">=", b);
             },
             AddExp_plus(a, _op, b) {
                 return `${a.eval()} + ${b.eval()}`;
@@ -2000,16 +1974,24 @@
                 return `(${e.eval()})`;
             },
             ArrayArgs(args) {
-                return args.asIteration().children.map(c => String(c.eval()));
+                //return args.asIteration().children.map(c => String(c.eval())).join("][");
+                return evalChildren(args.asIteration().children).join("][");
             },
             ArrayIdent(ident, _open, e, _close) {
-                return `${ident.eval()}[${e.eval().join("][")}]`;
+                return `${ident.eval()}[${e.eval()}]`;
             },
             StrArrayIdent(ident, _open, e, _close) {
-                return `${ident.eval()}[${e.eval().join("][")}]`;
+                return `${ident.eval()}[${e.eval()}]`;
+            },
+            DimArrayArgs(args) {
+                //return args.asIteration().children.map(c => String(c.eval())).join(", ");
+                return evalChildren(args.asIteration().children).join(", ");
             },
             DimArrayIdent(ident, _open, indices, _close) {
-                return [ident.eval(), ...indices.eval()];
+                const identStr = ident.eval();
+                const initValStr = identStr.endsWith("$") ? ', ""' : '';
+                semanticsHelper.addInstr("dim");
+                return `${identStr} = dim([${indices.eval()}]${initValStr})`;
             },
             decimalValue(value) {
                 return value.sourceString;
@@ -2059,6 +2041,12 @@
             this.instrMap = {};
             this.isDeg = false;
             this.isDefContext = false;
+        }
+        getDeg() {
+            return this.isDeg;
+        }
+        setDeg(isDeg) {
+            this.isDeg = isDeg;
         }
         addIndent(num) {
             if (num < 0) {
@@ -2169,37 +2157,11 @@
             this.isDefContext = false;
         }
         getSemantics() {
-            const semanticsHelper = {
-                addDataIndex: (count) => this.addDataIndex(count),
-                addDefinedLabel: (label, line) => this.addDefinedLabel(label, line),
-                addGosubLabel: (label) => this.addGosubLabel(label),
-                addIndent: (num) => this.addIndent(num),
-                addInstr: (name) => this.addInstr(name),
-                addRestoreLabel: (label) => this.addRestoreLabel(label),
-                applyNextIndent: () => this.applyNextIndent(),
-                getDataIndex: () => this.getDataIndex(),
-                getDataList: () => this.getDataList(),
-                getDefinedLabels: () => this.getDefinedLabels(),
-                getGosubLabels: () => this.getGosubLabels(),
-                getIndent: () => this.getIndent(),
-                getIndentStr: () => this.getIndentStr(),
-                getInstrMap: () => this.getInstrMap(),
-                getRestoreMap: () => this.getRestoreMap(),
-                getVariable: (name) => this.getVariable(name),
-                getVariables: () => this.getVariables(),
-                incrementLineIndex: () => this.incrementLineIndex(),
-                nextIndentAdd: (num) => this.nextIndentAdd(num),
-                setIndent: (indent) => this.setIndent(indent),
-                setDeg: (isDeg) => this.isDeg = isDeg,
-                getDeg: () => this.isDeg,
-                setDefContext: (isDef) => this.setDefContext(isDef)
-            };
-            return getSemantics(semanticsHelper);
+            return getSemantics(this);
         }
     }
     Semantics.reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;
 
-    // Core.ts
     function fnHereDoc(fn) {
         return String(fn).replace(/^[^/]+\/\*\S*/, "").replace(/\*\/[^/]+$/, "");
     }
@@ -2209,9 +2171,8 @@
             this.examples = {};
             this.onCheckSyntax = (_s) => __awaiter(this, void 0, void 0, function* () { return ""; }); // eslint-disable-line @typescript-eslint/no-unused-vars
             this.addItem = (key, input) => {
-                let inputString = (typeof input !== "string") ? fnHereDoc(input) : input;
+                let inputString = typeof input !== "string" ? fnHereDoc(input) : input;
                 inputString = inputString.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
-                // beware of data files ending with newlines! (do not use trimEnd)
                 if (!key) { // maybe ""
                     const firstLine = inputString.slice(0, inputString.indexOf("\n"));
                     const matches = firstLine.match(/^\s*\d*\s*(?:REM|rem|')\s*(\w+)/);
@@ -2227,11 +2188,6 @@
         getConfigObject() {
             return this.config;
         }
-        /*
-        public getConfigAsMap() {
-            return this.config as Record<string, ConfigEntryType>;
-        }
-        */
         getExampleObject() {
             return this.examples;
         }
@@ -2305,12 +2261,13 @@
             });
         }
         parseArgs(args, config) {
-            for (let i = 0; i < args.length; i += 1) {
-                const [name, ...valueParts] = args[i].split("="), nameType = typeof config[name];
+            for (const arg of args) {
+                const [name, ...valueParts] = arg.split("=");
+                const nameType = typeof config[name];
                 let value = valueParts.join("=");
                 if (value !== undefined) {
                     if (nameType === "boolean") {
-                        value = (value === "true");
+                        value = value === "true";
                     }
                     else if (nameType === "number") {
                         value = Number(value);
@@ -2322,8 +2279,6 @@
         }
     }
 
-    // NodeParts.ts
-    // node.js specific parts
     // The functions from dummyVm will be stringified in the putScriptInFrame function
     const dummyVm = {
         _output: "",
@@ -2377,11 +2332,11 @@
         putScriptInFrame(script) {
             const dummyFunctions = Object.values(dummyVm).filter((value) => value).map((value) => `${value}`).join(",\n  ");
             const result = `(function(_o) {
-	${script}
-})({
-	_output: "",
-	${dummyFunctions}
-});`;
+                ${script}
+            })({
+                _output: "",
+                ${dummyFunctions}
+            });`;
             return result;
         }
         nodeCheckSyntax(script) {
@@ -2434,6 +2389,7 @@
             }
             else {
                 console.log("No input");
+                console.log(NodeParts.getHelpString());
             }
         }
         nodeMain() {
@@ -2468,9 +2424,28 @@
                 }
             });
         }
+        static getHelpString() {
+            return `
+Usage:
+node dist/locobasic.js [action='compile,run'] [input=<statements>] [example=<name>] [fileName=<file>] [grammar=<name>] [debug=0] [debounceCompile=800] [debounceExecute=400]
+
+- Examples for compile and run:
+node dist/locobasic.js input='PRINT "Hello!"'
+npx ts-node dist/locobasic.js input='PRINT "Hello!"'
+node dist/locobasic.js input='?3 + 5 * (2 - 8)'
+node dist/locobasic.js example=euler
+node dist/locobasic.js fileName=dist/examples/example.bas
+node dist/locobasic.js grammar='strict' input='a$="Bob":PRINT "Hello ";a$;"!"'
+
+- Example for compile only:
+node dist/locobasic.js action='compile' input='PRINT "Hello!"' > hello1.js
+[Windows: Use node.exe when redirecting into a file; or npx ts-node ...]
+node hello1.js
+[When using async functions like FRAME or INPUT, redirect to hello1.mjs]
+`;
+        }
     }
 
-    // BasicVmCore.ts
     const colorsForPens = [
         "#000080", "#FFFF00", "#00FFFF", "#FF0000", "#FFFFFF", "#000000", "#0000FF", "#FF00FF",
         "#008080", "#808000", "#8080FF", "#FF8080", "#00FF00", "#80FF80", "#000080", "#FF8080", "#000080"
@@ -2599,7 +2574,6 @@
         }
     }
 
-    // BasicVmBrowser.ts
     class BasicVmBrowser extends BasicVmCore {
         constructor(ui) {
             super();
@@ -2608,20 +2582,50 @@
             this.penColors = ui.getPenColors(colorsForPens);
             this.paperColors = ui.getPaperColors(colorsForPens);
         }
+        /**
+         * Clears the output text.
+         */
         fnOnCls() {
             this.ui.setOutputText("");
         }
+        /**
+         * Adds a message to the output text.
+         * @param msg - The message to print.
+         */
         fnOnPrint(msg) {
             this.ui.addOutputText(msg);
         }
+        /**
+         * Prompts the user with a message and returns the input.
+         * @param msg - The message to prompt.
+         * @returns The user input.
+         */
         fnOnPrompt(msg) {
             const input = this.ui.prompt(msg);
             return input;
         }
+        /**
+         * Gets the pen color by index.
+         * @param num - The index of the pen color.
+         * @returns The pen color.
+         * @throws Will throw an error if the index is out of bounds.
+         */
         fnGetPenColor(num) {
+            if (num < 0 || num >= this.penColors.length) {
+                throw new Error("Pen color index out of bounds");
+            }
             return this.penColors[num];
         }
+        /**
+         * Gets the paper color by index.
+         * @param num - The index of the paper color.
+         * @returns The paper color.
+         * @throws Will throw an error if the index is out of bounds.
+         */
         fnGetPaperColor(num) {
+            if (num < 0 || num >= this.paperColors.length) {
+                throw new Error("Paper color index out of bounds");
+            }
             return this.paperColors[num];
         }
     }
@@ -2686,32 +2690,19 @@
             return "";
         }
         fnGetPenColor(num) {
+            if (num < 0 || num >= this.penColors.length) {
+                throw new Error("Invalid pen color index");
+            }
             return this.penColors[num];
         }
         fnGetPaperColor(num) {
+            if (num < 0 || num >= this.paperColors.length) {
+                throw new Error("Invalid paper color index");
+            }
             return this.paperColors[num];
         }
     }
 
-    // main.ts
-    //
-    // Usage:
-    // node dist/locobasic.js [action='compile,run'] [input=<statements>] [example=<name>] [fileName=<file>] [grammar=<name>] [debug=0] [debounceCompile=800] [debounceExecute=400]
-    //
-    // - Examples for compile and run:
-    // node dist/locobasic.js input='PRINT "Hello!"'
-    // npx ts-node dist/locobasic.js input='PRINT "Hello!"'
-    // node dist/locobasic.js input="?3 + 5 * (2 - 8)"
-    // node dist/locobasic.js example=euler
-    // node dist/locobasic.js fileName=dist/examples/example.bas
-    // node dist/locobasic.js grammar="strict" input='a$="Bob":PRINT "Hello ";a$;"!"'
-    //
-    // - Example for compile only:
-    // node dist/locobasic.js action='compile' input='PRINT "Hello!"' > hello1.js
-    //   [Windows: Use node.exe when redirecting into a file; or npx ts-node ...]
-    // node hello1.js
-    // [When using async functions like FRAME or INPUT, redirect to hello1.mjs]
-    //
     const core = new Core({
         action: "compile,run",
         debug: 0,
@@ -2725,7 +2716,7 @@
     if (typeof window !== "undefined") {
         window.cpcBasic = { addItem: core.addItem };
         window.onload = () => {
-            const UI = window.locobasicUI.UI; // we expaect that it is already loaded in the html page
+            const UI = window.locobasicUI.UI; // we expect that it is already loaded in the HTML page
             const ui = new UI(core);
             core.setVm(new BasicVmBrowser(ui));
             const config = core.getConfigObject();

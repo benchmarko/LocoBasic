@@ -11,5 +11,6 @@ export declare class NodeParts {
     private nodeCheckSyntax;
     private start;
     nodeMain(): Promise<void>;
+    private static getHelpString;
 }
 //# sourceMappingURL=NodeParts.d.ts.map

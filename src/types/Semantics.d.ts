@@ -1,5 +1,6 @@
 import type { ActionDict } from "ohm-js";
-export declare class Semantics {
+import type { DefinedLabelEntryType, GosubLabelEntryType, ISemanticsHelper } from "./Interfaces";
+export declare class Semantics implements ISemanticsHelper {
     private lineIndex;
     private indent;
     private indentAdd;
@@ -13,29 +14,31 @@ export declare class Semantics {
     private readonly instrMap;
     private isDeg;
     private isDefContext;
-    private addIndent;
-    private setIndent;
-    private getIndent;
-    private getIndentStr;
-    private applyNextIndent;
-    private nextIndentAdd;
-    private addDataIndex;
-    private getDataIndex;
-    private addDefinedLabel;
-    private getDefinedLabels;
-    private addGosubLabel;
-    private getGosubLabels;
-    private getInstrMap;
-    private addInstr;
-    private getVariables;
-    private getVariable;
-    private setDefContext;
+    getDeg(): boolean;
+    setDeg(isDeg: boolean): void;
+    addIndent(num: number): number;
+    setIndent(indent: number): void;
+    getIndent(): number;
+    getIndentStr(): string;
+    applyNextIndent(): void;
+    nextIndentAdd(num: number): void;
+    addDataIndex(count: number): number;
+    getDataIndex(): number;
+    addDefinedLabel(label: string, line: number): void;
+    getDefinedLabels(): DefinedLabelEntryType[];
+    addGosubLabel(label: string): void;
+    getGosubLabels(): Record<string, GosubLabelEntryType>;
+    getInstrMap(): Record<string, number>;
+    addInstr(name: string): number;
+    getVariables(): string[];
+    getVariable(name: string): string;
+    setDefContext(isDef: boolean): void;
     private static deleteAllItems;
-    private incrementLineIndex;
-    private getRestoreMap;
-    private addRestoreLabel;
-    private getDataList;
+    incrementLineIndex(): number;
+    getRestoreMap(): Record<string, number>;
+    addRestoreLabel(label: string): void;
+    getDataList(): (string | number)[];
     resetParser(): void;
-    getSemantics(): ActionDict<string | string[]>;
+    getSemantics(): ActionDict<string>;
 }
 //# sourceMappingURL=Semantics.d.ts.map

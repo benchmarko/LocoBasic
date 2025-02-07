@@ -421,9 +421,12 @@ export const arithmetic = {
     StrArrayIdent
       = strIdent "(" ArrayArgs ")"
 
+    DimArrayArgs
+      = NonemptyListOf<NumExp, ",">
+
     DimArrayIdent
-      = ident "(" ArrayArgs ")"
-      | strIdent "(" ArrayArgs ")"
+      = ident "(" DimArrayArgs ")"
+      | strIdent "(" DimArrayArgs ")"
 
     SimpleIdent
       = strIdent

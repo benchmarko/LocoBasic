@@ -59,9 +59,15 @@ export class BasicVmNode extends BasicVmCore {
         return "";
     }
     fnGetPenColor(num) {
+        if (num < 0 || num >= this.penColors.length) {
+            throw new Error("Invalid pen color index");
+        }
         return this.penColors[num];
     }
     fnGetPaperColor(num) {
+        if (num < 0 || num >= this.paperColors.length) {
+            throw new Error("Invalid paper color index");
+        }
         return this.paperColors[num];
     }
 }

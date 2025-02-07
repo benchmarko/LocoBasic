@@ -47,4 +47,38 @@ export interface IUI {
     checkSyntax(str: string): Promise<string>;
     prompt(msg: string): string | null;
 }
+export type DefinedLabelEntryType = {
+    label: string;
+    first: number;
+    last: number;
+    dataIndex: number;
+};
+export type GosubLabelEntryType = {
+    count: number;
+};
+export interface ISemanticsHelper {
+    addDataIndex(count: number): void;
+    addDefinedLabel(label: string, line: number): void;
+    addGosubLabel(label: string): void;
+    addIndent(num: number): number;
+    addInstr(name: string): number;
+    addRestoreLabel(label: string): void;
+    applyNextIndent(): void;
+    getDataIndex(): number;
+    getDataList(): (string | number)[];
+    getDefinedLabels(): DefinedLabelEntryType[];
+    getGosubLabels(): Record<string, GosubLabelEntryType>;
+    getIndent(): number;
+    getIndentStr(): string;
+    getInstrMap(): Record<string, number>;
+    getRestoreMap(): Record<string, number>;
+    getVariable(name: string): string;
+    getVariables(): string[];
+    incrementLineIndex(): number;
+    nextIndentAdd(num: number): void;
+    setIndent(indent: number): void;
+    setDeg(isDeg: boolean): void;
+    getDeg(): boolean;
+    setDefContext(isDef: boolean): void;
+}
 //# sourceMappingURL=Interfaces.d.ts.map

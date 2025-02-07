@@ -4,8 +4,8 @@ export declare class BasicVmCore implements IVmAdmin {
     private currPaper;
     private currPen;
     private currMode;
-    private graphicsBuffer;
-    private graphicsPathBuffer;
+    private readonly graphicsBuffer;
+    private readonly graphicsPathBuffer;
     private currGraphicsPen;
     private graphicsX;
     private graphicsY;

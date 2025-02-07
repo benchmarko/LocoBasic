@@ -1,4 +1,3 @@
-// Parser.ts
 import { grammar } from "ohm-js";
 export class Parser {
     constructor(grammarString, semanticsMap, superParser) {
@@ -27,11 +26,11 @@ export class Parser {
                 return this.ohmSemantics(matchResult).eval();
             }
             else {
-                return 'ERROR: Parsing failed: ' + matchResult.message;
+                return `ERROR: Parsing failed: ${matchResult.message}`;
             }
         }
         catch (error) {
-            return 'ERROR: Parsing evaluator failed: ' + (error instanceof Error ? error.message : "unknown");
+            return `ERROR: Parsing evaluator failed: ${error instanceof Error ? error.message : "unknown"}`;
         }
     }
 }
