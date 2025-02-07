@@ -1,468 +1,397 @@
-// Semantics.ts
-
 import type { ActionDict, Node } from "ohm-js";
-import type { IVm } from "./Interfaces";
-
-// Type definition for a defined label entry
-type DefinedLabelEntryType = {
-    label: string,
-    first: number,
-    last: number,
-    dataIndex: number
-}
-
-// Type definition for a GOSUB label entry
-type GosubLabelEntryType = {
-    count: number
-}
+import type { IVm, DefinedLabelEntryType, GosubLabelEntryType, ISemanticsHelper } from "./Interfaces";
 
 type RecursiveArray<T> = T | RecursiveArray<T>[];
 
-// Interface for Semantics Helper
-interface SemanticsHelper {
-    addDataIndex(count: number): void,
-    addDefinedLabel(label: string, line: number): void,
-    addGosubLabel(label: string): void,
-    addIndent(num: number): number,
-    addInstr(name: string): number,
-    addRestoreLabel(label: string): void,
-    applyNextIndent(): void,
-    getDataIndex(): number,
-    getDataList(): (string | number)[],
-    getDefinedLabels(): DefinedLabelEntryType[],
-    getGosubLabels(): Record<string, GosubLabelEntryType>,
-    getIndent(): number,
-    getIndentStr(): string,
-    getInstrMap(): Record<string, number>,
-    getRestoreMap(): Record<string, number>,
-    getVariable(name: string): string,
-    getVariables(): string[],
-    incrementLineIndex(): number,
-    nextIndentAdd(num: number): void,
-    setIndent(indent: number): void,
-	setDeg(deg: boolean): void,
-	getDeg(): boolean,
-	setDefContext(defContext: boolean): void
-}
-
 function getCodeSnippets() {
-	const _o = {} as IVm;
-	let _data: (string | number)[] = [];
-	let _dataPtr = 0;
-	let _restoreMap: Record<string, number> = {};
+    const _o = {} as IVm;
+    const _data: (string | number)[] = [];
+    let _dataPtr = 0;
+    const _restoreMap: Record<string, number> = {};
 
-	const codeSnippets: Record<string, (...args: any[]) => unknown> = {
-		_setDataDummy: function _setDataDummy() { // not really used
-			_data = [ ];
-			_dataPtr = 0;
-			_restoreMap = {};
-			//Object.assign(_o, vm);
-		},
-		bin$: function bin$(num: number, pad: number = 0) {
-			return num.toString(2).toUpperCase().padStart(pad, "0");
-		},
-		cls: function cls() {
-			_o.cls();
-		},
-		dec$: function dec$(num: number, format: string) {
-			const decimals = (format.split(".")[1] || "").length;
-			const str = num.toFixed(decimals);
-			const pad = " ".repeat(Math.max(0, format.length - str.length));
-			return pad + str;
-		},
-		dim: function dim(dims: number[], initVal: string | number = 0) {
-			const createRecursiveArray = (depth: number): RecursiveArray<string | number> => {
-				const length = dims[depth] + 1; // +1 because of 0-based index
-				const array = Array.from({ length }, () =>
-					depth + 1 < dims.length ? createRecursiveArray(depth + 1) : initVal
-				);
-				return array;
-			};
-			return createRecursiveArray(0);
-		},
-		draw: function draw(x: number, y: number) {
-			_o.drawMovePlot("L", x, y);
-		},
-		drawr: function drawr(x: number, y: number) {
-			_o.drawMovePlot("l", x, y);
-		},
-		end: function end() {
-			_o.flush();
-			return "end";
-		},
-		frame: function frame() { // async
-			_o.flush();
-			return new Promise<void>(resolve => setTimeout(() => resolve(), Date.now() % 50));
-		},
-		graphicsPen: function graphicsPen(num: number) {
-			_o.graphicsPen(num);
-		},
-		hex$: function hex$(num: number, pad?: number) {
-			return num.toString(16).toUpperCase().padStart(pad || 0, "0");
-		},
-		input: function input(msg: string, isNum: boolean) { // async
-			_o.flush();
-			return new Promise(resolve => setTimeout(() => {
-				const input = _o.prompt(msg);
-				resolve(isNum ? Number(input) : input);
-			}, 5));
-		},
-		mid$Assign: function mid$Assign(s: string, start: number, newString: string, len?: number) {
-			start -= 1;
-			len = Math.min(len ?? newString.length, newString.length, s.length - start);
-			return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
-		},
-		mode: function mode(num: number) {
-			_o.mode(num);
-		},
-		move: function move(x: number, y: number) {
-			_o.drawMovePlot("M", x, y);
-		},
-		mover: function mover(x: number, y: number) {
-			_o.drawMovePlot("m", x, y);
-		},
-		paper: function paper(n : number) {
-			_o.paper(n);
-		},
-		pen: function pen(n : number) {
-			_o.pen(n);
-		},
-		plot: function plot(x: number, y: number) {
-			_o.drawMovePlot("P", x, y);
-		},
-		plotr: function plotr(x: number, y: number) {
-			_o.drawMovePlot("p", x, y);
-		},
-		print: function print(...args: (string | number)[]) {
-			const _printNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
-			const output = args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg).join("");
-			_o.print(output);
-		},
-		read: function read() {
-			return _data[_dataPtr++];
-		},
-		restore: function restore(label: string) {
-			_dataPtr = _restoreMap[label];
-		},
-		round: function round(num: number, dec: number) {
-			return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
-		},
-		stop: function stop() {
-			 _o.flush();
-			 return "stop";
-		},
-		str$: function str$(num: number) {
-			return num >= 0 ? ` ${num}`: String(num);
-		},
-		time: function time() {
-			return (Date.now() * 3 / 10) | 0;
-		},
-		val: function val(str: string) {
-			return Number(str.replace("&x", "0b").replace("&", "0x"));
-		}
-	};
-	return codeSnippets;
+    const codeSnippets = {
+		bin$: function bin$(num: number, pad: number = 0): string {
+            return num.toString(2).toUpperCase().padStart(pad, "0");
+        },
+        cls: function cls() {
+            _o.cls();
+        },
+        dec$: function dec$(num: number, format: string) {
+            const decimals = (format.split(".")[1] || "").length;
+            const str = num.toFixed(decimals);
+            const pad = " ".repeat(Math.max(0, format.length - str.length));
+            return pad + str;
+        },
+        dim: function dim(dims: number[], initVal: string | number = 0) {
+            const createRecursiveArray = (depth: number): RecursiveArray<string | number> => {
+                const length = dims[depth] + 1; // +1 because of 0-based index
+                const array = Array.from({ length }, () =>
+                    depth + 1 < dims.length ? createRecursiveArray(depth + 1) : initVal
+                );
+                return array;
+            };
+            return createRecursiveArray(0);
+        },
+        draw: function draw(x: number, y: number) {
+            _o.drawMovePlot("L", x, y);
+        },
+        drawr: function drawr(x: number, y: number) {
+            _o.drawMovePlot("l", x, y);
+        },
+        end: function end() {
+            _o.flush();
+            return "end";
+        },
+        frame: function frame() { // async
+            _o.flush();
+            return new Promise<void>(resolve => setTimeout(() => resolve(), Date.now() % 50));
+        },
+        graphicsPen: function graphicsPen(num: number) {
+            _o.graphicsPen(num);
+        },
+        hex$: function hex$(num: number, pad?: number) {
+            return num.toString(16).toUpperCase().padStart(pad || 0, "0");
+        },
+        input: function input(msg: string, isNum: boolean) { // async
+            _o.flush();
+            return new Promise(resolve => setTimeout(() => {
+                const input = _o.prompt(msg);
+                resolve(isNum ? Number(input) : input);
+            }, 5));
+        },
+        mid$Assign: function mid$Assign(s: string, start: number, newString: string, len?: number) {
+            start -= 1;
+            len = Math.min(len ?? newString.length, newString.length, s.length - start);
+            return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
+        },
+        mode: function mode(num: number) {
+            _o.mode(num);
+        },
+        move: function move(x: number, y: number) {
+            _o.drawMovePlot("M", x, y);
+        },
+        mover: function mover(x: number, y: number) {
+            _o.drawMovePlot("m", x, y);
+        },
+        paper: function paper(n: number) {
+            _o.paper(n);
+        },
+        pen: function pen(n: number) {
+            _o.pen(n);
+        },
+        plot: function plot(x: number, y: number) {
+            _o.drawMovePlot("P", x, y);
+        },
+        plotr: function plotr(x: number, y: number) {
+            _o.drawMovePlot("p", x, y);
+        },
+        print: function print(...args: (string | number)[]) {
+            const _printNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
+            const output = args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg).join("");
+            _o.print(output);
+        },
+        read: function read() {
+            return _data[_dataPtr++];
+        },
+        restore: function restore(label: string) {
+            _dataPtr = _restoreMap[label];
+        },
+        round: function round(num: number, dec: number) {
+            return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
+        },
+        stop: function stop() {
+            _o.flush();
+            return "stop";
+        },
+        str$: function str$(num: number) {
+            return num >= 0 ? ` ${num}` : String(num);
+        },
+        time: function time() {
+            return (Date.now() * 3 / 10) | 0;
+        },
+        val: function val(str: string) {
+            return Number(str.replace("&x", "0b").replace("&", "0x"));
+        }
+    };
+    return codeSnippets;
 }
 
-/*
-// round with higher precision: https://www.jacklmoore.com/notes/rounding-in-javascript
-round: function round(num: number, dec: number) {
-	const maxDecimals = 20 - Math.floor(Math.log10(Math.abs(num))); // limit for JS
-	if (dec >= 0 && dec > maxDecimals) {
-		dec = maxDecimals;
-	}
-	return Math.sign(num) * Number(Math.round(Number(Math.abs(num) + "e" + dec)) + "e" + (dec >= 0 ? -dec : -dec));
-}
-*/
+function trimIndent(code: string): string {
+    const lines = code.split("\n");
+    const lastLine = lines[lines.length - 1];
 
-function trimIndent(code: string) {
-	const lines = code.split("\n");
-	const lastLine = lines[lines.length - 1];
-
-	const match = lastLine.match(/^(\s+)}$/);
-	if (match) {
-		const indent = match[1];
-		const trimmedLines = lines.map((line) => line.startsWith(indent) ? line.slice(indent.length) : line);
-		return trimmedLines.join("\n");
-	}
-	return code;
+    const match = lastLine.match(/^(\s+)}$/);
+    if (match) {
+        const indent = match[1];
+        const trimmedLines = lines.map((line) => line.startsWith(indent) ? line.slice(indent.length) : line);
+        return trimmedLines.join("\n");
+    }
+    return code;
 }
 
-
-function evalChildren(children: Node[]) {
-	return children.map(c => c.eval());
+function evalChildren(children: Node[]): string[] {
+    return children.map(child => child.eval());
 }
 
-function getSemantics(semanticsHelper: SemanticsHelper) {
+function createComparisonExpression(a: Node, op: string, b: Node): string {
+	return `-(${a.eval()} ${op} ${b.eval()})`;
+}
 
-	const drawMovePlot = (lit: Node, x: Node, _comma1: Node, y: Node, _comma2: Node, e3: Node) => {
-		const command = lit.sourceString.toLowerCase();
-		semanticsHelper.addInstr(command);
-		const pen = e3.child(0)?.eval();
-		let penStr = "";
-		if (pen !== undefined) {
-			semanticsHelper.addInstr("graphicsPen");
-			penStr = `graphicsPen(${pen}); `;
-		}
-		return penStr + `${command}(${x.eval()}, ${y.eval()})`;
-	};
+function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
+    const drawMovePlot = (lit: Node, x: Node, _comma1: Node, y: Node, _comma2: Node, e3: Node) => {
+        const command = lit.sourceString.toLowerCase();
+        semanticsHelper.addInstr(command);
+        const pen = e3.child(0)?.eval();
+        let penStr = "";
+        if (pen !== undefined) {
+            semanticsHelper.addInstr("graphicsPen");
+            penStr = `graphicsPen(${pen}); `;
+        }
+        return penStr + `${command}(${x.eval()}, ${y.eval()})`;
+    };
 
-	const cosSinTan = (lit: Node, _open: Node, e: Node, _close: Node) => { // eslint-disable-line @typescript-eslint/no-unused-vars
-		const func = lit.sourceString.toLowerCase();
-		return semanticsHelper.getDeg() ? `Math.${func}((${e.eval()}) * Math.PI / 180)` : `Math.${func}(${e.eval()})`;
-	}
+    const cosSinTan = (lit: Node, _open: Node, e: Node, _close: Node) => { // eslint-disable-line @typescript-eslint/no-unused-vars
+        const func = lit.sourceString.toLowerCase();
+        return semanticsHelper.getDeg() ? `Math.${func}((${e.eval()}) * Math.PI / 180)` : `Math.${func}(${e.eval()})`;
+    }
 
-	// Semantics to evaluate an arithmetic expression
-	const semantics: ActionDict<string | string[]> = {
-		Program(lines: Node) {
-			const lineList = evalChildren(lines.children);
+    // Semantics to evaluate an arithmetic expression
+    const semantics: ActionDict<string> = {
+        Program(lines: Node) {
+            const lineList = evalChildren(lines.children);
 
-			const variableList = semanticsHelper.getVariables();
-			const variableDeclarations = variableList.length ? "let " + variableList.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
+            const variableList = semanticsHelper.getVariables();
+            const variableDeclarations = variableList.length ? "let " + variableList.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
 
-			// find subroutines
-			const definedLabels = semanticsHelper.getDefinedLabels();
-			const gosubLabels = semanticsHelper.getGosubLabels();
-			const restoreMap = semanticsHelper.getRestoreMap();
+            // find subroutines
+            const definedLabels = semanticsHelper.getDefinedLabels();
+            const gosubLabels = semanticsHelper.getGosubLabels();
+            const restoreMap = semanticsHelper.getRestoreMap();
 
-			const awaitLabels: string[] = [];
-			let subroutineStart: DefinedLabelEntryType | undefined;
-			for (const label of definedLabels) {
-				if (gosubLabels[label.label]) {
-					subroutineStart = label;
-				}
+            const awaitLabels: string[] = [];
+            let subroutineStart: DefinedLabelEntryType | undefined;
+            for (const label of definedLabels) {
+                if (gosubLabels[label.label]) {
+                    subroutineStart = label;
+                }
 
-				if (subroutineStart && label.last >= 0) {
-					const first = subroutineStart.first;
-					const indent = lineList[first].search(/\S|$/);
-					const indentStr = " ".repeat(indent);
+                if (subroutineStart && label.last >= 0) {
+                    const first = subroutineStart.first;
+                    const indent = lineList[first].search(/\S|$/);
+                    const indentStr = " ".repeat(indent);
 
-					let hasAwait = false;
-					for (let i = first; i <= label.last; i += 1) {
-						if (lineList[i].includes("await ")) {
-							hasAwait = true; // quick check
-						}
-						lineList[i] = "  " + lineList[i]; // indent
-					}
+                    let hasAwait = false;
+                    for (let i = first; i <= label.last; i += 1) {
+                        if (lineList[i].includes("await ")) {
+                            hasAwait = true; // quick check
+                        }
+                        lineList[i] = "  " + lineList[i]; // indent
+                    }
 
-					const asyncStr = hasAwait ? "async " : "";
-					lineList[first] = `${indentStr}${asyncStr}function _${subroutineStart.label}() {${indentStr}\n` + lineList[first];
-					lineList[label.last] += `\n${indentStr}` + "}"; //TS issue when using the following? `\n${indentStr}};`
-					if (hasAwait) {
-						awaitLabels.push(subroutineStart.label);
-					}
-					subroutineStart = undefined;
-				}
+                    const asyncStr = hasAwait ? "async " : "";
+                    lineList[first] = `${indentStr}${asyncStr}function _${subroutineStart.label}() {${indentStr}\n` + lineList[first];
+                    lineList[label.last] += `\n${indentStr}}`;
+                    if (hasAwait) {
+                        awaitLabels.push(subroutineStart.label);
+                    }
+                    subroutineStart = undefined;
+                }
 
-				if (restoreMap[label.label] === -1) {
-					restoreMap[label.label] = label.dataIndex;
-				}
-			}
+                if (restoreMap[label.label] === -1) {
+                    restoreMap[label.label] = label.dataIndex;
+                }
+            }
 
-			const dataList = semanticsHelper.getDataList();
-			if (dataList.length) {
-				for (const key of Object.keys(restoreMap)) {
-					let index = restoreMap[key];
-					if (index < 0) {
-						index = 0;
-						restoreMap[key] = index;
-					}
-				}
-				lineList.unshift(`const {_data, _restoreMap} = _defineData();\nlet _dataPtr = 0;`);
-				lineList.push(`function _defineData() {\n  const _data = [\n${dataList.join(",\n")}\n  ];\n  const _restoreMap = ${JSON.stringify(restoreMap)};\n  return {_data, _restoreMap};\n}`);
-			}
+            const dataList = semanticsHelper.getDataList();
+            if (dataList.length) {
+                for (const key of Object.keys(restoreMap)) {
+                    let index = restoreMap[key];
+                    if (index < 0) {
+                        index = 0;
+                        restoreMap[key] = index;
+                    }
+                }
+                lineList.unshift(`const {_data, _restoreMap} = _defineData();\nlet _dataPtr = 0;`);
+                lineList.push(`function _defineData() {\n  const _data = [\n${dataList.join(",\n")}\n  ];\n  const _restoreMap = ${JSON.stringify(restoreMap)};\n  return {_data, _restoreMap};\n}`);
+            }
 
-			lineList.push("// library");
+            lineList.push("// library");
 
-			const instrMap = semanticsHelper.getInstrMap();
-			const codeSnippets = getCodeSnippets();
+            const instrMap = semanticsHelper.getInstrMap();
+            const codeSnippets = getCodeSnippets();
 
-			let needsAsync = false;
-			for (const key of Object.keys(codeSnippets)) {
-				if (instrMap[key]) {
-					const code = String(codeSnippets[key]);
-					const adaptedCode = trimIndent(code);
-					if (adaptedCode.includes("Promise") || adaptedCode.includes("await")) {
-						lineList.push("async " + adaptedCode);
-						needsAsync = true;
-					} else {
-						lineList.push(adaptedCode);
-					}
-				}
-			}
+            let needsAsync = false;
+            for (const key of Object.keys(codeSnippets)) {
+                if (instrMap[key]) {
+					const code = String((codeSnippets[key as keyof typeof codeSnippets]).toString());
+                    const adaptedCode = trimIndent(code);
+                    if (adaptedCode.includes("Promise") || adaptedCode.includes("await")) {
+                        lineList.push("async " + adaptedCode);
+                        needsAsync = true;
+                    } else {
+                        lineList.push(adaptedCode);
+                    }
+                }
+            }
 
-			if (variableDeclarations) {
-				lineList.unshift(variableDeclarations);
-			}
+            if (variableDeclarations) {
+                lineList.unshift(variableDeclarations);
+            }
 
-			if (needsAsync) {
-				lineList.unshift(`return async function() {`);
-				lineList.push('}();');
-			}
+            if (needsAsync) {
+                lineList.unshift(`return async function() {`);
+                lineList.push('}();');
+            }
 
-			lineList.unshift(`"use strict"`);
+            lineList.unshift(`"use strict"`);
 
-			let lineStr = lineList.filter((line) => line.trimEnd() !== "").join('\n');
-			if (awaitLabels.length) {
-				for (const label of awaitLabels) {
-					const regEx = new RegExp(`_${label}\\(\\);`, "g");
-					lineStr = lineStr.replace(regEx, `await _${label}();`);
-				}
-			}
-			return lineStr;
-		},
+            let lineStr = lineList.filter((line) => line.trimEnd() !== "").join('\n');
+            if (awaitLabels.length) {
+                for (const label of awaitLabels) {
+                    const regEx = new RegExp(`_${label}\\(\\);`, "g");
+                    lineStr = lineStr.replace(regEx, `await _${label}();`);
+                }
+            }
+            return lineStr;
+        },
 
-		Line(label: Node, stmts: Node, comment: Node, _eol: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			const labelString = label.sourceString;
+        Line(label: Node, stmts: Node, comment: Node, _eol: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+            const labelString = label.sourceString;
 
-			const currentLineIndex = semanticsHelper.incrementLineIndex() - 1;
+            const currentLineIndex = semanticsHelper.incrementLineIndex() - 1;
 
-			if (labelString) {
-				semanticsHelper.addDefinedLabel(labelString, currentLineIndex);
-			}
+            if (labelString) {
+                semanticsHelper.addDefinedLabel(labelString, currentLineIndex);
+            }
 
-			const lineStr = stmts.eval();
+            const lineStr = stmts.eval();
 
-			if (lineStr === "return") {
-				const definedLabels = semanticsHelper.getDefinedLabels();
-				if (definedLabels.length) {
-					const lastLabelItem = definedLabels[definedLabels.length - 1];
-					lastLabelItem.last = currentLineIndex;
-				}
-			}
+            if (lineStr === "return") {
+                const definedLabels = semanticsHelper.getDefinedLabels();
+                if (definedLabels.length) {
+                    const lastLabelItem = definedLabels[definedLabels.length - 1];
+                    lastLabelItem.last = currentLineIndex;
+                }
+            }
 
-			const commentStr = comment.sourceString ? `; //${comment.sourceString.substring(1)}` : "";
-			const semi = lineStr === "" || lineStr.endsWith("{") || lineStr.endsWith("}") || lineStr.startsWith("//") || commentStr ? "" : ";";
+            const commentStr = comment.sourceString ? `; //${comment.sourceString.substring(1)}` : "";
+            const semi = lineStr === "" || lineStr.endsWith("{") || lineStr.endsWith("}") || lineStr.startsWith("//") || commentStr ? "" : ";";
 
-			const indentStr = semanticsHelper.getIndentStr();
-			semanticsHelper.applyNextIndent();
+            const indentStr = semanticsHelper.getIndentStr();
+            semanticsHelper.applyNextIndent();
 
-			return indentStr + lineStr + commentStr + semi;
-		},
+            return indentStr + lineStr + commentStr + semi;
+        },
 
-		Statements(stmt: Node, _stmtSep: Node, stmts: Node) {
-			// separate statements, use ";", if the last stmt does not end with "{"
-			const statements = [stmt.eval(), ...evalChildren(stmts.children)];
-			return statements.reduce((acc, current) => acc.endsWith("{") ? `${acc} ${current}` : `${acc}; ${current}`);
-		},
+        Statements(stmt: Node, _stmtSep: Node, stmts: Node) {
+            // separate statements, use ";", if the last stmt does not end with "{"
+            const statements = [stmt.eval(), ...evalChildren(stmts.children)];
+            return statements.reduce((acc, current) => acc.endsWith("{") ? `${acc} ${current}` : `${acc}; ${current}`);
+        },
 
-		ArrayAssign(ident: Node, _op: Node, e: Node): string {
-			return `${ident.eval()} = ${e.eval()}`;
-		},
+        ArrayAssign(ident: Node, _op: Node, e: Node): string {
+            return `${ident.eval()} = ${e.eval()}`;
+        },
 
-		Assign(ident: Node, _op: Node, e: Node): string {
-			const variableName = ident.sourceString;
-			const resolvedVariableName = semanticsHelper.getVariable(variableName);
-			const value = e.eval();
-			return `${resolvedVariableName} = ${value}`;
-		},
+        Assign(ident: Node, _op: Node, e: Node): string {
+            const variableName = ident.sourceString;
+            const resolvedVariableName = semanticsHelper.getVariable(variableName);
+            const value = e.eval();
+            return `${resolvedVariableName} = ${value}`;
+        },
 
-		Abs(_absLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.abs(${e.eval()})`;
-		},
+        Abs(_absLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+            return `Math.abs(${e.eval()})`;
+        },
 
-		Asc(_ascLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `(${e.eval()}).charCodeAt(0)`;
-		},
+        Asc(_ascLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+            return `(${e.eval()}).charCodeAt(0)`;
+        },
 
-		Atn(_atnLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return semanticsHelper.getDeg() ? `(Math.atan(${e.eval()}) * 180 / Math.PI)` : `Math.atan(${e.eval()})`;
-		},
+        Atn(_atnLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+            return semanticsHelper.getDeg() ? `(Math.atan(${e.eval()}) * 180 / Math.PI)` : `Math.atan(${e.eval()})`;
+        },
 
-		BinS(_binLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			semanticsHelper.addInstr("bin$");
-			const pad = n.child(0)?.eval();
-			return pad !== undefined ? `bin$(${e.eval()}, ${pad})` : `bin$(${e.eval()})`
-		},
+        BinS(_binLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+            semanticsHelper.addInstr("bin$");
+            const pad = n.child(0)?.eval();
+            return pad !== undefined ? `bin$(${e.eval()}, ${pad})` : `bin$(${e.eval()})`
+        },
 
-		ChrS(_chrLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `String.fromCharCode(${e.eval()})`;
-		},
+        ChrS(_chrLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+            return `String.fromCharCode(${e.eval()})`;
+        },
 
-		Comment(_commentLit: Node, remain: Node) {
-			return `//${remain.sourceString}`;
-		},
+        Comment(_commentLit: Node, remain: Node) {
+            return `//${remain.sourceString}`;
+        },
 
-		Cos: cosSinTan,
+        Cos: cosSinTan,
 
-		Cint(_cintLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.round(${e.eval()})`;
-		},
+        Cint(_cintLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+            return `Math.round(${e.eval()})`;
+        },
 
-		Cls(_clsLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			semanticsHelper.addInstr("cls");
-			return `cls()`;
-		},
+        Cls(_clsLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+            semanticsHelper.addInstr("cls");
+            return `cls()`;
+        },
 
-		Data(_datalit: Node, args: Node) {
-			const argList = args.asIteration().children.map(c => c.eval());
+        Data(_datalit: Node, args: Node) {
+            const argList = evalChildren(args.asIteration().children);
 
-			const definedLabels = semanticsHelper.getDefinedLabels();
+            const definedLabels = semanticsHelper.getDefinedLabels();
 
-			if (definedLabels.length) {
-				const currentLabel = definedLabels[definedLabels.length - 1];
-				if (currentLabel.dataIndex === -1) {
-					const dataIndex = semanticsHelper.getDataIndex();
-					currentLabel.dataIndex = dataIndex;
-				}
-			}
+            if (definedLabels.length) {
+                const currentLabel = definedLabels[definedLabels.length - 1];
+                if (currentLabel.dataIndex === -1) {
+                    const dataIndex = semanticsHelper.getDataIndex();
+                    currentLabel.dataIndex = dataIndex;
+                }
+            }
 
-			const dataList = semanticsHelper.getDataList();
-			dataList.push(argList.join(", "));
-			semanticsHelper.addDataIndex(argList.length);
-			return "";
-		},
+            const dataList = semanticsHelper.getDataList();
+            dataList.push(argList.join(", "));
+            semanticsHelper.addDataIndex(argList.length);
+            return "";
+        },
 
-		DecS(_decLit: Node, _open: Node, num: Node, _comma: Node, format: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			semanticsHelper.addInstr("dec$");
-			return `dec$(${num.eval()}, ${format.eval()})`;
-		},
+        DecS(_decLit: Node, _open: Node, num: Node, _comma: Node, format: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+            semanticsHelper.addInstr("dec$");
+            return `dec$(${num.eval()}, ${format.eval()})`;
+        },
 
-		Def(_defLit: Node, _fnLit: Node, assign: Node) {
-			return `${assign.eval()}`;
-		},
+        Def(_defLit: Node, _fnLit: Node, assign: Node) {
+            return `${assign.eval()}`;
+        },
 
-		DefArgs(_open: Node, arrayIdents: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			const argList = arrayIdents.asIteration().children.map(c => c.eval());
+        DefArgs(_open: Node, arrayIdents: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+            const argList = evalChildren(arrayIdents.asIteration().children);
 
-			return `(${argList.join(", ")})`;
-		},
+            return `(${argList.join(", ")})`;
+        },
 
-		DefAssign(ident: Node, args: Node, _equal: Node, e: Node) {
-			const fnIdent = semanticsHelper.getVariable(`fn${ident.sourceString}`);
+        DefAssign(ident: Node, args: Node, _equal: Node, e: Node) {
+            const fnIdent = semanticsHelper.getVariable(`fn${ident.sourceString}`);
 
-			semanticsHelper.setDefContext(true); // do not create global variables in this context
-			const argStr = args.children.map(c => c.eval()).join(", ") || "()";
-			const defBody = e.eval();
-			semanticsHelper.setDefContext(false);
+            semanticsHelper.setDefContext(true); // do not create global variables in this context
+            const argStr = evalChildren(args.children).join(", ") || "()";
+			
+            const defBody = e.eval();
+            semanticsHelper.setDefContext(false);
 
-			return `${fnIdent} = ${argStr} => ${defBody}`;
-		},
+            return `${fnIdent} = ${argStr} => ${defBody}`;
+        },
 
-		Deg(_degLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			semanticsHelper.setDeg(true);
-			return `/* deg active */`;
-		},
+        Deg(_degLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+            semanticsHelper.setDeg(true);
+            return `/* deg active */`;
+        },
 
-		Dim(_dimLit: Node, arrayIdents: Node) {
-			const argList = arrayIdents.asIteration().children.map(c => c.eval());
-			const results: string[] = [];
-
-			for (const arg of argList) {
-				const [ident, ...indices] = arg;
-				let createArrStr: string;
-				if (indices.length > 1) { // multi-dimensional?
-					const initValStr = ident.endsWith("$") ? ', ""' : '';
-					createArrStr = `dim([${indices}]${initValStr})`; // indices are automatically joined with comma
-					semanticsHelper.addInstr("dim");
-				} else {
-					const fillStr = ident.endsWith("$") ? `""` : "0";
-					createArrStr = `new Array(${indices[0]} + 1).fill(${fillStr})`; // +1 because of 0-based index
-				}
-				results.push(`${ident} = ${createArrStr}`);
-			}
-
-			return results.join("; ");
+		Dim(_dimLit: Node, dimArgs: Node) {
+			const argumentList: string[] = evalChildren(dimArgs.asIteration().children);
+			semanticsHelper.addInstr("dim");
+			return argumentList.join("; ");
 		},
 
 		Draw: drawMovePlot,
@@ -475,10 +404,10 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		Erase(_eraseLit: Node, arrayIdents: Node) { // erase not really needed
-			const argList = arrayIdents.asIteration().children.map(c => c.eval());
+			const arrayIdentifiers: string[] = evalChildren(arrayIdents.asIteration().children);
 			const results: string[] = [];
 
-			for (const ident of argList) {
+			for (const ident of arrayIdentifiers) {
 				const initValStr = ident.endsWith("$") ? '""' : '0';
 				results.push(`${ident} = ${initValStr}`);
 			}
@@ -499,15 +428,14 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		AnyFnArgs(_open: Node, args: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			const argList = args.asIteration().children.map(c => c.eval());
-
-			return `(${argList.join(", ")})`;
+			const argumentList = evalChildren(args.asIteration().children);
+			return `(${argumentList.join(", ")})`;
 		},
 
 
 		FnIdent(fnIdent: Node, args: Node) {
-			const argStr = args.child(0)?.eval() || "()";
-			return `${fnIdent.eval()}${argStr}`;
+			const argumentString = args.child(0)?.eval() || "()";
+			return `${fnIdent.eval()}${argumentString}`;
 		},
 
 		StrFnIdent(fnIdent: Node, args: Node) {
@@ -516,23 +444,23 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		For(_forLit: Node, variable: Node, _eqSign: Node, start: Node, _dirLit: Node, end: Node, _stepLit: Node, step: Node) {
-			const varExp = variable.eval();
-			const startExp = start.eval();
-			const endExp = end.eval();
-			const stepExp = step.child(0)?.eval() || "1";
-
-			const stepAsNum = Number(stepExp);
-
-			let cmpSt = "";
-			if (isNaN(stepAsNum)) {
-				cmpSt = `${stepExp} >= 0 ? ${varExp} <= ${endExp} : ${varExp} >= ${endExp}`
+			const variableExpression = variable.eval();
+			const startExpression = start.eval();
+			const endExpression = end.eval();
+			const stepExpression = step.child(0)?.eval() || "1";
+		
+			const stepAsNumber = Number(stepExpression);
+		
+			let comparisonStatement = "";
+			if (isNaN(stepAsNumber)) {
+				comparisonStatement = `${stepExpression} >= 0 ? ${variableExpression} <= ${endExpression} : ${variableExpression} >= ${endExpression}`;
 			} else {
-				cmpSt = stepExp >= 0 ? `${varExp} <= ${endExp}` : `${varExp} >= ${endExp}`;
+				comparisonStatement = stepAsNumber >= 0 ? `${variableExpression} <= ${endExpression}` : `${variableExpression} >= ${endExpression}`;
 			}
-
+		
 			semanticsHelper.nextIndentAdd(2);
-			const result = `for (${varExp} = ${startExp}; ${cmpSt}; ${varExp} += ${stepExp}) {`;
-
+			const result = `for (${variableExpression} = ${startExpression}; ${comparisonStatement}; ${variableExpression} += ${stepExpression}) {`;
+		
 			return result;
 		},
 
@@ -542,10 +470,10 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		Gosub(_gosubLit: Node, e: Node) {
-			const labelStr = e.sourceString;
-			semanticsHelper.addGosubLabel(labelStr);
-
-			return `_${labelStr}()`;
+			const labelString = e.sourceString;
+			semanticsHelper.addGosubLabel(labelString);
+		
+			return `_${labelString}()`;
 		},
 
 		GraphicsPen(_graphicsLit: Node, _penLit: Node, e: Node) {
@@ -563,28 +491,28 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 			const initialIndent = semanticsHelper.getIndentStr();
 			semanticsHelper.addIndent(2);
 			const increasedIndent = semanticsHelper.getIndentStr();
-
-			const cond = condExp.eval();
-			const thSt = thenStat.eval();
-
-			let result = `if (${cond}) {\n${increasedIndent}${thSt}\n${initialIndent}}`; // put in newlines to also allow line comments
+		
+			const condition = condExp.eval();
+			const thenStatement = thenStat.eval();
+		
+			let result = `if (${condition}) {\n${increasedIndent}${thenStatement}\n${initialIndent}}`; // put in newlines to also allow line comments
 			if (elseLit.sourceString) {
-				const elseSt = evalChildren(elseStat.children).join('; ');
-				result += ` else {\n${increasedIndent}${elseSt}\n${initialIndent}}`;
+				const elseStatement = evalChildren(elseStat.children).join('; ');
+				result += ` else {\n${increasedIndent}${elseStatement}\n${initialIndent}}`;
 			}
-
+		
 			semanticsHelper.addIndent(-2);
 			return result;
 		},
 
 		Input(_inputLit: Node, message: Node, _semi: Node, e: Node) {
 			semanticsHelper.addInstr("input");
-
-			const msgStr = message.sourceString.replace(/\s*[;,]$/, "");
-			const ident = e.eval();
-			const isNumStr = ident.includes("$") ? "" : ", true";
-
-			return `${ident} = await input(${msgStr}${isNumStr})`;
+		
+			const messageString = message.sourceString.replace(/\s*[;,]$/, "");
+			const identifier = e.eval();
+			const isNumberString = identifier.includes("$") ? "" : ", true";
+		
+			return `${identifier} = await input(${messageString}${isNumberString})`;
 		},
 
 		Instr_noLen(_instrLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -620,14 +548,14 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		Max(_maxLit: Node, _open: Node, args: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			const argList = args.asIteration().children.map(c => c.eval()); // see also: ArrayArgs
-			return `Math.max(${argList})`;
+			const argumentList = evalChildren(args.asIteration().children);
+			return `Math.max(${argumentList})`;
 		},
-
+		
 		MidS(_midLit: Node, _open: Node, e1: Node, _comma1: Node, e2: Node, _comma2: Node, e3: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			const length = e3.child(0)?.eval();
-			const lengthStr = length === undefined ? "" : `, ${length}`;
-			return `(${e1.eval()}).substr(${e2.eval()} - 1${lengthStr})`;
+			const lengthString = length === undefined ? "" : `, ${length}`;
+			return `(${e1.eval()}).substr(${e2.eval()} - 1${lengthString})`;
 		},
 
 		MidSAssign(_midLit: Node, _open: Node, ident: Node, _comma1: Node, e2: Node, _comma2: Node, e3: Node, _close: Node, _op: Node, e: Node) {
@@ -643,8 +571,8 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		Min(_minLit: Node, _open: Node, args: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			const argList = args.asIteration().children.map(c => c.eval()); // see also: ArrayArgs
-			return `Math.min(${argList})`;
+			const argumentList = evalChildren(args.asIteration().children);
+			return `Math.min(${argumentList})`;
 		},
 
 		Mode(_modeLit: Node, e: Node) {
@@ -657,23 +585,23 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		Mover: drawMovePlot,
 
 		Next(_nextLit: Node, variables: Node) {
-			const argList = variables.asIteration().children.map(c => c.eval());
-			if (!argList.length) {
-				argList.push("_any");
+			const argumentList = evalChildren(variables.asIteration().children);
+			if (!argumentList.length) {
+				argumentList.push("_any");
 			}
-			semanticsHelper.addIndent(-2 * argList.length);
-			return '} '.repeat(argList.length).slice(0, -1);
+			semanticsHelper.addIndent(-2 * argumentList.length);
+			return '} '.repeat(argumentList.length).slice(0, -1);
 		},
 
 		On(_nLit: Node, e1: Node, _gosubLit: Node, args: Node) {
 			const index = e1.eval();
-			const argList = args.asIteration().children.map(c => c.sourceString);
-
-			for (let i = 0; i < argList.length; i += 1) {
-				semanticsHelper.addGosubLabel(argList[i]);
+			const argumentList = args.asIteration().children.map(child => child.sourceString);
+		
+			for (let i = 0; i < argumentList.length; i += 1) {
+				semanticsHelper.addGosubLabel(argumentList[i]);
 			}
-
-			return `[${argList.map((label) => `_${label}`).join(",")}]?.[${index} - 1]()`; // 1-based index
+		
+			return `[${argumentList.map((label) => `_${label}`).join(",")}]?.[${index} - 1]()`; // 1-based index
 		},
 
 		Paper(_paperLit: Node, e: Node) {
@@ -695,28 +623,28 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		Plotr: drawMovePlot,
 
 		PrintArg_strCmp(_cmp: Node, args: Node) {
-			const paramStr = args.children[0].eval();
-			return paramStr;
+			const parameterString = args.children[0].eval();
+			return parameterString;
 		},
-
+		
 		PrintArg_usingNum(_printLit: Node, format: Node, _semi: Node, numArgs: Node) {
 			semanticsHelper.addInstr("dec$");
-			const formatStr = format.eval();
-			const argList = numArgs.asIteration().children.map(c => c.eval());
-			const paramStr = argList.map((arg) => `dec$(${arg}, ${formatStr})`).join(', ');
-			return paramStr;
+			const formatString = format.eval();
+			const argumentList = evalChildren(numArgs.asIteration().children);
+			const parameterString = argumentList.map((arg) => `dec$(${arg}, ${formatString})`).join(', ');
+			return parameterString;
 		},
-
+		
 		Print(_printLit: Node, args: Node, semi: Node) {
 			semanticsHelper.addInstr("print");
-			const argList = args.asIteration().children.map(c => c.eval());
-			const paramStr = argList.join(', ') || "";
-
-			let newlineStr = "";
+			const argumentList = evalChildren(args.asIteration().children);
+			const parameterString = argumentList.join(', ') || "";
+		
+			let newlineString = "";
 			if (!semi.sourceString) {
-				newlineStr = paramStr ? `, "\\n"` : `"\\n"`;
+				newlineString = parameterString ? `, "\\n"` : `"\\n"`;
 			}
-			return `print(${paramStr}${newlineStr})`;
+			return `print(${parameterString}${newlineString})`;
 		},
 
 		Rad(_radLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -726,8 +654,8 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 
 		Read(_readlit: Node, args: Node) {
 			semanticsHelper.addInstr("read");
-			const argList = args.asIteration().children.map(c => c.eval());
-			const results = argList.map(identifier => `${identifier} = read()`);
+			const argumentList = evalChildren(args.asIteration().children);
+			const results = argumentList.map(identifier => `${identifier} = read()`);
 			return results.join("; ");
 		},
 
@@ -736,11 +664,11 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		Restore(_restoreLit: Node, e: Node) {
-			const labelStr = e.sourceString || "0";
-			semanticsHelper.addRestoreLabel(labelStr);
-
+			const labelString = e.sourceString || "0";
+			semanticsHelper.addRestoreLabel(labelString);
+		
 			semanticsHelper.addInstr("restore");
-			return `restore(${labelStr})`;
+			return `restore(${labelString})`;
 		},
 
 		Return(_returnLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -748,9 +676,9 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		RightS(_rightLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			const str = e1.eval();
-			const len = e2.eval();
-			return `(${str}).substring((${str}).length - (${len}))`;
+			const string: string = e1.eval();
+			const length: string = e2.eval();
+			return `(${string}).substring((${string}).length - (${length}))`;
 		},
 
 		Rnd(_rndLit: Node, _open: Node, _e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -788,14 +716,14 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		StrS(_strLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			const arg = e.eval();
-
-			if (isNaN(Number(arg))) {
+			const argument = e.eval();
+		
+			if (isNaN(Number(argument))) {
 				semanticsHelper.addInstr("str$");
-				return `str$(${arg})`;
+				return `str$(${argument})`;
 			}
 			// simplify if we know at compile time that arg is a positive number
-			return arg >= 0 ? `(" " + String(${arg}))` : `String(${arg})`;
+			return argument >= 0 ? `(" " + String(${argument}))` : `String(${argument})`;
 		},
 
 		StringS_str(_stringLit: Node, _open: Node, len: Node, _commaLit: Node, chr: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -857,22 +785,22 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		CmpExp_eq(a: Node, _op: Node, b: Node) {
-			return `-(${a.eval()} === ${b.eval()})`; // or -Number(...), or -(...), or: ? -1 : 0
+			return createComparisonExpression(a, "===", b);
 		},
 		CmpExp_ne(a: Node, _op: Node, b: Node) {
-			return `-(${a.eval()} !== ${b.eval()})`;
+			return createComparisonExpression(a, "!==", b);
 		},
 		CmpExp_lt(a: Node, _op: Node, b: Node) {
-			return `-(${a.eval()} < ${b.eval()})`;
+			return createComparisonExpression(a, "<", b);
 		},
 		CmpExp_le(a: Node, _op: Node, b: Node) {
-			return `-(${a.eval()} <= ${b.eval()})`;
+			return createComparisonExpression(a, "<=", b);
 		},
 		CmpExp_gt(a: Node, _op: Node, b: Node) {
-			return `-(${a.eval()} > ${b.eval()})`;
+			return createComparisonExpression(a, ">", b);
 		},
 		CmpExp_ge(a: Node, _op: Node, b: Node) {
-			return `-(${a.eval()} >= ${b.eval()})`;
+			return createComparisonExpression(a, ">=", b);
 		},
 
 		AddExp_plus(a: Node, _op: Node, b: Node) {
@@ -939,19 +867,29 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 		},
 
 		ArrayArgs(args: Node) {
-			return args.asIteration().children.map(c => String(c.eval()));
+			//return args.asIteration().children.map(c => String(c.eval())).join("][");
+			return evalChildren(args.asIteration().children).join("][");
 		},
 
 		ArrayIdent(ident: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `${ident.eval()}[${e.eval().join("][")}]`;
+			return `${ident.eval()}[${e.eval()}]`;
 		},
 
 		StrArrayIdent(ident: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `${ident.eval()}[${e.eval().join("][")}]`;
+			return `${ident.eval()}[${e.eval()}]`;
+		},
+
+		DimArrayArgs(args: Node) {
+			//return args.asIteration().children.map(c => String(c.eval())).join(", ");
+			return evalChildren(args.asIteration().children).join(", ");
 		},
 
 		DimArrayIdent(ident: Node, _open: Node, indices: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return [ident.eval(), ...indices.eval()];
+			const identStr = ident.eval();
+			const initValStr = identStr.endsWith("$") ? ', ""' : '';
+			semanticsHelper.addInstr("dim");
+
+			return `${identStr} = dim([${indices.eval()}]${initValStr})`;
 		},
 
 		decimalValue(value: Node) {
@@ -998,7 +936,7 @@ function getSemantics(semanticsHelper: SemanticsHelper) {
 }
 
 
-export class Semantics {
+export class Semantics implements ISemanticsHelper {
 	private lineIndex = 0;
 
 	private indent = 0;
@@ -1020,7 +958,15 @@ export class Semantics {
 	private isDeg = false;
 	private isDefContext = false;
 
-	private addIndent(num: number) {
+	public getDeg(): boolean {
+		return this.isDeg;
+	}
+
+	public setDeg(isDeg: boolean): void {
+		this.isDeg = isDeg;
+	}
+
+	public addIndent(num: number): number {
 		if (num < 0) {
 			this.applyNextIndent();
 		}
@@ -1028,15 +974,15 @@ export class Semantics {
 		return this.indent;
 	}
 
-	private setIndent(indent: number) {
+	public setIndent(indent: number): void {
 		this.indent = indent;
 	}
 
-	private getIndent() {
+	public getIndent(): number {
 		return this.indent;
 	}
 
-	private getIndentStr() {
+	public getIndentStr(): string {
 		if (this.indent < 0) {
 			console.error("getIndentStr: lineIndex=", this.lineIndex, ", indent=", this.indent);
 			return "";
@@ -1044,24 +990,24 @@ export class Semantics {
 		return " ".repeat(this.indent);
 	}
 
-	private applyNextIndent() {
+	public applyNextIndent(): void {
 		this.indent += this.indentAdd;
 		this.indentAdd = 0;
 	}
 
-	private nextIndentAdd(num: number) {
+	public nextIndentAdd(num: number): void {
 		this.indentAdd += num;
 	}
 
-	private addDataIndex(count: number) {
+	public addDataIndex(count: number): number {
 		return this.dataIndex += count;
 	}
 
-	private getDataIndex() {
+	public getDataIndex(): number {
 		return this.dataIndex;
 	}
 
-	private addDefinedLabel(label: string, line: number) {
+	public addDefinedLabel(label: string, line: number): void {
 		this.definedLabels.push({
 			label,
 			first: line,
@@ -1070,35 +1016,35 @@ export class Semantics {
 		});
 	}
 
-	private getDefinedLabels() {
+	public getDefinedLabels(): DefinedLabelEntryType[] {
 		return this.definedLabels;
 	}
 
-	private addGosubLabel(label: string) {
+	public addGosubLabel(label: string): void {
 		this.gosubLabels[label] = this.gosubLabels[label] || {
 			count: 0
 		};
 		this.gosubLabels[label].count = (this.gosubLabels[label].count || 0) + 1;
 	}
 
-	private getGosubLabels() {
+	public getGosubLabels(): Record<string, GosubLabelEntryType> {
 		return this.gosubLabels;
 	}
 
-	private getInstrMap() {
+	public getInstrMap(): Record<string, number> {
 		return this.instrMap;
 	}
 
-	private addInstr(name: string) {
+	public addInstr(name: string): number {
 		this.instrMap[name] = (this.instrMap[name] || 0) + 1;
 		return this.instrMap[name];
 	}
 
-	private getVariables() {
+	public getVariables(): string[] {
 		return Object.keys(this.variables);
 	}
 
-	private getVariable(name: string) {
+	public getVariable(name: string): string {
 		name = name.toLowerCase();
 		if (Semantics.reJsKeyword.test(name)) {
 			name = `_${name}`;
@@ -1110,34 +1056,34 @@ export class Semantics {
 		return name;
 	}
 
-	private setDefContext(isDef: boolean) {
+	public setDefContext(isDef: boolean): void {
 		this.isDefContext = isDef;
 	}
 
-	private static deleteAllItems(items: Record<string, unknown>) {
+	private static deleteAllItems(items: Record<string, unknown>): void {
 		for (const name in items) {
 			delete items[name];
 		}
 	}
 
-	private incrementLineIndex() {
+	public incrementLineIndex(): number {
 		this.lineIndex += 1;
 		return this.lineIndex;
 	}
 
-	private getRestoreMap() {
+	public getRestoreMap(): Record<string, number> {
 		return this.restoreMap;
 	}
 
-	private addRestoreLabel(label: string) {
+	public addRestoreLabel(label: string): void {
 		this.restoreMap[label] = -1;
 	}
 
-	private getDataList() {
+	public getDataList(): (string | number)[] {
 		return this.dataList;
 	}
 
-	public resetParser() {
+	public resetParser(): void {
 		this.lineIndex = 0;
 		this.indent = 0;
 		this.indentAdd = 0;
@@ -1152,32 +1098,7 @@ export class Semantics {
 		this.isDefContext = false;
 	}
 
-	public getSemantics() {
-		const semanticsHelper: SemanticsHelper = {
-			addDataIndex: (count: number) => this.addDataIndex(count),
-			addDefinedLabel: (label: string, line: number) => this.addDefinedLabel(label, line),
-			addGosubLabel: (label: string) => this.addGosubLabel(label),
-			addIndent: (num: number) => this.addIndent(num),
-			addInstr: (name: string) => this.addInstr(name),
-			addRestoreLabel: (label: string) => this.addRestoreLabel(label),
-			applyNextIndent: () => this.applyNextIndent(),
-			getDataIndex: () => this.getDataIndex(),
-			getDataList: () => this.getDataList(),
-			getDefinedLabels: () => this.getDefinedLabels(),
-			getGosubLabels: () => this.getGosubLabels(),
-			getIndent: () => this.getIndent(),
-			getIndentStr: () => this.getIndentStr(),
-			getInstrMap: () => this.getInstrMap(),
-			getRestoreMap: () => this.getRestoreMap(),
-			getVariable: (name: string) => this.getVariable(name),
-			getVariables: () => this.getVariables(),
-			incrementLineIndex: () => this.incrementLineIndex(),
-			nextIndentAdd: (num: number) => this.nextIndentAdd(num),
-			setIndent: (indent: number) => this.setIndent(indent),
-			setDeg: (isDeg: boolean) => this.isDeg = isDeg,
-			getDeg: () => this.isDeg,
-			setDefContext: (isDef: boolean) => this.setDefContext(isDef)
-		};
-		return getSemantics(semanticsHelper);
+	public getSemantics(): ActionDict<string> {
+		return getSemantics(this);
 	}
 }

@@ -1,5 +1,3 @@
-// BasicVmCore.ts
-
 import type { IVmAdmin } from "./Interfaces";
 
 const colorsForPens: string[] = [
@@ -8,24 +6,23 @@ const colorsForPens: string[] = [
 ];
   
 const strokeWidthForMode: number[] = [4, 2, 1, 1];
-  
 
 export class BasicVmCore implements IVmAdmin {
-    private output = "";
-    private currPaper = -1;
-    private currPen = -1;
-    private currMode = 2;
-    private graphicsBuffer: string[] = [];
-    private graphicsPathBuffer: string[] = [];
-    private currGraphicsPen = 1;
-    private graphicsX = 0;
-    private graphicsY = 0;
+    private output: string = "";
+    private currPaper: number = -1;
+    private currPen: number = -1;
+    private currMode: number = 2;
+    private readonly graphicsBuffer: string[] = [];
+    private readonly graphicsPathBuffer: string[] = [];
+    private currGraphicsPen: number = 1;
+    private graphicsX: number = 0;
+    private graphicsY: number = 0;
 
-    protected fnOnCls() {
+    protected fnOnCls(): void {
         // override
     }
 
-    protected fnOnPrint(_msg: string) { // eslint-disable-line @typescript-eslint/no-unused-vars
+    protected fnOnPrint(_msg: string): void { // eslint-disable-line @typescript-eslint/no-unused-vars
         // override
     }
 
@@ -34,21 +31,21 @@ export class BasicVmCore implements IVmAdmin {
         return "";
     }
 
-    protected fnGetPenColor(_num: number) { // eslint-disable-line @typescript-eslint/no-unused-vars
+    protected fnGetPenColor(_num: number): string { // eslint-disable-line @typescript-eslint/no-unused-vars
         // override
         return "";
     }
 
-    protected fnGetPaperColor(_num: number) { // eslint-disable-line @typescript-eslint/no-unused-vars
+    protected fnGetPaperColor(_num: number): string { // eslint-disable-line @typescript-eslint/no-unused-vars
         // override
         return "";
     }
 
-    protected getColorsForPens() {
+    protected getColorsForPens(): string[] {
         return colorsForPens;
     }
 
-    public cls() {
+    public cls(): void {
         this.output = "";
         this.currPaper = -1;
         this.currPen = -1;
@@ -60,19 +57,17 @@ export class BasicVmCore implements IVmAdmin {
         this.fnOnCls();
     }
 
-	public drawMovePlot(type: string, x: number, y: number) {
+	public drawMovePlot(type: string, x: number, y: number): void {
 		x = Math.round(x);
 		y = Math.round(y);
 	
 		const isAbsolute = type === type.toUpperCase();
-	
-		y = isAbsolute ? 399 - y : -y;
+			y = isAbsolute ? 399 - y : -y;
 
 		const isPlot = type.toLowerCase() === "p";
-
 		const svgPathCmd = isPlot
-        ? `${isAbsolute ? "M" : "m"}${x} ${y}h1v1h-1v-1`
-        : `${type}${x} ${y}`;
+            ? `${isAbsolute ? "M" : "m"}${x} ${y}h1v1h-1v-1`
+            : `${type}${x} ${y}`;
 	
 		if (!this.graphicsPathBuffer.length && svgPathCmd[0].toLowerCase() !== "m") {
 			this.graphicsPathBuffer.push(`M${this.graphicsX} ${this.graphicsY}`);
@@ -88,14 +83,14 @@ export class BasicVmCore implements IVmAdmin {
 		}
 	}
 
-    private flushGraphicsPath() {
+    private flushGraphicsPath(): void {
         if (this.graphicsPathBuffer.length) {
             this.graphicsBuffer.push(`<path stroke="${colorsForPens[this.currGraphicsPen]}" d="${this.graphicsPathBuffer.join("")}" />`);
             this.graphicsPathBuffer.length = 0;
         }
     }
 
-    public flush() {
+    public flush(): void {
         this.flushGraphicsPath();
         if (this.graphicsBuffer.length) {
             this.output += `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" stroke="currentColor">\n${this.graphicsBuffer.join("\n")}"\n</svg>\n`;
@@ -107,7 +102,7 @@ export class BasicVmCore implements IVmAdmin {
         }
     }
 
-    public graphicsPen(num: number) {
+    public graphicsPen(num: number): void {
         if (num === this.currGraphicsPen) {
             return;
         }
@@ -115,38 +110,38 @@ export class BasicVmCore implements IVmAdmin {
         this.currGraphicsPen = num;
     }
 
-    public mode(num: number) {
+    public mode(num: number): void {
         this.currMode = num;
         this.cls();
     }
 
-    public paper(n: number) {
+    public paper(n: number): void {
         if (n !== this.currPaper) {
             this.output += this.fnGetPaperColor(n);
             this.currPaper = n;
         }
     };
 
-    public pen(n: number) {
+    public pen(n: number): void {
         if (n !== this.currPen) {
             this.output += this.fnGetPenColor(n);
             this.currPen = n;
         }
     }
 
-    public print(...args: string[]) {
+    public print(...args: string[]): void {
         this.output += args.join('');
     }
 
-    public prompt(msg: string) {
+    public prompt(msg: string): string | null {
         this.flush();
         return this.fnOnPrompt(msg);
     };
 
-    public getOutput() {
+    public getOutput(): string {
 		return this.output;
 	}
-    public setOutput(str: string) {
+    public setOutput(str: string): void {
 		this.output = str;
 	}
 }

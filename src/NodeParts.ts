@@ -1,6 +1,3 @@
-// NodeParts.ts
-// node.js specific parts
-
 import { ICore, IVm } from "./Interfaces";
 
 interface NodeFs {
@@ -15,35 +12,34 @@ interface NodeVm {
 
 declare function require(name: string): NodeModule | NodeFs | NodeVm;
 
-
 interface DummyVm extends IVm {
-	_output: string;
-	debug(...args: (string | number)[]): void;
-  }
+    _output: string;
+    debug(...args: (string | number)[]): void;
+}
 
 // The functions from dummyVm will be stringified in the putScriptInFrame function
 const dummyVm: DummyVm = {
-	_output: "",
-	debug(..._args: (string | number)[]) { /* console.debug(...args); */ }, // eslint-disable-line @typescript-eslint/no-unused-vars
-	cls() {},
-	drawMovePlot(type: string, x: number, y: number) { this.debug("drawMovePlot:", type, x, y); },	
-	flush() { if (this._output) { console.log(this._output); this._output = ""; } },
-	graphicsPen(num: number) { this.debug("graphicsPen:", num); },
-	mode(num: number) { this.debug("mode:", num); },
-	paper(num: number) { this.debug("paper:", num); },
-	pen(num: number) { this.debug("pen:", num); },
-	print(...args: (string | number)[]) { this._output += args.join(''); },
-	prompt(msg: string) { console.log(msg); return ""; }
+    _output: "",
+    debug(..._args: (string | number)[]) { /* console.debug(...args); */ }, // eslint-disable-line @typescript-eslint/no-unused-vars
+    cls() {},
+    drawMovePlot(type: string, x: number, y: number) { this.debug("drawMovePlot:", type, x, y); },
+    flush() { if (this._output) { console.log(this._output); this._output = ""; } },
+    graphicsPen(num: number) { this.debug("graphicsPen:", num); },
+    mode(num: number) { this.debug("mode:", num); },
+    paper(num: number) { this.debug("paper:", num); },
+    pen(num: number) { this.debug("pen:", num); },
+    print(...args: (string | number)[]) { this._output += args.join(''); },
+    prompt(msg: string) { console.log(msg); return ""; }
 };
 
 export class NodeParts {
-	private core: ICore;
+    private core: ICore;
     private nodeFs?: NodeFs;
     private modulePath: string;
     private nodeVm?: NodeVm;
 
     constructor(core: ICore) {
-		this.core = core;
+        this.core = core;
         this.modulePath = "";
     }
 
@@ -68,7 +64,7 @@ export class NodeParts {
         }
     }
 
-    private keepRunning(fn: () => void, timeout: number) {
+    private keepRunning(fn: () => void, timeout: number): Promise<void> {
         const timerId = setTimeout(() => { }, timeout);
         return (async () => {
             fn();
@@ -76,24 +72,24 @@ export class NodeParts {
         })();
     }
 
-    private putScriptInFrame(script: string) {
-		const dummyFunctions = Object.values(dummyVm).filter((value) => value).map((value) => `${value}`).join(",\n  ");
-		const result =
-`(function(_o) {
-	${script}
-})({
-	_output: "",
-	${dummyFunctions}
-});`
-		return result;
-	}
+    private putScriptInFrame(script: string): string {
+        const dummyFunctions = Object.values(dummyVm).filter((value) => value).map((value) => `${value}`).join(",\n  ");
+        const result =
+            `(function(_o) {
+                ${script}
+            })({
+                _output: "",
+                ${dummyFunctions}
+            });`
+        return result;
+    }
 
-    private nodeCheckSyntax(script: string) {
+    private nodeCheckSyntax(script: string): string {
         if (!this.nodeVm) {
             this.nodeVm = require("vm") as NodeVm;
         }
 
-        const describeError = (stack: string) => {
+        const describeError = (stack: string): string => {
             const match = stack.match(/^\D+(\d+)\n(.+\n( *)\^+)\n\n(SyntaxError.+)/);
             if (!match) {
                 return ""; // parse successful?
@@ -108,8 +104,7 @@ export class NodeParts {
         try {
             const scriptInFrame = this.putScriptInFrame(script);
             this.nodeVm.runInNewContext(`throw new Error();\n${scriptInFrame}`);
-        }
-        catch (err) { // Error-like object
+        } catch (err) { // Error-like object
             const stack = (err as Error).stack;
             if (stack) {
                 output = describeError(stack);
@@ -118,8 +113,8 @@ export class NodeParts {
         return output;
     }
 
-    private start(input: string) {
-		const core = this.core
+    private start(input: string): Promise<void> | undefined {
+        const core = this.core;
         const actionConfig = core.getConfigObject().action;
         if (input !== "") {
             core.setOnCheckSyntax((s: string) => Promise.resolve(this.nodeCheckSyntax(s)));
@@ -142,12 +137,12 @@ export class NodeParts {
             }
         } else {
             console.log("No input");
+            console.log(NodeParts.getHelpString());
         }
     }
 
-    public async nodeMain() {
+    public async nodeMain(): Promise<void> {
         const core = this.core;
-
         const config = this.core.getConfigObject();
         let input = config.input || "";
 
@@ -176,5 +171,26 @@ export class NodeParts {
             }
             this.start(input);
         }
+    }
+
+    private static getHelpString(): string {
+return `
+Usage:
+node dist/locobasic.js [action='compile,run'] [input=<statements>] [example=<name>] [fileName=<file>] [grammar=<name>] [debug=0] [debounceCompile=800] [debounceExecute=400]
+
+- Examples for compile and run:
+node dist/locobasic.js input='PRINT "Hello!"'
+npx ts-node dist/locobasic.js input='PRINT "Hello!"'
+node dist/locobasic.js input='?3 + 5 * (2 - 8)'
+node dist/locobasic.js example=euler
+node dist/locobasic.js fileName=dist/examples/example.bas
+node dist/locobasic.js grammar='strict' input='a$="Bob":PRINT "Hello ";a$;"!"'
+
+- Example for compile only:
+node dist/locobasic.js action='compile' input='PRINT "Hello!"' > hello1.js
+[Windows: Use node.exe when redirecting into a file; or npx ts-node ...]
+node hello1.js
+[When using async functions like FRAME or INPUT, redirect to hello1.mjs]
+`;
     }
 }

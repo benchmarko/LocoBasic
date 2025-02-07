@@ -54,24 +54,30 @@ export class BasicVmNode extends BasicVmCore {
         super();
     }
 
-    public fnOnCls() {
+    public fnOnCls(): void {
         console.clear();
     }
 
-    public fnOnPrint(msg: string) {
+    public fnOnPrint(msg: string): void {
         console.log(msg.replace(/\n$/, ""));
     }
 
-    public fnOnPrompt(msg: string) { // eslint-disable-line @typescript-eslint/no-unused-vars
+    public fnOnPrompt(msg: string): string {
         console.log(msg);
         return "";
     }
 
-    public fnGetPenColor(num: number) {
+    public fnGetPenColor(num: number): string {
+        if (num < 0 || num >= this.penColors.length) {
+            throw new Error("Invalid pen color index");
+        }
         return this.penColors[num];
     }
 
-    public fnGetPaperColor(num: number) {
+    public fnGetPaperColor(num: number): string {
+        if (num < 0 || num >= this.paperColors.length) {
+            throw new Error("Invalid paper color index");
+        }
         return this.paperColors[num];
     }
 }
