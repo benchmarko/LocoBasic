@@ -1519,12 +1519,31 @@ PRINT
 '
 DEF FNnumStr$(x) = RIGHT$(STR$(x), LEN(STR$(x)) - 1)
 '
+PRINT "Properties of "; FNnumStr$(n); "!:"
+GOSUB 400 ' number of digits of n!
 GOSUB 500 ' trailing zeroes of n! (for checking the result)
 PRINT
+FRAME
 GOSUB 1000 ' algorithm1
 PRINT
+FRAME
 GOSUB 2000 ' algorithm2
 END
+'
+REM Calculate number of digits
+REM https://www.geeksforgeeks.org/count-digits-in-a-factorial-using-logarithm/
+400 digits = 0
+FOR i = 2 TO n
+  digits = digits + LOG10(i)
+NEXT
+digits = INT(digits) + 1
+'or use Stirling's formula:
+econst = 2.718281828459045
+digits2 = n * LOG10(n / econst) + LOG10(2 * PI * n) / 2.0
+digits2 = INT(digits2+1)
+if digits<>digits2 THEN ?"digits calculation differs:"; digits; digits2
+PRINT "Number of digits:"; digits
+RETURN
 '
 REM Calculate number of trailing zeroes (to check the result)
 REM https://www.geeksforgeeks.org/count-trailing-zeroes-factorial-number/
@@ -1534,18 +1553,13 @@ WHILE INT(n / i) >= 1
   trailz = trailz + INT(n / i)
   i = i * 5
 WEND
-PRINT "Number of trailing zeroes for "; FNnumStr$(n); "!:"; trailz
+PRINT "Number of trailing zeroes:"; trailz
 RETURN
 '
 REM factorial 1
 1000 t = TIME
-REM Calculate number of 5-digit blocks
-l = 1
-FOR i = 2 TO n
-  l = l + LOG10(i)
-NEXT
-ri = INT(l / 5 + 1)
-DIM r(ri)
+ri = INT(digits / 5) - (digits mod 5 <> 0): 'number of 5-digit blocks
+DIM r(ri + 1): 'one more to allow carry
 r(1) = 1
 '
 REM Calculate factorial using sum of logarithms
@@ -1592,20 +1606,15 @@ RETURN
 REM factorial2
 REM based on: https://www.geeksforgeeks.org/factorial-large-number/
 2000 t = TIME
-l = 1
-FOR i = 2 TO n
-  l = l + LOG10(i)
-NEXT
-ri2 = INT(l) + 1
-DIM res(ri2)
+DIM res(digits)
 res(1) = 1
 resSize = 1
 FOR x = 2 TO n
   carry = 0
   FOR i = 1 TO resSize
     prod = res(i) * x + carry
-    res(i) = prod MOD 10
     carry = INT(prod / 10)
+    res(i) = prod - carry * 10
   NEXT i
   WHILE carry > 0
     resSize = resSize + 1
@@ -2444,6 +2453,63 @@ END
 `);
 
 cpcBasic.addItem("", `
+  REM sierpin - Sierpinski triangle
+  REM see also: https://en.wikipedia.org/wiki/Sierpi%C5%84ski_triangle
+  DEG
+  MODE 2
+  DIM cx(5),cy(5),r(5),lc(5),s$(80,25),smc(25)
+  cx(1)=320*80/640:cy(1)=140*25/400
+  r(1)=75:r(2)=40:r(3)=20:r(4)=12:r(5)=8
+  '
+  sa=120
+  st=1
+  GOSUB 800: 'init
+  GOSUB 1000: 'compute
+  GOSUB 2000: 'output
+  END
+  '
+  ' Initialize output array
+  800 FOR r1=1 TO 25
+    FOR c1=1 TO 79
+      s$(c1,r1)=" "
+    NEXT
+  NEXT
+  RETURN
+  '
+  ' Compute
+  1000 cx1=ROUND(cx(st))
+  cy1=ROUND((25-cy(st)))
+  'lc(st)=0
+  s$(cx1,cy1)=chr$(48+st)
+  IF cx1>smc(cy1) THEN smc(cy1)=cx1 'update max column
+  IF st<5 THEN GOSUB 2000:FRAME: 'intermediate output
+  IF st=5 THEN RETURN
+  lc(st)=0
+  start=1
+  WHILE (lc(st) MOD 360)<>0 OR start=1
+    start=0
+    cx(st+1)=cx(st)+1.7*80/640*r(st)*SIN(sa+lc(st))
+    cy(st+1)=cy(st)+1.7*25/400*r(st)*COS(sa+lc(st))
+    st=st+1
+    GOSUB 1000 'recursive call
+    st=st-1
+    lc(st)=lc(st)+2*sa
+  WEND
+  RETURN
+  '
+  ' Output
+  2000 CLS
+  FOR r1=1 TO 25
+    FOR c1=1 TO smc(r1)
+      PRINT s$(c1,r1);
+    NEXT
+    PRINT
+  NEXT
+  RETURN
+  '
+`);
+
+cpcBasic.addItem("", `
 REM sievebe - Sieve Benchmark
 MODE 2
 n=5000
@@ -2537,62 +2603,6 @@ DATA 48,15,-3: 'diagonal "triangulated"
 DATA 48,15,-4: 'Diagonally irregular "checkered"
 DATA 48,15,-10: 'skeins with thin stripes
 DATA -1,-1,-1: '"end"
-'
-`);
-
-cpcBasic.addItem("", `
-REM test1 - Test 1
-DEG
-MODE 2
-DIM cx(5),cy(5),r(5),lc(5),s$(80,25),smc(25)
-cx(1)=320*80/640:cy(1)=140*25/400
-r(1)=75:r(2)=40:r(3)=20:r(4)=12:r(5)=8
-'
-sa=120
-st=1
-GOSUB 800: 'init
-GOSUB 1000: 'compute
-GOSUB 2000: 'output
-END
-'
-' Initialize output array
-800 FOR r1=1 TO 25
-  FOR c1=1 TO 79
-    s$(c1,r1)=" "
-  NEXT
-NEXT
-RETURN
-'
-' Compute
-1000 cx1=ROUND(cx(st))
-cy1=ROUND((25-cy(st)))
-'lc(st)=0
-s$(cx1,cy1)=chr$(48+st)
-IF cx1>smc(cy1) THEN smc(cy1)=cx1 'update max column
-IF st<5 THEN GOSUB 2000:FRAME: 'intermediate output
-IF st=5 THEN RETURN
-lc(st)=0
-start=1
-WHILE (lc(st) MOD 360)<>0 OR start=1
-  start=0
-  cx(st+1)=cx(st)+1.7*80/640*r(st)*SIN(sa+lc(st))
-  cy(st+1)=cy(st)+1.7*25/400*r(st)*COS(sa+lc(st))
-  st=st+1
-  GOSUB 1000 'recursive call
-  st=st-1
-  lc(st)=lc(st)+2*sa
-WEND
-RETURN
-'
-' Output
-2000 CLS
-FOR r1=1 TO 25
-  FOR c1=1 TO smc(r1)
-    PRINT s$(c1,r1);
-  NEXT
-  PRINT
-NEXT
-RETURN
 '
 `);
 

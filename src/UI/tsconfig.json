@@ -3,11 +3,11 @@
   "compilerOptions": {
     "outDir": "../../dist/UI",
     "declarationDir": "../../dist/UI/types",
-    //"sourceRoot":"./src/UI",
       "lib": [
         "es2020",
         "dom"
       ],
+      "rootDir": "../",
       "composite": true,
   },
   "include": ["./*.ts"],

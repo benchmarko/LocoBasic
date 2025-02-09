@@ -29,7 +29,7 @@ const dummyVm: DummyVm = {
     paper(num: number) { this.debug("paper:", num); },
     pen(num: number) { this.debug("pen:", num); },
     print(...args: (string | number)[]) { this._output += args.join(''); },
-    prompt(msg: string) { console.log(msg); return ""; }
+    async prompt(msg: string) { console.log(msg); return ""; }
 };
 
 export class NodeParts {

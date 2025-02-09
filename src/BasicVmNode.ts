@@ -62,9 +62,9 @@ export class BasicVmNode extends BasicVmCore {
         console.log(msg.replace(/\n$/, ""));
     }
 
-    public fnOnPrompt(msg: string): string {
+    public async fnOnPrompt(msg: string): Promise<string> {
         console.log(msg);
-        return "";
+        return Promise.resolve("");
     }
 
     public fnGetPenColor(num: number): string {

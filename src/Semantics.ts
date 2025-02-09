@@ -8,6 +8,7 @@ function getCodeSnippets() {
     const _data: (string | number)[] = [];
     let _dataPtr = 0;
     const _restoreMap: Record<string, number> = {};
+	const frame = async () => {}; // dummy
 
     const codeSnippets = {
 		bin$: function bin$(num: number, pad: number = 0): string {
@@ -42,7 +43,7 @@ function getCodeSnippets() {
             _o.flush();
             return "end";
         },
-        frame: function frame() { // async
+        frame: async function frame() {
             _o.flush();
             return new Promise<void>(resolve => setTimeout(() => resolve(), Date.now() % 50));
         },
@@ -52,13 +53,17 @@ function getCodeSnippets() {
         hex$: function hex$(num: number, pad?: number) {
             return num.toString(16).toUpperCase().padStart(pad || 0, "0");
         },
-        input: function input(msg: string, isNum: boolean) { // async
-            _o.flush();
-            return new Promise(resolve => setTimeout(() => {
-                const input = _o.prompt(msg);
-                resolve(isNum ? Number(input) : input);
-            }, 5));
-        },
+        input: async function input(msg: string, isNum: boolean) {
+			await frame();
+			const input = await _o.prompt(msg);
+			if (input === null) {
+				throw new Error("Input canceled");
+			} else if (isNum && isNaN(Number(input))) {
+				throw new Error("Invalid number input");
+			} else {
+				return isNum ? Number(input) : input;
+			}
+		},
         mid$Assign: function mid$Assign(s: string, start: number, newString: string, len?: number) {
             start -= 1;
             len = Math.min(len ?? newString.length, newString.length, s.length - start);
@@ -225,11 +230,9 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
                 if (instrMap[key]) {
 					const code = String((codeSnippets[key as keyof typeof codeSnippets]).toString());
                     const adaptedCode = trimIndent(code);
-                    if (adaptedCode.includes("Promise") || adaptedCode.includes("await")) {
-                        lineList.push("async " + adaptedCode);
+					lineList.push(adaptedCode);
+                    if (adaptedCode.startsWith("async ")) {
                         needsAsync = true;
-                    } else {
-                        lineList.push(adaptedCode);
                     }
                 }
             }
@@ -507,6 +510,7 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 
 		Input(_inputLit: Node, message: Node, _semi: Node, e: Node) {
 			semanticsHelper.addInstr("input");
+			semanticsHelper.addInstr("frame");
 		
 			const messageString = message.sourceString.replace(/\s*[;,]$/, "");
 			const identifier = e.eval();

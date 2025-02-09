@@ -26,7 +26,7 @@ export class BasicVmCore implements IVmAdmin {
         // override
     }
 
-    protected fnOnPrompt(_msg: string): string | null { // eslint-disable-line @typescript-eslint/no-unused-vars
+    protected async fnOnPrompt(_msg: string): Promise<string | null> { // eslint-disable-line @typescript-eslint/no-unused-vars
         // override
         return "";
     }
@@ -133,7 +133,7 @@ export class BasicVmCore implements IVmAdmin {
         this.output += args.join('');
     }
 
-    public prompt(msg: string): string | null {
+    public prompt(msg: string): Promise<string | null> {
         this.flush();
         return this.fnOnPrompt(msg);
     };
