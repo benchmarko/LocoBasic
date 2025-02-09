@@ -23,11 +23,11 @@ export class BasicVmBrowser extends BasicVmCore {
     /**
      * Prompts the user with a message and returns the input.
      * @param msg - The message to prompt.
-     * @returns The user input.
+     * @returns A promise that resolves to the user input or null if canceled.
      */
-    fnOnPrompt(msg) {
+    async fnOnPrompt(msg) {
         const input = this.ui.prompt(msg);
-        return input;
+        return Promise.resolve(input);
     }
     /**
      * Gets the pen color by index.

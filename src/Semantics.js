@@ -3,6 +3,7 @@ function getCodeSnippets() {
     const _data = [];
     let _dataPtr = 0;
     const _restoreMap = {};
+    const frame = async () => { }; // dummy
     const codeSnippets = {
         bin$: function bin$(num, pad = 0) {
             return num.toString(2).toUpperCase().padStart(pad, "0");
@@ -34,7 +35,7 @@ function getCodeSnippets() {
             _o.flush();
             return "end";
         },
-        frame: function frame() {
+        frame: async function frame() {
             _o.flush();
             return new Promise(resolve => setTimeout(() => resolve(), Date.now() % 50));
         },
@@ -44,12 +45,18 @@ function getCodeSnippets() {
         hex$: function hex$(num, pad) {
             return num.toString(16).toUpperCase().padStart(pad || 0, "0");
         },
-        input: function input(msg, isNum) {
-            _o.flush();
-            return new Promise(resolve => setTimeout(() => {
-                const input = _o.prompt(msg);
-                resolve(isNum ? Number(input) : input);
-            }, 5));
+        input: async function input(msg, isNum) {
+            await frame();
+            const input = await _o.prompt(msg);
+            if (input === null) {
+                throw new Error("Input canceled");
+            }
+            else if (isNum && isNaN(Number(input))) {
+                throw new Error("Invalid number input");
+            }
+            else {
+                return isNum ? Number(input) : input;
+            }
         },
         mid$Assign: function mid$Assign(s, start, newString, len) {
             start -= 1;
@@ -200,12 +207,9 @@ function getSemantics(semanticsHelper) {
                 if (instrMap[key]) {
                     const code = String((codeSnippets[key]).toString());
                     const adaptedCode = trimIndent(code);
-                    if (adaptedCode.includes("Promise") || adaptedCode.includes("await")) {
-                        lineList.push("async " + adaptedCode);
+                    lineList.push(adaptedCode);
+                    if (adaptedCode.startsWith("async ")) {
                         needsAsync = true;
-                    }
-                    else {
-                        lineList.push(adaptedCode);
                     }
                 }
             }
@@ -423,6 +427,7 @@ function getSemantics(semanticsHelper) {
         },
         Input(_inputLit, message, _semi, e) {
             semanticsHelper.addInstr("input");
+            semanticsHelper.addInstr("frame");
             const messageString = message.sourceString.replace(/\s*[;,]$/, "");
             const identifier = e.eval();
             const isNumberString = identifier.includes("$") ? "" : ", true";

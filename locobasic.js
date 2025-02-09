@@ -4,38 +4,6 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.ohmJs));
 })(this, (function (ohmJs) { 'use strict';
 
-    /******************************************************************************
-    Copyright (c) Microsoft Corporation.
-
-    Permission to use, copy, modify, and/or distribute this software for any
-    purpose with or without fee is hereby granted.
-
-    THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-    REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-    AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-    INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-    LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-    OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-    PERFORMANCE OF THIS SOFTWARE.
-    ***************************************************************************** */
-    /* global Reflect, Promise, SuppressedError, Symbol, Iterator */
-
-
-    function __awaiter(thisArg, _arguments, P, generator) {
-        function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-        return new (P || (P = Promise))(function (resolve, reject) {
-            function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-            function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-            function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-            step((generator = generator.apply(thisArg, _arguments || [])).next());
-        });
-    }
-
-    typeof SuppressedError === "function" ? SuppressedError : function (error, suppressed, message) {
-        var e = new Error(message);
-        return e.name = "SuppressedError", e.error = error, e.suppressed = suppressed, e;
-    };
-
     class Parser {
         constructor(grammarString, semanticsMap, superParser) {
             if (superParser) {
@@ -1263,6 +1231,7 @@
         const _data = [];
         let _dataPtr = 0;
         const _restoreMap = {};
+        const frame = async () => { }; // dummy
         const codeSnippets = {
             bin$: function bin$(num, pad = 0) {
                 return num.toString(2).toUpperCase().padStart(pad, "0");
@@ -1294,7 +1263,7 @@
                 _o.flush();
                 return "end";
             },
-            frame: function frame() {
+            frame: async function frame() {
                 _o.flush();
                 return new Promise(resolve => setTimeout(() => resolve(), Date.now() % 50));
             },
@@ -1304,12 +1273,18 @@
             hex$: function hex$(num, pad) {
                 return num.toString(16).toUpperCase().padStart(pad || 0, "0");
             },
-            input: function input(msg, isNum) {
-                _o.flush();
-                return new Promise(resolve => setTimeout(() => {
-                    const input = _o.prompt(msg);
-                    resolve(isNum ? Number(input) : input);
-                }, 5));
+            input: async function input(msg, isNum) {
+                await frame();
+                const input = await _o.prompt(msg);
+                if (input === null) {
+                    throw new Error("Input canceled");
+                }
+                else if (isNum && isNaN(Number(input))) {
+                    throw new Error("Invalid number input");
+                }
+                else {
+                    return isNum ? Number(input) : input;
+                }
             },
             mid$Assign: function mid$Assign(s, start, newString, len) {
                 start -= 1;
@@ -1460,12 +1435,9 @@
                     if (instrMap[key]) {
                         const code = String((codeSnippets[key]).toString());
                         const adaptedCode = trimIndent(code);
-                        if (adaptedCode.includes("Promise") || adaptedCode.includes("await")) {
-                            lineList.push("async " + adaptedCode);
+                        lineList.push(adaptedCode);
+                        if (adaptedCode.startsWith("async ")) {
                             needsAsync = true;
-                        }
-                        else {
-                            lineList.push(adaptedCode);
                         }
                     }
                 }
@@ -1683,6 +1655,7 @@
             },
             Input(_inputLit, message, _semi, e) {
                 semanticsHelper.addInstr("input");
+                semanticsHelper.addInstr("frame");
                 const messageString = message.sourceString.replace(/\s*[;,]$/, "");
                 const identifier = e.eval();
                 const isNumberString = identifier.includes("$") ? "" : ", true";
@@ -2169,7 +2142,7 @@
         constructor(defaultConfig) {
             this.semantics = new Semantics();
             this.examples = {};
-            this.onCheckSyntax = (_s) => __awaiter(this, void 0, void 0, function* () { return ""; }); // eslint-disable-line @typescript-eslint/no-unused-vars
+            this.onCheckSyntax = async (_s) => ""; // eslint-disable-line @typescript-eslint/no-unused-vars
             this.addItem = (key, input) => {
                 let inputString = typeof input !== "string" ? fnHereDoc(input) : input;
                 inputString = inputString.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
@@ -2214,51 +2187,49 @@
             this.semantics.resetParser();
             return this.arithmeticParser.parseAndEval(script);
         }
-        executeScript(compiledScript) {
-            return __awaiter(this, void 0, void 0, function* () {
-                var _a, _b, _c, _d, _e, _f, _g;
-                (_a = this.vm) === null || _a === void 0 ? void 0 : _a.setOutput("");
-                if (compiledScript.startsWith("ERROR")) {
-                    return "ERROR";
+        async executeScript(compiledScript) {
+            var _a, _b, _c, _d, _e, _f, _g;
+            (_a = this.vm) === null || _a === void 0 ? void 0 : _a.setOutput("");
+            if (compiledScript.startsWith("ERROR")) {
+                return "ERROR";
+            }
+            const syntaxError = await this.onCheckSyntax(compiledScript);
+            if (syntaxError) {
+                (_b = this.vm) === null || _b === void 0 ? void 0 : _b.cls();
+                return "ERROR: " + syntaxError;
+            }
+            try {
+                const fnScript = new Function("_o", compiledScript);
+                const result = fnScript(this.vm) || "";
+                let output;
+                if (result instanceof Promise) {
+                    output = await result;
+                    (_c = this.vm) === null || _c === void 0 ? void 0 : _c.flush();
+                    output = ((_d = this.vm) === null || _d === void 0 ? void 0 : _d.getOutput()) || "";
                 }
-                const syntaxError = yield this.onCheckSyntax(compiledScript);
-                if (syntaxError) {
-                    (_b = this.vm) === null || _b === void 0 ? void 0 : _b.cls();
-                    return "ERROR: " + syntaxError;
+                else {
+                    (_e = this.vm) === null || _e === void 0 ? void 0 : _e.flush();
+                    output = ((_f = this.vm) === null || _f === void 0 ? void 0 : _f.getOutput()) || "";
                 }
-                try {
-                    const fnScript = new Function("_o", compiledScript);
-                    const result = fnScript(this.vm) || "";
-                    let output;
-                    if (result instanceof Promise) {
-                        output = yield result;
-                        (_c = this.vm) === null || _c === void 0 ? void 0 : _c.flush();
-                        output = ((_d = this.vm) === null || _d === void 0 ? void 0 : _d.getOutput()) || "";
+                return output;
+            }
+            catch (error) {
+                let errorMessage = "ERROR: ";
+                if (error instanceof Error) {
+                    errorMessage += ((_g = this.vm) === null || _g === void 0 ? void 0 : _g.getOutput()) + "\n" + String(error);
+                    const anyErr = error;
+                    const lineNumber = anyErr.lineNumber; // only on FireFox
+                    const columnNumber = anyErr.columnNumber; // only on FireFox
+                    if (lineNumber || columnNumber) {
+                        const errLine = lineNumber - 2; // lineNumber -2 because of anonymous function added by new Function() constructor
+                        errorMessage += ` (Line ${errLine}, column ${columnNumber})`;
                     }
-                    else {
-                        (_e = this.vm) === null || _e === void 0 ? void 0 : _e.flush();
-                        output = ((_f = this.vm) === null || _f === void 0 ? void 0 : _f.getOutput()) || "";
-                    }
-                    return output;
                 }
-                catch (error) {
-                    let errorMessage = "ERROR: ";
-                    if (error instanceof Error) {
-                        errorMessage += ((_g = this.vm) === null || _g === void 0 ? void 0 : _g.getOutput()) + "\n" + String(error);
-                        const anyErr = error;
-                        const lineNumber = anyErr.lineNumber; // only on FireFox
-                        const columnNumber = anyErr.columnNumber; // only on FireFox
-                        if (lineNumber || columnNumber) {
-                            const errLine = lineNumber - 2; // lineNumber -2 because of anonymous function added by new Function() constructor
-                            errorMessage += ` (Line ${errLine}, column ${columnNumber})`;
-                        }
-                    }
-                    else {
-                        errorMessage += "unknown";
-                    }
-                    return errorMessage;
+                else {
+                    errorMessage += "unknown";
                 }
-            });
+                return errorMessage;
+            }
         }
         parseArgs(args, config) {
             for (const arg of args) {
@@ -2294,40 +2265,38 @@
         paper(num) { this.debug("paper:", num); },
         pen(num) { this.debug("pen:", num); },
         print(...args) { this._output += args.join(''); },
-        prompt(msg) { console.log(msg); return ""; }
+        async prompt(msg) { console.log(msg); return ""; }
     };
     class NodeParts {
         constructor(core) {
             this.core = core;
             this.modulePath = "";
         }
-        nodeReadFile(name) {
-            return __awaiter(this, void 0, void 0, function* () {
-                if (!this.nodeFs) {
-                    this.nodeFs = require("fs");
+        async nodeReadFile(name) {
+            if (!this.nodeFs) {
+                this.nodeFs = require("fs");
+            }
+            if (!module) {
+                const module = require("module");
+                this.modulePath = module.path || "";
+                if (!this.modulePath) {
+                    console.warn("nodeReadFile: Cannot determine module path");
                 }
-                if (!module) {
-                    const module = require("module");
-                    this.modulePath = module.path || "";
-                    if (!this.modulePath) {
-                        console.warn("nodeReadFile: Cannot determine module path");
-                    }
-                }
-                try {
-                    return yield this.nodeFs.promises.readFile(name, "utf8");
-                }
-                catch (error) {
-                    console.error(`Error reading file ${name}:`, String(error));
-                    throw error;
-                }
-            });
+            }
+            try {
+                return await this.nodeFs.promises.readFile(name, "utf8");
+            }
+            catch (error) {
+                console.error(`Error reading file ${name}:`, String(error));
+                throw error;
+            }
         }
         keepRunning(fn, timeout) {
             const timerId = setTimeout(() => { }, timeout);
-            return (() => __awaiter(this, void 0, void 0, function* () {
+            return (async () => {
                 fn();
                 clearTimeout(timerId);
-            }))();
+            })();
         }
         putScriptInFrame(script) {
             const dummyFunctions = Object.values(dummyVm).filter((value) => value).map((value) => `${value}`).join(",\n  ");
@@ -2377,10 +2346,10 @@
                     return;
                 }
                 if (actionConfig.includes("run")) {
-                    return this.keepRunning(() => __awaiter(this, void 0, void 0, function* () {
-                        const output = yield core.executeScript(compiledScript);
+                    return this.keepRunning(async () => {
+                        const output = await core.executeScript(compiledScript);
                         console.log(output.replace(/\n$/, ""));
-                    }), 5000);
+                    }, 5000);
                 }
                 else {
                     const inFrame = this.putScriptInFrame(compiledScript);
@@ -2392,37 +2361,35 @@
                 console.log(NodeParts.getHelpString());
             }
         }
-        nodeMain() {
-            return __awaiter(this, void 0, void 0, function* () {
-                const core = this.core;
-                const config = this.core.getConfigObject();
-                let input = config.input || "";
-                if (config.fileName) {
-                    return this.keepRunning(() => __awaiter(this, void 0, void 0, function* () {
-                        input = yield this.nodeReadFile(config.fileName);
-                        this.start(input);
-                    }), 5000);
-                }
-                else {
-                    if (config.example) {
-                        return this.keepRunning(() => __awaiter(this, void 0, void 0, function* () {
-                            const jsFile = yield this.nodeReadFile("./dist/examples/examples.js");
-                            const fnScript = new Function("cpcBasic", jsFile);
-                            fnScript({
-                                addItem: core.addItem
-                            });
-                            const exampleScript = this.core.getExample(config.example);
-                            if (!exampleScript) {
-                                console.error(`ERROR: Example '${config.example}' not found.`);
-                                return;
-                            }
-                            input = exampleScript;
-                            this.start(input);
-                        }), 5000);
-                    }
+        async nodeMain() {
+            const core = this.core;
+            const config = this.core.getConfigObject();
+            let input = config.input || "";
+            if (config.fileName) {
+                return this.keepRunning(async () => {
+                    input = await this.nodeReadFile(config.fileName);
                     this.start(input);
+                }, 5000);
+            }
+            else {
+                if (config.example) {
+                    return this.keepRunning(async () => {
+                        const jsFile = await this.nodeReadFile("./dist/examples/examples.js");
+                        const fnScript = new Function("cpcBasic", jsFile);
+                        fnScript({
+                            addItem: core.addItem
+                        });
+                        const exampleScript = this.core.getExample(config.example);
+                        if (!exampleScript) {
+                            console.error(`ERROR: Example '${config.example}' not found.`);
+                            return;
+                        }
+                        input = exampleScript;
+                        this.start(input);
+                    }, 5000);
                 }
-            });
+                this.start(input);
+            }
         }
         static getHelpString() {
             return `
@@ -2469,7 +2436,7 @@ node hello1.js
         fnOnPrint(_msg) {
             // override
         }
-        fnOnPrompt(_msg) {
+        async fnOnPrompt(_msg) {
             // override
             return "";
         }
@@ -2598,11 +2565,11 @@ node hello1.js
         /**
          * Prompts the user with a message and returns the input.
          * @param msg - The message to prompt.
-         * @returns The user input.
+         * @returns A promise that resolves to the user input or null if canceled.
          */
-        fnOnPrompt(msg) {
+        async fnOnPrompt(msg) {
             const input = this.ui.prompt(msg);
-            return input;
+            return Promise.resolve(input);
         }
         /**
          * Gets the pen color by index.
@@ -2685,9 +2652,9 @@ node hello1.js
         fnOnPrint(msg) {
             console.log(msg.replace(/\n$/, ""));
         }
-        fnOnPrompt(msg) {
+        async fnOnPrompt(msg) {
             console.log(msg);
-            return "";
+            return Promise.resolve("");
         }
         fnGetPenColor(num) {
             if (num < 0 || num >= this.penColors.length) {

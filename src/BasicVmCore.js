@@ -21,7 +21,7 @@ export class BasicVmCore {
     fnOnPrint(_msg) {
         // override
     }
-    fnOnPrompt(_msg) {
+    async fnOnPrompt(_msg) {
         // override
         return "";
     }

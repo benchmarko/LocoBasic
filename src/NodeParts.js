@@ -1,12 +1,3 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 // The functions from dummyVm will be stringified in the putScriptInFrame function
 const dummyVm = {
     _output: "",
@@ -22,40 +13,38 @@ const dummyVm = {
     paper(num) { this.debug("paper:", num); },
     pen(num) { this.debug("pen:", num); },
     print(...args) { this._output += args.join(''); },
-    prompt(msg) { console.log(msg); return ""; }
+    async prompt(msg) { console.log(msg); return ""; }
 };
 export class NodeParts {
     constructor(core) {
         this.core = core;
         this.modulePath = "";
     }
-    nodeReadFile(name) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!this.nodeFs) {
-                this.nodeFs = require("fs");
+    async nodeReadFile(name) {
+        if (!this.nodeFs) {
+            this.nodeFs = require("fs");
+        }
+        if (!module) {
+            const module = require("module");
+            this.modulePath = module.path || "";
+            if (!this.modulePath) {
+                console.warn("nodeReadFile: Cannot determine module path");
             }
-            if (!module) {
-                const module = require("module");
-                this.modulePath = module.path || "";
-                if (!this.modulePath) {
-                    console.warn("nodeReadFile: Cannot determine module path");
-                }
-            }
-            try {
-                return yield this.nodeFs.promises.readFile(name, "utf8");
-            }
-            catch (error) {
-                console.error(`Error reading file ${name}:`, String(error));
-                throw error;
-            }
-        });
+        }
+        try {
+            return await this.nodeFs.promises.readFile(name, "utf8");
+        }
+        catch (error) {
+            console.error(`Error reading file ${name}:`, String(error));
+            throw error;
+        }
     }
     keepRunning(fn, timeout) {
         const timerId = setTimeout(() => { }, timeout);
-        return (() => __awaiter(this, void 0, void 0, function* () {
+        return (async () => {
             fn();
             clearTimeout(timerId);
-        }))();
+        })();
     }
     putScriptInFrame(script) {
         const dummyFunctions = Object.values(dummyVm).filter((value) => value).map((value) => `${value}`).join(",\n  ");
@@ -105,10 +94,10 @@ export class NodeParts {
                 return;
             }
             if (actionConfig.includes("run")) {
-                return this.keepRunning(() => __awaiter(this, void 0, void 0, function* () {
-                    const output = yield core.executeScript(compiledScript);
+                return this.keepRunning(async () => {
+                    const output = await core.executeScript(compiledScript);
                     console.log(output.replace(/\n$/, ""));
-                }), 5000);
+                }, 5000);
             }
             else {
                 const inFrame = this.putScriptInFrame(compiledScript);
@@ -120,37 +109,35 @@ export class NodeParts {
             console.log(NodeParts.getHelpString());
         }
     }
-    nodeMain() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const core = this.core;
-            const config = this.core.getConfigObject();
-            let input = config.input || "";
-            if (config.fileName) {
-                return this.keepRunning(() => __awaiter(this, void 0, void 0, function* () {
-                    input = yield this.nodeReadFile(config.fileName);
-                    this.start(input);
-                }), 5000);
-            }
-            else {
-                if (config.example) {
-                    return this.keepRunning(() => __awaiter(this, void 0, void 0, function* () {
-                        const jsFile = yield this.nodeReadFile("./dist/examples/examples.js");
-                        const fnScript = new Function("cpcBasic", jsFile);
-                        fnScript({
-                            addItem: core.addItem
-                        });
-                        const exampleScript = this.core.getExample(config.example);
-                        if (!exampleScript) {
-                            console.error(`ERROR: Example '${config.example}' not found.`);
-                            return;
-                        }
-                        input = exampleScript;
-                        this.start(input);
-                    }), 5000);
-                }
+    async nodeMain() {
+        const core = this.core;
+        const config = this.core.getConfigObject();
+        let input = config.input || "";
+        if (config.fileName) {
+            return this.keepRunning(async () => {
+                input = await this.nodeReadFile(config.fileName);
                 this.start(input);
+            }, 5000);
+        }
+        else {
+            if (config.example) {
+                return this.keepRunning(async () => {
+                    const jsFile = await this.nodeReadFile("./dist/examples/examples.js");
+                    const fnScript = new Function("cpcBasic", jsFile);
+                    fnScript({
+                        addItem: core.addItem
+                    });
+                    const exampleScript = this.core.getExample(config.example);
+                    if (!exampleScript) {
+                        console.error(`ERROR: Example '${config.example}' not found.`);
+                        return;
+                    }
+                    input = exampleScript;
+                    this.start(input);
+                }, 5000);
             }
-        });
+            this.start(input);
+        }
     }
     static getHelpString() {
         return `

@@ -17,9 +17,9 @@ export declare class BasicVmBrowser extends BasicVmCore {
     /**
      * Prompts the user with a message and returns the input.
      * @param msg - The message to prompt.
-     * @returns The user input.
+     * @returns A promise that resolves to the user input or null if canceled.
      */
-    fnOnPrompt(msg: string): string | null;
+    fnOnPrompt(msg: string): Promise<string | null>;
     /**
      * Gets the pen color by index.
      * @param num - The index of the pen color.

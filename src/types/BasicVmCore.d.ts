@@ -11,7 +11,7 @@ export declare class BasicVmCore implements IVmAdmin {
     private graphicsY;
     protected fnOnCls(): void;
     protected fnOnPrint(_msg: string): void;
-    protected fnOnPrompt(_msg: string): string | null;
+    protected fnOnPrompt(_msg: string): Promise<string | null>;
     protected fnGetPenColor(_num: number): string;
     protected fnGetPaperColor(_num: number): string;
     protected getColorsForPens(): string[];
@@ -24,7 +24,7 @@ export declare class BasicVmCore implements IVmAdmin {
     paper(n: number): void;
     pen(n: number): void;
     print(...args: string[]): void;
-    prompt(msg: string): string | null;
+    prompt(msg: string): Promise<string | null>;
     getOutput(): string;
     setOutput(str: string): void;
 }

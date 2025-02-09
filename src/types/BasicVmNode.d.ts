@@ -5,7 +5,7 @@ export declare class BasicVmNode extends BasicVmCore {
     constructor();
     fnOnCls(): void;
     fnOnPrint(msg: string): void;
-    fnOnPrompt(msg: string): string;
+    fnOnPrompt(msg: string): Promise<string>;
     fnGetPenColor(num: number): string;
     fnGetPaperColor(num: number): string;
 }

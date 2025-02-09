@@ -19,7 +19,7 @@ export interface IVm {
     paper(color: number): void;
     pen(color: number): void;
     print(_msg: string): void;
-    prompt(_msg: string): string | null;
+    prompt(_msg: string): Promise<string | null>;
 }
 export interface IVmAdmin extends IVm {
     getOutput(): string;
