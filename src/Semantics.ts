@@ -8,6 +8,7 @@ function getCodeSnippets() {
     const _data: (string | number)[] = [];
     let _dataPtr = 0;
     const _restoreMap: Record<string, number> = {};
+	const _startTime = 0;
 	const frame = async () => {}; // dummy
 
     const codeSnippets = {
@@ -112,7 +113,7 @@ function getCodeSnippets() {
             return num >= 0 ? ` ${num}` : String(num);
         },
         time: function time() {
-            return (Date.now() * 3 / 10) | 0;
+            return ((Date.now() - _startTime) * 3 / 10) | 0;
         },
         val: function val(str: string) {
             return Number(str.replace("&x", "0b").replace("&", "0x"));
@@ -226,6 +227,7 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
             const codeSnippets = getCodeSnippets();
 
             let needsAsync = false;
+			let needsStartTime = false;
             for (const key of Object.keys(codeSnippets)) {
                 if (instrMap[key]) {
 					const code = String((codeSnippets[key as keyof typeof codeSnippets]).toString());
@@ -234,12 +236,19 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
                     if (adaptedCode.startsWith("async ")) {
                         needsAsync = true;
                     }
+					if (adaptedCode.includes("_startTime")) {
+						needsStartTime = true;
+					}
                 }
             }
 
             if (variableDeclarations) {
                 lineList.unshift(variableDeclarations);
             }
+
+			if (needsStartTime) {
+				lineList.unshift(`const _startTime = Date.now();`);
+			}
 
             if (needsAsync) {
                 lineList.unshift(`return async function() {`);
