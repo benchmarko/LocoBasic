@@ -159,9 +159,9 @@ Keywords should be uppercase, but all lowercase is also accepted (not-strict mod
 - `MOVE x,y`: Move the graphical cursor to position x,y.
 - `MOVER x,y`: Move the graphical cursor relative with offset x,y.
 - `NEXT` Closes a *FOR* loop.
-- `ON index GOSUB line1 [,line2...]` Calls subroutine at position *index* in the list.
+- `ON index GOSUB line1 [,line2...]` Calls subroutine at position *index* (1-based) in the list.
   - Check `GOSUB` for how to define a subroutine.
-  - **Limitations:** There must be a subroutine at position *index* in the list.
+  - If no subroutine matches the index, do nothing.
 - `PAPER number` Sets the background color for the text output with *PRINT*.
 - `PEN number` Sets the color for the text output with *PRINT*.
   - For the terminal, [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code#Colors) for colors are used.

@@ -627,7 +627,7 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 				semanticsHelper.addGosubLabel(argumentList[i]);
 			}
 		
-			return `[${argumentList.map((label) => `_${label}`).join(",")}]?.[${index} - 1]()`; // 1-based index
+			return `([${argumentList.map((label) => `_${label}`).join(",")}]?.[${index} - 1] || (() => undefined))()`; // 1-based index
 		},
 
 		Paper(_paperLit: Node, e: Node) {
