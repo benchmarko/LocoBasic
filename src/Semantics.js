@@ -3,6 +3,7 @@ function getCodeSnippets() {
     const _data = [];
     let _dataPtr = 0;
     const _restoreMap = {};
+    const _startTime = 0;
     const frame = async () => { }; // dummy
     const codeSnippets = {
         bin$: function bin$(num, pad = 0) {
@@ -37,6 +38,9 @@ function getCodeSnippets() {
         },
         frame: async function frame() {
             _o.flush();
+            if (_o.getEscape()) {
+                throw new Error("INFO: Program stopped");
+            }
             return new Promise(resolve => setTimeout(() => resolve(), Date.now() % 50));
         },
         graphicsPen: function graphicsPen(num) {
@@ -45,11 +49,15 @@ function getCodeSnippets() {
         hex$: function hex$(num, pad) {
             return num.toString(16).toUpperCase().padStart(pad || 0, "0");
         },
+        inkey$: async function inkey$() {
+            await frame();
+            return await _o.inkey$();
+        },
         input: async function input(msg, isNum) {
             await frame();
-            const input = await _o.prompt(msg);
+            const input = await _o.input(msg);
             if (input === null) {
-                throw new Error("Input canceled");
+                throw new Error("INFO: Input canceled");
             }
             else if (isNum && isNaN(Number(input))) {
                 throw new Error("Invalid number input");
@@ -106,7 +114,7 @@ function getCodeSnippets() {
             return num >= 0 ? ` ${num}` : String(num);
         },
         time: function time() {
-            return (Date.now() * 3 / 10) | 0;
+            return ((Date.now() - _startTime) * 3 / 10) | 0;
         },
         val: function val(str) {
             return Number(str.replace("&x", "0b").replace("&", "0x"));
@@ -203,6 +211,7 @@ function getSemantics(semanticsHelper) {
             const instrMap = semanticsHelper.getInstrMap();
             const codeSnippets = getCodeSnippets();
             let needsAsync = false;
+            let needsStartTime = false;
             for (const key of Object.keys(codeSnippets)) {
                 if (instrMap[key]) {
                     const code = String((codeSnippets[key]).toString());
@@ -211,10 +220,16 @@ function getSemantics(semanticsHelper) {
                     if (adaptedCode.startsWith("async ")) {
                         needsAsync = true;
                     }
+                    if (adaptedCode.includes("_startTime")) {
+                        needsStartTime = true;
+                    }
                 }
             }
             if (variableDeclarations) {
                 lineList.unshift(variableDeclarations);
+            }
+            if (needsStartTime) {
+                lineList.unshift(`const _startTime = Date.now();`);
             }
             if (needsAsync) {
                 lineList.unshift(`return async function() {`);
@@ -425,6 +440,11 @@ function getSemantics(semanticsHelper) {
             semanticsHelper.addIndent(-2);
             return result;
         },
+        InkeyS(_inkeySLit) {
+            semanticsHelper.addInstr("inkey$");
+            semanticsHelper.addInstr("frame");
+            return `await inkey$()`;
+        },
         Input(_inputLit, message, _semi, e) {
             semanticsHelper.addInstr("input");
             semanticsHelper.addInstr("frame");
@@ -501,7 +521,7 @@ function getSemantics(semanticsHelper) {
             for (let i = 0; i < argumentList.length; i += 1) {
                 semanticsHelper.addGosubLabel(argumentList[i]);
             }
-            return `[${argumentList.map((label) => `_${label}`).join(",")}]?.[${index} - 1]()`; // 1-based index
+            return `([${argumentList.map((label) => `_${label}`).join(",")}]?.[${index} - 1] || (() => undefined))()`; // 1-based index
         },
         Paper(_paperLit, e) {
             semanticsHelper.addInstr("paper");

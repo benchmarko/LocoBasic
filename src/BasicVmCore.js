@@ -18,12 +18,12 @@ export class BasicVmCore {
     fnOnCls() {
         // override
     }
-    fnOnPrint(_msg) {
-        // override
-    }
-    async fnOnPrompt(_msg) {
+    async fnOnInput(_msg) {
         // override
         return "";
+    }
+    fnOnPrint(_msg) {
+        // override
     }
     fnGetPenColor(_num) {
         // override
@@ -93,6 +93,13 @@ export class BasicVmCore {
         this.flushGraphicsPath();
         this.currGraphicsPen = num;
     }
+    inkey$() {
+        return Promise.resolve("");
+    }
+    input(msg) {
+        this.flush();
+        return this.fnOnInput(msg);
+    }
     mode(num) {
         this.currMode = num;
         this.cls();
@@ -103,7 +110,6 @@ export class BasicVmCore {
             this.currPaper = n;
         }
     }
-    ;
     pen(n) {
         if (n !== this.currPen) {
             this.output += this.fnGetPenColor(n);
@@ -113,11 +119,9 @@ export class BasicVmCore {
     print(...args) {
         this.output += args.join('');
     }
-    prompt(msg) {
-        this.flush();
-        return this.fnOnPrompt(msg);
+    getEscape() {
+        return false;
     }
-    ;
     getOutput() {
         return this.output;
     }

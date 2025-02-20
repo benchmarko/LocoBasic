@@ -10,8 +10,8 @@ export declare class BasicVmCore implements IVmAdmin {
     private graphicsX;
     private graphicsY;
     protected fnOnCls(): void;
+    protected fnOnInput(_msg: string): Promise<string | null>;
     protected fnOnPrint(_msg: string): void;
-    protected fnOnPrompt(_msg: string): Promise<string | null>;
     protected fnGetPenColor(_num: number): string;
     protected fnGetPaperColor(_num: number): string;
     protected getColorsForPens(): string[];
@@ -20,11 +20,13 @@ export declare class BasicVmCore implements IVmAdmin {
     private flushGraphicsPath;
     flush(): void;
     graphicsPen(num: number): void;
+    inkey$(): Promise<string>;
+    input(msg: string): Promise<string | null>;
     mode(num: number): void;
     paper(n: number): void;
     pen(n: number): void;
     print(...args: string[]): void;
-    prompt(msg: string): Promise<string | null>;
+    getEscape(): boolean;
     getOutput(): string;
     setOutput(str: string): void;
 }

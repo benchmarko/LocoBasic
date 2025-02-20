@@ -64,10 +64,10 @@ export class Core {
             (_b = this.vm) === null || _b === void 0 ? void 0 : _b.cls();
             return "ERROR: " + syntaxError;
         }
+        let output = "";
         try {
             const fnScript = new Function("_o", compiledScript);
             const result = fnScript(this.vm) || "";
-            let output;
             if (result instanceof Promise) {
                 output = await result;
                 (_c = this.vm) === null || _c === void 0 ? void 0 : _c.flush();
@@ -77,25 +77,24 @@ export class Core {
                 (_e = this.vm) === null || _e === void 0 ? void 0 : _e.flush();
                 output = ((_f = this.vm) === null || _f === void 0 ? void 0 : _f.getOutput()) || "";
             }
-            return output;
         }
         catch (error) {
-            let errorMessage = "ERROR: ";
+            output = ((_g = this.vm) === null || _g === void 0 ? void 0 : _g.getOutput()) || "";
+            if (output) {
+                output += "\n";
+            }
+            output += String(error).replace("Error: INFO: ", "INFO: ");
             if (error instanceof Error) {
-                errorMessage += ((_g = this.vm) === null || _g === void 0 ? void 0 : _g.getOutput()) + "\n" + String(error);
                 const anyErr = error;
                 const lineNumber = anyErr.lineNumber; // only on FireFox
                 const columnNumber = anyErr.columnNumber; // only on FireFox
                 if (lineNumber || columnNumber) {
                     const errLine = lineNumber - 2; // lineNumber -2 because of anonymous function added by new Function() constructor
-                    errorMessage += ` (Line ${errLine}, column ${columnNumber})`;
+                    output += ` (Line ${errLine}, column ${columnNumber})`;
                 }
             }
-            else {
-                errorMessage += "unknown";
-            }
-            return errorMessage;
         }
+        return output;
     }
     parseArgs(args, config) {
         for (const arg of args) {

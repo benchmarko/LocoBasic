@@ -15,11 +15,13 @@ export interface IVm {
     drawMovePlot(type: string, x: number, y: number): void;
     flush(): void;
     graphicsPen(num: number): void;
+    inkey$(): Promise<string>;
+    input(_msg: string): Promise<string | null>;
     mode(num: number): void;
     paper(color: number): void;
     pen(color: number): void;
     print(_msg: string): void;
-    prompt(_msg: string): Promise<string | null>;
+    getEscape(): boolean;
 }
 export interface IVmAdmin extends IVm {
     getOutput(): string;
@@ -37,15 +39,20 @@ export interface ICore {
     addItem(key: string, input: string | (() => void)): void;
     parseArgs(args: string[], config: Record<string, ConfigEntryType>): void;
 }
+export interface INodeParts {
+    getEscape(): boolean;
+    getKeyFromBuffer(): string;
+}
 export interface IUI {
-    parseUri(urlQuery: string, config: Record<string, ConfigEntryType>): string[];
-    onWindowLoad(event: Event): void;
+    onWindowLoadContinue(core: ICore): void;
+    getEscape(): boolean;
     addOutputText(value: string): void;
     setOutputText(value: string): void;
     getPaperColors(colorsForPens: string[]): string[];
     getPenColors(colorsForPens: string[]): string[];
     checkSyntax(str: string): Promise<string>;
     prompt(msg: string): string | null;
+    getKeyFromBuffer(): string;
 }
 export type DefinedLabelEntryType = {
     label: string;

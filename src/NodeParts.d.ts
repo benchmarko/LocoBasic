@@ -1,16 +1,21 @@
 import { ICore } from "./Interfaces";
 export declare class NodeParts {
-    private core;
     private nodeFs?;
     private modulePath;
     private nodeVm?;
-    constructor(core: ICore);
+    private nodeReadline?;
+    private readonly keyBuffer;
+    private escape;
     private nodeReadFile;
     private keepRunning;
     private putScriptInFrame;
     private nodeCheckSyntax;
+    private putKeyInBuffer;
+    private initKeyboardInput;
+    getKeyFromBuffer(): string;
+    getEscape(): boolean;
     private start;
-    nodeMain(): Promise<void>;
+    nodeMain(core: ICore): Promise<void>;
     private static getHelpString;
 }
 //# sourceMappingURL=NodeParts.d.ts.map

@@ -1,4 +1,3 @@
-// BasicVmNode.ts
 import { BasicVmCore } from "./BasicVmCore";
 function getAnsiColorsForPens() {
     return [
@@ -43,10 +42,11 @@ function getAnsiColorsForPapers() {
     ];
 }
 export class BasicVmNode extends BasicVmCore {
-    constructor() {
+    constructor(nodeParts) {
         super();
         this.penColors = getAnsiColorsForPens();
         this.paperColors = getAnsiColorsForPapers();
+        this.nodeParts = nodeParts;
     }
     fnOnCls() {
         console.clear();
@@ -54,7 +54,7 @@ export class BasicVmNode extends BasicVmCore {
     fnOnPrint(msg) {
         console.log(msg.replace(/\n$/, ""));
     }
-    async fnOnPrompt(msg) {
+    async fnOnInput(msg) {
         console.log(msg);
         return Promise.resolve("");
     }
@@ -69,6 +69,13 @@ export class BasicVmNode extends BasicVmCore {
             throw new Error("Invalid paper color index");
         }
         return this.paperColors[num];
+    }
+    inkey$() {
+        const key = this.nodeParts.getKeyFromBuffer();
+        return Promise.resolve(key);
+    }
+    getEscape() {
+        return this.nodeParts.getEscape();
     }
 }
 //# sourceMappingURL=BasicVmNode.js.map

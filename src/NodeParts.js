@@ -1,3 +1,4 @@
+import { BasicVmNode } from "./BasicVmNode";
 // The functions from dummyVm will be stringified in the putScriptInFrame function
 const dummyVm = {
     _output: "",
@@ -9,16 +10,19 @@ const dummyVm = {
         this._output = "";
     } },
     graphicsPen(num) { this.debug("graphicsPen:", num); },
+    async inkey$() { return Promise.resolve(""); },
+    async input(msg) { console.log(msg); return ""; },
     mode(num) { this.debug("mode:", num); },
     paper(num) { this.debug("paper:", num); },
     pen(num) { this.debug("pen:", num); },
     print(...args) { this._output += args.join(''); },
-    async prompt(msg) { console.log(msg); return ""; }
+    getEscape() { return false; }
 };
 export class NodeParts {
-    constructor(core) {
-        this.core = core;
+    constructor() {
         this.modulePath = "";
+        this.keyBuffer = []; // buffered pressed keys
+        this.escape = false;
     }
     async nodeReadFile(name) {
         if (!this.nodeFs) {
@@ -83,8 +87,43 @@ export class NodeParts {
         }
         return output;
     }
-    start(input) {
-        const core = this.core;
+    putKeyInBuffer(key) {
+        this.keyBuffer.push(key);
+    }
+    initKeyboardInput() {
+        this.nodeReadline = require('readline');
+        this.nodeReadline.emitKeypressEvents(process.stdin);
+        if (process.stdin.isTTY) {
+            process.stdin.setRawMode(true);
+        }
+        process.stdin.on('keypress', (_chunk, key) => {
+            //console.log(`DEBUG: You pressed the key: '${_chunk}'`, key);
+            if (key) {
+                const keySequenceCode = key.sequence.charCodeAt(0);
+                if (key.name === 'c' && key.ctrl === true) {
+                    // key: '<char>' { sequence: '\x03', name: 'c', ctrl: true, meta: false, shift: false }
+                    process.exit();
+                }
+                else if (key.name === "escape") {
+                    this.escape = true;
+                }
+                else if (keySequenceCode === 0x0d || (keySequenceCode >= 32 && keySequenceCode <= 128)) {
+                    this.putKeyInBuffer(key.sequence);
+                }
+            }
+        });
+    }
+    getKeyFromBuffer() {
+        if (!this.nodeReadline) {
+            this.initKeyboardInput();
+        }
+        const key = this.keyBuffer.length ? this.keyBuffer.shift() : "";
+        return key;
+    }
+    getEscape() {
+        return this.escape;
+    }
+    start(core, input) {
         const actionConfig = core.getConfigObject().action;
         if (input !== "") {
             core.setOnCheckSyntax((s) => Promise.resolve(this.nodeCheckSyntax(s)));
@@ -109,14 +148,15 @@ export class NodeParts {
             console.log(NodeParts.getHelpString());
         }
     }
-    async nodeMain() {
-        const core = this.core;
-        const config = this.core.getConfigObject();
+    async nodeMain(core) {
+        core.setVm(new BasicVmNode(this));
+        const config = core.getConfigObject();
+        core.parseArgs(global.process.argv.slice(2), config);
         let input = config.input || "";
         if (config.fileName) {
             return this.keepRunning(async () => {
                 input = await this.nodeReadFile(config.fileName);
-                this.start(input);
+                this.start(core, input);
             }, 5000);
         }
         else {
@@ -127,16 +167,16 @@ export class NodeParts {
                     fnScript({
                         addItem: core.addItem
                     });
-                    const exampleScript = this.core.getExample(config.example);
+                    const exampleScript = core.getExample(config.example);
                     if (!exampleScript) {
                         console.error(`ERROR: Example '${config.example}' not found.`);
                         return;
                     }
                     input = exampleScript;
-                    this.start(input);
+                    this.start(core, input);
                 }, 5000);
             }
-            this.start(input);
+            this.start(core, input);
         }
     }
     static getHelpString() {

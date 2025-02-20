@@ -2616,6 +2616,17 @@ cpcBasic.addItem("", `
 `);
 
 cpcBasic.addItem("", `
+REM testkey - Test keyboard keys
+CLS
+PRINT "Press some keys..."
+WHILE 1
+t$="":WHILE t$="":t$=INKEY$:WEND
+PRINT t$;ASC(t$);
+WEND
+STOP
+`);
+
+cpcBasic.addItem("", `
 REM testsub - Test Subroutines
 CLS
 PRINT "start"
@@ -3163,7 +3174,7 @@ IF a=1 THEN GOSUB 10010
 ''10 if a=1 then 10 else 20 '20 rem
 ''10 if a=1 then 10 else goto 20 '20 rem
 ''10 if a=b+5*c then a=a+1: goto 10 else a=a-1:goto 20
-IF a=b+5*c THEN a=a+1:GOSUB 10010 ELSE a=a-1:GOSUB 10020
+a=0: b=0: c=0: IF a=b+5*c THEN a=a+1:GOSUB 10010 ELSE a=a-1:GOSUB 10020
 IF a<>3 THEN GOSUB 10010
 IF a$<>"3" THEN GOSUB 10010
 '
@@ -3171,7 +3182,7 @@ IF a$<>"3" THEN GOSUB 10010
 ''ink 2,19,22
 ''ink a*2,b-1,c
 ''a=inkey(0)
-''a$=inkey$
+A$=INKEY$
 ''a=inp(&ff77)
 ''input a$
 ''input a$,b
@@ -3376,8 +3387,10 @@ b=-7:a=NOT -b: IF a<>-8 THEN ERROR 33
 '
 PRINT "ON GOSUB, ";
 ON 1 GOSUB 10010
-i=1:ON i GOSUB 10010,10020 '20 rem
-i=2:ON i+1 GOSUB 10010,10020,10020 '20 rem
+i=1:ON i GOSUB 10010,10020
+i=2:ON i+1 GOSUB 10020,10020,10010
+i=0:ON i GOSUB 10020: 'no match
+i=2:ON i GOSUB 10020: 'no match
 '
 ''10 on 1 goto 10
 ''10 on i goto 10,20 '20 rem
@@ -3709,7 +3722,8 @@ STOP
 END
 '
 10010 RETURN
-10020 RETURN
+10020 ERROR 33
+RETURN
 65535 c=1
 '
 `);

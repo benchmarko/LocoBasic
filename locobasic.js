@@ -193,6 +193,9 @@
     HexS
       = hexS "(" NumExp ("," NumExp)? ")"
 
+    InkeyS
+      = inkeyS
+
     Input
       = input (string (";" | ","))? AnyIdent  // or NonemptyListOf?
 
@@ -349,6 +352,7 @@
       | ChrS
       | DecS
       | HexS
+      | InkeyS
       | LeftS
       | LowerS
       | MidS
@@ -1231,6 +1235,7 @@
         const _data = [];
         let _dataPtr = 0;
         const _restoreMap = {};
+        const _startTime = 0;
         const frame = async () => { }; // dummy
         const codeSnippets = {
             bin$: function bin$(num, pad = 0) {
@@ -1265,6 +1270,9 @@
             },
             frame: async function frame() {
                 _o.flush();
+                if (_o.getEscape()) {
+                    throw new Error("INFO: Program stopped");
+                }
                 return new Promise(resolve => setTimeout(() => resolve(), Date.now() % 50));
             },
             graphicsPen: function graphicsPen(num) {
@@ -1273,11 +1281,15 @@
             hex$: function hex$(num, pad) {
                 return num.toString(16).toUpperCase().padStart(pad || 0, "0");
             },
+            inkey$: async function inkey$() {
+                await frame();
+                return await _o.inkey$();
+            },
             input: async function input(msg, isNum) {
                 await frame();
-                const input = await _o.prompt(msg);
+                const input = await _o.input(msg);
                 if (input === null) {
-                    throw new Error("Input canceled");
+                    throw new Error("INFO: Input canceled");
                 }
                 else if (isNum && isNaN(Number(input))) {
                     throw new Error("Invalid number input");
@@ -1334,7 +1346,7 @@
                 return num >= 0 ? ` ${num}` : String(num);
             },
             time: function time() {
-                return (Date.now() * 3 / 10) | 0;
+                return ((Date.now() - _startTime) * 3 / 10) | 0;
             },
             val: function val(str) {
                 return Number(str.replace("&x", "0b").replace("&", "0x"));
@@ -1431,6 +1443,7 @@
                 const instrMap = semanticsHelper.getInstrMap();
                 const codeSnippets = getCodeSnippets();
                 let needsAsync = false;
+                let needsStartTime = false;
                 for (const key of Object.keys(codeSnippets)) {
                     if (instrMap[key]) {
                         const code = String((codeSnippets[key]).toString());
@@ -1439,10 +1452,16 @@
                         if (adaptedCode.startsWith("async ")) {
                             needsAsync = true;
                         }
+                        if (adaptedCode.includes("_startTime")) {
+                            needsStartTime = true;
+                        }
                     }
                 }
                 if (variableDeclarations) {
                     lineList.unshift(variableDeclarations);
+                }
+                if (needsStartTime) {
+                    lineList.unshift(`const _startTime = Date.now();`);
                 }
                 if (needsAsync) {
                     lineList.unshift(`return async function() {`);
@@ -1653,6 +1672,11 @@
                 semanticsHelper.addIndent(-2);
                 return result;
             },
+            InkeyS(_inkeySLit) {
+                semanticsHelper.addInstr("inkey$");
+                semanticsHelper.addInstr("frame");
+                return `await inkey$()`;
+            },
             Input(_inputLit, message, _semi, e) {
                 semanticsHelper.addInstr("input");
                 semanticsHelper.addInstr("frame");
@@ -1729,7 +1753,7 @@
                 for (let i = 0; i < argumentList.length; i += 1) {
                     semanticsHelper.addGosubLabel(argumentList[i]);
                 }
-                return `[${argumentList.map((label) => `_${label}`).join(",")}]?.[${index} - 1]()`; // 1-based index
+                return `([${argumentList.map((label) => `_${label}`).join(",")}]?.[${index} - 1] || (() => undefined))()`; // 1-based index
             },
             Paper(_paperLit, e) {
                 semanticsHelper.addInstr("paper");
@@ -2198,10 +2222,10 @@
                 (_b = this.vm) === null || _b === void 0 ? void 0 : _b.cls();
                 return "ERROR: " + syntaxError;
             }
+            let output = "";
             try {
                 const fnScript = new Function("_o", compiledScript);
                 const result = fnScript(this.vm) || "";
-                let output;
                 if (result instanceof Promise) {
                     output = await result;
                     (_c = this.vm) === null || _c === void 0 ? void 0 : _c.flush();
@@ -2211,25 +2235,24 @@
                     (_e = this.vm) === null || _e === void 0 ? void 0 : _e.flush();
                     output = ((_f = this.vm) === null || _f === void 0 ? void 0 : _f.getOutput()) || "";
                 }
-                return output;
             }
             catch (error) {
-                let errorMessage = "ERROR: ";
+                output = ((_g = this.vm) === null || _g === void 0 ? void 0 : _g.getOutput()) || "";
+                if (output) {
+                    output += "\n";
+                }
+                output += String(error).replace("Error: INFO: ", "INFO: ");
                 if (error instanceof Error) {
-                    errorMessage += ((_g = this.vm) === null || _g === void 0 ? void 0 : _g.getOutput()) + "\n" + String(error);
                     const anyErr = error;
                     const lineNumber = anyErr.lineNumber; // only on FireFox
                     const columnNumber = anyErr.columnNumber; // only on FireFox
                     if (lineNumber || columnNumber) {
                         const errLine = lineNumber - 2; // lineNumber -2 because of anonymous function added by new Function() constructor
-                        errorMessage += ` (Line ${errLine}, column ${columnNumber})`;
+                        output += ` (Line ${errLine}, column ${columnNumber})`;
                     }
                 }
-                else {
-                    errorMessage += "unknown";
-                }
-                return errorMessage;
             }
+            return output;
         }
         parseArgs(args, config) {
             for (const arg of args) {
@@ -2247,169 +2270,6 @@
                 }
             }
             return config;
-        }
-    }
-
-    // The functions from dummyVm will be stringified in the putScriptInFrame function
-    const dummyVm = {
-        _output: "",
-        debug(..._args) { }, // eslint-disable-line @typescript-eslint/no-unused-vars
-        cls() { },
-        drawMovePlot(type, x, y) { this.debug("drawMovePlot:", type, x, y); },
-        flush() { if (this._output) {
-            console.log(this._output);
-            this._output = "";
-        } },
-        graphicsPen(num) { this.debug("graphicsPen:", num); },
-        mode(num) { this.debug("mode:", num); },
-        paper(num) { this.debug("paper:", num); },
-        pen(num) { this.debug("pen:", num); },
-        print(...args) { this._output += args.join(''); },
-        async prompt(msg) { console.log(msg); return ""; }
-    };
-    class NodeParts {
-        constructor(core) {
-            this.core = core;
-            this.modulePath = "";
-        }
-        async nodeReadFile(name) {
-            if (!this.nodeFs) {
-                this.nodeFs = require("fs");
-            }
-            if (!module) {
-                const module = require("module");
-                this.modulePath = module.path || "";
-                if (!this.modulePath) {
-                    console.warn("nodeReadFile: Cannot determine module path");
-                }
-            }
-            try {
-                return await this.nodeFs.promises.readFile(name, "utf8");
-            }
-            catch (error) {
-                console.error(`Error reading file ${name}:`, String(error));
-                throw error;
-            }
-        }
-        keepRunning(fn, timeout) {
-            const timerId = setTimeout(() => { }, timeout);
-            return (async () => {
-                fn();
-                clearTimeout(timerId);
-            })();
-        }
-        putScriptInFrame(script) {
-            const dummyFunctions = Object.values(dummyVm).filter((value) => value).map((value) => `${value}`).join(",\n  ");
-            const result = `(function(_o) {
-                ${script}
-            })({
-                _output: "",
-                ${dummyFunctions}
-            });`;
-            return result;
-        }
-        nodeCheckSyntax(script) {
-            if (!this.nodeVm) {
-                this.nodeVm = require("vm");
-            }
-            const describeError = (stack) => {
-                const match = stack.match(/^\D+(\d+)\n(.+\n( *)\^+)\n\n(SyntaxError.+)/);
-                if (!match) {
-                    return ""; // parse successful?
-                }
-                const [, linenoPlusOne, caretString, colSpaces, message] = match;
-                const lineno = Number(linenoPlusOne) - 1;
-                const colno = colSpaces.length + 1;
-                return `Syntax error thrown at: Line ${lineno}, col: ${colno}\n${caretString}\n${message}`;
-            };
-            let output = "";
-            try {
-                const scriptInFrame = this.putScriptInFrame(script);
-                this.nodeVm.runInNewContext(`throw new Error();\n${scriptInFrame}`);
-            }
-            catch (err) { // Error-like object
-                const stack = err.stack;
-                if (stack) {
-                    output = describeError(stack);
-                }
-            }
-            return output;
-        }
-        start(input) {
-            const core = this.core;
-            const actionConfig = core.getConfigObject().action;
-            if (input !== "") {
-                core.setOnCheckSyntax((s) => Promise.resolve(this.nodeCheckSyntax(s)));
-                const compiledScript = actionConfig.includes("compile") ? core.compileScript(input) : input;
-                if (compiledScript.startsWith("ERROR:")) {
-                    console.error(compiledScript);
-                    return;
-                }
-                if (actionConfig.includes("run")) {
-                    return this.keepRunning(async () => {
-                        const output = await core.executeScript(compiledScript);
-                        console.log(output.replace(/\n$/, ""));
-                    }, 5000);
-                }
-                else {
-                    const inFrame = this.putScriptInFrame(compiledScript);
-                    console.log(inFrame);
-                }
-            }
-            else {
-                console.log("No input");
-                console.log(NodeParts.getHelpString());
-            }
-        }
-        async nodeMain() {
-            const core = this.core;
-            const config = this.core.getConfigObject();
-            let input = config.input || "";
-            if (config.fileName) {
-                return this.keepRunning(async () => {
-                    input = await this.nodeReadFile(config.fileName);
-                    this.start(input);
-                }, 5000);
-            }
-            else {
-                if (config.example) {
-                    return this.keepRunning(async () => {
-                        const jsFile = await this.nodeReadFile("./dist/examples/examples.js");
-                        const fnScript = new Function("cpcBasic", jsFile);
-                        fnScript({
-                            addItem: core.addItem
-                        });
-                        const exampleScript = this.core.getExample(config.example);
-                        if (!exampleScript) {
-                            console.error(`ERROR: Example '${config.example}' not found.`);
-                            return;
-                        }
-                        input = exampleScript;
-                        this.start(input);
-                    }, 5000);
-                }
-                this.start(input);
-            }
-        }
-        static getHelpString() {
-            return `
-Usage:
-node dist/locobasic.js [action='compile,run'] [input=<statements>] [example=<name>] [fileName=<file>] [grammar=<name>] [debug=0] [debounceCompile=800] [debounceExecute=400]
-
-- Examples for compile and run:
-node dist/locobasic.js input='PRINT "Hello!"'
-npx ts-node dist/locobasic.js input='PRINT "Hello!"'
-node dist/locobasic.js input='?3 + 5 * (2 - 8)'
-node dist/locobasic.js example=euler
-node dist/locobasic.js fileName=dist/examples/example.bas
-node dist/locobasic.js grammar='strict' input='a$="Bob":PRINT "Hello ";a$;"!"'
-
-- Example for compile only:
-node dist/locobasic.js action='compile' input='PRINT "Hello!"' > hello1.js
-[Windows: Use node.exe when redirecting into a file; or npx ts-node ...]
-node hello1.js
-[When using async functions like FRAME or INPUT, redirect to hello1.mjs]
-`;
         }
     }
 
@@ -2433,12 +2293,12 @@ node hello1.js
         fnOnCls() {
             // override
         }
-        fnOnPrint(_msg) {
-            // override
-        }
-        async fnOnPrompt(_msg) {
+        async fnOnInput(_msg) {
             // override
             return "";
+        }
+        fnOnPrint(_msg) {
+            // override
         }
         fnGetPenColor(_num) {
             // override
@@ -2508,6 +2368,13 @@ node hello1.js
             this.flushGraphicsPath();
             this.currGraphicsPen = num;
         }
+        inkey$() {
+            return Promise.resolve("");
+        }
+        input(msg) {
+            this.flush();
+            return this.fnOnInput(msg);
+        }
         mode(num) {
             this.currMode = num;
             this.cls();
@@ -2518,7 +2385,6 @@ node hello1.js
                 this.currPaper = n;
             }
         }
-        ;
         pen(n) {
             if (n !== this.currPen) {
                 this.output += this.fnGetPenColor(n);
@@ -2528,11 +2394,9 @@ node hello1.js
         print(...args) {
             this.output += args.join('');
         }
-        prompt(msg) {
-            this.flush();
-            return this.fnOnPrompt(msg);
+        getEscape() {
+            return false;
         }
-        ;
         getOutput() {
             return this.output;
         }
@@ -2541,63 +2405,6 @@ node hello1.js
         }
     }
 
-    class BasicVmBrowser extends BasicVmCore {
-        constructor(ui) {
-            super();
-            this.ui = ui;
-            const colorsForPens = this.getColorsForPens();
-            this.penColors = ui.getPenColors(colorsForPens);
-            this.paperColors = ui.getPaperColors(colorsForPens);
-        }
-        /**
-         * Clears the output text.
-         */
-        fnOnCls() {
-            this.ui.setOutputText("");
-        }
-        /**
-         * Adds a message to the output text.
-         * @param msg - The message to print.
-         */
-        fnOnPrint(msg) {
-            this.ui.addOutputText(msg);
-        }
-        /**
-         * Prompts the user with a message and returns the input.
-         * @param msg - The message to prompt.
-         * @returns A promise that resolves to the user input or null if canceled.
-         */
-        async fnOnPrompt(msg) {
-            const input = this.ui.prompt(msg);
-            return Promise.resolve(input);
-        }
-        /**
-         * Gets the pen color by index.
-         * @param num - The index of the pen color.
-         * @returns The pen color.
-         * @throws Will throw an error if the index is out of bounds.
-         */
-        fnGetPenColor(num) {
-            if (num < 0 || num >= this.penColors.length) {
-                throw new Error("Pen color index out of bounds");
-            }
-            return this.penColors[num];
-        }
-        /**
-         * Gets the paper color by index.
-         * @param num - The index of the paper color.
-         * @returns The paper color.
-         * @throws Will throw an error if the index is out of bounds.
-         */
-        fnGetPaperColor(num) {
-            if (num < 0 || num >= this.paperColors.length) {
-                throw new Error("Paper color index out of bounds");
-            }
-            return this.paperColors[num];
-        }
-    }
-
-    // BasicVmNode.ts
     function getAnsiColorsForPens() {
         return [
             "\x1b[34m", // Navy
@@ -2641,10 +2448,11 @@ node hello1.js
         ];
     }
     class BasicVmNode extends BasicVmCore {
-        constructor() {
+        constructor(nodeParts) {
             super();
             this.penColors = getAnsiColorsForPens();
             this.paperColors = getAnsiColorsForPapers();
+            this.nodeParts = nodeParts;
         }
         fnOnCls() {
             console.clear();
@@ -2652,7 +2460,7 @@ node hello1.js
         fnOnPrint(msg) {
             console.log(msg.replace(/\n$/, ""));
         }
-        async fnOnPrompt(msg) {
+        async fnOnInput(msg) {
             console.log(msg);
             return Promise.resolve("");
         }
@@ -2667,6 +2475,278 @@ node hello1.js
                 throw new Error("Invalid paper color index");
             }
             return this.paperColors[num];
+        }
+        inkey$() {
+            const key = this.nodeParts.getKeyFromBuffer();
+            return Promise.resolve(key);
+        }
+        getEscape() {
+            return this.nodeParts.getEscape();
+        }
+    }
+
+    // The functions from dummyVm will be stringified in the putScriptInFrame function
+    const dummyVm = {
+        _output: "",
+        debug(..._args) { }, // eslint-disable-line @typescript-eslint/no-unused-vars
+        cls() { },
+        drawMovePlot(type, x, y) { this.debug("drawMovePlot:", type, x, y); },
+        flush() { if (this._output) {
+            console.log(this._output);
+            this._output = "";
+        } },
+        graphicsPen(num) { this.debug("graphicsPen:", num); },
+        async inkey$() { return Promise.resolve(""); },
+        async input(msg) { console.log(msg); return ""; },
+        mode(num) { this.debug("mode:", num); },
+        paper(num) { this.debug("paper:", num); },
+        pen(num) { this.debug("pen:", num); },
+        print(...args) { this._output += args.join(''); },
+        getEscape() { return false; }
+    };
+    class NodeParts {
+        constructor() {
+            this.modulePath = "";
+            this.keyBuffer = []; // buffered pressed keys
+            this.escape = false;
+        }
+        async nodeReadFile(name) {
+            if (!this.nodeFs) {
+                this.nodeFs = require("fs");
+            }
+            if (!module) {
+                const module = require("module");
+                this.modulePath = module.path || "";
+                if (!this.modulePath) {
+                    console.warn("nodeReadFile: Cannot determine module path");
+                }
+            }
+            try {
+                return await this.nodeFs.promises.readFile(name, "utf8");
+            }
+            catch (error) {
+                console.error(`Error reading file ${name}:`, String(error));
+                throw error;
+            }
+        }
+        keepRunning(fn, timeout) {
+            const timerId = setTimeout(() => { }, timeout);
+            return (async () => {
+                fn();
+                clearTimeout(timerId);
+            })();
+        }
+        putScriptInFrame(script) {
+            const dummyFunctions = Object.values(dummyVm).filter((value) => value).map((value) => `${value}`).join(",\n  ");
+            const result = `(function(_o) {
+                ${script}
+            })({
+                _output: "",
+                ${dummyFunctions}
+            });`;
+            return result;
+        }
+        nodeCheckSyntax(script) {
+            if (!this.nodeVm) {
+                this.nodeVm = require("vm");
+            }
+            const describeError = (stack) => {
+                const match = stack.match(/^\D+(\d+)\n(.+\n( *)\^+)\n\n(SyntaxError.+)/);
+                if (!match) {
+                    return ""; // parse successful?
+                }
+                const [, linenoPlusOne, caretString, colSpaces, message] = match;
+                const lineno = Number(linenoPlusOne) - 1;
+                const colno = colSpaces.length + 1;
+                return `Syntax error thrown at: Line ${lineno}, col: ${colno}\n${caretString}\n${message}`;
+            };
+            let output = "";
+            try {
+                const scriptInFrame = this.putScriptInFrame(script);
+                this.nodeVm.runInNewContext(`throw new Error();\n${scriptInFrame}`);
+            }
+            catch (err) { // Error-like object
+                const stack = err.stack;
+                if (stack) {
+                    output = describeError(stack);
+                }
+            }
+            return output;
+        }
+        putKeyInBuffer(key) {
+            this.keyBuffer.push(key);
+        }
+        initKeyboardInput() {
+            this.nodeReadline = require('readline');
+            this.nodeReadline.emitKeypressEvents(process.stdin);
+            if (process.stdin.isTTY) {
+                process.stdin.setRawMode(true);
+            }
+            process.stdin.on('keypress', (_chunk, key) => {
+                //console.log(`DEBUG: You pressed the key: '${_chunk}'`, key);
+                if (key) {
+                    const keySequenceCode = key.sequence.charCodeAt(0);
+                    if (key.name === 'c' && key.ctrl === true) {
+                        // key: '<char>' { sequence: '\x03', name: 'c', ctrl: true, meta: false, shift: false }
+                        process.exit();
+                    }
+                    else if (key.name === "escape") {
+                        this.escape = true;
+                    }
+                    else if (keySequenceCode === 0x0d || (keySequenceCode >= 32 && keySequenceCode <= 128)) {
+                        this.putKeyInBuffer(key.sequence);
+                    }
+                }
+            });
+        }
+        getKeyFromBuffer() {
+            if (!this.nodeReadline) {
+                this.initKeyboardInput();
+            }
+            const key = this.keyBuffer.length ? this.keyBuffer.shift() : "";
+            return key;
+        }
+        getEscape() {
+            return this.escape;
+        }
+        start(core, input) {
+            const actionConfig = core.getConfigObject().action;
+            if (input !== "") {
+                core.setOnCheckSyntax((s) => Promise.resolve(this.nodeCheckSyntax(s)));
+                const compiledScript = actionConfig.includes("compile") ? core.compileScript(input) : input;
+                if (compiledScript.startsWith("ERROR:")) {
+                    console.error(compiledScript);
+                    return;
+                }
+                if (actionConfig.includes("run")) {
+                    return this.keepRunning(async () => {
+                        const output = await core.executeScript(compiledScript);
+                        console.log(output.replace(/\n$/, ""));
+                    }, 5000);
+                }
+                else {
+                    const inFrame = this.putScriptInFrame(compiledScript);
+                    console.log(inFrame);
+                }
+            }
+            else {
+                console.log("No input");
+                console.log(NodeParts.getHelpString());
+            }
+        }
+        async nodeMain(core) {
+            core.setVm(new BasicVmNode(this));
+            const config = core.getConfigObject();
+            core.parseArgs(global.process.argv.slice(2), config);
+            let input = config.input || "";
+            if (config.fileName) {
+                return this.keepRunning(async () => {
+                    input = await this.nodeReadFile(config.fileName);
+                    this.start(core, input);
+                }, 5000);
+            }
+            else {
+                if (config.example) {
+                    return this.keepRunning(async () => {
+                        const jsFile = await this.nodeReadFile("./dist/examples/examples.js");
+                        const fnScript = new Function("cpcBasic", jsFile);
+                        fnScript({
+                            addItem: core.addItem
+                        });
+                        const exampleScript = core.getExample(config.example);
+                        if (!exampleScript) {
+                            console.error(`ERROR: Example '${config.example}' not found.`);
+                            return;
+                        }
+                        input = exampleScript;
+                        this.start(core, input);
+                    }, 5000);
+                }
+                this.start(core, input);
+            }
+        }
+        static getHelpString() {
+            return `
+Usage:
+node dist/locobasic.js [action='compile,run'] [input=<statements>] [example=<name>] [fileName=<file>] [grammar=<name>] [debug=0] [debounceCompile=800] [debounceExecute=400]
+
+- Examples for compile and run:
+node dist/locobasic.js input='PRINT "Hello!"'
+npx ts-node dist/locobasic.js input='PRINT "Hello!"'
+node dist/locobasic.js input='?3 + 5 * (2 - 8)'
+node dist/locobasic.js example=euler
+node dist/locobasic.js fileName=dist/examples/example.bas
+node dist/locobasic.js grammar='strict' input='a$="Bob":PRINT "Hello ";a$;"!"'
+
+- Example for compile only:
+node dist/locobasic.js action='compile' input='PRINT "Hello!"' > hello1.js
+[Windows: Use node.exe when redirecting into a file; or npx ts-node ...]
+node hello1.js
+[When using async functions like FRAME or INPUT, redirect to hello1.mjs]
+`;
+        }
+    }
+
+    class BasicVmBrowser extends BasicVmCore {
+        constructor(ui) {
+            super();
+            this.ui = ui;
+            const colorsForPens = this.getColorsForPens();
+            this.penColors = ui.getPenColors(colorsForPens);
+            this.paperColors = ui.getPaperColors(colorsForPens);
+        }
+        /**
+         * Clears the output text.
+         */
+        fnOnCls() {
+            this.ui.setOutputText("");
+        }
+        /**
+         * Prompts the user with a message and returns the input.
+         * @param msg - The message to prompt.
+         * @returns A promise that resolves to the user input or null if canceled.
+         */
+        async fnOnInput(msg) {
+            const input = this.ui.prompt(msg);
+            return Promise.resolve(input);
+        }
+        /**
+         * Adds a message to the output text.
+         * @param msg - The message to print.
+         */
+        fnOnPrint(msg) {
+            this.ui.addOutputText(msg);
+        }
+        /**
+         * Gets the pen color by index.
+         * @param num - The index of the pen color.
+         * @returns The pen color.
+         * @throws Will throw an error if the index is out of bounds.
+         */
+        fnGetPenColor(num) {
+            if (num < 0 || num >= this.penColors.length) {
+                throw new Error("Pen color index out of bounds");
+            }
+            return this.penColors[num];
+        }
+        /**
+         * Gets the paper color by index.
+         * @param num - The index of the paper color.
+         * @returns The paper color.
+         * @throws Will throw an error if the index is out of bounds.
+         */
+        fnGetPaperColor(num) {
+            if (num < 0 || num >= this.paperColors.length) {
+                throw new Error("Paper color index out of bounds");
+            }
+            return this.paperColors[num];
+        }
+        inkey$() {
+            const key = this.ui.getKeyFromBuffer();
+            return Promise.resolve(key);
+        }
+        getEscape() {
+            return this.ui.getEscape();
         }
     }
 
@@ -2684,20 +2764,13 @@ node hello1.js
         window.cpcBasic = { addItem: core.addItem };
         window.onload = () => {
             const UI = window.locobasicUI.UI; // we expect that it is already loaded in the HTML page
-            const ui = new UI(core);
+            const ui = new UI();
             core.setVm(new BasicVmBrowser(ui));
-            const config = core.getConfigObject();
-            const args = ui.parseUri(window.location.search.substring(1), config);
-            core.parseArgs(args, config);
-            core.setOnCheckSyntax((s) => Promise.resolve(ui.checkSyntax(s)));
-            ui.onWindowLoad(new Event("onload"));
+            ui.onWindowLoadContinue(core);
         };
     }
     else { // node.js
-        core.setVm(new BasicVmNode());
-        core.parseArgs(global.process.argv.slice(2), core.getConfigObject());
-        const nodeParts = new NodeParts(core);
-        nodeParts.nodeMain();
+        new NodeParts().nodeMain(core);
     }
 
 }));
