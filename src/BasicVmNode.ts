@@ -63,7 +63,7 @@ export class BasicVmNode extends BasicVmCore {
         console.log(msg.replace(/\n$/, ""));
     }
 
-    public async fnOnPrompt(msg: string): Promise<string> {
+    public async fnOnInput(msg: string): Promise<string> {
         console.log(msg);
         return Promise.resolve("");
     }

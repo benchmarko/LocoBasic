@@ -22,21 +22,21 @@ export class BasicVmBrowser extends BasicVmCore {
     }
 
     /**
+     * Prompts the user with a message and returns the input.
+     * @param msg - The message to prompt.
+     * @returns A promise that resolves to the user input or null if canceled.
+     */
+    public async fnOnInput(msg: string): Promise<string | null> {
+        const input = this.ui.prompt(msg);
+        return Promise.resolve(input);
+    }
+
+    /**
      * Adds a message to the output text.
      * @param msg - The message to print.
      */
     public fnOnPrint(msg: string): void {
         this.ui.addOutputText(msg);
-    }
-
-    /**
-     * Prompts the user with a message and returns the input.
-     * @param msg - The message to prompt.
-     * @returns A promise that resolves to the user input or null if canceled.
-     */
-    public async fnOnPrompt(msg: string): Promise<string | null> {
-        const input = this.ui.prompt(msg);
-        return Promise.resolve(input);
     }
 
     /**

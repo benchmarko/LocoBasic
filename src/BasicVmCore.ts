@@ -22,13 +22,13 @@ export class BasicVmCore implements IVmAdmin {
         // override
     }
 
-    protected fnOnPrint(_msg: string): void { // eslint-disable-line @typescript-eslint/no-unused-vars
-        // override
-    }
-
-    protected async fnOnPrompt(_msg: string): Promise<string | null> { // eslint-disable-line @typescript-eslint/no-unused-vars
+    protected async fnOnInput(_msg: string): Promise<string | null> { // eslint-disable-line @typescript-eslint/no-unused-vars
         // override
         return "";
+    }
+
+    protected fnOnPrint(_msg: string): void { // eslint-disable-line @typescript-eslint/no-unused-vars
+        // override
     }
 
     protected fnGetPenColor(_num: number): string { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -114,6 +114,11 @@ export class BasicVmCore implements IVmAdmin {
         return Promise.resolve("");
     }
 
+    public input(msg: string): Promise<string | null> {
+        this.flush();
+        return this.fnOnInput(msg);
+    }
+
     public mode(num: number): void {
         this.currMode = num;
         this.cls();
@@ -124,7 +129,7 @@ export class BasicVmCore implements IVmAdmin {
             this.output += this.fnGetPaperColor(n);
             this.currPaper = n;
         }
-    };
+    }
 
     public pen(n: number): void {
         if (n !== this.currPen) {
@@ -136,11 +141,6 @@ export class BasicVmCore implements IVmAdmin {
     public print(...args: string[]): void {
         this.output += args.join('');
     }
-
-    public prompt(msg: string): Promise<string | null> {
-        this.flush();
-        return this.fnOnPrompt(msg);
-    };
 
     public getEscape(): boolean {
         return false;

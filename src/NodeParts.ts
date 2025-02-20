@@ -1,4 +1,5 @@
 import { ICore, IVm } from "./Interfaces";
+import { BasicVmNode } from "./BasicVmNode";
 
 interface NodeFs {
     promises: {
@@ -38,27 +39,21 @@ const dummyVm: DummyVm = {
     flush() { if (this._output) { console.log(this._output); this._output = ""; } },
     graphicsPen(num: number) { this.debug("graphicsPen:", num); },
     async inkey$() { return Promise.resolve(""); },
+    async input(msg: string) { console.log(msg); return ""; },
     mode(num: number) { this.debug("mode:", num); },
     paper(num: number) { this.debug("paper:", num); },
     pen(num: number) { this.debug("pen:", num); },
     print(...args: (string | number)[]) { this._output += args.join(''); },
-    async prompt(msg: string) { console.log(msg); return ""; },
-    getEscape() { return false; },
+    getEscape() { return false; }
 };
 
 export class NodeParts {
-    private core: ICore;
     private nodeFs?: NodeFs;
-    private modulePath: string;
+    private modulePath = "";
     private nodeVm?: NodeVm;
     private nodeReadline?: NodeReadline;
     private readonly keyBuffer: string[] = []; // buffered pressed keys
     private escape = false;
-
-    constructor(core: ICore) {
-        this.core = core;
-        this.modulePath = "";
-    }
 
     private async nodeReadFile(name: string): Promise<string> {
         if (!this.nodeFs) {
@@ -170,8 +165,7 @@ export class NodeParts {
         return this.escape;
     }
 
-    private start(input: string): Promise<void> | undefined {
-        const core = this.core;
+    private start(core: ICore, input: string): Promise<void> | undefined {
         const actionConfig = core.getConfigObject().action;
         if (input !== "") {
             core.setOnCheckSyntax((s: string) => Promise.resolve(this.nodeCheckSyntax(s)));
@@ -198,15 +192,17 @@ export class NodeParts {
         }
     }
 
-    public async nodeMain(): Promise<void> {
-        const core = this.core;
-        const config = this.core.getConfigObject();
+    public async nodeMain(core: ICore): Promise<void> {
+        core.setVm(new BasicVmNode(this));
+        const config = core.getConfigObject();
+        core.parseArgs(global.process.argv.slice(2), config);
+
         let input = config.input || "";
 
         if (config.fileName) {
             return this.keepRunning(async () => {
                 input = await this.nodeReadFile(config.fileName);
-                this.start(input);
+                this.start(core, input);
             }, 5000);
         } else {
             if (config.example) {
@@ -217,16 +213,16 @@ export class NodeParts {
                         addItem: core.addItem
                     });
 
-                    const exampleScript = this.core.getExample(config.example);
+                    const exampleScript = core.getExample(config.example);
                     if (!exampleScript) {
                         console.error(`ERROR: Example '${config.example}' not found.`);
                         return;
                     }
                     input = exampleScript;
-                    this.start(input);
+                    this.start(core, input);
                 }, 5000);
             }
-            this.start(input);
+            this.start(core, input);
         }
     }
 

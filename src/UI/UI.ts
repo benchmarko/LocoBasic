@@ -41,17 +41,13 @@ const workerFn = (): void => {
 };
 
 export class UI implements IUI {
-    private core: ICore;
+    private core?: ICore;
     private basicCm?: Editor;
     private compiledCm?: Editor;
     private readonly keyBuffer: string[] = []; // buffered pressed keys
     private escape = false;
 
     private static getErrorEvent?: (s: string) => Promise<PlainErrorEventType>;
-
-    constructor(core: ICore) {
-        this.core = core;
-    }
 
     private debounce<T extends (...args: unknown[]) => void | Promise<void>>(func: T, fngetDelay: () => number): (...args: Parameters<T>) => void {
         let timeoutId: ReturnType<typeof setTimeout>;
@@ -94,6 +90,11 @@ export class UI implements IUI {
         return colorsForPens.map((color) => `<span style="color: ${color}">`);
     }
 
+    /**
+     * Prompts the user with a message and returns the input.
+     * @param msg - The message to prompt.
+     * @returns A promise that resolves to the user input or null if canceled.
+     */
     public prompt(msg: string): string | null {
         const input = window.prompt(msg);
         return input;
@@ -137,7 +138,7 @@ export class UI implements IUI {
         const basicText = document.getElementById("basicText") as HTMLTextAreaElement;
         const compiledText = document.getElementById("compiledText") as HTMLTextAreaElement;
         const input = this.basicCm ? this.basicCm.getValue() : basicText.value;
-        const compiledScript = this.core.compileScript(input) || "";
+        const compiledScript = this.core?.compileScript(input) || "";
 
         if (this.compiledCm) {
             this.compiledCm.setValue(compiledScript);
@@ -172,7 +173,7 @@ export class UI implements IUI {
     private onExampleSelectChange(event: Event): void {
         const exampleSelect = event.target as HTMLSelectElement;
         const basicText = document.getElementById("basicText") as HTMLTextAreaElement;
-        const value = this.core.getExample(exampleSelect.value) || "";
+        const value = this.core?.getExample(exampleSelect.value) || "";
         this.setOutputText("");
 
         if (this.basicCm) {
@@ -304,7 +305,8 @@ export class UI implements IUI {
         return decoded;
     }
 
-    public parseUri(urlQuery: string, config: Record<string, ConfigEntryType>): string[] {
+    private parseUri(config: Record<string, ConfigEntryType>): string[] {
+        const urlQuery = window.location.search.substring(1); 
         const rSearch = /([^&=]+)=?([^&]*)/g;
         const args: string[] = [];
         let match: RegExpExecArray | null;
@@ -320,7 +322,13 @@ export class UI implements IUI {
         return args;
     }
 
-    public onWindowLoad(_event: Event): void { // eslint-disable-line @typescript-eslint/no-unused-vars
+    public onWindowLoadContinue(core: ICore): void {
+        this.core = core;
+        const config = core.getConfigObject();
+        const args = this.parseUri(config);
+        core.parseArgs(args, config);
+        core.setOnCheckSyntax((s: string) => Promise.resolve(this.checkSyntax(s)));
+
         const basicText = window.document.getElementById("basicText") as HTMLTextAreaElement;
         basicText.addEventListener('change', () => this.onbasicTextChange());
 
@@ -342,8 +350,6 @@ export class UI implements IUI {
         const helpButton = window.document.getElementById("helpButton") as HTMLButtonElement;
         helpButton.addEventListener('click', () => this.onHelpButtonClick());
 
-        const config = this.core.getConfigObject();
-
         const outputText = window.document.getElementById("outputText") as HTMLPreElement;
         outputText.addEventListener("keydown", (event) => this.onOutputTextKeydown(event), false);
         
@@ -363,7 +369,7 @@ export class UI implements IUI {
         }
 
         UI.asyncDelay(() => {
-            const exampleObject = this.core.getExampleObject() || {};
+            const exampleObject = this.core?.getExampleObject() || {};
             this.setExampleSelectOptions(exampleObject);
 
             const example = config.example;

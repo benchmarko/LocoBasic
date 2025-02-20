@@ -63,9 +63,9 @@ function getCodeSnippets() {
         },
         input: async function input(msg: string, isNum: boolean) {
 			await frame();
-			const input = await _o.prompt(msg);
+			const input = await _o.input(msg);
 			if (input === null) {
-				throw new Error("Input canceled");
+				throw new Error("INFO: Input canceled");
 			} else if (isNum && isNaN(Number(input))) {
 				throw new Error("Invalid number input");
 			} else {

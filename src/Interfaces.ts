@@ -18,11 +18,11 @@ export interface IVm {
     flush(): void;
     graphicsPen(num: number): void;
     inkey$(): Promise<string>;
+    input(_msg: string): Promise<string | null>;
     mode(num: number): void;
     paper(color: number): void;
     pen(color: number): void;
     print(_msg: string): void;
-    prompt(_msg: string): Promise<string | null>;
     getEscape(): boolean;
 }
 
@@ -50,8 +50,7 @@ export interface INodeParts {
 }
 
 export interface IUI {
-    parseUri(urlQuery: string, config: Record<string, ConfigEntryType>): string[];
-    onWindowLoad(event: Event): void;
+    onWindowLoadContinue(core: ICore): void;
     getEscape(): boolean;
     addOutputText(value: string): void;
     setOutputText(value: string): void;
