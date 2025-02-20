@@ -71,11 +71,11 @@ export class Core implements ICore {
             return "ERROR: " + syntaxError;
         }
 
+        let output = "";
         try {
             const fnScript = new Function("_o", compiledScript);
             const result = fnScript(this.vm as IVm) || "";
 
-            let output: string;
             if (result instanceof Promise) {
                 output = await result;
                 this.vm?.flush();
@@ -84,25 +84,24 @@ export class Core implements ICore {
                 this.vm?.flush();
                 output = this.vm?.getOutput() || "";
             }
-            return output;
         } catch (error) {
-            let errorMessage = "ERROR: ";
+            output = this.vm?.getOutput() || "";
+            if (output) {
+                output += "\n";
+            }
+            output += String(error).replace("Error: INFO: ", "INFO: ");
             if (error instanceof Error) {
-                errorMessage += this.vm?.getOutput() + "\n" + String(error);
-
                 const anyErr = error as unknown as Record<string, number>;
                 const lineNumber = anyErr.lineNumber; // only on FireFox
                 const columnNumber = anyErr.columnNumber; // only on FireFox
 
                 if (lineNumber || columnNumber) {
                     const errLine = lineNumber - 2; // lineNumber -2 because of anonymous function added by new Function() constructor
-                    errorMessage += ` (Line ${errLine}, column ${columnNumber})`;
+                    output += ` (Line ${errLine}, column ${columnNumber})`;
                 }
-            } else {
-                errorMessage += "unknown";
             }
-            return errorMessage;
         }
+        return output;
     }
 
     public addItem = (key: string, input: string | (() => void)): void => { // need property function because we need bound "this"

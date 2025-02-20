@@ -45,6 +45,7 @@ export class UI implements IUI {
     private basicCm?: Editor;
     private compiledCm?: Editor;
     private readonly keyBuffer: string[] = []; // buffered pressed keys
+    private escape = false;
 
     private static getErrorEvent?: (s: string) => Promise<PlainErrorEventType>;
 
@@ -71,6 +72,10 @@ export class UI implements IUI {
         })();
     }
 
+    public getEscape() {
+        return this.escape;
+    }
+
     public addOutputText(value: string): void {
         const outputText = document.getElementById("outputText") as HTMLPreElement;
         outputText.innerHTML += value;
@@ -94,10 +99,27 @@ export class UI implements IUI {
         return input;
     }
 
+    /*
+    private getButtonDisabled(id: string) {
+        return (window.document.getElementById(id) as HTMLButtonElement).disabled;
+    }
+    */
+
+    private setButtonDisabled(id: string, disabled: boolean) {
+        const button = window.document.getElementById(id) as HTMLButtonElement;
+        button.disabled = disabled;
+    }
+
     private async onExecuteButtonClick(_event: Event): Promise<void> { // eslint-disable-line @typescript-eslint/no-unused-vars
         const compiledText = document.getElementById("compiledText") as HTMLTextAreaElement;
         const compiledScript = this.compiledCm ? this.compiledCm.getValue() as string : compiledText.value;
-        const output = await this.core.executeScript(compiledScript) || "";
+        this.setButtonDisabled("executeButton", true);
+        this.setButtonDisabled("stopButton", false);
+        this.escape = false;
+        this.keyBuffer.length = 0;
+        const output = await this.core?.executeScript(compiledScript) || "";
+        this.setButtonDisabled("executeButton", false);
+        this.setButtonDisabled("stopButton", true);
         this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
     }
 
@@ -105,7 +127,9 @@ export class UI implements IUI {
         const autoExecuteInput = document.getElementById("autoExecuteInput") as HTMLInputElement;
         if (autoExecuteInput.checked) {
             const executeButton = window.document.getElementById("executeButton") as HTMLButtonElement;
-            executeButton.dispatchEvent(new Event('click'));
+            if (!executeButton.disabled) {
+                executeButton.dispatchEvent(new Event('click'));
+            }
         }
     }
 
@@ -125,6 +149,11 @@ export class UI implements IUI {
                 compiledText.dispatchEvent(newEvent);
             }
         }
+    }
+
+    private onStopButtonClick(_event: Event): void { // eslint-disable-line @typescript-eslint/no-unused-vars
+        this.escape = true;
+        this.setButtonDisabled("stopButton", true);
     }
 
     private async onbasicTextChange(): Promise<void> {
@@ -185,7 +214,9 @@ export class UI implements IUI {
 
     private onOutputTextKeydown(event: KeyboardEvent): void {
         const key = event.key;
-        if (key === "Enter") {
+        if (key === "Escape") {
+            this.escape = true;
+        } else if (key === "Enter") {
             this.putKeyInBuffer("\x0d");
             event.preventDefault();
         } else if (key.length === 1 && event.ctrlKey === false && event.altKey === false) {
@@ -301,6 +332,9 @@ export class UI implements IUI {
 
         const executeButton = window.document.getElementById("executeButton") as HTMLButtonElement;
         executeButton.addEventListener('click', (event) => this.onExecuteButtonClick(event), false);
+
+        const stopButton = window.document.getElementById("stopButton") as HTMLButtonElement;
+        stopButton.addEventListener('click', (event) => this.onStopButtonClick(event), false);
 
         const exampleSelect = window.document.getElementById("exampleSelect") as HTMLSelectElement;
         exampleSelect.addEventListener('change', (event) => this.onExampleSelectChange(event));

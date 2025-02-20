@@ -86,4 +86,8 @@ export class BasicVmNode extends BasicVmCore {
         const key = this.nodeParts.getKeyFromBuffer();
         return Promise.resolve(key);
     }
+
+    public getEscape(): boolean {
+        return this.nodeParts.getEscape();
+    }
 }

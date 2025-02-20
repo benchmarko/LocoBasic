@@ -42,7 +42,8 @@ const dummyVm: DummyVm = {
     paper(num: number) { this.debug("paper:", num); },
     pen(num: number) { this.debug("pen:", num); },
     print(...args: (string | number)[]) { this._output += args.join(''); },
-    async prompt(msg: string) { console.log(msg); return ""; }
+    async prompt(msg: string) { console.log(msg); return ""; },
+    getEscape() { return false; },
 };
 
 export class NodeParts {
@@ -52,6 +53,7 @@ export class NodeParts {
     private nodeVm?: NodeVm;
     private nodeReadline?: NodeReadline;
     private readonly keyBuffer: string[] = []; // buffered pressed keys
+    private escape = false;
 
     constructor(core: ICore) {
         this.core = core;
@@ -147,6 +149,8 @@ export class NodeParts {
                 if (key.name === 'c' && key.ctrl === true) {
                   // key: '<char>' { sequence: '\x03', name: 'c', ctrl: true, meta: false, shift: false }
                   process.exit();
+                } else if (key.name === "escape") {
+                    this.escape = true;
                 } else if (keySequenceCode === 0x0d || (keySequenceCode >= 32 && keySequenceCode <= 128)) {
                     this.putKeyInBuffer(key.sequence);
                 }
@@ -161,6 +165,10 @@ export class NodeParts {
 		const key = this.keyBuffer.length ? this.keyBuffer.shift() as string : "";
 		return key;
 	}
+
+    public getEscape() {
+        return this.escape;
+    }
 
     private start(input: string): Promise<void> | undefined {
         const core = this.core;

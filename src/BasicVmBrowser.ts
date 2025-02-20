@@ -69,4 +69,8 @@ export class BasicVmBrowser extends BasicVmCore {
         const key = this.ui.getKeyFromBuffer();
         return Promise.resolve(key);
     }
+
+    public getEscape(): boolean {
+        return this.ui.getEscape();
+    }
 }

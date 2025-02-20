@@ -46,6 +46,9 @@ function getCodeSnippets() {
         },
         frame: async function frame() {
             _o.flush();
+			if (_o.getEscape()) {
+				throw new Error("INFO: Program stopped");
+			}
             return new Promise<void>(resolve => setTimeout(() => resolve(), Date.now() % 50));
         },
         graphicsPen: function graphicsPen(num: number) {

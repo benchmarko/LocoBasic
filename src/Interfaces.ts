@@ -23,6 +23,7 @@ export interface IVm {
     pen(color: number): void;
     print(_msg: string): void;
     prompt(_msg: string): Promise<string | null>;
+    getEscape(): boolean;
 }
 
 export interface IVmAdmin extends IVm {
@@ -44,12 +45,14 @@ export interface ICore {
 }
 
 export interface INodeParts {
+    getEscape(): boolean;
     getKeyFromBuffer(): string;
 }
 
 export interface IUI {
     parseUri(urlQuery: string, config: Record<string, ConfigEntryType>): string[];
     onWindowLoad(event: Event): void;
+    getEscape(): boolean;
     addOutputText(value: string): void;
     setOutputText(value: string): void;
     getPaperColors(colorsForPens: string[]): string[];

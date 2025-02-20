@@ -142,6 +142,10 @@ export class BasicVmCore implements IVmAdmin {
         return this.fnOnPrompt(msg);
     };
 
+    public getEscape(): boolean {
+        return false;
+    }
+
     public getOutput(): string {
 		return this.output;
 	}
