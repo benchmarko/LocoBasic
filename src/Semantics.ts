@@ -54,6 +54,10 @@ function getCodeSnippets() {
         hex$: function hex$(num: number, pad?: number) {
             return num.toString(16).toUpperCase().padStart(pad || 0, "0");
         },
+		inkey$: async function inkey$() {
+            await frame();
+			return await _o.inkey$();
+        },
         input: async function input(msg: string, isNum: boolean) {
 			await frame();
 			const input = await _o.prompt(msg);
@@ -515,6 +519,12 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 		
 			semanticsHelper.addIndent(-2);
 			return result;
+		},
+
+		InkeyS(_inkeySLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addInstr("inkey$");
+			semanticsHelper.addInstr("frame");
+			return `await inkey$()`;
 		},
 
 		Input(_inputLit: Node, message: Node, _semi: Node, e: Node) {

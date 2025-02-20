@@ -141,6 +141,7 @@ Keywords should be uppercase, but all lowercase is also accepted (not-strict mod
 - `GRAPHICS PEN number` Sets the graphics pen.
 - `HEX$(number [, padding])` Converts a number to its hexadecimal representation.
 - `IF expression THEN statements [ELSE statements]` control structure (in one line).
+- `INKEY$`: Gets the pressed character from the key buffer or an empty string if the buffer is empty.
 - `INPUT [message;] variable` Prompts the user for input (string or numeric).
 - `INSTR([startPos,] string1, string2)` Returns the first position of *string2* in *string1*, starting at optional *startPos*.
 - `INT(number)` Returns the integer part of *number*.

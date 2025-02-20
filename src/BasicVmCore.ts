@@ -110,6 +110,10 @@ export class BasicVmCore implements IVmAdmin {
         this.currGraphicsPen = num;
     }
 
+    public inkey$(): Promise<string> {
+        return Promise.resolve("");
+    }
+
     public mode(num: number): void {
         this.currMode = num;
         this.cls();

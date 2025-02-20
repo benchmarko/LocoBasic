@@ -44,6 +44,7 @@ export class UI implements IUI {
     private core: ICore;
     private basicCm?: Editor;
     private compiledCm?: Editor;
+    private readonly keyBuffer: string[] = []; // buffered pressed keys
 
     private static getErrorEvent?: (s: string) => Promise<PlainErrorEventType>;
 
@@ -173,6 +174,26 @@ export class UI implements IUI {
         window.open("https://github.com/benchmarko/LocoBasic/#readme");
     }
 
+    public getKeyFromBuffer(): string {
+		const key = this.keyBuffer.length ? this.keyBuffer.shift() as string : "";
+		return key;
+	}
+
+    private putKeyInBuffer(key: string): void {
+		this.keyBuffer.push(key);
+    }
+
+    private onOutputTextKeydown(event: KeyboardEvent): void {
+        const key = event.key;
+        if (key === "Enter") {
+            this.putKeyInBuffer("\x0d");
+            event.preventDefault();
+        } else if (key.length === 1 && event.ctrlKey === false && event.altKey === false) {
+            this.putKeyInBuffer(key);
+            event.preventDefault();
+        }
+    }
+
     private static getErrorEventFn(): (s: string) => Promise<PlainErrorEventType> {
         if (UI.getErrorEvent) {
             return UI.getErrorEvent;
@@ -289,6 +310,9 @@ export class UI implements IUI {
 
         const config = this.core.getConfigObject();
 
+        const outputText = window.document.getElementById("outputText") as HTMLPreElement;
+        outputText.addEventListener("keydown", (event) => this.onOutputTextKeydown(event), false);
+        
         const WinCodeMirror = window.CodeMirror;
         if (WinCodeMirror) {
             this.basicCm = WinCodeMirror.fromTextArea(basicText, {

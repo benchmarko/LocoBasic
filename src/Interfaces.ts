@@ -17,6 +17,7 @@ export interface IVm {
     drawMovePlot(type: string, x: number, y: number): void;
     flush(): void;
     graphicsPen(num: number): void;
+    inkey$(): Promise<string>;
     mode(num: number): void;
     paper(color: number): void;
     pen(color: number): void;
@@ -42,6 +43,10 @@ export interface ICore {
     parseArgs(args: string[], config: Record<string, ConfigEntryType>): void;
 }
 
+export interface INodeParts {
+    getKeyFromBuffer(): string;
+}
+
 export interface IUI {
     parseUri(urlQuery: string, config: Record<string, ConfigEntryType>): string[];
     onWindowLoad(event: Event): void;
@@ -51,6 +56,7 @@ export interface IUI {
     getPenColors(colorsForPens: string[]): string[];
     checkSyntax(str: string): Promise<string>;
     prompt(msg: string): string | null;
+    getKeyFromBuffer(): string;
 }
 
 // Type definition for a defined label entry

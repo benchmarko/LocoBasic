@@ -1,5 +1,4 @@
-// BasicVmNode.ts
-
+import { INodeParts } from "./Interfaces";
 import { BasicVmCore } from "./BasicVmCore";
 
 function getAnsiColorsForPens() {
@@ -49,9 +48,11 @@ function getAnsiColorsForPapers() {
 export class BasicVmNode extends BasicVmCore {
     private readonly penColors: string[] = getAnsiColorsForPens();
     private readonly paperColors: string[] = getAnsiColorsForPapers();
+    private readonly nodeParts: INodeParts;
 
-    constructor() {
+    constructor(nodeParts: INodeParts) {
         super();
+        this.nodeParts = nodeParts;
     }
 
     public fnOnCls(): void {
@@ -79,5 +80,10 @@ export class BasicVmNode extends BasicVmCore {
             throw new Error("Invalid paper color index");
         }
         return this.paperColors[num];
+    }
+
+    public inkey$(): Promise<string> {
+        const key = this.nodeParts.getKeyFromBuffer();
+        return Promise.resolve(key);
     }
 }

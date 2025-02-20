@@ -152,6 +152,9 @@ export const arithmetic = {
     HexS
       = hexS "(" NumExp ("," NumExp)? ")"
 
+    InkeyS
+      = inkeyS
+
     Input
       = input (string (";" | ","))? AnyIdent  // or NonemptyListOf?
 
@@ -308,6 +311,7 @@ export const arithmetic = {
       | ChrS
       | DecS
       | HexS
+      | InkeyS
       | LeftS
       | LowerS
       | MidS

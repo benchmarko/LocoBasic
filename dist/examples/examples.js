@@ -2616,6 +2616,17 @@ cpcBasic.addItem("", `
 `);
 
 cpcBasic.addItem("", `
+REM testkey - Test keyboard keys
+CLS
+PRINT "Press some keys..."
+WHILE 1
+t$="":WHILE t$="":t$=INKEY$:WEND
+PRINT t$;ASC(t$);
+WEND
+STOP
+`);
+
+cpcBasic.addItem("", `
 REM testsub - Test Subroutines
 CLS
 PRINT "start"
@@ -3171,7 +3182,7 @@ IF a$<>"3" THEN GOSUB 10010
 ''ink 2,19,22
 ''ink a*2,b-1,c
 ''a=inkey(0)
-''a$=inkey$
+A$=INKEY$
 ''a=inp(&ff77)
 ''input a$
 ''input a$,b

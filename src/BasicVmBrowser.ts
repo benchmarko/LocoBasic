@@ -64,4 +64,9 @@ export class BasicVmBrowser extends BasicVmCore {
         }
         return this.paperColors[num];
     }
+
+    public inkey$(): Promise<string> {
+        const key = this.ui.getKeyFromBuffer();
+        return Promise.resolve(key);
+    }
 }

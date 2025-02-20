@@ -48,8 +48,8 @@ if (typeof window !== "undefined") {
         ui.onWindowLoad(new Event("onload"));
     };
 } else { // node.js
-    core.setVm(new BasicVmNode());
-    core.parseArgs(global.process.argv.slice(2), core.getConfigObject());
     const nodeParts = new NodeParts(core);
+    core.setVm(new BasicVmNode(nodeParts));
+    core.parseArgs(global.process.argv.slice(2), core.getConfigObject());
     nodeParts.nodeMain();
 }

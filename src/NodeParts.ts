@@ -6,11 +6,23 @@ interface NodeFs {
     };
 }
 
+interface NodeReadline {
+    emitKeypressEvents(stream: typeof process.stdin): void;
+}
+
 interface NodeVm {
     runInNewContext: (code: string) => string;
 }
 
-declare function require(name: string): NodeModule | NodeFs | NodeVm;
+type NodeKeyPressType = {
+    sequence: string;
+    name: string;
+    ctrl: boolean;
+    meta: boolean;
+    shift: boolean;
+}
+
+declare function require(name: string): NodeFs | NodeModule | NodeReadline | NodeVm;
 
 interface DummyVm extends IVm {
     _output: string;
@@ -25,6 +37,7 @@ const dummyVm: DummyVm = {
     drawMovePlot(type: string, x: number, y: number) { this.debug("drawMovePlot:", type, x, y); },
     flush() { if (this._output) { console.log(this._output); this._output = ""; } },
     graphicsPen(num: number) { this.debug("graphicsPen:", num); },
+    async inkey$() { return Promise.resolve(""); },
     mode(num: number) { this.debug("mode:", num); },
     paper(num: number) { this.debug("paper:", num); },
     pen(num: number) { this.debug("pen:", num); },
@@ -37,6 +50,8 @@ export class NodeParts {
     private nodeFs?: NodeFs;
     private modulePath: string;
     private nodeVm?: NodeVm;
+    private nodeReadline?: NodeReadline;
+    private readonly keyBuffer: string[] = []; // buffered pressed keys
 
     constructor(core: ICore) {
         this.core = core;
@@ -112,6 +127,40 @@ export class NodeParts {
         }
         return output;
     }
+
+    private putKeyInBuffer(key: string): void {
+		this.keyBuffer.push(key);
+    }
+
+    private initKeyboardInput(): void {
+        this.nodeReadline = require('readline') as NodeReadline;
+        this.nodeReadline.emitKeypressEvents(process.stdin);
+    
+        if (process.stdin.isTTY) {
+            process.stdin.setRawMode(true);
+        }
+    
+        process.stdin.on('keypress', (_chunk, key: NodeKeyPressType) => {
+            //console.log(`DEBUG: You pressed the key: '${_chunk}'`, key);
+            if (key) {
+                const keySequenceCode = key.sequence.charCodeAt(0);
+                if (key.name === 'c' && key.ctrl === true) {
+                  // key: '<char>' { sequence: '\x03', name: 'c', ctrl: true, meta: false, shift: false }
+                  process.exit();
+                } else if (keySequenceCode === 0x0d || (keySequenceCode >= 32 && keySequenceCode <= 128)) {
+                    this.putKeyInBuffer(key.sequence);
+                }
+            }
+        });
+    }
+
+    public getKeyFromBuffer(): string {
+        if (!this.nodeReadline) {
+            this.initKeyboardInput();
+        }
+		const key = this.keyBuffer.length ? this.keyBuffer.shift() as string : "";
+		return key;
+	}
 
     private start(input: string): Promise<void> | undefined {
         const core = this.core;
