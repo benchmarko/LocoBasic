@@ -41,6 +41,12 @@ export class UI {
             return timerId;
         })();
     }
+    getCore() {
+        if (!this.core) {
+            throw new Error("Core not initialized");
+        }
+        return this.core;
+    }
     getEscape() {
         return this.escape;
     }
@@ -77,14 +83,17 @@ export class UI {
         button.disabled = disabled;
     }
     async onExecuteButtonClick(_event) {
-        var _a;
+        const core = this.getCore();
+        if (!this.vm) {
+            return;
+        }
         const compiledText = document.getElementById("compiledText");
         const compiledScript = this.compiledCm ? this.compiledCm.getValue() : compiledText.value;
         this.setButtonDisabled("executeButton", true);
         this.setButtonDisabled("stopButton", false);
         this.escape = false;
         this.keyBuffer.length = 0;
-        const output = await ((_a = this.core) === null || _a === void 0 ? void 0 : _a.executeScript(compiledScript)) || "";
+        const output = await core.executeScript(compiledScript, this.vm) || "";
         this.setButtonDisabled("executeButton", false);
         this.setButtonDisabled("stopButton", true);
         this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
@@ -99,22 +108,26 @@ export class UI {
         }
     }
     onCompileButtonClick(_event) {
-        var _a;
+        const core = this.getCore();
+        this.setButtonDisabled("compileButton", true);
         const basicText = document.getElementById("basicText");
         const compiledText = document.getElementById("compiledText");
         const input = this.basicCm ? this.basicCm.getValue() : basicText.value;
-        const compiledScript = ((_a = this.core) === null || _a === void 0 ? void 0 : _a.compileScript(input)) || "";
-        if (this.compiledCm) {
-            this.compiledCm.setValue(compiledScript);
-        }
-        else {
-            compiledText.value = compiledScript;
-            const autoExecuteInput = document.getElementById("autoExecuteInput");
-            if (autoExecuteInput.checked) {
-                const newEvent = new Event('change');
-                compiledText.dispatchEvent(newEvent);
+        UI.asyncDelay(() => {
+            const compiledScript = core.compileScript(input) || "";
+            if (this.compiledCm) {
+                this.compiledCm.setValue(compiledScript);
             }
-        }
+            else {
+                compiledText.value = compiledScript;
+                const autoExecuteInput = document.getElementById("autoExecuteInput");
+                if (autoExecuteInput.checked) {
+                    const newEvent = new Event('change');
+                    compiledText.dispatchEvent(newEvent);
+                }
+            }
+            this.setButtonDisabled("compileButton", false);
+        }, 1);
     }
     onStopButtonClick(_event) {
         this.escape = true;
@@ -124,7 +137,9 @@ export class UI {
         const autoCompileInput = document.getElementById("autoCompileInput");
         if (autoCompileInput.checked) {
             const compileButton = window.document.getElementById("compileButton");
-            compileButton.dispatchEvent(new Event('click'));
+            if (!compileButton.disabled) {
+                compileButton.dispatchEvent(new Event('click'));
+            }
         }
     }
     setExampleSelect(name) {
@@ -132,10 +147,10 @@ export class UI {
         exampleSelect.value = name;
     }
     onExampleSelectChange(event) {
-        var _a;
+        const core = this.getCore();
         const exampleSelect = event.target;
         const basicText = document.getElementById("basicText");
-        const value = ((_a = this.core) === null || _a === void 0 ? void 0 : _a.getExample(exampleSelect.value)) || "";
+        const value = core.getExample(exampleSelect.value) || "";
         this.setOutputText("");
         if (this.basicCm) {
             this.basicCm.setValue(value);
@@ -259,8 +274,9 @@ export class UI {
         }
         return args;
     }
-    onWindowLoadContinue(core) {
+    onWindowLoadContinue(core, vm) {
         this.core = core;
+        this.vm = vm;
         const config = core.getConfigObject();
         const args = this.parseUri(config);
         core.parseArgs(args, config);
@@ -295,8 +311,7 @@ export class UI {
             this.compiledCm.on('changes', this.debounce(() => this.onCompiledTextChange(), () => config.debounceExecute));
         }
         UI.asyncDelay(() => {
-            var _a;
-            const exampleObject = ((_a = this.core) === null || _a === void 0 ? void 0 : _a.getExampleObject()) || {};
+            const exampleObject = core.getExampleObject() || {};
             this.setExampleSelectOptions(exampleObject);
             const example = config.example;
             if (example) {

@@ -6,11 +6,13 @@ export declare class NodeParts {
     private nodeReadline?;
     private readonly keyBuffer;
     private escape;
+    private fnOnKeyPressHandler?;
     private nodeReadFile;
     private keepRunning;
     private putScriptInFrame;
     private nodeCheckSyntax;
     private putKeyInBuffer;
+    private fnOnKeypress;
     private initKeyboardInput;
     getKeyFromBuffer(): string;
     getEscape(): boolean;

@@ -21,9 +21,6 @@ export class Core {
         };
         this.config = defaultConfig;
     }
-    setVm(vm) {
-        this.vm = vm;
-    }
     getConfigObject() {
         return this.config;
     }
@@ -53,33 +50,32 @@ export class Core {
         this.semantics.resetParser();
         return this.arithmeticParser.parseAndEval(script);
     }
-    async executeScript(compiledScript) {
-        var _a, _b, _c, _d, _e, _f, _g;
-        (_a = this.vm) === null || _a === void 0 ? void 0 : _a.setOutput("");
+    async executeScript(compiledScript, vm) {
+        vm.setOutput("");
         if (compiledScript.startsWith("ERROR")) {
             return "ERROR";
         }
         const syntaxError = await this.onCheckSyntax(compiledScript);
         if (syntaxError) {
-            (_b = this.vm) === null || _b === void 0 ? void 0 : _b.cls();
+            vm.cls();
             return "ERROR: " + syntaxError;
         }
         let output = "";
         try {
             const fnScript = new Function("_o", compiledScript);
-            const result = fnScript(this.vm) || "";
+            const result = fnScript(vm) || "";
             if (result instanceof Promise) {
                 output = await result;
-                (_c = this.vm) === null || _c === void 0 ? void 0 : _c.flush();
-                output = ((_d = this.vm) === null || _d === void 0 ? void 0 : _d.getOutput()) || "";
+                vm.flush();
+                output = vm.getOutput() || "";
             }
             else {
-                (_e = this.vm) === null || _e === void 0 ? void 0 : _e.flush();
-                output = ((_f = this.vm) === null || _f === void 0 ? void 0 : _f.getOutput()) || "";
+                vm.flush();
+                output = vm.getOutput() || "";
             }
         }
         catch (error) {
-            output = ((_g = this.vm) === null || _g === void 0 ? void 0 : _g.getOutput()) || "";
+            output = vm.getOutput() || "";
             if (output) {
                 output += "\n";
             }

@@ -1,6 +1,7 @@
-import type { ICore, IUI } from "../Interfaces";
+import type { ICore, IUI, IVmAdmin } from "../Interfaces";
 export declare class UI implements IUI {
     private core?;
+    private vm?;
     private basicCm?;
     private compiledCm?;
     private readonly keyBuffer;
@@ -8,6 +9,7 @@ export declare class UI implements IUI {
     private static getErrorEvent?;
     private debounce;
     private static asyncDelay;
+    private getCore;
     getEscape(): boolean;
     addOutputText(value: string): void;
     setOutputText(value: string): void;
@@ -37,6 +39,6 @@ export declare class UI implements IUI {
     checkSyntax(str: string): Promise<string>;
     private fnDecodeUri;
     private parseUri;
-    onWindowLoadContinue(core: ICore): void;
+    onWindowLoadContinue(core: ICore, vm: IVmAdmin): void;
 }
 //# sourceMappingURL=UI.d.ts.map
