@@ -135,21 +135,25 @@ export class UI implements IUI {
     }
 
     private onCompileButtonClick(_event: Event): void { // eslint-disable-line @typescript-eslint/no-unused-vars
+        this.setButtonDisabled("compileButton", true);
         const basicText = document.getElementById("basicText") as HTMLTextAreaElement;
         const compiledText = document.getElementById("compiledText") as HTMLTextAreaElement;
         const input = this.basicCm ? this.basicCm.getValue() : basicText.value;
-        const compiledScript = this.core?.compileScript(input) || "";
+        UI.asyncDelay(() => {
+            const compiledScript = this.core?.compileScript(input) || "";
 
-        if (this.compiledCm) {
-            this.compiledCm.setValue(compiledScript);
-        } else {
-            compiledText.value = compiledScript;
-            const autoExecuteInput = document.getElementById("autoExecuteInput") as HTMLInputElement;
-            if (autoExecuteInput.checked) {
-                const newEvent = new Event('change');
-                compiledText.dispatchEvent(newEvent);
+            if (this.compiledCm) {
+                this.compiledCm.setValue(compiledScript);
+            } else {
+                compiledText.value = compiledScript;
+                const autoExecuteInput = document.getElementById("autoExecuteInput") as HTMLInputElement;
+                if (autoExecuteInput.checked) {
+                    const newEvent = new Event('change');
+                    compiledText.dispatchEvent(newEvent);
+                }
             }
-        }
+            this.setButtonDisabled("compileButton", false);
+        }, 1);
     }
 
     private onStopButtonClick(_event: Event): void { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -161,7 +165,9 @@ export class UI implements IUI {
         const autoCompileInput = document.getElementById("autoCompileInput") as HTMLInputElement;
         if (autoCompileInput.checked) {
             const compileButton = window.document.getElementById("compileButton") as HTMLButtonElement;
-            compileButton.dispatchEvent(new Event('click'));
+            if (!compileButton.disabled) {
+                compileButton.dispatchEvent(new Event('click'));
+            }
         }
     }
 

@@ -59,7 +59,11 @@ export class Core implements ICore {
     }
 
     public async executeScript(compiledScript: string): Promise<string> {
-        this.vm?.setOutput("");
+        if (!this.vm) {
+            return "ERROR: No VM";
+        }
+        const vm = this.vm;
+        vm.setOutput("");
 
         if (compiledScript.startsWith("ERROR")) {
             return "ERROR";
@@ -67,25 +71,25 @@ export class Core implements ICore {
 
         const syntaxError = await this.onCheckSyntax(compiledScript);
         if (syntaxError) {
-            this.vm?.cls();
+            vm.cls();
             return "ERROR: " + syntaxError;
         }
 
         let output = "";
         try {
             const fnScript = new Function("_o", compiledScript);
-            const result = fnScript(this.vm as IVm) || "";
+            const result = fnScript(vm as IVm) || "";
 
             if (result instanceof Promise) {
                 output = await result;
-                this.vm?.flush();
-                output = this.vm?.getOutput() || "";
+                vm.flush();
+                output = vm.getOutput() || "";
             } else {
-                this.vm?.flush();
-                output = this.vm?.getOutput() || "";
+                vm.flush();
+                output = vm.getOutput() || "";
             }
         } catch (error) {
-            output = this.vm?.getOutput() || "";
+            output = vm.getOutput() || "";
             if (output) {
                 output += "\n";
             }

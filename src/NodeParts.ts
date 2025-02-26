@@ -54,6 +54,7 @@ export class NodeParts {
     private nodeReadline?: NodeReadline;
     private readonly keyBuffer: string[] = []; // buffered pressed keys
     private escape = false;
+    private fnOnKeyPressHandler?: (chunk: string, key: NodeKeyPressType) => void;
 
     private async nodeReadFile(name: string): Promise<string> {
         if (!this.nodeFs) {
@@ -129,28 +130,33 @@ export class NodeParts {
 		this.keyBuffer.push(key);
     }
 
+    private fnOnKeypress(_chunk: string, key: NodeKeyPressType) {
+        //console.log(`DEBUG: You pressed the key: '${_chunk}'`, key);
+        if (key) {
+            const keySequenceCode = key.sequence.charCodeAt(0);
+            if (key.name === 'c' && key.ctrl === true) {
+            // key: '<char>' { sequence: '\x03', name: 'c', ctrl: true, meta: false, shift: false }
+            process.exit();
+            } else if (key.name === "escape") {
+                this.escape = true;
+            } else if (keySequenceCode === 0x0d || (keySequenceCode >= 32 && keySequenceCode <= 128)) {
+                this.putKeyInBuffer(key.sequence);
+            }
+        }
+    }
+
     private initKeyboardInput(): void {
         this.nodeReadline = require('readline') as NodeReadline;
-        this.nodeReadline.emitKeypressEvents(process.stdin);
     
         if (process.stdin.isTTY) {
+            this.nodeReadline.emitKeypressEvents(process.stdin);
             process.stdin.setRawMode(true);
-        }
     
-        process.stdin.on('keypress', (_chunk, key: NodeKeyPressType) => {
-            //console.log(`DEBUG: You pressed the key: '${_chunk}'`, key);
-            if (key) {
-                const keySequenceCode = key.sequence.charCodeAt(0);
-                if (key.name === 'c' && key.ctrl === true) {
-                  // key: '<char>' { sequence: '\x03', name: 'c', ctrl: true, meta: false, shift: false }
-                  process.exit();
-                } else if (key.name === "escape") {
-                    this.escape = true;
-                } else if (keySequenceCode === 0x0d || (keySequenceCode >= 32 && keySequenceCode <= 128)) {
-                    this.putKeyInBuffer(key.sequence);
-                }
-            }
-        });
+            this.fnOnKeyPressHandler = this.fnOnKeypress.bind(this);
+            process.stdin.on('keypress', this.fnOnKeyPressHandler);
+        } else {
+            console.warn("initKeyboardInput: not a TTY", process.stdin);
+        }
     }
 
     public getKeyFromBuffer(): string {
@@ -181,6 +187,11 @@ export class NodeParts {
                 return this.keepRunning(async () => {
                     const output = await core.executeScript(compiledScript);
                     console.log(output.replace(/\n$/, ""));
+                    if (this.fnOnKeyPressHandler) {
+                        process.stdin.off('keypress', this.fnOnKeyPressHandler);
+                        process.stdin.setRawMode(false);
+                        process.exit(0); // hmm, not so nice
+                    }
                 }, 5000);
             } else {
                 const inFrame = this.putScriptInFrame(compiledScript);
