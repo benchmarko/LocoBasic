@@ -1,5 +1,5 @@
 import type { Editor } from 'codemirror';
-import type { ConfigEntryType, ICore, IUI } from "../Interfaces";
+import type { ConfigEntryType, ICore, IUI, IVmAdmin } from "../Interfaces";
 
 // Worker:
 type PlainErrorEventType = {
@@ -42,6 +42,7 @@ const workerFn = (): void => {
 
 export class UI implements IUI {
     private core?: ICore;
+    private vm?: IVmAdmin;
     private basicCm?: Editor;
     private compiledCm?: Editor;
     private readonly keyBuffer: string[] = []; // buffered pressed keys
@@ -66,6 +67,13 @@ export class UI implements IUI {
             const timerId = window.setTimeout(fn, timeout);
             return timerId;
         })();
+    }
+
+    private getCore() {
+        if (!this.core) {
+            throw new Error("Core not initialized");
+        }
+        return this.core;
     }
 
     public getEscape() {
@@ -112,13 +120,17 @@ export class UI implements IUI {
     }
 
     private async onExecuteButtonClick(_event: Event): Promise<void> { // eslint-disable-line @typescript-eslint/no-unused-vars
+        const core = this.getCore();
+        if (!this.vm) {
+            return;
+        }
         const compiledText = document.getElementById("compiledText") as HTMLTextAreaElement;
         const compiledScript = this.compiledCm ? this.compiledCm.getValue() as string : compiledText.value;
         this.setButtonDisabled("executeButton", true);
         this.setButtonDisabled("stopButton", false);
         this.escape = false;
         this.keyBuffer.length = 0;
-        const output = await this.core?.executeScript(compiledScript) || "";
+        const output = await core.executeScript(compiledScript, this.vm) || "";
         this.setButtonDisabled("executeButton", false);
         this.setButtonDisabled("stopButton", true);
         this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
@@ -135,12 +147,13 @@ export class UI implements IUI {
     }
 
     private onCompileButtonClick(_event: Event): void { // eslint-disable-line @typescript-eslint/no-unused-vars
+        const core = this.getCore();
         this.setButtonDisabled("compileButton", true);
         const basicText = document.getElementById("basicText") as HTMLTextAreaElement;
         const compiledText = document.getElementById("compiledText") as HTMLTextAreaElement;
         const input = this.basicCm ? this.basicCm.getValue() : basicText.value;
         UI.asyncDelay(() => {
-            const compiledScript = this.core?.compileScript(input) || "";
+            const compiledScript = core.compileScript(input) || "";
 
             if (this.compiledCm) {
                 this.compiledCm.setValue(compiledScript);
@@ -177,9 +190,10 @@ export class UI implements IUI {
     }
 
     private onExampleSelectChange(event: Event): void {
+        const core = this.getCore();
         const exampleSelect = event.target as HTMLSelectElement;
         const basicText = document.getElementById("basicText") as HTMLTextAreaElement;
-        const value = this.core?.getExample(exampleSelect.value) || "";
+        const value = core.getExample(exampleSelect.value) || "";
         this.setOutputText("");
 
         if (this.basicCm) {
@@ -328,8 +342,9 @@ export class UI implements IUI {
         return args;
     }
 
-    public onWindowLoadContinue(core: ICore): void {
+    public onWindowLoadContinue(core: ICore, vm: IVmAdmin): void {
         this.core = core;
+        this.vm = vm;
         const config = core.getConfigObject();
         const args = this.parseUri(config);
         core.parseArgs(args, config);
@@ -375,7 +390,7 @@ export class UI implements IUI {
         }
 
         UI.asyncDelay(() => {
-            const exampleObject = this.core?.getExampleObject() || {};
+            const exampleObject = core.getExampleObject() || {};
             this.setExampleSelectOptions(exampleObject);
 
             const example = config.example;

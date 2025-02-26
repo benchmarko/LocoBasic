@@ -32,13 +32,12 @@ export interface IVmAdmin extends IVm {
 }
 
 export interface ICore {
-    setVm(vm: IVmAdmin): void;
     getConfigObject(): ConfigType;
     getExampleObject(): ExampleType;
     getExample(name: string): string;
     setExample(key: string, script: string): void;
     compileScript(script: string): string;
-    executeScript(compiledScript: string): Promise<string>;
+    executeScript(compiledScript: string, vm: IVmAdmin): Promise<string>;
     setOnCheckSyntax(fn: (s: string) => Promise<string>): void;
     addItem(key: string, input: string | (() => void)): void;
     parseArgs(args: string[], config: Record<string, ConfigEntryType>): void;
@@ -50,7 +49,7 @@ export interface INodeParts {
 }
 
 export interface IUI {
-    onWindowLoadContinue(core: ICore): void;
+    onWindowLoadContinue(core: ICore, vm: IVmAdmin): void;
     getEscape(): boolean;
     addOutputText(value: string): void;
     setOutputText(value: string): void;

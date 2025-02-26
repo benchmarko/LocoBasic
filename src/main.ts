@@ -33,8 +33,7 @@ if (typeof window !== "undefined") {
     window.onload = () => {
         const UI = window.locobasicUI.UI; // we expect that it is already loaded in the HTML page
         const ui = new UI();
-        core.setVm(new BasicVmBrowser(ui));
-        ui.onWindowLoadContinue(core);
+        ui.onWindowLoadContinue(core, new BasicVmBrowser(ui));
     };
 } else { // node.js
     new NodeParts().nodeMain(core);

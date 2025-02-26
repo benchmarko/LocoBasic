@@ -9,17 +9,12 @@ function fnHereDoc(fn: () => void) {
 
 export class Core implements ICore {
     private config: ConfigType;
-    private vm?: IVmAdmin;
     private readonly semantics = new Semantics();
     private readonly examples: Record<string, string> = {};
     private arithmeticParser: Parser | undefined;
 
     constructor(defaultConfig: ConfigType) {
         this.config = defaultConfig;
-    }
-
-    public setVm(vm: IVmAdmin): void {
-        this.vm = vm;
     }
 
     private onCheckSyntax = async (_s: string) => ""; // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -58,11 +53,7 @@ export class Core implements ICore {
         return this.arithmeticParser.parseAndEval(script);
     }
 
-    public async executeScript(compiledScript: string): Promise<string> {
-        if (!this.vm) {
-            return "ERROR: No VM";
-        }
-        const vm = this.vm;
+    public async executeScript(compiledScript: string, vm: IVmAdmin): Promise<string> {
         vm.setOutput("");
 
         if (compiledScript.startsWith("ERROR")) {

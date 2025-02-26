@@ -1,4 +1,4 @@
-import { ICore, IVm } from "./Interfaces";
+import { ICore, IVm, IVmAdmin } from "./Interfaces";
 import { BasicVmNode } from "./BasicVmNode";
 
 interface NodeFs {
@@ -171,7 +171,7 @@ export class NodeParts {
         return this.escape;
     }
 
-    private start(core: ICore, input: string): Promise<void> | undefined {
+    private start(core: ICore, vm: IVmAdmin, input: string): Promise<void> | undefined {
         const actionConfig = core.getConfigObject().action;
         if (input !== "") {
             core.setOnCheckSyntax((s: string) => Promise.resolve(this.nodeCheckSyntax(s)));
@@ -185,7 +185,7 @@ export class NodeParts {
 
             if (actionConfig.includes("run")) {
                 return this.keepRunning(async () => {
-                    const output = await core.executeScript(compiledScript);
+                    const output = await core.executeScript(compiledScript, vm);
                     console.log(output.replace(/\n$/, ""));
                     if (this.fnOnKeyPressHandler) {
                         process.stdin.off('keypress', this.fnOnKeyPressHandler);
@@ -204,7 +204,7 @@ export class NodeParts {
     }
 
     public async nodeMain(core: ICore): Promise<void> {
-        core.setVm(new BasicVmNode(this));
+        const vm = new BasicVmNode(this);
         const config = core.getConfigObject();
         core.parseArgs(global.process.argv.slice(2), config);
 
@@ -213,7 +213,7 @@ export class NodeParts {
         if (config.fileName) {
             return this.keepRunning(async () => {
                 input = await this.nodeReadFile(config.fileName);
-                this.start(core, input);
+                this.start(core, vm, input);
             }, 5000);
         } else {
             if (config.example) {
@@ -230,10 +230,10 @@ export class NodeParts {
                         return;
                     }
                     input = exampleScript;
-                    this.start(core, input);
+                    this.start(core, vm, input);
                 }, 5000);
             }
-            this.start(core, input);
+            this.start(core, vm, input);
         }
     }
 
