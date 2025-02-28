@@ -26,7 +26,7 @@ export declare class UI implements IUI {
     private onCompiledTextChange;
     private onCompileButtonClick;
     private onStopButtonClick;
-    private onbasicTextChange;
+    private onBasicTextChange;
     private setExampleSelect;
     private onExampleSelectChange;
     private setExampleSelectOptions;

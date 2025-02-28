@@ -73,11 +73,6 @@ export class UI {
         const input = window.prompt(msg);
         return input;
     }
-    /*
-    private getButtonDisabled(id: string) {
-        return (window.document.getElementById(id) as HTMLButtonElement).disabled;
-    }
-    */
     setButtonDisabled(id, disabled) {
         const button = window.document.getElementById(id);
         button.disabled = disabled;
@@ -87,8 +82,7 @@ export class UI {
         if (!this.vm) {
             return;
         }
-        const compiledText = document.getElementById("compiledText");
-        const compiledScript = this.compiledCm ? this.compiledCm.getValue() : compiledText.value;
+        const compiledScript = this.compiledCm ? this.compiledCm.getValue() : "";
         this.setButtonDisabled("executeButton", true);
         this.setButtonDisabled("stopButton", false);
         this.escape = false;
@@ -110,21 +104,11 @@ export class UI {
     onCompileButtonClick(_event) {
         const core = this.getCore();
         this.setButtonDisabled("compileButton", true);
-        const basicText = document.getElementById("basicText");
-        const compiledText = document.getElementById("compiledText");
-        const input = this.basicCm ? this.basicCm.getValue() : basicText.value;
+        const input = this.basicCm ? this.basicCm.getValue() : "";
         UI.asyncDelay(() => {
             const compiledScript = core.compileScript(input) || "";
             if (this.compiledCm) {
                 this.compiledCm.setValue(compiledScript);
-            }
-            else {
-                compiledText.value = compiledScript;
-                const autoExecuteInput = document.getElementById("autoExecuteInput");
-                if (autoExecuteInput.checked) {
-                    const newEvent = new Event('change');
-                    compiledText.dispatchEvent(newEvent);
-                }
             }
             this.setButtonDisabled("compileButton", false);
         }, 1);
@@ -133,7 +117,7 @@ export class UI {
         this.escape = true;
         this.setButtonDisabled("stopButton", true);
     }
-    async onbasicTextChange() {
+    async onBasicTextChange() {
         const autoCompileInput = document.getElementById("autoCompileInput");
         if (autoCompileInput.checked) {
             const compileButton = window.document.getElementById("compileButton");
@@ -149,15 +133,10 @@ export class UI {
     onExampleSelectChange(event) {
         const core = this.getCore();
         const exampleSelect = event.target;
-        const basicText = document.getElementById("basicText");
         const value = core.getExample(exampleSelect.value) || "";
         this.setOutputText("");
         if (this.basicCm) {
             this.basicCm.setValue(value);
-        }
-        else {
-            basicText.value = value;
-            basicText.dispatchEvent(new Event('change'));
         }
     }
     setExampleSelectOptions(examples) {
@@ -281,10 +260,6 @@ export class UI {
         const args = this.parseUri(config);
         core.parseArgs(args, config);
         core.setOnCheckSyntax((s) => Promise.resolve(this.checkSyntax(s)));
-        const basicText = window.document.getElementById("basicText");
-        basicText.addEventListener('change', () => this.onbasicTextChange());
-        const compiledText = window.document.getElementById("compiledText");
-        compiledText.addEventListener('change', () => this.onCompiledTextChange());
         const compileButton = window.document.getElementById("compileButton");
         compileButton.addEventListener('click', (event) => this.onCompileButtonClick(event), false);
         const executeButton = window.document.getElementById("executeButton");
@@ -299,12 +274,14 @@ export class UI {
         outputText.addEventListener("keydown", (event) => this.onOutputTextKeydown(event), false);
         const WinCodeMirror = window.CodeMirror;
         if (WinCodeMirror) {
-            this.basicCm = WinCodeMirror.fromTextArea(basicText, {
+            const basicEditor = window.document.getElementById("basicEditor");
+            this.basicCm = WinCodeMirror(basicEditor, {
                 lineNumbers: true,
-                mode: 'javascript'
+                mode: 'javascript' // should be 'basic' but not available
             });
-            this.basicCm.on('changes', this.debounce(() => this.onbasicTextChange(), () => config.debounceCompile));
-            this.compiledCm = WinCodeMirror.fromTextArea(compiledText, {
+            this.basicCm.on('changes', this.debounce(() => this.onBasicTextChange(), () => config.debounceCompile));
+            const compiledEditor = window.document.getElementById("compiledEditor");
+            this.compiledCm = WinCodeMirror(compiledEditor, {
                 lineNumbers: true,
                 mode: 'javascript'
             });
