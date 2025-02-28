@@ -242,9 +242,9 @@ after auto border break call cat chain clear clg closein closeout cont copychr$
 
 - [Ohm](https://ohmjs.org/) JavaScript parsing toolkit - [Source code](https://github.com/ohmjs/ohm) - Paper: [Modular Semantic Actions](https://ohmjs.org/pubs/dls2016/modular-semantic-actions.pdf)
 
-- [CodeMirror](https://codemirror.net/) code editor used for the Locobasic UI -
-[Source code](https://github.com/codemirror/dev/) -
-[Libraries](https://cdnjs.com/libraries/codemirror)
+- [CodeMirror](https://codemirror.net/5/) code editor used for the LocoBasic UI -
+[Source code](https://github.com/codemirror/codemirror5) -
+[cdnjs Libraries](https://cdnjs.com/libraries/codemirror)
 
 - [CPCBasicTS](https://benchmarko.github.io/CPCBasicTS/) CPCBasicTS Unchained - Run CPC BASIC in a Browser - [Source code](https://github.com/benchmarko/CPCBasicTS/)
 
@@ -259,4 +259,4 @@ after auto border break call cat chain clear clg closein closeout cont copychr$
 
 - Another BASIC compiler: [ugBASIC](https://ugbasic.iwashere.eu/target/cpc#examples)
 
-### **mv, 12/2024**
+### **mv, 02/2025 **
