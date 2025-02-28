@@ -3182,7 +3182,7 @@ IF a$<>"3" THEN GOSUB 10010
 ''ink 2,19,22
 ''ink a*2,b-1,c
 ''a=inkey(0)
-A$=INKEY$
+a$=INKEY$
 ''a=inp(&ff77)
 ''input a$
 ''input a$,b

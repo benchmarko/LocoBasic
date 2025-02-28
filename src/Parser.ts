@@ -1,8 +1,9 @@
-import { type ActionDict, type Grammar, type Namespace, type Semantics, grammar } from "ohm-js";
+import { type ActionDict, type Grammar, Matcher, type Namespace, type Semantics, grammar } from "ohm-js";
 
 export class Parser {
     private readonly ohmGrammar: Grammar;
     private readonly ohmSemantics: Semantics;
+    private readonly matcher: Matcher;
 
     constructor(grammarString: string, semanticsMap: ActionDict<string | string[]>, superParser?: Parser) {
         if (superParser) {
@@ -16,6 +17,8 @@ export class Parser {
             this.ohmGrammar = grammar(grammarString);
         }
 
+        this.matcher = this.ohmGrammar.matcher();
+
         this.ohmSemantics = this.ohmGrammar
             .createSemantics()
 			.addOperation<string | string[]>("eval", semanticsMap);
@@ -25,10 +28,39 @@ export class Parser {
         return this.ohmGrammar;
     }
 
+    private diffPartsStart(oldInput: string, newInput: string) {
+        let common = 0;
+        while (common < oldInput.length && common < newInput.length && oldInput[common] === newInput[common]) {
+            common += 1;
+        }
+        return common;
+    }
+
+    private diffPartsEnd(oldInput: string, newInput: string, minCommon: number) {
+        let common = newInput.length;
+        const oldIndexDiff = oldInput.length - newInput.length;
+        while (common > (minCommon - oldIndexDiff) && oldInput[common - 1 + oldIndexDiff] === newInput[common - 1]) {
+            common -= 1;
+        }
+        return common;
+    }
+
     // Function to parse and evaluate an expression
     public parseAndEval(input: string): string {
+        const matcher = this.matcher;
+        const oldInput = matcher.getInput();
+        const start = this.diffPartsStart(oldInput, input);
+        const end = this.diffPartsEnd(oldInput, input, start);
+        const oldEnd = oldInput.length - (input.length - end);
+
         try {
-            const matchResult = this.ohmGrammar.match(input);
+            if (start > 0) {
+                matcher.replaceInputRange(start, oldEnd, input.substring(start, end));
+            } else {
+                matcher.setInput(input);
+            }
+
+            const matchResult = matcher.match();
             if (matchResult.succeeded()) {
                 return this.ohmSemantics(matchResult).eval() as string;
             } else {
