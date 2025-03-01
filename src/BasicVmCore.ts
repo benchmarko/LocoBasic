@@ -14,9 +14,9 @@ export class BasicVmCore implements IVmAdmin {
     private currMode: number = 2;
     private readonly graphicsBuffer: string[] = [];
     private readonly graphicsPathBuffer: string[] = [];
-    private currGraphicsPen: number = 1;
+    private currGraphicsPen: number = -1;
     private graphicsX: number = 0;
-    private graphicsY: number = 0;
+    private graphicsY: number = 399;
 
     protected fnOnCls(): void {
         // override
@@ -53,7 +53,7 @@ export class BasicVmCore implements IVmAdmin {
         this.graphicsPathBuffer.length = 0;
         this.currGraphicsPen = -1;
         this.graphicsX = 0;
-        this.graphicsY = 0;
+        this.graphicsY = 399;
         this.fnOnCls();
     }
 
@@ -69,7 +69,7 @@ export class BasicVmCore implements IVmAdmin {
             ? `${isAbsolute ? "M" : "m"}${x} ${y}h1v1h-1v-1`
             : `${type}${x} ${y}`;
 	
-		if (!this.graphicsPathBuffer.length && svgPathCmd[0].toLowerCase() !== "m") {
+        if (!this.graphicsPathBuffer.length && svgPathCmd[0] !== "M") { // path must start with a absolute move
 			this.graphicsPathBuffer.push(`M${this.graphicsX} ${this.graphicsY}`);
 		}
 		this.graphicsPathBuffer.push(svgPathCmd);
@@ -85,7 +85,8 @@ export class BasicVmCore implements IVmAdmin {
 
     private flushGraphicsPath(): void {
         if (this.graphicsPathBuffer.length) {
-            this.graphicsBuffer.push(`<path stroke="${colorsForPens[this.currGraphicsPen]}" d="${this.graphicsPathBuffer.join("")}" />`);
+            const strokeStr = this.currGraphicsPen > 0 ? `stroke="${colorsForPens[this.currGraphicsPen]}" ` : "";
+            this.graphicsBuffer.push(`<path ${strokeStr}d="${this.graphicsPathBuffer.join("")}" />`);
             this.graphicsPathBuffer.length = 0;
         }
     }
