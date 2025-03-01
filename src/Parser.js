@@ -26,10 +26,11 @@ export class Parser {
         }
         return common;
     }
-    diffPartsEnd(oldInput, newInput, minCommon) {
+    diffPartsEnd(oldInput, newInput, start) {
         let common = newInput.length;
         const oldIndexDiff = oldInput.length - newInput.length;
-        while (common > (minCommon - oldIndexDiff) && oldInput[common - 1 + oldIndexDiff] === newInput[common - 1]) {
+        const minCommon = oldIndexDiff < 0 ? start - oldIndexDiff : start;
+        while (common > minCommon && oldInput[common - 1 + oldIndexDiff] === newInput[common - 1]) {
             common -= 1;
         }
         return common;
@@ -43,6 +44,7 @@ export class Parser {
         const oldEnd = oldInput.length - (input.length - end);
         try {
             if (start > 0) {
+                //console.log(`DEBUG: parseAndEval: (${start}, ${oldEnd}) “${oldInput.substring(start, oldEnd)}" => “${input.substring(start, end)}” (${start}, ${end})`);
                 matcher.replaceInputRange(start, oldEnd, input.substring(start, end));
             }
             else {

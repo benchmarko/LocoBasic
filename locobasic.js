@@ -31,10 +31,11 @@
             }
             return common;
         }
-        diffPartsEnd(oldInput, newInput, minCommon) {
+        diffPartsEnd(oldInput, newInput, start) {
             let common = newInput.length;
             const oldIndexDiff = oldInput.length - newInput.length;
-            while (common > (minCommon - oldIndexDiff) && oldInput[common - 1 + oldIndexDiff] === newInput[common - 1]) {
+            const minCommon = oldIndexDiff < 0 ? start - oldIndexDiff : start;
+            while (common > minCommon && oldInput[common - 1 + oldIndexDiff] === newInput[common - 1]) {
                 common -= 1;
             }
             return common;
@@ -48,6 +49,7 @@
             const oldEnd = oldInput.length - (input.length - end);
             try {
                 if (start > 0) {
+                    //console.log(`DEBUG: parseAndEval: (${start}, ${oldEnd}) “${oldInput.substring(start, oldEnd)}" => “${input.substring(start, end)}” (${start}, ${end})`);
                     matcher.replaceInputRange(start, oldEnd, input.substring(start, end));
                 }
                 else {
@@ -2309,9 +2311,9 @@
             this.currMode = 2;
             this.graphicsBuffer = [];
             this.graphicsPathBuffer = [];
-            this.currGraphicsPen = 1;
+            this.currGraphicsPen = -1;
             this.graphicsX = 0;
-            this.graphicsY = 0;
+            this.graphicsY = 399;
         }
         fnOnCls() {
             // override
@@ -2342,7 +2344,7 @@
             this.graphicsPathBuffer.length = 0;
             this.currGraphicsPen = -1;
             this.graphicsX = 0;
-            this.graphicsY = 0;
+            this.graphicsY = 399;
             this.fnOnCls();
         }
         drawMovePlot(type, x, y) {
@@ -2354,7 +2356,7 @@
             const svgPathCmd = isPlot
                 ? `${isAbsolute ? "M" : "m"}${x} ${y}h1v1h-1v-1`
                 : `${type}${x} ${y}`;
-            if (!this.graphicsPathBuffer.length && svgPathCmd[0].toLowerCase() !== "m") {
+            if (!this.graphicsPathBuffer.length && svgPathCmd[0] !== "M") { // path must start with a absolute move
                 this.graphicsPathBuffer.push(`M${this.graphicsX} ${this.graphicsY}`);
             }
             this.graphicsPathBuffer.push(svgPathCmd);
@@ -2369,7 +2371,8 @@
         }
         flushGraphicsPath() {
             if (this.graphicsPathBuffer.length) {
-                this.graphicsBuffer.push(`<path stroke="${colorsForPens[this.currGraphicsPen]}" d="${this.graphicsPathBuffer.join("")}" />`);
+                const strokeStr = this.currGraphicsPen > 0 ? `stroke="${colorsForPens[this.currGraphicsPen]}" ` : "";
+                this.graphicsBuffer.push(`<path ${strokeStr}d="${this.graphicsPathBuffer.join("")}" />`);
                 this.graphicsPathBuffer.length = 0;
             }
         }
