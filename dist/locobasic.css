@@ -1,10 +1,5 @@
 /* locobasic.css */
 
-/* for Safari (OS X) */
-textarea {
-  font-family: monospace;
-  }
-  
 .flexBox {
   float: left;
   padding: 2px;
@@ -14,6 +9,6 @@ textarea {
 }
 
 .CodeMirror {
-  width: 60em;
+  width: 51em;
   /* height: auto; */
 }

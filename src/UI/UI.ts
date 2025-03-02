@@ -47,8 +47,13 @@ export class UI implements IUI {
     private compiledCm?: Editor;
     private readonly keyBuffer: string[] = []; // buffered pressed keys
     private escape = false;
+    private fnOnKeyPressHandler: (event: KeyboardEvent) => void;
 
     private static getErrorEvent?: (s: string) => Promise<PlainErrorEventType>;
+
+    constructor() {
+        this.fnOnKeyPressHandler = (event: KeyboardEvent) => this.onOutputTextKeydown(event);
+    }
 
     private debounce<T extends (...args: unknown[]) => void | Promise<void>>(func: T, fngetDelay: () => number): (...args: Parameters<T>) => void {
         let timeoutId: ReturnType<typeof setTimeout>;
@@ -113,6 +118,40 @@ export class UI implements IUI {
         button.disabled = disabled;
     }
 
+    private toggleAreaHidden(id: string, editor?: Editor): boolean {
+        const area = document.getElementById(id) as HTMLDivElement;
+        area.hidden = !area.hidden;
+        if (!area.hidden && editor) {
+            editor.refresh();
+        }
+        return !area.hidden;
+    }
+
+    private setClearLeft(id: string, clearLeft: boolean): void {
+        const area = document.getElementById(id) as HTMLDivElement;
+        area.style.clear = clearLeft ? "left" : "";
+    }
+
+    private onBasicAreaButtonClick(_event: Event){ // eslint-disable-line @typescript-eslint/no-unused-vars
+        const basicVisible = this.toggleAreaHidden("basicAreaInner", this.basicCm);
+        const compiledAreaInner = document.getElementById("compiledAreaInner") as HTMLDivElement;
+        this.setClearLeft("compiledArea", !basicVisible || compiledAreaInner.hidden);
+    }
+
+    private onCompiledAreaButtonClick(_event: Event){ // eslint-disable-line @typescript-eslint/no-unused-vars
+        const compiledVisible = this.toggleAreaHidden("compiledAreaInner", this.compiledCm);
+        const basicAreaInner = document.getElementById("basicAreaInner") as HTMLDivElement;
+        this.setClearLeft("compiledArea", !compiledVisible || basicAreaInner.hidden);
+        const outputAreaInner = document.getElementById("outputAreaInner") as HTMLDivElement;
+        this.setClearLeft("outputArea", !compiledVisible || outputAreaInner.hidden);
+    }
+
+    private onOutputAreaButtonClick(_event: Event){ // eslint-disable-line @typescript-eslint/no-unused-vars
+        const outputVisible = this.toggleAreaHidden("outputAreaInner");
+        const compiledAreaInner = document.getElementById("compiledAreaInner") as HTMLDivElement;
+        this.setClearLeft("outputArea", !outputVisible || compiledAreaInner.hidden);
+    }
+
     private async onExecuteButtonClick(_event: Event): Promise<void> { // eslint-disable-line @typescript-eslint/no-unused-vars
         const core = this.getCore();
         if (!this.vm) {
@@ -123,7 +162,10 @@ export class UI implements IUI {
         this.setButtonDisabled("stopButton", false);
         this.escape = false;
         this.keyBuffer.length = 0;
+        const outputText = window.document.getElementById("outputText") as HTMLPreElement;
+        outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
         const output = await core.executeScript(compiledScript, this.vm) || "";
+        outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
         this.setButtonDisabled("executeButton", false);
         this.setButtonDisabled("stopButton", true);
         this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
@@ -186,15 +228,19 @@ export class UI implements IUI {
 
     private setExampleSelectOptions(examples: Record<string, string>): void {
         const exampleSelect = document.getElementById("exampleSelect") as HTMLSelectElement;
+        const maxTextLength = 35;
+        const regExp = /^(\d+ )?REM /;
 
         for (const key of Object.keys(examples)) {
             const script = examples[key];
             const firstLine = script.slice(0, script.indexOf("\n"));
+            const startsWithRem = regExp.test(firstLine);
+            const title = startsWithRem ? firstLine.replace(regExp, "") : firstLine;
 
             const option = window.document.createElement("option");
             option.value = key;
-            option.text = key;
-            option.title = firstLine;
+            option.text = startsWithRem ? title.substring(0, maxTextLength) : key;
+            option.title = title;
             option.selected = false;
             exampleSelect.add(option);
         }
@@ -345,9 +391,6 @@ export class UI implements IUI {
         const helpButton = window.document.getElementById("helpButton") as HTMLButtonElement;
         helpButton.addEventListener('click', () => this.onHelpButtonClick());
 
-        const outputText = window.document.getElementById("outputText") as HTMLPreElement;
-        outputText.addEventListener("keydown", (event) => this.onOutputTextKeydown(event), false);
-        
         const WinCodeMirror = window.CodeMirror;
         if (WinCodeMirror) {
             const basicEditor = window.document.getElementById("basicEditor") as HTMLElement;
@@ -364,6 +407,15 @@ export class UI implements IUI {
             });
             this.compiledCm.on('changes', this.debounce(() => this.onCompiledTextChange(), () => config.debounceExecute));
         }
+
+        const basicAreaButton = window.document.getElementById("basicAreaButton") as HTMLButtonElement;
+        basicAreaButton.addEventListener('click', (event) => this.onBasicAreaButtonClick(event), false);
+
+        const compiledAreaButton = window.document.getElementById("compiledAreaButton") as HTMLButtonElement;
+        compiledAreaButton.addEventListener('click', (event) => this.onCompiledAreaButtonClick(event), false);
+
+        const outputAreaButton = window.document.getElementById("outputAreaButton") as HTMLButtonElement;
+        outputAreaButton.addEventListener('click', (event) => this.onOutputAreaButtonClick(event), false);
 
         UI.asyncDelay(() => {
             const exampleObject = core.getExampleObject() || {};

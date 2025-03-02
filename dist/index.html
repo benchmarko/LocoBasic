@@ -4,27 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="locobasic.css">
-  <title>LocoBasic v0.1.48</title>
+  <title>LocoBasic v0.1.49</title>
 </head>
 
 <body>
   <div id="basicArea" class="flexBox">
-    <label for="basicEditor" title="LocoBasic input">LocoBasic</label>
+    <button id="basicAreaButton" class="legendButton" title="Show/Hide CPC">LocoBasic</button>
     <select id="exampleSelect" title="Load Example"></select>
     <button id="helpButton" title="Help">Help</button>
-    <br /> 
-    <div id="basicEditor" class="CodeMirror"></div>
-    <br /> 
+    <div id="basicAreaInner">
+      <div id="basicEditor" class="CodeMirror"></div>
+    </div>
     <input id="autoCompileInput" type="checkbox" title="automatic compile" checked>
     <label for="autoCompileInput" title="auto compile on change">Auto</label>
     <button id="compileButton" title="Compile to JavaScript">Compile</button>
   </div>
 
   <div id="compiledArea" class="flexBox">
-    <label for="compiledEditor" title="Compiled Script">JavaScript</label>
-    <br />
-    <div id="compiledEditor" class="CodeMirror"></div>
-    <br />
+    <button id="compiledAreaButton" class="legendButton" title="Show/Hide JavaScript">JavaScript</button>
+    <div id="compiledAreaInner">
+      <div id="compiledEditor" class="CodeMirror"></div>
+    </div>
     <input id="autoExecuteInput" type="checkbox" title="automatic execute" checked>
     <label for="autoExecuteInput" title="auto execute on change">Auto</label>
     <button id="executeButton" title="Execute JavaScript">Execute</button>
@@ -32,9 +32,10 @@
   </div>
 
   <div id="outputArea" class="flexBox">
-    <label for="outputText" title="output">Output</label>
-    <br />
-    <pre id="outputText" contenteditable="true" spellcheck="false" autocomplete="off" autocapitalize="off" style="overflow:auto; width: 604px; height: 30em; margin: 0px; background-color: #ffffff"></pre>
+    <button id="outputAreaButton" class="legendButton" title="Show/Hide Output">Output</button>
+    <div id="outputAreaInner">
+      <pre id="outputText" contenteditable="true" spellcheck="false" autocomplete="off" autocapitalize="off" style="overflow:auto; width: 604px; height: 30em; margin: 0px; background-color: #ffffff"></pre>
+    </div>
   </div>
 
   <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
