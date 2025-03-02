@@ -6,7 +6,9 @@ export declare class UI implements IUI {
     private compiledCm?;
     private readonly keyBuffer;
     private escape;
+    private fnOnKeyPressHandler;
     private static getErrorEvent?;
+    constructor();
     private debounce;
     private static asyncDelay;
     private getCore;
@@ -22,6 +24,11 @@ export declare class UI implements IUI {
      */
     prompt(msg: string): string | null;
     private setButtonDisabled;
+    private toggleAreaHidden;
+    private setClearLeft;
+    private onBasicAreaButtonClick;
+    private onCompiledAreaButtonClick;
+    private onOutputAreaButtonClick;
     private onExecuteButtonClick;
     private onCompiledTextChange;
     private onCompileButtonClick;

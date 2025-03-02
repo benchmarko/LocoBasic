@@ -29,6 +29,7 @@
         constructor() {
             this.keyBuffer = []; // buffered pressed keys
             this.escape = false;
+            this.fnOnKeyPressHandler = (event) => this.onOutputTextKeydown(event);
         }
         debounce(func, fngetDelay) {
             let timeoutId;
@@ -83,6 +84,35 @@
             const button = window.document.getElementById(id);
             button.disabled = disabled;
         }
+        toggleAreaHidden(id, editor) {
+            const area = document.getElementById(id);
+            area.hidden = !area.hidden;
+            if (!area.hidden && editor) {
+                editor.refresh();
+            }
+            return !area.hidden;
+        }
+        setClearLeft(id, clearLeft) {
+            const area = document.getElementById(id);
+            area.style.clear = clearLeft ? "left" : "";
+        }
+        onBasicAreaButtonClick(_event) {
+            const basicVisible = this.toggleAreaHidden("basicAreaInner", this.basicCm);
+            const compiledAreaInner = document.getElementById("compiledAreaInner");
+            this.setClearLeft("compiledArea", !basicVisible || compiledAreaInner.hidden);
+        }
+        onCompiledAreaButtonClick(_event) {
+            const compiledVisible = this.toggleAreaHidden("compiledAreaInner", this.compiledCm);
+            const basicAreaInner = document.getElementById("basicAreaInner");
+            this.setClearLeft("compiledArea", !compiledVisible || basicAreaInner.hidden);
+            const outputAreaInner = document.getElementById("outputAreaInner");
+            this.setClearLeft("outputArea", !compiledVisible || outputAreaInner.hidden);
+        }
+        onOutputAreaButtonClick(_event) {
+            const outputVisible = this.toggleAreaHidden("outputAreaInner");
+            const compiledAreaInner = document.getElementById("compiledAreaInner");
+            this.setClearLeft("outputArea", !outputVisible || compiledAreaInner.hidden);
+        }
         async onExecuteButtonClick(_event) {
             const core = this.getCore();
             if (!this.vm) {
@@ -93,7 +123,10 @@
             this.setButtonDisabled("stopButton", false);
             this.escape = false;
             this.keyBuffer.length = 0;
+            const outputText = window.document.getElementById("outputText");
+            outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
             const output = await core.executeScript(compiledScript, this.vm) || "";
+            outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
             this.setButtonDisabled("executeButton", false);
             this.setButtonDisabled("stopButton", true);
             this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
@@ -147,13 +180,17 @@
         }
         setExampleSelectOptions(examples) {
             const exampleSelect = document.getElementById("exampleSelect");
+            const maxTextLength = 35;
+            const regExp = /^(\d+ )?REM /;
             for (const key of Object.keys(examples)) {
                 const script = examples[key];
                 const firstLine = script.slice(0, script.indexOf("\n"));
+                const startsWithRem = regExp.test(firstLine);
+                const title = startsWithRem ? firstLine.replace(regExp, "") : firstLine;
                 const option = window.document.createElement("option");
                 option.value = key;
-                option.text = key;
-                option.title = firstLine;
+                option.text = startsWithRem ? title.substring(0, maxTextLength) : key;
+                option.title = title;
                 option.selected = false;
                 exampleSelect.add(option);
             }
@@ -276,8 +313,6 @@
             exampleSelect.addEventListener('change', (event) => this.onExampleSelectChange(event));
             const helpButton = window.document.getElementById("helpButton");
             helpButton.addEventListener('click', () => this.onHelpButtonClick());
-            const outputText = window.document.getElementById("outputText");
-            outputText.addEventListener("keydown", (event) => this.onOutputTextKeydown(event), false);
             const WinCodeMirror = window.CodeMirror;
             if (WinCodeMirror) {
                 const basicEditor = window.document.getElementById("basicEditor");
@@ -293,6 +328,12 @@
                 });
                 this.compiledCm.on('changes', this.debounce(() => this.onCompiledTextChange(), () => config.debounceExecute));
             }
+            const basicAreaButton = window.document.getElementById("basicAreaButton");
+            basicAreaButton.addEventListener('click', (event) => this.onBasicAreaButtonClick(event), false);
+            const compiledAreaButton = window.document.getElementById("compiledAreaButton");
+            compiledAreaButton.addEventListener('click', (event) => this.onCompiledAreaButtonClick(event), false);
+            const outputAreaButton = window.document.getElementById("outputAreaButton");
+            outputAreaButton.addEventListener('click', (event) => this.onOutputAreaButtonClick(event), false);
             UI.asyncDelay(() => {
                 const exampleObject = core.getExampleObject() || {};
                 this.setExampleSelectOptions(exampleObject);
