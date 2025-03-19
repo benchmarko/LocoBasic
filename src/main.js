@@ -6,7 +6,7 @@ const core = new Core({
     databaseDirs: "examples,https://benchmarko.github.io/CPCBasicApps/rosetta", // example base directories (comma separated)
     database: "examples", // examples, apps, saved
     debug: 0,
-    example: "",
+    example: "locobas",
     fileName: "",
     grammar: "basic", // basic or strict
     input: "",

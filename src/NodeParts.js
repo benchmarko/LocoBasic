@@ -64,11 +64,9 @@ export class NodeParts {
         return new Promise((resolve, reject) => {
             nodeHttps.get(url, (resp) => {
                 let data = "";
-                // A chunk of data has been received.
                 resp.on("data", (chunk) => {
                     data += chunk;
                 });
-                // The whole response has been received. Print out the result.
                 resp.on("end", () => {
                     resolve(data);
                 });
@@ -135,7 +133,6 @@ export class NodeParts {
         this.keyBuffer.push(key);
     }
     fnOnKeypress(_chunk, key) {
-        //console.log(`DEBUG: You pressed the key: '${_chunk}'`, key);
         if (key) {
             const keySequenceCode = key.sequence.charCodeAt(0);
             if (key.name === 'c' && key.ctrl === true) {
@@ -212,8 +209,7 @@ export class NodeParts {
             const jsFile = await this.loadScript(scriptName);
             const fnScript = new Function("cpcBasic", jsFile);
             fnScript({
-                addIndex: core.addIndex,
-                addItem: core.addItem
+                addIndex: core.addIndex
             });
         }
         catch (error) {
@@ -231,7 +227,6 @@ export class NodeParts {
             const jsFile = await this.loadScript(scriptName);
             const fnScript = new Function("cpcBasic", jsFile);
             fnScript({
-                addIndex: core.addIndex,
                 addItem: (key, input) => {
                     if (!key) { // maybe ""
                         key = example.key;
@@ -268,7 +263,7 @@ export class NodeParts {
                 if (!isUrl(databaseItem.source)) {
                     databaseItem.source = this.nodeGetAbsolutePath(databaseItem.source);
                 }
-                /* const exampleMap = */ await this.getExampleMap(databaseItem, core);
+                await this.getExampleMap(databaseItem, core);
                 const exampleName = config.example;
                 const example = core.getExample(exampleName);
                 const script = await this.getExampleScript(example, core);
@@ -279,12 +274,24 @@ export class NodeParts {
     static getHelpString() {
         return `
 Usage:
-node dist/locobasic.js [action='compile,run'] [input=<statements>] [example=<name>] [fileName=<file>] [grammar=<name>] [debug=0] [debounceCompile=800] [debounceExecute=400]
+node dist/locobasic.js [<option=<value(s)>] [<option=<value(s)>]
+
+- Options:
+action=compile,run
+databaseDirs=examples,...
+database=examples
+debounceCompile=800
+debounceExecute=400
+debug=0
+example=euler
+fileName=<file>
+grammar=<name>
+input=<statements>
 
 - Examples for compile and run:
 node dist/locobasic.js input='PRINT "Hello!"'
 npx ts-node dist/locobasic.js input='PRINT "Hello!"'
-node dist/locobasic.js input='?3 + 5 * (2 - 8)'
+node dist/locobasic.js input='?3 + 5 * (2 - 8)' example=''
 node dist/locobasic.js example=euler
 node dist/locobasic.js fileName=dist/examples/example.bas
 node dist/locobasic.js grammar='strict' input='a$="Bob":PRINT "Hello ";a$;"!"'

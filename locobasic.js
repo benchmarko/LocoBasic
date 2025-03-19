@@ -2214,15 +2214,8 @@
             this.addItem = (key, input) => {
                 let inputString = typeof input !== "string" ? fnHereDoc(input) : input;
                 inputString = inputString.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
-                /*
                 if (!key) { // maybe ""
-                    const firstLine = inputString.slice(0, inputString.indexOf("\n"));
-                    const matches = firstLine.match(/^\s*\d*\s*(?:REM|rem|')\s*(\w+)/);
-                    key = matches ? matches[1] : "unknown";
-                }
-                */
-                if (!key) { // maybe ""
-                    console.warn("addItem: no key:", key);
+                    console.warn("addItem: no key!");
                     key = "unknown";
                 }
                 const example = this.getExample(key);
@@ -2264,7 +2257,6 @@
         }
         setExampleMap(exampleMap) {
             this.databaseMap[this.config.database].exampleMap = exampleMap;
-            //this.exampleMap = exampleMap;
         }
         getExample(name) {
             const exampleMap = this.getExampleMap();
@@ -2302,14 +2294,10 @@
                 const fnScript = new Function("_o", compiledScript);
                 const result = fnScript(vm) || "";
                 if (result instanceof Promise) {
-                    output = await result;
-                    vm.flush();
-                    output = vm.getOutput() || "";
+                    await result;
                 }
-                else {
-                    vm.flush();
-                    output = vm.getOutput() || "";
-                }
+                vm.flush();
+                output = vm.getOutput() || "";
             }
             catch (error) {
                 output = vm.getOutput() || "";
@@ -2626,11 +2614,9 @@
             return new Promise((resolve, reject) => {
                 nodeHttps.get(url, (resp) => {
                     let data = "";
-                    // A chunk of data has been received.
                     resp.on("data", (chunk) => {
                         data += chunk;
                     });
-                    // The whole response has been received. Print out the result.
                     resp.on("end", () => {
                         resolve(data);
                     });
@@ -2697,7 +2683,6 @@
             this.keyBuffer.push(key);
         }
         fnOnKeypress(_chunk, key) {
-            //console.log(`DEBUG: You pressed the key: '${_chunk}'`, key);
             if (key) {
                 const keySequenceCode = key.sequence.charCodeAt(0);
                 if (key.name === 'c' && key.ctrl === true) {
@@ -2774,8 +2759,7 @@
                 const jsFile = await this.loadScript(scriptName);
                 const fnScript = new Function("cpcBasic", jsFile);
                 fnScript({
-                    addIndex: core.addIndex,
-                    addItem: core.addItem
+                    addIndex: core.addIndex
                 });
             }
             catch (error) {
@@ -2793,7 +2777,6 @@
                 const jsFile = await this.loadScript(scriptName);
                 const fnScript = new Function("cpcBasic", jsFile);
                 fnScript({
-                    addIndex: core.addIndex,
                     addItem: (key, input) => {
                         if (!key) { // maybe ""
                             key = example.key;
@@ -2830,7 +2813,7 @@
                     if (!isUrl(databaseItem.source)) {
                         databaseItem.source = this.nodeGetAbsolutePath(databaseItem.source);
                     }
-                    /* const exampleMap = */ await this.getExampleMap(databaseItem, core);
+                    await this.getExampleMap(databaseItem, core);
                     const exampleName = config.example;
                     const example = core.getExample(exampleName);
                     const script = await this.getExampleScript(example, core);
@@ -2841,12 +2824,24 @@
         static getHelpString() {
             return `
 Usage:
-node dist/locobasic.js [action='compile,run'] [input=<statements>] [example=<name>] [fileName=<file>] [grammar=<name>] [debug=0] [debounceCompile=800] [debounceExecute=400]
+node dist/locobasic.js [<option=<value(s)>] [<option=<value(s)>]
+
+- Options:
+action=compile,run
+databaseDirs=examples,...
+database=examples
+debounceCompile=800
+debounceExecute=400
+debug=0
+example=euler
+fileName=<file>
+grammar=<name>
+input=<statements>
 
 - Examples for compile and run:
 node dist/locobasic.js input='PRINT "Hello!"'
 npx ts-node dist/locobasic.js input='PRINT "Hello!"'
-node dist/locobasic.js input='?3 + 5 * (2 - 8)'
+node dist/locobasic.js input='?3 + 5 * (2 - 8)' example=''
 node dist/locobasic.js example=euler
 node dist/locobasic.js fileName=dist/examples/example.bas
 node dist/locobasic.js grammar='strict' input='a$="Bob":PRINT "Hello ";a$;"!"'
@@ -2928,7 +2923,7 @@ node hello1.js
         databaseDirs: "examples,https://benchmarko.github.io/CPCBasicApps/rosetta", // example base directories (comma separated)
         database: "examples", // examples, apps, saved
         debug: 0,
-        example: "",
+        example: "locobas",
         fileName: "",
         grammar: "basic", // basic or strict
         input: "",

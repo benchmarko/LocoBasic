@@ -27,15 +27,8 @@ export class Core {
         this.addItem = (key, input) => {
             let inputString = typeof input !== "string" ? fnHereDoc(input) : input;
             inputString = inputString.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
-            /*
             if (!key) { // maybe ""
-                const firstLine = inputString.slice(0, inputString.indexOf("\n"));
-                const matches = firstLine.match(/^\s*\d*\s*(?:REM|rem|')\s*(\w+)/);
-                key = matches ? matches[1] : "unknown";
-            }
-            */
-            if (!key) { // maybe ""
-                console.warn("addItem: no key:", key);
+                console.warn("addItem: no key!");
                 key = "unknown";
             }
             const example = this.getExample(key);
@@ -77,7 +70,6 @@ export class Core {
     }
     setExampleMap(exampleMap) {
         this.databaseMap[this.config.database].exampleMap = exampleMap;
-        //this.exampleMap = exampleMap;
     }
     getExample(name) {
         const exampleMap = this.getExampleMap();
@@ -115,14 +107,10 @@ export class Core {
             const fnScript = new Function("_o", compiledScript);
             const result = fnScript(vm) || "";
             if (result instanceof Promise) {
-                output = await result;
-                vm.flush();
-                output = vm.getOutput() || "";
+                await result;
             }
-            else {
-                vm.flush();
-                output = vm.getOutput() || "";
-            }
+            vm.flush();
+            output = vm.getOutput() || "";
         }
         catch (error) {
             output = vm.getOutput() || "";
