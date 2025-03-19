@@ -1,4 +1,4 @@
-import type { ConfigEntryType, ConfigType, ICore, IVm, IVmAdmin } from "./Interfaces";
+import type { ConfigEntryType, ConfigType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore, IVm, IVmAdmin } from "./Interfaces";
 import { Parser } from "./Parser";
 import { arithmetic } from "./arithmetic";
 import { Semantics } from "./Semantics";
@@ -10,7 +10,8 @@ function fnHereDoc(fn: () => void) {
 export class Core implements ICore {
     private config: ConfigType;
     private readonly semantics = new Semantics();
-    private readonly examples: Record<string, string> = {};
+    private readonly databaseMap: DatabaseMapType = {};
+    //private exampleMap: ExampleMapType = {}; // usually examples[database]
     private arithmeticParser: Parser | undefined;
 
     constructor(defaultConfig: ConfigType) {
@@ -23,16 +24,47 @@ export class Core implements ICore {
         return this.config;
     }
 
-    public getExampleObject(): Record<string, string> {
-        return this.examples;
+    public initDatabaseMap(): DatabaseMapType {
+        const databaseDirs = this.config.databaseDirs.split(",");
+
+        for (const source of databaseDirs) {
+            const parts = source.split("/");
+            const key = parts[parts.length - 1];
+
+            this.databaseMap[key] = {
+                key,
+				source,
+                exampleMap: undefined
+			};
+		}
+        return this.databaseMap;
     }
 
-    public setExample(name: string, script: string): void {
-        this.examples[name] = script;
+    public getDatabaseMap(): DatabaseMapType {
+        return this.databaseMap;
     }
 
-    public getExample(name: string): string {
-        return this.examples[name];
+    public getDatabase(): DatabaseType {
+        return this.databaseMap[this.config.database];
+    }
+
+    public getExampleMap(): ExampleMapType {
+        const exampleMap = this.databaseMap[this.config.database].exampleMap;
+        if (!exampleMap) {
+            console.error("getExampleMap: Undefined exampleMap for database", this.config.database);
+            return {};
+        }
+        return exampleMap;
+    }
+
+    public setExampleMap(exampleMap: ExampleMapType): void {
+        this.databaseMap[this.config.database].exampleMap = exampleMap;
+        //this.exampleMap = exampleMap;
+    }
+
+    public getExample(name: string): ExampleType {
+        const exampleMap = this.getExampleMap();
+        return exampleMap[name];
     }
 
     public setOnCheckSyntax(fn: (s: string) => Promise<string>): void {
@@ -99,17 +131,44 @@ export class Core implements ICore {
         return output;
     }
 
+    public addIndex = (dir: string, input: Record<string, ExampleType[]> | (() => void)): void => { // need property function because we need bound "this"
+		if (typeof input === "function") {
+			input = {
+				[dir]: JSON.parse(fnHereDoc(input).trim())
+			};
+        }
+
+        const exampleMap: ExampleMapType = {};
+        for (const value in input) {
+            const item = input[value] as ExampleType[];
+
+            for (let i = 0; i < item.length; i += 1) {
+                exampleMap[item[i].key] = item[i];
+            }
+        }
+        this.setExampleMap(exampleMap);
+	};
+
     public addItem = (key: string, input: string | (() => void)): void => { // need property function because we need bound "this"
         let inputString = typeof input !== "string" ? fnHereDoc(input) : input;
         inputString = inputString.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
 
+        /*
         if (!key) { // maybe ""
             const firstLine = inputString.slice(0, inputString.indexOf("\n"));
             const matches = firstLine.match(/^\s*\d*\s*(?:REM|rem|')\s*(\w+)/);
             key = matches ? matches[1] : "unknown";
         }
+        */
+        if (!key) { // maybe ""
+            console.warn("addItem: no key:", key);
+            key = "unknown";
+        }
 
-        this.setExample(key, inputString);
+        const example = this.getExample(key);
+        if (example) {
+            example.script = inputString;
+        }
     };
 
     public parseArgs(args: string[], config: Record<string, ConfigEntryType>): Record<string, ConfigEntryType> {

@@ -1,8 +1,26 @@
 export type ConfigEntryType = string | number | boolean;
-export type ExampleType = Record<string, string>;
+
+export interface ExampleType {
+	key: string
+	title: string
+	meta: string // D=data
+	script?: string
+}
+
+export type ExampleMapType = Record<string, ExampleType>;
+
+export interface DatabaseType {
+	key: string
+    source: string,
+	exampleMap?: ExampleMapType
+}
+
+export type DatabaseMapType = Record<string, DatabaseType>;
 
 export type ConfigType = {
     action: string; // "compile,run"
+    databaseDirs: string, // example base directories (comma separated)
+	database: string, // examples, apps, saved
     debug: number;
     example: string;
     fileName: string;
@@ -33,12 +51,17 @@ export interface IVmAdmin extends IVm {
 
 export interface ICore {
     getConfigObject(): ConfigType;
-    getExampleObject(): ExampleType;
-    getExample(name: string): string;
-    setExample(key: string, script: string): void;
+    initDatabaseMap(): DatabaseMapType;
+    getDatabaseMap(): DatabaseMapType;
+    getDatabase(): DatabaseType;
+    getExampleMap(): ExampleMapType;
+    setExampleMap(exampleMap: ExampleMapType): void;
+    getExample(name: string): ExampleType;
+    //setExample(key: string, example: ExampleType): void;
     compileScript(script: string): string;
     executeScript(compiledScript: string, vm: IVmAdmin): Promise<string>;
     setOnCheckSyntax(fn: (s: string) => Promise<string>): void;
+    addIndex: (dir: string, input: Record<string, ExampleType[]> | (() => void)) => void;
     addItem(key: string, input: string | (() => void)): void;
     parseArgs(args: string[], config: Record<string, ConfigEntryType>): void;
 }
@@ -49,6 +72,7 @@ export interface INodeParts {
 }
 
 export interface IUI {
+    getCurrentDataKey() : string;
     onWindowLoadContinue(core: ICore, vm: IVmAdmin): void;
     getEscape(): boolean;
     addOutputText(value: string): void;

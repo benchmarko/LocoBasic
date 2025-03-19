@@ -1,5 +1,5 @@
 import type { Editor } from 'codemirror';
-import type { ConfigEntryType, ICore, IUI, IVmAdmin } from "../Interfaces";
+import type { ConfigEntryType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore, IUI, IVmAdmin } from "../Interfaces";
 
 // Worker:
 type PlainErrorEventType = {
@@ -83,6 +83,44 @@ export class UI implements IUI {
 
     public getEscape() {
         return this.escape;
+    }
+
+    private async fnLoadScriptOrStyle(script: HTMLScriptElement | HTMLLinkElement): Promise<string> {
+        return new Promise((resolve, reject) => {
+            const onScriptLoad = function (event: Event) {
+				const type = event.type; // "load" or "error"
+				const node = event.currentTarget as HTMLScriptElement | HTMLLinkElement;
+				const key = node.getAttribute("data-key") as string;
+
+				node.removeEventListener("load", onScriptLoad, false);
+				node.removeEventListener("error", onScriptLoad, false);
+
+				if (type === "load") {
+					resolve(key);
+				} else {
+					reject(key);
+				}
+			};
+            script.addEventListener("load", onScriptLoad, false);
+            script.addEventListener("error", onScriptLoad, false);
+            document.getElementsByTagName("head")[0].appendChild(script);
+        });
+	}
+
+	private async loadScript(url: string, key: string): Promise<string> {
+		const script = document.createElement("script");
+
+		script.type = "text/javascript";
+		script.async = true;
+		script.src = url;
+
+		script.setAttribute("data-key", key);
+
+		return this.fnLoadScriptOrStyle(script);
+	}
+
+    public getCurrentDataKey() : string {
+        return document.currentScript && document.currentScript.getAttribute("data-key") || "";
     }
 
     public addOutputText(value: string): void {
@@ -210,39 +248,109 @@ export class UI implements IUI {
         }
     }
 
-    private setExampleSelect(name: string): void {
-        const exampleSelect = document.getElementById("exampleSelect") as HTMLSelectElement;
-        exampleSelect.value = name;
+    private async getExampleScript(example: ExampleType) {
+        if (example.script !== undefined) {
+            return example.script;
+        }
+        const core = this.getCore();
+        const database = core.getDatabase();
+        const scriptName = database.source + "/" + example.key + ".js";
+        try {
+            await this.loadScript(scriptName, example.key);
+        } catch (error) {
+            console.error("Load Example", scriptName, error);
+        }
+        return example.script || ""; //TTT
     }
 
-    private onExampleSelectChange(event: Event): void {
+    private async onExampleSelectChange(event: Event): Promise<void> {
         const core = this.getCore();
-        const exampleSelect = event.target as HTMLSelectElement;
-        const value = core.getExample(exampleSelect.value) || "";
+
         this.setOutputText("");
 
-        if (this.basicCm) {
-            this.basicCm.setValue(value);
+        const exampleSelect = event.target as HTMLSelectElement;
+        const exampleName = exampleSelect.value;
+        const example = core.getExample(exampleName); //.script || "";
+
+        if (example) {
+            const script = await this.getExampleScript(example);
+       
+            if (this.basicCm) {
+                this.basicCm.setValue(script);
+            }
+        } else {
+            console.warn("onExampleSelectChange: example not found:", exampleName);
         }
     }
 
-    private setExampleSelectOptions(examples: Record<string, string>): void {
+    private setExampleSelectOptions(exampleMap: ExampleMapType, exampleKey: string): void {
+        const maxTitleLength = 160;
+		const maxTextLength = 60; // (32 visible?)
         const exampleSelect = document.getElementById("exampleSelect") as HTMLSelectElement;
-        const maxTextLength = 35;
-        const regExp = /^(\d+ )?REM /;
+        exampleSelect.options.length = 0;
 
-        for (const key of Object.keys(examples)) {
-            const script = examples[key];
-            const firstLine = script.slice(0, script.indexOf("\n"));
-            const startsWithRem = regExp.test(firstLine);
-            const title = startsWithRem ? firstLine.replace(regExp, "") : firstLine;
+        for (const key of Object.keys(exampleMap)) {
+            const example = exampleMap[key];
+
+            if (example.meta !== "D") { // skip data files
+                const title = (key + ": " + example.title).substring(0, maxTitleLength);
+                const option = window.document.createElement("option");
+                option.value = key;
+                option.text = title.substring(0, maxTextLength);
+                option.title = title;
+                option.selected = key === exampleKey;
+                exampleSelect.add(option);
+            }
+        }
+    }
+
+    private async getExampleMap(databaseItem: DatabaseType) {
+        if (databaseItem.exampleMap) {
+            return databaseItem.exampleMap;
+        }
+        databaseItem.exampleMap = {};
+        const scriptName = databaseItem.source + "/0index.js";
+        try {
+            await this.loadScript(scriptName, "0index");
+        } catch (error) {
+            console.error("Load Example Map ", scriptName, error);
+        }
+        return databaseItem.exampleMap;
+    }
+
+    private async onDatabaseSelectChange(event: Event): Promise<void> {
+        const core = this.getCore();
+        const databaseSelect = event.target as HTMLSelectElement;
+
+        const database = databaseSelect.value;
+        const config = core.getConfigObject();
+        config.database = database;
+
+        const databaseMap = core.getDatabaseMap();
+        const databaseItem = databaseMap[database];
+
+        const exampleMap = await this.getExampleMap(databaseItem);
+
+
+        this.setExampleSelectOptions(exampleMap, config.example);
+        
+        const exampleSelect = window.document.getElementById("exampleSelect") as HTMLSelectElement;
+        exampleSelect.dispatchEvent(new Event('change'));
+    }
+
+    private setDatabaseSelectOptions(databaseMap: DatabaseMapType, database: string): void {
+        const databaseSelect = document.getElementById("databaseSelect") as HTMLSelectElement;
+        databaseSelect.options.length = 0;
+
+        for (const key of Object.keys(databaseMap)) {
+            const example = databaseMap[key];
 
             const option = window.document.createElement("option");
             option.value = key;
-            option.text = startsWithRem ? title.substring(0, maxTextLength) : key;
-            option.title = title;
-            option.selected = false;
-            exampleSelect.add(option);
+            option.text = key;
+            option.title = example.source;
+            option.selected = key === database;
+            databaseSelect.add(option);
         }
     }
 
@@ -385,6 +493,9 @@ export class UI implements IUI {
         const stopButton = window.document.getElementById("stopButton") as HTMLButtonElement;
         stopButton.addEventListener('click', (event) => this.onStopButtonClick(event), false);
 
+        const databaseSelect = window.document.getElementById("databaseSelect") as HTMLSelectElement;
+        databaseSelect.addEventListener('change', (event) => this.onDatabaseSelectChange(event));
+
         const exampleSelect = window.document.getElementById("exampleSelect") as HTMLSelectElement;
         exampleSelect.addEventListener('change', (event) => this.onExampleSelectChange(event));
 
@@ -418,14 +529,10 @@ export class UI implements IUI {
         outputAreaButton.addEventListener('click', (event) => this.onOutputAreaButtonClick(event), false);
 
         UI.asyncDelay(() => {
-            const exampleObject = core.getExampleObject() || {};
-            this.setExampleSelectOptions(exampleObject);
+            const databaseMap = core.initDatabaseMap();
+            this.setDatabaseSelectOptions(databaseMap, config.database);
+            databaseSelect.dispatchEvent(new Event('change'));
 
-            const example = config.example;
-            if (example) {
-                this.setExampleSelect(example);
-            }
-            exampleSelect.dispatchEvent(new Event('change'));
         }, 10);
     }
 }

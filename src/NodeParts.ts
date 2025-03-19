@@ -1,10 +1,20 @@
-import { ICore, IVm, IVmAdmin } from "./Interfaces";
+import { DatabaseType, ExampleType, ICore, IVm, IVmAdmin } from "./Interfaces";
 import { BasicVmNode } from "./BasicVmNode";
+
+interface NodePath {
+    dirname: (dirname: string) => string;
+    resolve: (dirname: string, name: string) => string;
+}
 
 interface NodeFs {
     promises: {
         readFile(name: string, encoding: string): Promise<string>
     };
+}
+
+interface NodeHttps {
+    get: (url: string, resp: (res: any) => void) => NodeHttps;
+    on: (rtype: string, fn: any) => NodeHttps;
 }
 
 interface NodeReadline {
@@ -23,7 +33,7 @@ type NodeKeyPressType = {
     shift: boolean;
 }
 
-declare function require(name: string): NodeFs | NodeModule | NodeReadline | NodeVm;
+declare function require(name: string): NodeFs | NodeHttps | NodeModule | NodePath | NodeReadline | NodeVm;
 
 interface DummyVm extends IVm {
     _output: string;
@@ -47,8 +57,14 @@ const dummyVm: DummyVm = {
     getEscape() { return false; }
 };
 
+function isUrl(s: string) {
+    return s.startsWith("http"); // http or https
+}
+
 export class NodeParts {
+    private nodePath?: NodePath;
     private nodeFs?: NodeFs;
+    private nodeHttps?: NodeHttps;
     private modulePath = "";
     private nodeVm?: NodeVm;
     private nodeReadline?: NodeReadline;
@@ -56,12 +72,25 @@ export class NodeParts {
     private escape = false;
     private fnOnKeyPressHandler?: (chunk: string, key: NodeKeyPressType) => void;
 
+    private nodeGetAbsolutePath(name: string) {
+        if (!this.nodePath) {
+            this.nodePath = require("path") as NodePath;
+        }
+        const path = this.nodePath;
+    
+        // https://stackoverflow.com/questions/8817423/why-is-dirname-not-defined-in-node-repl
+        const dirname = __dirname || (path as any).dirname(__filename);
+        const absolutePath = path.resolve(dirname, name);
+    
+        return absolutePath;
+    }
+
     private async nodeReadFile(name: string): Promise<string> {
         if (!this.nodeFs) {
             this.nodeFs = require("fs") as NodeFs;
         }
 
-        if (!module) {
+        if (!module) { //TTT
             const module = require("module") as NodeModule;
             this.modulePath = module.path || "";
 
@@ -76,6 +105,40 @@ export class NodeParts {
             throw error;
         }
     }
+
+    private async nodeReadUrl(url: string): Promise<string> {
+        if (!this.nodeHttps) {
+            this.nodeHttps = require("https") as NodeHttps;
+        }
+        const nodeHttps = this.nodeHttps;
+
+        return new Promise((resolve, reject) => {
+            nodeHttps.get(url, (resp) => {
+                let data = "";
+
+                // A chunk of data has been received.
+                resp.on("data", (chunk: string) => {
+                    data += chunk;
+                });
+
+                // The whole response has been received. Print out the result.
+                resp.on("end", () => {
+                    resolve(data);
+                });
+            }).on("error", (err: Error) => {
+                console.error("Error: " + err.message);
+                reject(err);
+            });
+        });
+    }
+
+    private loadScript(fileOrUrl: string): Promise<string> {
+        if (isUrl(fileOrUrl)) {
+            return this.nodeReadUrl(fileOrUrl);
+        } else {
+            return this.nodeReadFile(fileOrUrl);
+        }
+    };
 
     private keepRunning(fn: () => void, timeout: number): Promise<void> {
         const timerId = setTimeout(() => { }, timeout);
@@ -203,37 +266,85 @@ export class NodeParts {
         }
     }
 
+    private async getExampleMap(databaseItem: DatabaseType, core: ICore) {
+        if (databaseItem.exampleMap) {
+            return databaseItem.exampleMap;
+        }
+        databaseItem.exampleMap = {};
+        const scriptName = databaseItem.source + "/0index.js";
+        try {
+            const jsFile = await this.loadScript(scriptName);
+            const fnScript = new Function("cpcBasic", jsFile);
+            fnScript({
+                addIndex: core.addIndex,
+                addItem: core.addItem
+            });
+        } catch (error) {
+            console.error("Load Example Map ", scriptName, error);
+        }
+        return databaseItem.exampleMap;
+    }
+
+    private async getExampleScript(example: ExampleType, core: ICore) {
+        if (example.script !== undefined) {
+            return example.script;
+        }
+        const database = core.getDatabase();
+        const scriptName = database.source + "/" + example.key + ".js";
+        try {
+            const jsFile = await this.loadScript(scriptName);
+            const fnScript = new Function("cpcBasic", jsFile);
+            fnScript({
+                addIndex: core.addIndex,
+                addItem: (key: string, input: string | (() => void)) => {
+                    if (!key) { // maybe ""
+                        key = example.key;
+                    }
+                    core.addItem(key, input);
+                }
+            });
+        } catch (error) {
+            console.error("Load Example", scriptName, error);
+        }
+        return example.script || ""; //TTT
+
+    }
+
     public async nodeMain(core: ICore): Promise<void> {
         const vm = new BasicVmNode(this);
         const config = core.getConfigObject();
         core.parseArgs(global.process.argv.slice(2), config);
 
-        let input = config.input || "";
+        const input = config.input || "";
 
         if (config.fileName) {
             return this.keepRunning(async () => {
-                input = await this.nodeReadFile(config.fileName);
-                this.start(core, vm, input);
+                const input2 = await this.nodeReadFile(config.fileName);
+                this.start(core, vm, input + input2);
             }, 5000);
-        } else {
-            if (config.example) {
-                return this.keepRunning(async () => {
-                    const jsFile = await this.nodeReadFile("./dist/examples/examples.js");
-                    const fnScript = new Function("cpcBasic", jsFile);
-                    fnScript({
-                        addItem: core.addItem
-                    });
+        }
 
-                    const exampleScript = core.getExample(config.example);
-                    if (!exampleScript) {
-                        console.error(`ERROR: Example '${config.example}' not found.`);
-                        return;
-                    }
-                    input = exampleScript;
-                    this.start(core, vm, input);
-                }, 5000);
+        if (config.example) {
+            const databaseMap = core.initDatabaseMap();
+            const database = config.database;
+            const databaseItem = databaseMap[database];
+
+            if (!databaseItem) {
+                console.error(`Error: Database ${database} not found in ${config.databaseDirs}`);
+                return;
             }
-            this.start(core, vm, input);
+        
+            return this.keepRunning(async () => {
+                if (!isUrl(databaseItem.source)) {
+                    databaseItem.source = this.nodeGetAbsolutePath(databaseItem.source);
+                }
+
+                /* const exampleMap = */ await this.getExampleMap(databaseItem, core);
+                const exampleName = config.example;
+                const example = core.getExample(exampleName);
+                const script = await this.getExampleScript(example, core);
+                this.start(core, vm, input + script);
+            }, 5000);
         }
     }
 
