@@ -7,31 +7,81 @@ function fnHereDoc(fn) {
 export class Core {
     constructor(defaultConfig) {
         this.semantics = new Semantics();
-        this.examples = {};
+        this.databaseMap = {};
         this.onCheckSyntax = async (_s) => ""; // eslint-disable-line @typescript-eslint/no-unused-vars
+        this.addIndex = (dir, input) => {
+            if (typeof input === "function") {
+                input = {
+                    [dir]: JSON.parse(fnHereDoc(input).trim())
+                };
+            }
+            const exampleMap = {};
+            for (const value in input) {
+                const item = input[value];
+                for (let i = 0; i < item.length; i += 1) {
+                    exampleMap[item[i].key] = item[i];
+                }
+            }
+            this.setExampleMap(exampleMap);
+        };
         this.addItem = (key, input) => {
             let inputString = typeof input !== "string" ? fnHereDoc(input) : input;
             inputString = inputString.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
+            /*
             if (!key) { // maybe ""
                 const firstLine = inputString.slice(0, inputString.indexOf("\n"));
                 const matches = firstLine.match(/^\s*\d*\s*(?:REM|rem|')\s*(\w+)/);
                 key = matches ? matches[1] : "unknown";
             }
-            this.setExample(key, inputString);
+            */
+            if (!key) { // maybe ""
+                console.warn("addItem: no key:", key);
+                key = "unknown";
+            }
+            const example = this.getExample(key);
+            if (example) {
+                example.script = inputString;
+            }
         };
         this.config = defaultConfig;
     }
     getConfigObject() {
         return this.config;
     }
-    getExampleObject() {
-        return this.examples;
+    initDatabaseMap() {
+        const databaseDirs = this.config.databaseDirs.split(",");
+        for (const source of databaseDirs) {
+            const parts = source.split("/");
+            const key = parts[parts.length - 1];
+            this.databaseMap[key] = {
+                key,
+                source,
+                exampleMap: undefined
+            };
+        }
+        return this.databaseMap;
     }
-    setExample(name, script) {
-        this.examples[name] = script;
+    getDatabaseMap() {
+        return this.databaseMap;
+    }
+    getDatabase() {
+        return this.databaseMap[this.config.database];
+    }
+    getExampleMap() {
+        const exampleMap = this.databaseMap[this.config.database].exampleMap;
+        if (!exampleMap) {
+            console.error("getExampleMap: Undefined exampleMap for database", this.config.database);
+            return {};
+        }
+        return exampleMap;
+    }
+    setExampleMap(exampleMap) {
+        this.databaseMap[this.config.database].exampleMap = exampleMap;
+        //this.exampleMap = exampleMap;
     }
     getExample(name) {
-        return this.examples[name];
+        const exampleMap = this.getExampleMap();
+        return exampleMap[name];
     }
     setOnCheckSyntax(fn) {
         this.onCheckSyntax = fn;

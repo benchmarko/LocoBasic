@@ -18,17 +18,30 @@ const dummyVm = {
     print(...args) { this._output += args.join(''); },
     getEscape() { return false; }
 };
+function isUrl(s) {
+    return s.startsWith("http"); // http or https
+}
 export class NodeParts {
     constructor() {
         this.modulePath = "";
         this.keyBuffer = []; // buffered pressed keys
         this.escape = false;
     }
+    nodeGetAbsolutePath(name) {
+        if (!this.nodePath) {
+            this.nodePath = require("path");
+        }
+        const path = this.nodePath;
+        // https://stackoverflow.com/questions/8817423/why-is-dirname-not-defined-in-node-repl
+        const dirname = __dirname || path.dirname(__filename);
+        const absolutePath = path.resolve(dirname, name);
+        return absolutePath;
+    }
     async nodeReadFile(name) {
         if (!this.nodeFs) {
             this.nodeFs = require("fs");
         }
-        if (!module) {
+        if (!module) { //TTT
             const module = require("module");
             this.modulePath = module.path || "";
             if (!this.modulePath) {
@@ -43,6 +56,37 @@ export class NodeParts {
             throw error;
         }
     }
+    async nodeReadUrl(url) {
+        if (!this.nodeHttps) {
+            this.nodeHttps = require("https");
+        }
+        const nodeHttps = this.nodeHttps;
+        return new Promise((resolve, reject) => {
+            nodeHttps.get(url, (resp) => {
+                let data = "";
+                // A chunk of data has been received.
+                resp.on("data", (chunk) => {
+                    data += chunk;
+                });
+                // The whole response has been received. Print out the result.
+                resp.on("end", () => {
+                    resolve(data);
+                });
+            }).on("error", (err) => {
+                console.error("Error: " + err.message);
+                reject(err);
+            });
+        });
+    }
+    loadScript(fileOrUrl) {
+        if (isUrl(fileOrUrl)) {
+            return this.nodeReadUrl(fileOrUrl);
+        }
+        else {
+            return this.nodeReadFile(fileOrUrl);
+        }
+    }
+    ;
     keepRunning(fn, timeout) {
         const timerId = setTimeout(() => { }, timeout);
         return (async () => {
@@ -158,35 +202,78 @@ export class NodeParts {
             console.log(NodeParts.getHelpString());
         }
     }
+    async getExampleMap(databaseItem, core) {
+        if (databaseItem.exampleMap) {
+            return databaseItem.exampleMap;
+        }
+        databaseItem.exampleMap = {};
+        const scriptName = databaseItem.source + "/0index.js";
+        try {
+            const jsFile = await this.loadScript(scriptName);
+            const fnScript = new Function("cpcBasic", jsFile);
+            fnScript({
+                addIndex: core.addIndex,
+                addItem: core.addItem
+            });
+        }
+        catch (error) {
+            console.error("Load Example Map ", scriptName, error);
+        }
+        return databaseItem.exampleMap;
+    }
+    async getExampleScript(example, core) {
+        if (example.script !== undefined) {
+            return example.script;
+        }
+        const database = core.getDatabase();
+        const scriptName = database.source + "/" + example.key + ".js";
+        try {
+            const jsFile = await this.loadScript(scriptName);
+            const fnScript = new Function("cpcBasic", jsFile);
+            fnScript({
+                addIndex: core.addIndex,
+                addItem: (key, input) => {
+                    if (!key) { // maybe ""
+                        key = example.key;
+                    }
+                    core.addItem(key, input);
+                }
+            });
+        }
+        catch (error) {
+            console.error("Load Example", scriptName, error);
+        }
+        return example.script || ""; //TTT
+    }
     async nodeMain(core) {
         const vm = new BasicVmNode(this);
         const config = core.getConfigObject();
         core.parseArgs(global.process.argv.slice(2), config);
-        let input = config.input || "";
+        const input = config.input || "";
         if (config.fileName) {
             return this.keepRunning(async () => {
-                input = await this.nodeReadFile(config.fileName);
-                this.start(core, vm, input);
+                const input2 = await this.nodeReadFile(config.fileName);
+                this.start(core, vm, input + input2);
             }, 5000);
         }
-        else {
-            if (config.example) {
-                return this.keepRunning(async () => {
-                    const jsFile = await this.nodeReadFile("./dist/examples/examples.js");
-                    const fnScript = new Function("cpcBasic", jsFile);
-                    fnScript({
-                        addItem: core.addItem
-                    });
-                    const exampleScript = core.getExample(config.example);
-                    if (!exampleScript) {
-                        console.error(`ERROR: Example '${config.example}' not found.`);
-                        return;
-                    }
-                    input = exampleScript;
-                    this.start(core, vm, input);
-                }, 5000);
+        if (config.example) {
+            const databaseMap = core.initDatabaseMap();
+            const database = config.database;
+            const databaseItem = databaseMap[database];
+            if (!databaseItem) {
+                console.error(`Error: Database ${database} not found in ${config.databaseDirs}`);
+                return;
             }
-            this.start(core, vm, input);
+            return this.keepRunning(async () => {
+                if (!isUrl(databaseItem.source)) {
+                    databaseItem.source = this.nodeGetAbsolutePath(databaseItem.source);
+                }
+                /* const exampleMap = */ await this.getExampleMap(databaseItem, core);
+                const exampleName = config.example;
+                const example = core.getExample(exampleName);
+                const script = await this.getExampleScript(example, core);
+                this.start(core, vm, input + script);
+            }, 5000);
         }
     }
     static getHelpString() {

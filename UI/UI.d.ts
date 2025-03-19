@@ -13,6 +13,9 @@ export declare class UI implements IUI {
     private static asyncDelay;
     private getCore;
     getEscape(): boolean;
+    private fnLoadScriptOrStyle;
+    private loadScript;
+    getCurrentDataKey(): string;
     addOutputText(value: string): void;
     setOutputText(value: string): void;
     getPaperColors(colorsForPens: string[]): string[];
@@ -34,9 +37,12 @@ export declare class UI implements IUI {
     private onCompileButtonClick;
     private onStopButtonClick;
     private onBasicTextChange;
-    private setExampleSelect;
+    private getExampleScript;
     private onExampleSelectChange;
     private setExampleSelectOptions;
+    private getExampleMap;
+    private onDatabaseSelectChange;
+    private setDatabaseSelectOptions;
     private onHelpButtonClick;
     getKeyFromBuffer(): string;
     private putKeyInBuffer;

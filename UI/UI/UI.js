@@ -51,6 +51,37 @@ export class UI {
     getEscape() {
         return this.escape;
     }
+    async fnLoadScriptOrStyle(script) {
+        return new Promise((resolve, reject) => {
+            const onScriptLoad = function (event) {
+                const type = event.type; // "load" or "error"
+                const node = event.currentTarget;
+                const key = node.getAttribute("data-key");
+                node.removeEventListener("load", onScriptLoad, false);
+                node.removeEventListener("error", onScriptLoad, false);
+                if (type === "load") {
+                    resolve(key);
+                }
+                else {
+                    reject(key);
+                }
+            };
+            script.addEventListener("load", onScriptLoad, false);
+            script.addEventListener("error", onScriptLoad, false);
+            document.getElementsByTagName("head")[0].appendChild(script);
+        });
+    }
+    async loadScript(url, key) {
+        const script = document.createElement("script");
+        script.type = "text/javascript";
+        script.async = true;
+        script.src = url;
+        script.setAttribute("data-key", key);
+        return this.fnLoadScriptOrStyle(script);
+    }
+    getCurrentDataKey() {
+        return document.currentScript && document.currentScript.getAttribute("data-key") || "";
+    }
     addOutputText(value) {
         const outputText = document.getElementById("outputText");
         outputText.innerHTML += value;
@@ -159,34 +190,93 @@ export class UI {
             }
         }
     }
-    setExampleSelect(name) {
-        const exampleSelect = document.getElementById("exampleSelect");
-        exampleSelect.value = name;
-    }
-    onExampleSelectChange(event) {
+    async getExampleScript(example) {
+        if (example.script !== undefined) {
+            return example.script;
+        }
         const core = this.getCore();
-        const exampleSelect = event.target;
-        const value = core.getExample(exampleSelect.value) || "";
+        const database = core.getDatabase();
+        const scriptName = database.source + "/" + example.key + ".js";
+        try {
+            await this.loadScript(scriptName, example.key);
+        }
+        catch (error) {
+            console.error("Load Example", scriptName, error);
+        }
+        return example.script || ""; //TTT
+    }
+    async onExampleSelectChange(event) {
+        const core = this.getCore();
         this.setOutputText("");
-        if (this.basicCm) {
-            this.basicCm.setValue(value);
+        const exampleSelect = event.target;
+        const exampleName = exampleSelect.value;
+        const example = core.getExample(exampleName); //.script || "";
+        if (example) {
+            const script = await this.getExampleScript(example);
+            if (this.basicCm) {
+                this.basicCm.setValue(script);
+            }
+        }
+        else {
+            console.warn("onExampleSelectChange: example not found:", exampleName);
         }
     }
-    setExampleSelectOptions(examples) {
+    setExampleSelectOptions(exampleMap, exampleKey) {
+        const maxTitleLength = 160;
+        const maxTextLength = 60; // (32 visible?)
         const exampleSelect = document.getElementById("exampleSelect");
-        const maxTextLength = 35;
-        const regExp = /^(\d+ )?REM /;
-        for (const key of Object.keys(examples)) {
-            const script = examples[key];
-            const firstLine = script.slice(0, script.indexOf("\n"));
-            const startsWithRem = regExp.test(firstLine);
-            const title = startsWithRem ? firstLine.replace(regExp, "") : firstLine;
+        exampleSelect.options.length = 0;
+        for (const key of Object.keys(exampleMap)) {
+            const example = exampleMap[key];
+            if (example.meta !== "D") { // skip data files
+                const title = (key + ": " + example.title).substring(0, maxTitleLength);
+                const option = window.document.createElement("option");
+                option.value = key;
+                option.text = title.substring(0, maxTextLength);
+                option.title = title;
+                option.selected = key === exampleKey;
+                exampleSelect.add(option);
+            }
+        }
+    }
+    async getExampleMap(databaseItem) {
+        if (databaseItem.exampleMap) {
+            return databaseItem.exampleMap;
+        }
+        databaseItem.exampleMap = {};
+        const scriptName = databaseItem.source + "/0index.js";
+        try {
+            await this.loadScript(scriptName, "0index");
+        }
+        catch (error) {
+            console.error("Load Example Map ", scriptName, error);
+        }
+        return databaseItem.exampleMap;
+    }
+    async onDatabaseSelectChange(event) {
+        const core = this.getCore();
+        const databaseSelect = event.target;
+        const database = databaseSelect.value;
+        const config = core.getConfigObject();
+        config.database = database;
+        const databaseMap = core.getDatabaseMap();
+        const databaseItem = databaseMap[database];
+        const exampleMap = await this.getExampleMap(databaseItem);
+        this.setExampleSelectOptions(exampleMap, config.example);
+        const exampleSelect = window.document.getElementById("exampleSelect");
+        exampleSelect.dispatchEvent(new Event('change'));
+    }
+    setDatabaseSelectOptions(databaseMap, database) {
+        const databaseSelect = document.getElementById("databaseSelect");
+        databaseSelect.options.length = 0;
+        for (const key of Object.keys(databaseMap)) {
+            const example = databaseMap[key];
             const option = window.document.createElement("option");
             option.value = key;
-            option.text = startsWithRem ? title.substring(0, maxTextLength) : key;
-            option.title = title;
-            option.selected = false;
-            exampleSelect.add(option);
+            option.text = key;
+            option.title = example.source;
+            option.selected = key === database;
+            databaseSelect.add(option);
         }
     }
     onHelpButtonClick() {
@@ -303,6 +393,8 @@ export class UI {
         executeButton.addEventListener('click', (event) => this.onExecuteButtonClick(event), false);
         const stopButton = window.document.getElementById("stopButton");
         stopButton.addEventListener('click', (event) => this.onStopButtonClick(event), false);
+        const databaseSelect = window.document.getElementById("databaseSelect");
+        databaseSelect.addEventListener('change', (event) => this.onDatabaseSelectChange(event));
         const exampleSelect = window.document.getElementById("exampleSelect");
         exampleSelect.addEventListener('change', (event) => this.onExampleSelectChange(event));
         const helpButton = window.document.getElementById("helpButton");
@@ -329,13 +421,9 @@ export class UI {
         const outputAreaButton = window.document.getElementById("outputAreaButton");
         outputAreaButton.addEventListener('click', (event) => this.onOutputAreaButtonClick(event), false);
         UI.asyncDelay(() => {
-            const exampleObject = core.getExampleObject() || {};
-            this.setExampleSelectOptions(exampleObject);
-            const example = config.example;
-            if (example) {
-                this.setExampleSelect(example);
-            }
-            exampleSelect.dispatchEvent(new Event('change'));
+            const databaseMap = core.initDatabaseMap();
+            this.setDatabaseSelectOptions(databaseMap, config.database);
+            databaseSelect.dispatchEvent(new Event('change'));
         }, 10);
     }
 }
