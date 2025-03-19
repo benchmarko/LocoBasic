@@ -57,7 +57,6 @@ export interface ICore {
     getExampleMap(): ExampleMapType;
     setExampleMap(exampleMap: ExampleMapType): void;
     getExample(name: string): ExampleType;
-    //setExample(key: string, example: ExampleType): void;
     compileScript(script: string): string;
     executeScript(compiledScript: string, vm: IVmAdmin): Promise<string>;
     setOnCheckSyntax(fn: (s: string) => Promise<string>): void;

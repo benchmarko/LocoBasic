@@ -7,19 +7,19 @@ REM locobas - LocoBasic
 REM
 MODE 2
 FOR s=1 TO 15
-    CLS
-    t=TIME+15
-    in$=SPACE$(s)
-    GOSUB 1000
-    WHILE TIME<t
-    FRAME
-    WEND
+  CLS
+  t=TIME+15
+  in$=SPACE$(s)
+  GOSUB 1000
+  WHILE TIME<t
+  FRAME
+  WEND
 NEXT
 END
 '
 ' banner
 1000 FOR i=1 TO 4
-    PRINT
+  PRINT
 NEXT
 '
 ?in$;"'##::::::::'#######:::'######:::'#######::      "

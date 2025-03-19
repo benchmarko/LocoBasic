@@ -11,7 +11,6 @@ export class Core implements ICore {
     private config: ConfigType;
     private readonly semantics = new Semantics();
     private readonly databaseMap: DatabaseMapType = {};
-    //private exampleMap: ExampleMapType = {}; // usually examples[database]
     private arithmeticParser: Parser | undefined;
 
     constructor(defaultConfig: ConfigType) {
@@ -59,7 +58,6 @@ export class Core implements ICore {
 
     public setExampleMap(exampleMap: ExampleMapType): void {
         this.databaseMap[this.config.database].exampleMap = exampleMap;
-        //this.exampleMap = exampleMap;
     }
 
     public getExample(name: string): ExampleType {
@@ -104,13 +102,10 @@ export class Core implements ICore {
             const result = fnScript(vm as IVm) || "";
 
             if (result instanceof Promise) {
-                output = await result;
-                vm.flush();
-                output = vm.getOutput() || "";
-            } else {
-                vm.flush();
-                output = vm.getOutput() || "";
+                await result;
             }
+            vm.flush();
+            output = vm.getOutput() || "";
         } catch (error) {
             output = vm.getOutput() || "";
             if (output) {
@@ -153,15 +148,8 @@ export class Core implements ICore {
         let inputString = typeof input !== "string" ? fnHereDoc(input) : input;
         inputString = inputString.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
 
-        /*
         if (!key) { // maybe ""
-            const firstLine = inputString.slice(0, inputString.indexOf("\n"));
-            const matches = firstLine.match(/^\s*\d*\s*(?:REM|rem|')\s*(\w+)/);
-            key = matches ? matches[1] : "unknown";
-        }
-        */
-        if (!key) { // maybe ""
-            console.warn("addItem: no key:", key);
+            console.warn("addItem: no key!");
             key = "unknown";
         }
 

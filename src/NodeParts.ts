@@ -12,9 +12,12 @@ interface NodeFs {
     };
 }
 
+type nodeIncomingMessage = { on: (type: string, fn: (s: string) => void) => void};
+
 interface NodeHttps {
-    get: (url: string, resp: (res: any) => void) => NodeHttps;
-    on: (rtype: string, fn: any) => NodeHttps;
+    get: (url: string, fn: (res: nodeIncomingMessage) => void) => {
+        on: (type: string, fn: (err: Error) => void) => NodeHttps;
+    }
 }
 
 interface NodeReadline {
@@ -79,7 +82,7 @@ export class NodeParts {
         const path = this.nodePath;
     
         // https://stackoverflow.com/questions/8817423/why-is-dirname-not-defined-in-node-repl
-        const dirname = __dirname || (path as any).dirname(__filename);
+        const dirname = __dirname || path.dirname(__filename);
         const absolutePath = path.resolve(dirname, name);
     
         return absolutePath;
@@ -116,12 +119,10 @@ export class NodeParts {
             nodeHttps.get(url, (resp) => {
                 let data = "";
 
-                // A chunk of data has been received.
                 resp.on("data", (chunk: string) => {
                     data += chunk;
                 });
 
-                // The whole response has been received. Print out the result.
                 resp.on("end", () => {
                     resolve(data);
                 });
@@ -194,7 +195,6 @@ export class NodeParts {
     }
 
     private fnOnKeypress(_chunk: string, key: NodeKeyPressType) {
-        //console.log(`DEBUG: You pressed the key: '${_chunk}'`, key);
         if (key) {
             const keySequenceCode = key.sequence.charCodeAt(0);
             if (key.name === 'c' && key.ctrl === true) {
@@ -276,8 +276,7 @@ export class NodeParts {
             const jsFile = await this.loadScript(scriptName);
             const fnScript = new Function("cpcBasic", jsFile);
             fnScript({
-                addIndex: core.addIndex,
-                addItem: core.addItem
+                addIndex: core.addIndex
             });
         } catch (error) {
             console.error("Load Example Map ", scriptName, error);
@@ -295,7 +294,6 @@ export class NodeParts {
             const jsFile = await this.loadScript(scriptName);
             const fnScript = new Function("cpcBasic", jsFile);
             fnScript({
-                addIndex: core.addIndex,
                 addItem: (key: string, input: string | (() => void)) => {
                     if (!key) { // maybe ""
                         key = example.key;
@@ -339,7 +337,7 @@ export class NodeParts {
                     databaseItem.source = this.nodeGetAbsolutePath(databaseItem.source);
                 }
 
-                /* const exampleMap = */ await this.getExampleMap(databaseItem, core);
+                await this.getExampleMap(databaseItem, core);
                 const exampleName = config.example;
                 const example = core.getExample(exampleName);
                 const script = await this.getExampleScript(example, core);
@@ -351,12 +349,24 @@ export class NodeParts {
     private static getHelpString(): string {
 return `
 Usage:
-node dist/locobasic.js [action='compile,run'] [input=<statements>] [example=<name>] [fileName=<file>] [grammar=<name>] [debug=0] [debounceCompile=800] [debounceExecute=400]
+node dist/locobasic.js [<option=<value(s)>] [<option=<value(s)>]
+
+- Options:
+action=compile,run
+databaseDirs=examples,...
+database=examples
+debounceCompile=800
+debounceExecute=400
+debug=0
+example=euler
+fileName=<file>
+grammar=<name>
+input=<statements>
 
 - Examples for compile and run:
 node dist/locobasic.js input='PRINT "Hello!"'
 npx ts-node dist/locobasic.js input='PRINT "Hello!"'
-node dist/locobasic.js input='?3 + 5 * (2 - 8)'
+node dist/locobasic.js input='?3 + 5 * (2 - 8)' example=''
 node dist/locobasic.js example=euler
 node dist/locobasic.js fileName=dist/examples/example.bas
 node dist/locobasic.js grammar='strict' input='a$="Bob":PRINT "Hello ";a$;"!"'
