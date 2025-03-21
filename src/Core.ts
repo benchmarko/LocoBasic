@@ -8,18 +8,24 @@ function fnHereDoc(fn: () => void) {
 }
 
 export class Core implements ICore {
-    private config: ConfigType;
+    private readonly defaultConfig: ConfigType;
+    private readonly config: ConfigType;
     private readonly semantics = new Semantics();
     private readonly databaseMap: DatabaseMapType = {};
     private arithmeticParser: Parser | undefined;
 
     constructor(defaultConfig: ConfigType) {
-        this.config = defaultConfig;
+        this.defaultConfig = defaultConfig;
+        this.config = {...defaultConfig};
     }
 
     private onCheckSyntax = async (_s: string) => ""; // eslint-disable-line @typescript-eslint/no-unused-vars
 
-    public getConfigObject(): ConfigType {
+    public getDefaultConfigMap(): ConfigType {
+        return this.defaultConfig;
+    }
+
+    public getConfigMap(): ConfigType {
         return this.config;
     }
 

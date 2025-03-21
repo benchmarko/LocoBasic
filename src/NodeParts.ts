@@ -235,7 +235,7 @@ export class NodeParts {
     }
 
     private start(core: ICore, vm: IVmAdmin, input: string): Promise<void> | undefined {
-        const actionConfig = core.getConfigObject().action;
+        const actionConfig = core.getConfigMap().action;
         if (input !== "") {
             core.setOnCheckSyntax((s: string) => Promise.resolve(this.nodeCheckSyntax(s)));
 
@@ -310,7 +310,7 @@ export class NodeParts {
 
     public async nodeMain(core: ICore): Promise<void> {
         const vm = new BasicVmNode(this);
-        const config = core.getConfigObject();
+        const config = core.getConfigMap();
         core.parseArgs(global.process.argv.slice(2), config);
 
         const input = config.input || "";

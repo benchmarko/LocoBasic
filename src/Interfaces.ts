@@ -19,15 +19,18 @@ export type DatabaseMapType = Record<string, DatabaseType>;
 
 export type ConfigType = {
     action: string; // "compile,run"
+    basicAreaHidden: boolean;
+    compiledAreaHidden: boolean;
     databaseDirs: string, // example base directories (comma separated)
 	database: string, // examples, apps, saved
+    debounceCompile: number;
+    debounceExecute: number;
     debug: number;
     example: string;
     fileName: string;
     grammar: string; // "basic" or "strict"
     input: string;
-    debounceCompile: number;
-    debounceExecute: number;
+    outputAreaHidden: boolean;
 };
 
 export interface IVm {
@@ -50,7 +53,8 @@ export interface IVmAdmin extends IVm {
 }
 
 export interface ICore {
-    getConfigObject(): ConfigType;
+    getDefaultConfigMap(): ConfigType;
+    getConfigMap(): ConfigType;
     initDatabaseMap(): DatabaseMapType;
     getDatabaseMap(): DatabaseMapType;
     getDatabase(): DatabaseType;

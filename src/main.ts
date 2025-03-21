@@ -20,15 +20,18 @@ declare const window: WindowProperties | undefined;
 
 const core: ICore = new Core({
     action: "compile,run",
+    basicAreaHidden: false,
+    compiledAreaHidden: false,
     databaseDirs: "examples,https://benchmarko.github.io/CPCBasicApps/rosetta", // example base directories (comma separated)
 	database: "examples", // examples, apps, saved
+    debounceCompile: 800,
+    debounceExecute: 400,
     debug: 0,
     example: "locobas",
     fileName: "",
     grammar: "basic", // basic or strict
     input: "",
-    debounceCompile: 800,
-    debounceExecute: 400
+    outputAreaHidden: false
 });
 
 if (typeof window !== "undefined") {
