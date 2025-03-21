@@ -1,12 +1,14 @@
 import type { ConfigEntryType, ConfigType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore, IVmAdmin } from "./Interfaces";
 export declare class Core implements ICore {
-    private config;
+    private readonly defaultConfig;
+    private readonly config;
     private readonly semantics;
     private readonly databaseMap;
     private arithmeticParser;
     constructor(defaultConfig: ConfigType);
     private onCheckSyntax;
-    getConfigObject(): ConfigType;
+    getDefaultConfigMap(): ConfigType;
+    getConfigMap(): ConfigType;
     initDatabaseMap(): DatabaseMapType;
     getDatabaseMap(): DatabaseMapType;
     getDatabase(): DatabaseType;

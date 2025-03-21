@@ -2223,9 +2223,13 @@
                     example.script = inputString;
                 }
             };
-            this.config = defaultConfig;
+            this.defaultConfig = defaultConfig;
+            this.config = Object.assign({}, defaultConfig);
         }
-        getConfigObject() {
+        getDefaultConfigMap() {
+            return this.defaultConfig;
+        }
+        getConfigMap() {
             return this.config;
         }
         initDatabaseMap() {
@@ -2720,7 +2724,7 @@
             return this.escape;
         }
         start(core, vm, input) {
-            const actionConfig = core.getConfigObject().action;
+            const actionConfig = core.getConfigMap().action;
             if (input !== "") {
                 core.setOnCheckSyntax((s) => Promise.resolve(this.nodeCheckSyntax(s)));
                 const compiledScript = actionConfig.includes("compile") ? core.compileScript(input) : input;
@@ -2792,7 +2796,7 @@
         }
         async nodeMain(core) {
             const vm = new BasicVmNode(this);
-            const config = core.getConfigObject();
+            const config = core.getConfigMap();
             core.parseArgs(global.process.argv.slice(2), config);
             const input = config.input || "";
             if (config.fileName) {
@@ -2920,15 +2924,18 @@ node hello1.js
 
     const core = new Core({
         action: "compile,run",
+        basicAreaHidden: false,
+        compiledAreaHidden: false,
         databaseDirs: "examples,https://benchmarko.github.io/CPCBasicApps/rosetta", // example base directories (comma separated)
         database: "examples", // examples, apps, saved
+        debounceCompile: 800,
+        debounceExecute: 400,
         debug: 0,
         example: "locobas",
         fileName: "",
         grammar: "basic", // basic or strict
         input: "",
-        debounceCompile: 800,
-        debounceExecute: 400
+        outputAreaHidden: false
     });
     if (typeof window !== "undefined") {
         window.onload = () => {

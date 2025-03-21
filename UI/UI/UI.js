@@ -105,9 +105,27 @@ export class UI {
         const input = window.prompt(msg);
         return input;
     }
+    updateConfigParameter(name, value) {
+        const core = this.getCore();
+        const configAsRecord = core.getConfigMap();
+        const defaultConfigAsRecord = core.getDefaultConfigMap();
+        configAsRecord[name] = value;
+        const url = new URL(window.location.href);
+        if (configAsRecord[name] !== defaultConfigAsRecord[name]) {
+            url.searchParams.set(name, String(value));
+        }
+        else {
+            url.searchParams.delete(name);
+        }
+        history.pushState({}, "", url.href);
+    }
     setButtonDisabled(id, disabled) {
         const button = window.document.getElementById(id);
         button.disabled = disabled;
+    }
+    setSelectDisabled(id, disabled) {
+        const element = window.document.getElementById(id);
+        element.disabled = disabled;
     }
     toggleAreaHidden(id, editor) {
         const area = document.getElementById(id);
@@ -115,6 +133,8 @@ export class UI {
         if (!area.hidden && editor) {
             editor.refresh();
         }
+        const parameterName = id.replace("Inner", "Hidden");
+        this.updateConfigParameter(parameterName, area.hidden);
         return !area.hidden;
     }
     setClearLeft(id, clearLeft) {
@@ -146,6 +166,8 @@ export class UI {
         const compiledScript = this.compiledCm ? this.compiledCm.getValue() : "";
         this.setButtonDisabled("executeButton", true);
         this.setButtonDisabled("stopButton", false);
+        this.setSelectDisabled("databaseSelect", true);
+        this.setSelectDisabled("exampleSelect", true);
         this.escape = false;
         this.keyBuffer.length = 0;
         const outputText = window.document.getElementById("outputText");
@@ -154,6 +176,8 @@ export class UI {
         outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
         this.setButtonDisabled("executeButton", false);
         this.setButtonDisabled("stopButton", true);
+        this.setSelectDisabled("databaseSelect", false);
+        this.setSelectDisabled("exampleSelect", false);
         this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
     }
     onCompiledTextChange() {
@@ -212,6 +236,7 @@ export class UI {
         const exampleName = exampleSelect.value;
         const example = core.getExample(exampleName); //.script || "";
         if (example) {
+            this.updateConfigParameter("example", exampleName);
             const script = await this.getExampleScript(example);
             if (this.basicCm) {
                 this.basicCm.setValue(script);
@@ -257,10 +282,13 @@ export class UI {
         const core = this.getCore();
         const databaseSelect = event.target;
         const database = databaseSelect.value;
-        const config = core.getConfigObject();
+        const config = core.getConfigMap();
         config.database = database;
         const databaseMap = core.getDatabaseMap();
         const databaseItem = databaseMap[database];
+        if (databaseItem) {
+            this.updateConfigParameter("database", database);
+        }
         const exampleMap = await this.getExampleMap(databaseItem);
         this.setExampleSelectOptions(exampleMap, config.example);
         const exampleSelect = window.document.getElementById("exampleSelect");
@@ -383,7 +411,7 @@ export class UI {
     onWindowLoadContinue(core, vm) {
         this.core = core;
         this.vm = vm;
-        const config = core.getConfigObject();
+        const config = core.getConfigMap();
         const args = this.parseUri(config);
         core.parseArgs(args, config);
         core.setOnCheckSyntax((s) => Promise.resolve(this.checkSyntax(s)));
@@ -420,9 +448,28 @@ export class UI {
         compiledAreaButton.addEventListener('click', (event) => this.onCompiledAreaButtonClick(event), false);
         const outputAreaButton = window.document.getElementById("outputAreaButton");
         outputAreaButton.addEventListener('click', (event) => this.onOutputAreaButtonClick(event), false);
+        window.addEventListener("popstate", (event) => {
+            if (event.state) {
+                Object.assign(config, core.getDefaultConfigMap); // load defaults
+                const args = this.parseUri(config);
+                core.parseArgs(args, config);
+                databaseSelect.dispatchEvent(new Event('change'));
+            }
+        });
+        if (config.basicAreaHidden) {
+            this.onBasicAreaButtonClick(new Event('click'));
+        }
+        if (config.compiledAreaHidden) {
+            this.onCompiledAreaButtonClick(new Event('click'));
+        }
+        if (config.outputAreaHidden) {
+            this.onOutputAreaButtonClick(new Event('click'));
+        }
         UI.asyncDelay(() => {
             const databaseMap = core.initDatabaseMap();
             this.setDatabaseSelectOptions(databaseMap, config.database);
+            const url = window.location.href;
+            history.replaceState({}, "", url);
             databaseSelect.dispatchEvent(new Event('change'));
         }, 10);
     }

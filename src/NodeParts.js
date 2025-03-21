@@ -170,7 +170,7 @@ export class NodeParts {
         return this.escape;
     }
     start(core, vm, input) {
-        const actionConfig = core.getConfigObject().action;
+        const actionConfig = core.getConfigMap().action;
         if (input !== "") {
             core.setOnCheckSyntax((s) => Promise.resolve(this.nodeCheckSyntax(s)));
             const compiledScript = actionConfig.includes("compile") ? core.compileScript(input) : input;
@@ -242,7 +242,7 @@ export class NodeParts {
     }
     async nodeMain(core) {
         const vm = new BasicVmNode(this);
-        const config = core.getConfigObject();
+        const config = core.getConfigMap();
         core.parseArgs(global.process.argv.slice(2), config);
         const input = config.input || "";
         if (config.fileName) {

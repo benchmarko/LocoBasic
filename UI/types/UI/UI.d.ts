@@ -26,7 +26,9 @@ export declare class UI implements IUI {
      * @returns A promise that resolves to the user input or null if canceled.
      */
     prompt(msg: string): string | null;
+    private updateConfigParameter;
     private setButtonDisabled;
+    private setSelectDisabled;
     private toggleAreaHidden;
     private setClearLeft;
     private onBasicAreaButtonClick;

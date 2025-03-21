@@ -36,9 +36,13 @@ export class Core {
                 example.script = inputString;
             }
         };
-        this.config = defaultConfig;
+        this.defaultConfig = defaultConfig;
+        this.config = Object.assign({}, defaultConfig);
     }
-    getConfigObject() {
+    getDefaultConfigMap() {
+        return this.defaultConfig;
+    }
+    getConfigMap() {
         return this.config;
     }
     initDatabaseMap() {

@@ -14,15 +14,18 @@ export interface DatabaseType {
 export type DatabaseMapType = Record<string, DatabaseType>;
 export type ConfigType = {
     action: string;
+    basicAreaHidden: boolean;
+    compiledAreaHidden: boolean;
     databaseDirs: string;
     database: string;
+    debounceCompile: number;
+    debounceExecute: number;
     debug: number;
     example: string;
     fileName: string;
     grammar: string;
     input: string;
-    debounceCompile: number;
-    debounceExecute: number;
+    outputAreaHidden: boolean;
 };
 export interface IVm {
     cls(): void;
@@ -42,7 +45,8 @@ export interface IVmAdmin extends IVm {
     setOutput(str: string): void;
 }
 export interface ICore {
-    getConfigObject(): ConfigType;
+    getDefaultConfigMap(): ConfigType;
+    getConfigMap(): ConfigType;
     initDatabaseMap(): DatabaseMapType;
     getDatabaseMap(): DatabaseMapType;
     getDatabase(): DatabaseType;
