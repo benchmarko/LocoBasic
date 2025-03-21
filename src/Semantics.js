@@ -49,6 +49,9 @@ function getCodeSnippets() {
         hex$: function hex$(num, pad) {
             return num.toString(16).toUpperCase().padStart(pad || 0, "0");
         },
+        ink: function ink(num, col) {
+            _o.ink(num, col);
+        },
         inkey$: async function inkey$() {
             await frame();
             return await _o.inkey$();
@@ -439,6 +442,10 @@ function getSemantics(semanticsHelper) {
             }
             semanticsHelper.addIndent(-2);
             return result;
+        },
+        Ink(_inkLit, num, _comma, col, _comma2, _col2) {
+            semanticsHelper.addInstr("ink");
+            return `ink(${num.eval()}, ${col.eval()})`;
         },
         InkeyS(_inkeySLit) {
             semanticsHelper.addInstr("inkey$");

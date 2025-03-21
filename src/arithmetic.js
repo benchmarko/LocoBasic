@@ -32,6 +32,7 @@ export const arithmetic = {
       | Gosub
       | GraphicsPen
       | If
+      | Ink
       | Input
       | MidSAssign
       | Mode
@@ -150,6 +151,9 @@ export const arithmetic = {
 
     HexS
       = hexS "(" NumExp ("," NumExp)? ")"
+
+    Ink
+      = ink NumExp "," NumExp ("," NumExp)?
 
     InkeyS
       = inkeyS

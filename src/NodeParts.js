@@ -10,6 +10,7 @@ const dummyVm = {
         this._output = "";
     } },
     graphicsPen(num) { this.debug("graphicsPen:", num); },
+    ink(num, col) { this.debug("ink:", num, col); },
     async inkey$() { return Promise.resolve(""); },
     async input(msg) { console.log(msg); return ""; },
     mode(num) { this.debug("mode:", num); },
@@ -244,11 +245,15 @@ export class NodeParts {
         const vm = new BasicVmNode(this);
         const config = core.getConfigMap();
         core.parseArgs(global.process.argv.slice(2), config);
-        const input = config.input || "";
+        if (config.input) {
+            return this.keepRunning(async () => {
+                this.start(core, vm, config.input);
+            }, 5000);
+        }
         if (config.fileName) {
             return this.keepRunning(async () => {
-                const input2 = await this.nodeReadFile(config.fileName);
-                this.start(core, vm, input + input2);
+                const inputFromFile = await this.nodeReadFile(config.fileName);
+                this.start(core, vm, inputFromFile);
             }, 5000);
         }
         if (config.example) {
@@ -267,7 +272,7 @@ export class NodeParts {
                 const exampleName = config.example;
                 const example = core.getExample(exampleName);
                 const script = await this.getExampleScript(example, core);
-                this.start(core, vm, input + script);
+                this.start(core, vm, script);
             }, 5000);
         }
     }

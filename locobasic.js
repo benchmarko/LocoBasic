@@ -103,6 +103,7 @@
       | Gosub
       | GraphicsPen
       | If
+      | Ink
       | Input
       | MidSAssign
       | Mode
@@ -221,6 +222,9 @@
 
     HexS
       = hexS "(" NumExp ("," NumExp)? ")"
+
+    Ink
+      = ink NumExp "," NumExp ("," NumExp)?
 
     InkeyS
       = inkeyS
@@ -1310,6 +1314,9 @@
             hex$: function hex$(num, pad) {
                 return num.toString(16).toUpperCase().padStart(pad || 0, "0");
             },
+            ink: function ink(num, col) {
+                _o.ink(num, col);
+            },
             inkey$: async function inkey$() {
                 await frame();
                 return await _o.inkey$();
@@ -1700,6 +1707,10 @@
                 }
                 semanticsHelper.addIndent(-2);
                 return result;
+            },
+            Ink(_inkLit, num, _comma, col, _comma2, _col2) {
+                semanticsHelper.addInstr("ink");
+                return `ink(${num.eval()}, ${col.eval()})`;
             },
             InkeyS(_inkeySLit) {
                 semanticsHelper.addInstr("inkey$");
@@ -2340,10 +2351,6 @@
         }
     }
 
-    const colorsForPens = [
-        "#000080", "#FFFF00", "#00FFFF", "#FF0000", "#FFFFFF", "#000000", "#0000FF", "#FF00FF",
-        "#008080", "#808000", "#8080FF", "#FF8080", "#00FF00", "#80FF80", "#000080", "#FF8080", "#000080"
-    ];
     const strokeWidthForMode = [4, 2, 1, 1];
     class BasicVmCore {
         constructor() {
@@ -2356,6 +2363,46 @@
             this.currGraphicsPen = -1;
             this.graphicsX = 0;
             this.graphicsY = 399;
+            this.colorsForPens = [];
+            this.backgroundColor = "";
+            this.cpcColors = [
+                "#000000", //  0 Black
+                "#000080", //  1 Blue
+                "#0000FF", //  2 Bright Blue
+                "#800000", //  3 Red
+                "#800080", //  4 Magenta
+                "#8000FF", //  5 Mauve
+                "#FF0000", //  6 Bright Red
+                "#FF0080", //  7 Purple
+                "#FF00FF", //  8 Bright Magenta
+                "#008000", //  9 Green
+                "#008080", // 10 Cyan
+                "#0080FF", // 11 Sky Blue
+                "#808000", // 12 Yellow
+                "#808080", // 13 White
+                "#8080FF", // 14 Pastel Blue
+                "#FF8000", // 15 Orange
+                "#FF8080", // 16 Pink
+                "#FF80FF", // 17 Pastel Magenta
+                "#00FF00", // 18 Bright Green
+                "#00FF80", // 19 Sea Green
+                "#00FFFF", // 20 Bright Cyan
+                "#80FF00", // 21 Lime
+                "#80FF80", // 22 Pastel Green
+                "#80FFFF", // 23 Pastel Cyan
+                "#FFFF00", // 24 Bright Yellow
+                "#FFFF80", // 25 Pastel Yellow
+                "#FFFFFF", // 26 Bright White
+                "#808080", // 27 White (same as 13)
+                "#FF00FF", // 28 Bright Magenta (same as 8)
+                "#FFFF80", // 29 Pastel Yellow (same as 25)
+                "#000080", // 30 Blue (same as 1)
+                "#00FF80" //  31 Sea Green (same as 19)
+            ];
+            this.defaultColorsForPens = [
+                1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
+            ];
+            this.resetColors();
         }
         fnOnCls() {
             // override
@@ -2375,8 +2422,15 @@
             // override
             return "";
         }
-        getColorsForPens() {
-            return colorsForPens;
+        /*
+        protected getColorForPen(_num: number): string { // eslint-disable-line @typescript-eslint/no-unused-vars
+            // override
+            return ""; //return cpcColors[colorsForPens[num]];
+        }
+        */
+        resetColors() {
+            this.colorsForPens = [...this.defaultColorsForPens];
+            this.backgroundColor = "";
         }
         cls() {
             this.output = "";
@@ -2413,7 +2467,11 @@
         }
         flushGraphicsPath() {
             if (this.graphicsPathBuffer.length) {
-                const strokeStr = this.currGraphicsPen > 0 ? `stroke="${colorsForPens[this.currGraphicsPen]}" ` : "";
+                let strokeStr = "";
+                if (this.currGraphicsPen > 0) {
+                    const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
+                    strokeStr = `stroke="${color}" `;
+                }
                 this.graphicsBuffer.push(`<path ${strokeStr}d="${this.graphicsPathBuffer.join("")}" />`);
                 this.graphicsPathBuffer.length = 0;
             }
@@ -2421,7 +2479,8 @@
         flush() {
             this.flushGraphicsPath();
             if (this.graphicsBuffer.length) {
-                this.output += `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" stroke="currentColor">\n${this.graphicsBuffer.join("\n")}"\n</svg>\n`;
+                const backgroundColorStr = this.backgroundColor !== "" ? ` style="background-color:${this.backgroundColor}"` : '';
+                this.output += `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" stroke="currentColor"${backgroundColorStr}>\n${this.graphicsBuffer.join("\n")}"\n</svg>\n`;
                 this.graphicsBuffer.length = 0;
             }
             if (this.output) {
@@ -2436,6 +2495,30 @@
             this.flushGraphicsPath();
             this.currGraphicsPen = num;
         }
+        ink(num, col) {
+            this.colorsForPens[num] = col;
+            // we modify inks, so set default pens and papers
+            if (this.currGraphicsPen < 0) {
+                this.graphicsPen(1);
+            }
+            if (this.currPen < 0) {
+                this.pen(1);
+            }
+            else if (num === this.currPen) {
+                this.currPen = -1;
+                this.pen(num);
+            }
+            if (this.currPaper < 0) {
+                this.paper(0);
+            }
+            else if (num === this.currPaper) {
+                this.currPaper = -1;
+                this.paper(num);
+            }
+            if (num === 0) {
+                this.backgroundColor = this.cpcColors[this.colorsForPens[0]];
+            }
+        }
         inkey$() {
             return Promise.resolve("");
         }
@@ -2449,13 +2532,13 @@
         }
         paper(n) {
             if (n !== this.currPaper) {
-                this.output += this.fnGetPaperColor(n);
+                this.output += this.fnGetPaperColor(this.colorsForPens[n]);
                 this.currPaper = n;
             }
         }
         pen(n) {
             if (n !== this.currPen) {
-                this.output += this.fnGetPenColor(n);
+                this.output += this.fnGetPenColor(this.colorsForPens[n]);
                 this.currPen = n;
             }
         }
@@ -2466,6 +2549,7 @@
             return false;
         }
         getOutput() {
+            this.resetColors();
             return this.output;
         }
         setOutput(str) {
@@ -2473,53 +2557,49 @@
         }
     }
 
-    function getAnsiColorsForPens() {
-        return [
-            "\x1b[34m", // Navy
-            "\x1b[93m", // Bright Yellow
-            "\x1b[96m", // Bright Cyan
-            "\x1b[91m", // Bright Red
-            "\x1b[97m", // Bright White
-            "\x1b[30m", // Black
-            "\x1b[94m", // Bright Blue
-            "\x1b[95m", // Bright Magenta
-            "\x1b[36m", // Cyan
-            "\x1b[33m", // Yellow
-            "\x1b[94m", // Pastel Blue (Bright Blue)
-            "\x1b[95m", // Pink (Bright Magenta)
-            "\x1b[92m", // Bright Green
-            "\x1b[92m", // Pastel Green (Bright Green)
-            "\x1b[34m", // Navy (repeated)
-            "\x1b[95m", // Pink (repeated)
-            "\x1b[34m" // Navy (repeated)
+    function getAnsiColors(background) {
+        const colorCodes = [
+            30, //  0 Black
+            34, //  1 Blue 
+            94, //  2 Bright Blue
+            31, //  3 Red
+            35, //  4 Magenta (Purple?)
+            35, //  5 Mauve ???
+            91, //  6 Bright Red
+            35, //  7 Purple
+            95, //  8 Bright Magenta ?
+            32, //  9 Green
+            36, // 10 Cyan
+            94, // 11 Sky Blue ?
+            33, // 12 Yellow
+            37, // 13 White
+            94, // 14 Pastel Blue ?
+            91, // 15 Orange ?
+            95, // 16 Pink (Bright Magenta?)
+            95, // 17 Pastel Magenta?
+            92, // 18 Bright Green
+            92, // 19 Sea Green
+            96, // 20 Bright Cyan
+            96, // 21 Lime ?
+            92, // 22 Pastel Green (Bright Green)
+            96, // 23 Pastel Cyan ?
+            93, // 24 Bright Yellow
+            93, // 25 Pastel Yellow
+            37, // 26 Bright White
+            37, // 27 White (same as 13)
+            95, // 28 Bright Magenta (same as 8)
+            93, // 29 Pastel Yellow (same as 25)
+            34, // 30 Blue (same as 1)
+            92 //  31 Sea Green (same as 19)
         ];
-    }
-    function getAnsiColorsForPapers() {
-        return [
-            "\x1b[44m", // Navy
-            "\x1b[103m", // Bright Yellow
-            "\x1b[106m", // Bright Cyan
-            "\x1b[101m", // Bright Red
-            "\x1b[107m", // Bright White
-            "\x1b[40m", // Black
-            "\x1b[104m", // Bright Blue
-            "\x1b[105m", // Bright Magenta
-            "\x1b[46m", // Cyan
-            "\x1b[43m", // Yellow
-            "\x1b[104m", // Pastel Blue (Bright Blue)
-            "\x1b[105m", // Pink (Bright Magenta)
-            "\x1b[102m", // Bright Green
-            "\x1b[102m", // Pastel Green (Bright Green)
-            "\x1b[44m", // Navy (repeated)
-            "\x1b[105m", // Pink (repeated)
-            "\x1b[44m" // Navy (repeated)
-        ];
+        const add = background ? 10 : 0;
+        return colorCodes.map((code) => `\x1b[${code + add}m`); // e.g. Navy: pen: "\x1b[34m" or paper: "\x1b[44m"
     }
     class BasicVmNode extends BasicVmCore {
         constructor(nodeParts) {
             super();
-            this.penColors = getAnsiColorsForPens();
-            this.paperColors = getAnsiColorsForPapers();
+            this.penColors = getAnsiColors(false);
+            this.paperColors = getAnsiColors(true);
             this.nodeParts = nodeParts;
         }
         fnOnCls() {
@@ -2564,6 +2644,7 @@
             this._output = "";
         } },
         graphicsPen(num) { this.debug("graphicsPen:", num); },
+        ink(num, col) { this.debug("ink:", num, col); },
         async inkey$() { return Promise.resolve(""); },
         async input(msg) { console.log(msg); return ""; },
         mode(num) { this.debug("mode:", num); },
@@ -2798,11 +2879,15 @@
             const vm = new BasicVmNode(this);
             const config = core.getConfigMap();
             core.parseArgs(global.process.argv.slice(2), config);
-            const input = config.input || "";
+            if (config.input) {
+                return this.keepRunning(async () => {
+                    this.start(core, vm, config.input);
+                }, 5000);
+            }
             if (config.fileName) {
                 return this.keepRunning(async () => {
-                    const input2 = await this.nodeReadFile(config.fileName);
-                    this.start(core, vm, input + input2);
+                    const inputFromFile = await this.nodeReadFile(config.fileName);
+                    this.start(core, vm, inputFromFile);
                 }, 5000);
             }
             if (config.example) {
@@ -2821,7 +2906,7 @@
                     const exampleName = config.example;
                     const example = core.getExample(exampleName);
                     const script = await this.getExampleScript(example, core);
-                    this.start(core, vm, input + script);
+                    this.start(core, vm, script);
                 }, 5000);
             }
         }
@@ -2862,10 +2947,11 @@ node hello1.js
     class BasicVmBrowser extends BasicVmCore {
         constructor(ui) {
             super();
+            this.penColors = [];
+            this.paperColors = [];
             this.ui = ui;
-            const colorsForPens = this.getColorsForPens();
-            this.penColors = ui.getPenColors(colorsForPens);
-            this.paperColors = ui.getPaperColors(colorsForPens);
+            this.penColors = this.cpcColors.map((color) => ui.getColor(color, false));
+            this.paperColors = this.cpcColors.map((color) => ui.getColor(color, true));
         }
         /**
          * Clears the output text.

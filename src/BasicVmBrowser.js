@@ -2,10 +2,11 @@ import { BasicVmCore } from "./BasicVmCore";
 export class BasicVmBrowser extends BasicVmCore {
     constructor(ui) {
         super();
+        this.penColors = [];
+        this.paperColors = [];
         this.ui = ui;
-        const colorsForPens = this.getColorsForPens();
-        this.penColors = ui.getPenColors(colorsForPens);
-        this.paperColors = ui.getPaperColors(colorsForPens);
+        this.penColors = this.cpcColors.map((color) => ui.getColor(color, false));
+        this.paperColors = this.cpcColors.map((color) => ui.getColor(color, true));
     }
     /**
      * Clears the output text.

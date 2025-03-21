@@ -18,8 +18,7 @@ export declare class UI implements IUI {
     getCurrentDataKey(): string;
     addOutputText(value: string): void;
     setOutputText(value: string): void;
-    getPaperColors(colorsForPens: string[]): string[];
-    getPenColors(colorsForPens: string[]): string[];
+    getColor(color: string, background: boolean): string;
     /**
      * Prompts the user with a message and returns the input.
      * @param msg - The message to prompt.

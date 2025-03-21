@@ -96,11 +96,8 @@
             const outputText = document.getElementById("outputText");
             outputText.innerText = value;
         }
-        getPaperColors(colorsForPens) {
-            return colorsForPens.map((color) => `<span style="background-color: ${color}">`);
-        }
-        getPenColors(colorsForPens) {
-            return colorsForPens.map((color) => `<span style="color: ${color}">`);
+        getColor(color, background) {
+            return `<span style="${background ? 'background-color' : 'color'}: ${color}">`;
         }
         /**
          * Prompts the user with a message and returns the input.
