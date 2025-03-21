@@ -38,6 +38,7 @@ export interface IVm {
     drawMovePlot(type: string, x: number, y: number): void;
     flush(): void;
     graphicsPen(num: number): void;
+    ink(num: number, col: number): void;
     inkey$(): Promise<string>;
     input(_msg: string): Promise<string | null>;
     mode(num: number): void;
@@ -80,8 +81,7 @@ export interface IUI {
     getEscape(): boolean;
     addOutputText(value: string): void;
     setOutputText(value: string): void;
-    getPaperColors(colorsForPens: string[]): string[];
-    getPenColors(colorsForPens: string[]): string[];
+    getColor(color: string, background: boolean): string;
     checkSyntax(str: string): Promise<string>;
     prompt(msg: string): string | null;
     getKeyFromBuffer(): string;

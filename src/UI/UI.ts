@@ -133,12 +133,8 @@ export class UI implements IUI {
         outputText.innerText = value;
     }
 
-    public getPaperColors(colorsForPens: string[]): string[] {
-        return colorsForPens.map((color) => `<span style="background-color: ${color}">`);
-    }
-
-    public getPenColors(colorsForPens: string[]): string[] {
-        return colorsForPens.map((color) => `<span style="color: ${color}">`);
+    public getColor(color: string, background: boolean): string {
+        return `<span style="${background ? 'background-color' : 'color'}: ${color}">`;
     }
 
     /**

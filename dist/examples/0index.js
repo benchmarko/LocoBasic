@@ -12,12 +12,8 @@ cpcBasic.addIndex("./examples", {
 			"title": "First Program (empty)"
 		},
 		{
-			"key": "locobas",
-			"title": "LocoBasic"
-		},
-		{
-			"key": "locobas2",
-			"title": "LocoBasic 2"
+			"key": "barnsley",
+			"title": "Barnsley fern"
 		},
 		{
 			"key": "bmbench08",
@@ -58,6 +54,14 @@ cpcBasic.addIndex("./examples", {
 		{
 			"key": "lifegame",
 			"title": "Game of Life"
+		},
+		{
+			"key": "locobas",
+			"title": "LocoBasic"
+		},
+		{
+			"key": "locobas2",
+			"title": "LocoBasic 2"
 		},
 		{
 			"key": "mandelbro",

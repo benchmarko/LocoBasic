@@ -5,7 +5,11 @@
 cpcBasic.addItem("", `
 REM euler - Compute e with 10000 digits
 MODE 2
-d=1000: ' can be set from 1000 to 10000
+PRINT "Compute e with up to 10000 digits"
+INPUT "Number of digits (factor of 100):"; d
+'d=1000: ' can be set from 1000 to 10000
+d=ROUND(d, -2)
+IF d<1000 THEN d=1000
 PRINT "Compute e with";d;"digits"
 '
 ' Initialize array and variables
@@ -44,7 +48,8 @@ FOR i = 1 TO maxnum
   digit$ = STR$(digits(i))
   digit$ = RIGHT$(digit$, LEN(digit$) - 1)
   digit$ = RIGHT$("0000" + digit$, dpnum)
-  PRINT digit$; " ";
+  PRINT digit$;
+  IF i MOD 13<>0 then PRINT " "; ELSE PRINT
   ' Check
   IF c>LEN(c$) THEN READ c$:c=1
   IF digit$<>MID$(c$,c,dpnum) THEN PRINT "Error at pos";i*dpnum+(c-1);":";digit$;"<>";MID$(c$,c,dpnum):STOP

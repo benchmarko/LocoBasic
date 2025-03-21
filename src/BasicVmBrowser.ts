@@ -3,15 +3,14 @@ import { BasicVmCore } from "./BasicVmCore";
 
 export class BasicVmBrowser extends BasicVmCore {
     private readonly ui: IUI;
-    private readonly penColors: string[];
-    private readonly paperColors: string[];
+    private readonly penColors: string[] = [];
+    private readonly paperColors: string[] = [];
 
     constructor(ui: IUI) {
         super();
         this.ui = ui;
-        const colorsForPens = this.getColorsForPens();
-        this.penColors = ui.getPenColors(colorsForPens);
-        this.paperColors = ui.getPaperColors(colorsForPens);
+        this.penColors = this.cpcColors.map((color) => ui.getColor(color, false));
+        this.paperColors = this.cpcColors.map((color) => ui.getColor(color, true));
     }
 
     /**
