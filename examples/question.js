@@ -3,7 +3,7 @@
 "use strict";
 
 cpcBasic.addItem("", `
-REM questions - Funny Questions and Answers
+REM question - Funny Questions and Answers
 MODE 2
 GOSUB 2000
 PRINT "Funny Questions and Answers"

@@ -12,15 +12,31 @@ cpcBasic.addIndex("./examples", {
 			"title": "First Program (empty)"
 		},
 		{
+			"key": "abelian",
+			"title": "Abelian sandpile model (ASCII)"
+		},
+		{
+			"key": "abelian2",
+			"title": "Abelian sandpile model (graphical)"
+		},
+		{
 			"key": "barnsley",
 			"title": "Barnsley fern"
 		},
 		{
-			"key": "bmbench08",
+			"key": "bmbench8",
 			"title": "BM Benchmark v0.08"
 		},
 		{
-			"key": "countries",
+			"key": "chaos",
+			"title": "Chaos game"
+		},
+		{
+			"key": "colorbar",
+			"title": "Colour bars: Display"
+		},
+		{
+			"key": "country",
 			"title": "Countries and Cities"
 		},
 		{
@@ -40,7 +56,7 @@ cpcBasic.addIndex("./examples", {
 			"title": "Compute e with 10000 digits"
 		},
 		{
-			"key": "factorial",
+			"key": "factoria",
 			"title": "Big Factorials"
 		},
 		{
@@ -48,7 +64,7 @@ cpcBasic.addIndex("./examples", {
 			"title": "Functional Spectrum"
 		},
 		{
-			"key": "labyrinth",
+			"key": "labyrint",
 			"title": "Drawing Labyrinth"
 		},
 		{
@@ -64,7 +80,7 @@ cpcBasic.addIndex("./examples", {
 			"title": "LocoBasic 2"
 		},
 		{
-			"key": "mandelbro",
+			"key": "mandelbr",
 			"title": "Mandelbrot Set"
 		},
 		{
@@ -80,16 +96,12 @@ cpcBasic.addIndex("./examples", {
 			"title": "Nine Digits Puzzle"
 		},
 		{
-			"key": "questions",
+			"key": "question",
 			"title": "Funny Questions and Answers"
 		},
 		{
 			"key": "rectangl",
 			"title": "Rectangles Test"
-		},
-		{
-			"key": "sandpile",
-			"title": "Abelian sandpile model"
 		},
 		{
 			"key": "seconds",
@@ -102,6 +114,10 @@ cpcBasic.addIndex("./examples", {
 		{
 			"key": "sierpin",
 			"title": "Sierpinski triangle"
+		},
+		{
+			"key": "sierpin2",
+			"title": "Sierpinski triangle (graphical)"
 		},
 		{
 			"key": "sievebe",

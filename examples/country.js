@@ -3,7 +3,7 @@
 "use strict";
 
 cpcBasic.addItem("", `
-REM countries - Countries and Cities
+REM country - Countries and Cities
 REM (c) 1983 REM J van Noort
 REM landen
 REM J van Noort

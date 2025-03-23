@@ -3,8 +3,10 @@
 "use strict";
 
 cpcBasic.addItem("", `
-REM mandelbro - Mandelbrot Set
+REM mandelbr - Mandelbrot Set
 REM https://rosettacode.org/wiki/Mandelbrot_set#Locomotive_Basic
+REM GNU FDL 1.2 (https://www.gnu.org/licenses/fdl-1.2.html)
+REM modifications: added timing
 REM https://en.wikipedia.org/wiki/Mandelbrot_set
 MODE 3 ' Note the CPCBasic-only screen mode!
 t=TIME
