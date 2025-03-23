@@ -3,7 +3,7 @@
 "use strict";
 
 cpcBasic.addItem("", `
-REM bmbench08 - BM Benchmark v0.08
+REM bmbench8 - BM Benchmark v0.08
 MODE 2
 REM BM Bench - bmbench.bas (BASIC)
 REM (c) Marco Vieth, 2002-2023

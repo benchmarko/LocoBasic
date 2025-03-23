@@ -3,7 +3,7 @@
 "use strict";
 
 cpcBasic.addItem("", `
-REM factorial - Big Factorials
+REM factoria - Big Factorials
 MODE 2
 PRINT "Big Factorials"
 n=252

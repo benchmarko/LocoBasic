@@ -3,7 +3,7 @@
 "use strict";
 
 cpcBasic.addItem("", `
-REM labyrinth - Drawing Labyrinth
+REM labyrint - Drawing Labyrinth
 MODE 2
 '
 ' Initialize arrays and variables

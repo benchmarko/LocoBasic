@@ -3,8 +3,9 @@
 "use strict";
 
 cpcBasic.addItem("", `
-REM sierpin - Sierpinski triangle
+REM sierpin - Sierpinski triangle (ASCII)
 REM see also: https://en.wikipedia.org/wiki/Sierpi%C5%84ski_triangle
+REM (simplified version could be put on Rosetta code... https://rosettacode.org/wiki/Sierpinski_triangle)
 DEG
 MODE 2
 DIM cx(5),cy(5),r(5),lc(5),s$(80,25),smc(25)
