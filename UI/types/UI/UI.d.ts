@@ -45,6 +45,9 @@ export declare class UI implements IUI {
     private onDatabaseSelectChange;
     private setDatabaseSelectOptions;
     private onHelpButtonClick;
+    private static fnDownloadBlob;
+    private getExampleName;
+    private onExportSvgButtonClick;
     getKeyFromBuffer(): string;
     private putKeyInBuffer;
     private onOutputTextKeydown;

@@ -85,10 +85,14 @@ export class UI {
     addOutputText(value) {
         const outputText = document.getElementById("outputText");
         outputText.innerHTML += value;
+        if (value.startsWith("<svg xmlns=")) {
+            this.setButtonDisabled("exportSvgButton", false);
+        }
     }
     setOutputText(value) {
         const outputText = document.getElementById("outputText");
         outputText.innerText = value;
+        this.setButtonDisabled("exportSvgButton", true);
     }
     getColor(color, background) {
         return `<span style="${background ? 'background-color' : 'color'}: ${color}">`;
@@ -307,6 +311,45 @@ export class UI {
     onHelpButtonClick() {
         window.open("https://github.com/benchmarko/LocoBasic/#readme");
     }
+    static fnDownloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const clickHandler = function () {
+            setTimeout(function () {
+                URL.revokeObjectURL(url);
+                a.removeEventListener("click", clickHandler);
+            }, 150);
+        };
+        a.href = url;
+        a.download = filename;
+        a.addEventListener("click", clickHandler, false);
+        a.click();
+    }
+    getExampleName() {
+        const input = this.basicCm ? this.basicCm.getValue() : "";
+        const firstLine = input.slice(0, input.indexOf("\n"));
+        const matches = firstLine.match(/^\s*\d*\s*(?:REM|rem|')\s*(\w+)/);
+        const name = matches ? matches[1] : this.getCore().getConfigMap().example || "locobasic";
+        return name;
+    }
+    onExportSvgButtonClick() {
+        const outputText = window.document.getElementById("outputText");
+        const svgElements = outputText.getElementsByTagName("svg");
+        if (!svgElements.length) {
+            console.warn("onExportSvgButtonClick: No SVG found.");
+            return;
+        }
+        const svgElement = svgElements[0];
+        // svgElement.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+        const svgData = svgElement.outerHTML;
+        const preface = '<?xml version="1.0" standalone="no"?>\r\n';
+        const svgBlob = new Blob([preface, svgData], {
+            type: "image/svg+xml;charset=utf-8"
+        });
+        const example = this.getExampleName();
+        const filename = `${example}.svg`;
+        UI.fnDownloadBlob(svgBlob, filename);
+    }
     getKeyFromBuffer() {
         const key = this.keyBuffer.length ? this.keyBuffer.shift() : "";
         return key;
@@ -424,6 +467,8 @@ export class UI {
         exampleSelect.addEventListener('change', (event) => this.onExampleSelectChange(event));
         const helpButton = window.document.getElementById("helpButton");
         helpButton.addEventListener('click', () => this.onHelpButtonClick());
+        const exportSvgButton = window.document.getElementById("exportSvgButton");
+        exportSvgButton.addEventListener('click', () => this.onExportSvgButtonClick());
         const WinCodeMirror = window.CodeMirror;
         if (WinCodeMirror) {
             const basicEditor = window.document.getElementById("basicEditor");
