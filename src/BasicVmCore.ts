@@ -145,14 +145,15 @@ export class BasicVmCore implements IVmAdmin {
 
     public flush(): void {
         this.flushGraphicsPath();
-        if (this.graphicsBuffer.length) {
-            const backgroundColorStr = this.backgroundColor !== "" ? ` style="background-color:${this.backgroundColor}"` : '';
-            this.output += `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" stroke="currentColor"${backgroundColorStr}>\n${this.graphicsBuffer.join("\n")}"\n</svg>\n`;
-            this.graphicsBuffer.length = 0;
-        }
         if (this.output) {
             this.fnOnPrint(this.output);
             this.output = "";
+        }
+        if (this.graphicsBuffer.length) {
+            const backgroundColorStr = this.backgroundColor !== "" ? ` style="background-color:${this.backgroundColor}"` : '';
+            // separate print for svg graphics (we are checking for output starting with svg to enable expor SVG button)
+            this.fnOnPrint(`<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" stroke="currentColor"${backgroundColorStr}>\n${this.graphicsBuffer.join("\n")}"\n</svg>\n`);
+            this.graphicsBuffer.length = 0;
         }
     }
 
