@@ -1,3 +1,4 @@
+import { LocoBasicMode } from './LocoBasicMode';
 // Worker function to handle JavaScript evaluation and error reporting
 const workerFn = () => {
     const doEvalAndReply = (jsText) => {
@@ -471,10 +472,12 @@ export class UI {
         exportSvgButton.addEventListener('click', () => this.onExportSvgButtonClick());
         const WinCodeMirror = window.CodeMirror;
         if (WinCodeMirror) {
+            const getModeFn = LocoBasicMode.getMode;
+            WinCodeMirror.defineMode("lbasic", getModeFn);
             const basicEditor = window.document.getElementById("basicEditor");
             this.basicCm = WinCodeMirror(basicEditor, {
                 lineNumbers: true,
-                mode: 'javascript' // should be 'basic' but not available
+                mode: 'lbasic'
             });
             this.basicCm.on('changes', this.debounce(() => this.onBasicTextChange(), () => config.debounceCompile));
             const compiledEditor = window.document.getElementById("compiledEditor");
