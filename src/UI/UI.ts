@@ -1,5 +1,6 @@
 import type { Editor } from 'codemirror';
 import type { ConfigEntryType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore, IUI, IVmAdmin } from "../Interfaces";
+import { LocoBasicMode } from './LocoBasicMode';
 
 // Worker:
 type PlainErrorEventType = {
@@ -584,10 +585,13 @@ export class UI implements IUI {
 
         const WinCodeMirror = window.CodeMirror;
         if (WinCodeMirror) {
+            const getModeFn = LocoBasicMode.getMode;
+            WinCodeMirror.defineMode("lbasic", getModeFn);
+
             const basicEditor = window.document.getElementById("basicEditor") as HTMLElement;
             this.basicCm = WinCodeMirror(basicEditor, {
                 lineNumbers: true,
-                mode: 'javascript' // should be 'basic' but not available
+                mode: 'lbasic'
             });
             this.basicCm.on('changes', this.debounce(() => this.onBasicTextChange(), () => config.debounceCompile));
 
