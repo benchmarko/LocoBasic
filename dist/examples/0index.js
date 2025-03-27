@@ -20,6 +20,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Abelian sandpile model (graphical)"
 		},
 		{
+			"key": "animate",
+			"title": "Animate a pendulum (ASCII)"
+		},
+		{
 			"key": "barnsley",
 			"title": "Barnsley fern"
 		},

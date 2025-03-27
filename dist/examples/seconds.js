@@ -22,7 +22,5 @@ FOR cnt=1 TO loops
   t1=TIME-t1
   PRINT INT(1000*t1/300)/1000
 NEXT
-'
-'print"Timing 3 (after)"
 END
 `);
