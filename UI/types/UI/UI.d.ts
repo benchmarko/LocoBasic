@@ -36,6 +36,8 @@ export declare class UI implements IUI {
     private onExecuteButtonClick;
     private onCompiledTextChange;
     private onCompileButtonClick;
+    private onAutoCompileInputChange;
+    private onAutoExecuteInputChange;
     private onStopButtonClick;
     private onBasicTextChange;
     private getExampleScript;

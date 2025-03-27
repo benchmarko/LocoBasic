@@ -14,6 +14,8 @@ export interface DatabaseType {
 export type DatabaseMapType = Record<string, DatabaseType>;
 export type ConfigType = {
     action: string;
+    autoCompile: boolean;
+    autoExecute: boolean;
     basicAreaHidden: boolean;
     compiledAreaHidden: boolean;
     databaseDirs: string;

@@ -1,8 +1,8 @@
-import { LocoBasicMode } from './LocoBasicMode';
+import { LocoBasicMode } from "./LocoBasicMode";
 // Worker function to handle JavaScript evaluation and error reporting
 const workerFn = () => {
     const doEvalAndReply = (jsText) => {
-        self.addEventListener('error', (errorEvent) => {
+        self.addEventListener("error", (errorEvent) => {
             errorEvent.preventDefault();
             const { lineno, colno, message } = errorEvent;
             const plainErrorEventObj = { lineno, colno, message };
@@ -12,11 +12,11 @@ const workerFn = () => {
         const plainErrorEventObj = {
             lineno: -1,
             colno: -1,
-            message: 'No Error: Parsing successful!'
+            message: "No Error: Parsing successful!"
         };
         self.postMessage(JSON.stringify(plainErrorEventObj));
     };
-    self.addEventListener('message', (e) => {
+    self.addEventListener("message", (e) => {
         doEvalAndReply(e.data);
     });
 };
@@ -24,6 +24,146 @@ export class UI {
     constructor() {
         this.keyBuffer = []; // buffered pressed keys
         this.escape = false;
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onBasicAreaButtonClick = (_event) => {
+            const basicVisible = this.toggleAreaHidden("basicAreaInner", this.basicCm);
+            const compiledAreaInner = document.getElementById("compiledAreaInner");
+            this.setClearLeft("compiledArea", !basicVisible || compiledAreaInner.hidden);
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onCompiledAreaButtonClick = (_event) => {
+            const compiledVisible = this.toggleAreaHidden("compiledAreaInner", this.compiledCm);
+            const basicAreaInner = document.getElementById("basicAreaInner");
+            this.setClearLeft("compiledArea", !compiledVisible || basicAreaInner.hidden);
+            const outputAreaInner = document.getElementById("outputAreaInner");
+            this.setClearLeft("outputArea", !compiledVisible || outputAreaInner.hidden);
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onOutputAreaButtonClick = (_event) => {
+            const outputVisible = this.toggleAreaHidden("outputAreaInner");
+            const compiledAreaInner = document.getElementById("compiledAreaInner");
+            this.setClearLeft("outputArea", !outputVisible || compiledAreaInner.hidden);
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onExecuteButtonClick = async (_event) => {
+            const core = this.getCore();
+            if (!this.vm) {
+                return;
+            }
+            const compiledScript = this.compiledCm ? this.compiledCm.getValue() : "";
+            this.setButtonDisabled("executeButton", true);
+            this.setButtonDisabled("stopButton", false);
+            this.setSelectDisabled("databaseSelect", true);
+            this.setSelectDisabled("exampleSelect", true);
+            this.escape = false;
+            this.keyBuffer.length = 0;
+            const outputText = window.document.getElementById("outputText");
+            outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
+            const output = await core.executeScript(compiledScript, this.vm) || "";
+            outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
+            this.setButtonDisabled("executeButton", false);
+            this.setButtonDisabled("stopButton", true);
+            this.setSelectDisabled("databaseSelect", false);
+            this.setSelectDisabled("exampleSelect", false);
+            this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
+        };
+        this.onCompiledTextChange = () => {
+            const autoExecuteInput = document.getElementById("autoExecuteInput");
+            if (autoExecuteInput.checked) {
+                const executeButton = window.document.getElementById("executeButton");
+                if (!executeButton.disabled) {
+                    executeButton.dispatchEvent(new Event("click"));
+                }
+            }
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onCompileButtonClick = (_event) => {
+            const core = this.getCore();
+            this.setButtonDisabled("compileButton", true);
+            const input = this.basicCm ? this.basicCm.getValue() : "";
+            UI.asyncDelay(() => {
+                const compiledScript = core.compileScript(input) || "";
+                if (this.compiledCm) {
+                    this.compiledCm.setValue(compiledScript);
+                }
+                this.setButtonDisabled("compileButton", false);
+            }, 1);
+        };
+        this.onAutoCompileInputChange = (event) => {
+            const autoCompileInput = event.target;
+            this.updateConfigParameter("autoCompile", autoCompileInput.checked);
+        };
+        this.onAutoExecuteInputChange = (event) => {
+            const autoExecuteInput = event.target;
+            this.updateConfigParameter("autoExecute", autoExecuteInput.checked);
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onStopButtonClick = (_event) => {
+            this.escape = true;
+            this.setButtonDisabled("stopButton", true);
+        };
+        this.onBasicTextChange = async () => {
+            const autoCompileInput = document.getElementById("autoCompileInput");
+            if (autoCompileInput.checked) {
+                const compileButton = window.document.getElementById("compileButton");
+                if (!compileButton.disabled) {
+                    compileButton.dispatchEvent(new Event("click"));
+                }
+            }
+        };
+        this.onExampleSelectChange = async (event) => {
+            const core = this.getCore();
+            this.setOutputText("");
+            const exampleSelect = event.target;
+            const exampleName = exampleSelect.value;
+            const example = core.getExample(exampleName); //.script || "";
+            if (example) {
+                this.updateConfigParameter("example", exampleName);
+                const script = await this.getExampleScript(example);
+                if (this.basicCm) {
+                    this.basicCm.setValue(script);
+                }
+            }
+            else {
+                console.warn("onExampleSelectChange: example not found:", exampleName);
+            }
+        };
+        this.onDatabaseSelectChange = async (event) => {
+            const core = this.getCore();
+            const databaseSelect = event.target;
+            const database = databaseSelect.value;
+            const config = core.getConfigMap();
+            config.database = database;
+            const databaseMap = core.getDatabaseMap();
+            const databaseItem = databaseMap[database];
+            if (databaseItem) {
+                this.updateConfigParameter("database", database);
+            }
+            const exampleMap = await this.getExampleMap(databaseItem);
+            this.setExampleSelectOptions(exampleMap, config.example);
+            const exampleSelect = window.document.getElementById("exampleSelect");
+            exampleSelect.dispatchEvent(new Event("change"));
+        };
+        this.onHelpButtonClick = () => {
+            window.open("https://github.com/benchmarko/LocoBasic/#readme");
+        };
+        this.onExportSvgButtonClick = () => {
+            const outputText = window.document.getElementById("outputText");
+            const svgElements = outputText.getElementsByTagName("svg");
+            if (!svgElements.length) {
+                console.warn("onExportSvgButtonClick: No SVG found.");
+                return;
+            }
+            const svgElement = svgElements[0];
+            const svgData = svgElement.outerHTML;
+            const preface = '<?xml version="1.0" standalone="no"?>\r\n';
+            const svgBlob = new Blob([preface, svgData], {
+                type: "image/svg+xml;charset=utf-8"
+            });
+            const example = this.getExampleName();
+            const filename = `${example}.svg`;
+            UI.fnDownloadBlob(svgBlob, filename);
+        };
         this.fnOnKeyPressHandler = (event) => this.onOutputTextKeydown(event);
     }
     debounce(func, fngetDelay) {
@@ -143,79 +283,6 @@ export class UI {
         const area = document.getElementById(id);
         area.style.clear = clearLeft ? "left" : "";
     }
-    onBasicAreaButtonClick(_event) {
-        const basicVisible = this.toggleAreaHidden("basicAreaInner", this.basicCm);
-        const compiledAreaInner = document.getElementById("compiledAreaInner");
-        this.setClearLeft("compiledArea", !basicVisible || compiledAreaInner.hidden);
-    }
-    onCompiledAreaButtonClick(_event) {
-        const compiledVisible = this.toggleAreaHidden("compiledAreaInner", this.compiledCm);
-        const basicAreaInner = document.getElementById("basicAreaInner");
-        this.setClearLeft("compiledArea", !compiledVisible || basicAreaInner.hidden);
-        const outputAreaInner = document.getElementById("outputAreaInner");
-        this.setClearLeft("outputArea", !compiledVisible || outputAreaInner.hidden);
-    }
-    onOutputAreaButtonClick(_event) {
-        const outputVisible = this.toggleAreaHidden("outputAreaInner");
-        const compiledAreaInner = document.getElementById("compiledAreaInner");
-        this.setClearLeft("outputArea", !outputVisible || compiledAreaInner.hidden);
-    }
-    async onExecuteButtonClick(_event) {
-        const core = this.getCore();
-        if (!this.vm) {
-            return;
-        }
-        const compiledScript = this.compiledCm ? this.compiledCm.getValue() : "";
-        this.setButtonDisabled("executeButton", true);
-        this.setButtonDisabled("stopButton", false);
-        this.setSelectDisabled("databaseSelect", true);
-        this.setSelectDisabled("exampleSelect", true);
-        this.escape = false;
-        this.keyBuffer.length = 0;
-        const outputText = window.document.getElementById("outputText");
-        outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
-        const output = await core.executeScript(compiledScript, this.vm) || "";
-        outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
-        this.setButtonDisabled("executeButton", false);
-        this.setButtonDisabled("stopButton", true);
-        this.setSelectDisabled("databaseSelect", false);
-        this.setSelectDisabled("exampleSelect", false);
-        this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
-    }
-    onCompiledTextChange() {
-        const autoExecuteInput = document.getElementById("autoExecuteInput");
-        if (autoExecuteInput.checked) {
-            const executeButton = window.document.getElementById("executeButton");
-            if (!executeButton.disabled) {
-                executeButton.dispatchEvent(new Event('click'));
-            }
-        }
-    }
-    onCompileButtonClick(_event) {
-        const core = this.getCore();
-        this.setButtonDisabled("compileButton", true);
-        const input = this.basicCm ? this.basicCm.getValue() : "";
-        UI.asyncDelay(() => {
-            const compiledScript = core.compileScript(input) || "";
-            if (this.compiledCm) {
-                this.compiledCm.setValue(compiledScript);
-            }
-            this.setButtonDisabled("compileButton", false);
-        }, 1);
-    }
-    onStopButtonClick(_event) {
-        this.escape = true;
-        this.setButtonDisabled("stopButton", true);
-    }
-    async onBasicTextChange() {
-        const autoCompileInput = document.getElementById("autoCompileInput");
-        if (autoCompileInput.checked) {
-            const compileButton = window.document.getElementById("compileButton");
-            if (!compileButton.disabled) {
-                compileButton.dispatchEvent(new Event('click'));
-            }
-        }
-    }
     async getExampleScript(example) {
         if (example.script !== undefined) {
             return example.script;
@@ -229,24 +296,7 @@ export class UI {
         catch (error) {
             console.error("Load Example", scriptName, error);
         }
-        return example.script || ""; //TTT
-    }
-    async onExampleSelectChange(event) {
-        const core = this.getCore();
-        this.setOutputText("");
-        const exampleSelect = event.target;
-        const exampleName = exampleSelect.value;
-        const example = core.getExample(exampleName); //.script || "";
-        if (example) {
-            this.updateConfigParameter("example", exampleName);
-            const script = await this.getExampleScript(example);
-            if (this.basicCm) {
-                this.basicCm.setValue(script);
-            }
-        }
-        else {
-            console.warn("onExampleSelectChange: example not found:", exampleName);
-        }
+        return example.script || "";
     }
     setExampleSelectOptions(exampleMap, exampleKey) {
         const maxTitleLength = 160;
@@ -280,22 +330,6 @@ export class UI {
         }
         return databaseItem.exampleMap;
     }
-    async onDatabaseSelectChange(event) {
-        const core = this.getCore();
-        const databaseSelect = event.target;
-        const database = databaseSelect.value;
-        const config = core.getConfigMap();
-        config.database = database;
-        const databaseMap = core.getDatabaseMap();
-        const databaseItem = databaseMap[database];
-        if (databaseItem) {
-            this.updateConfigParameter("database", database);
-        }
-        const exampleMap = await this.getExampleMap(databaseItem);
-        this.setExampleSelectOptions(exampleMap, config.example);
-        const exampleSelect = window.document.getElementById("exampleSelect");
-        exampleSelect.dispatchEvent(new Event('change'));
-    }
     setDatabaseSelectOptions(databaseMap, database) {
         const databaseSelect = document.getElementById("databaseSelect");
         databaseSelect.options.length = 0;
@@ -308,9 +342,6 @@ export class UI {
             option.selected = key === database;
             databaseSelect.add(option);
         }
-    }
-    onHelpButtonClick() {
-        window.open("https://github.com/benchmarko/LocoBasic/#readme");
     }
     static fnDownloadBlob(blob, filename) {
         const url = URL.createObjectURL(blob);
@@ -332,24 +363,6 @@ export class UI {
         const matches = firstLine.match(/^\s*\d*\s*(?:REM|rem|')\s*(\w+)/);
         const name = matches ? matches[1] : this.getCore().getConfigMap().example || "locobasic";
         return name;
-    }
-    onExportSvgButtonClick() {
-        const outputText = window.document.getElementById("outputText");
-        const svgElements = outputText.getElementsByTagName("svg");
-        if (!svgElements.length) {
-            console.warn("onExportSvgButtonClick: No SVG found.");
-            return;
-        }
-        const svgElement = svgElements[0];
-        // svgElement.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-        const svgData = svgElement.outerHTML;
-        const preface = '<?xml version="1.0" standalone="no"?>\r\n';
-        const svgBlob = new Blob([preface, svgData], {
-            type: "image/svg+xml;charset=utf-8"
-        });
-        const example = this.getExampleName();
-        const filename = `${example}.svg`;
-        UI.fnDownloadBlob(svgBlob, filename);
     }
     getKeyFromBuffer() {
         const key = this.keyBuffer.length ? this.keyBuffer.shift() : "";
@@ -383,7 +396,7 @@ export class UI {
         const processNext = () => {
             isProcessing = true;
             const { resolve, jsText } = processingQueue.shift();
-            worker.addEventListener('message', ({ data }) => {
+            worker.addEventListener("message", ({ data }) => {
                 resolve(JSON.parse(data));
                 if (processingQueue.length) {
                     processNext();
@@ -406,15 +419,15 @@ export class UI {
         return getErrorEvent;
     }
     static describeError(stringToEval, lineno, colno) {
-        const lines = stringToEval.split('\n');
+        const lines = stringToEval.split("\n");
         const line = lines[lineno - 1];
-        return `${line}\n${' '.repeat(colno - 1) + '^'}`;
+        return `${line}\n${" ".repeat(colno - 1) + "^"}`;
     }
     async checkSyntax(str) {
         const getErrorEvent = UI.getErrorEventFn();
         let output = "";
         const { lineno, colno, message } = await getErrorEvent(str);
-        if (message === 'No Error: Parsing successful!') {
+        if (message === "No Error: Parsing successful!") {
             return "";
         }
         output += `Syntax error thrown at: Line ${lineno - 2}, col: ${colno}\n`;
@@ -457,19 +470,23 @@ export class UI {
         core.parseArgs(args, config);
         core.setOnCheckSyntax((s) => Promise.resolve(this.checkSyntax(s)));
         const compileButton = window.document.getElementById("compileButton");
-        compileButton.addEventListener('click', (event) => this.onCompileButtonClick(event), false);
+        compileButton.addEventListener("click", this.onCompileButtonClick, false);
         const executeButton = window.document.getElementById("executeButton");
-        executeButton.addEventListener('click', (event) => this.onExecuteButtonClick(event), false);
+        executeButton.addEventListener("click", this.onExecuteButtonClick, false);
         const stopButton = window.document.getElementById("stopButton");
-        stopButton.addEventListener('click', (event) => this.onStopButtonClick(event), false);
+        stopButton.addEventListener("click", this.onStopButtonClick, false);
+        const autoCompileInput = window.document.getElementById("autoCompileInput");
+        autoCompileInput.addEventListener("change", this.onAutoCompileInputChange, false);
+        const autoExecuteInput = window.document.getElementById("autoExecuteInput");
+        autoExecuteInput.addEventListener("change", this.onAutoExecuteInputChange, false);
         const databaseSelect = window.document.getElementById("databaseSelect");
-        databaseSelect.addEventListener('change', (event) => this.onDatabaseSelectChange(event));
+        databaseSelect.addEventListener("change", this.onDatabaseSelectChange);
         const exampleSelect = window.document.getElementById("exampleSelect");
-        exampleSelect.addEventListener('change', (event) => this.onExampleSelectChange(event));
+        exampleSelect.addEventListener("change", this.onExampleSelectChange);
         const helpButton = window.document.getElementById("helpButton");
-        helpButton.addEventListener('click', () => this.onHelpButtonClick());
+        helpButton.addEventListener("click", this.onHelpButtonClick);
         const exportSvgButton = window.document.getElementById("exportSvgButton");
-        exportSvgButton.addEventListener('click', () => this.onExportSvgButtonClick());
+        exportSvgButton.addEventListener("click", this.onExportSvgButtonClick);
         const WinCodeMirror = window.CodeMirror;
         if (WinCodeMirror) {
             const getModeFn = LocoBasicMode.getMode;
@@ -477,45 +494,53 @@ export class UI {
             const basicEditor = window.document.getElementById("basicEditor");
             this.basicCm = WinCodeMirror(basicEditor, {
                 lineNumbers: true,
-                mode: 'lbasic'
+                mode: "lbasic"
             });
-            this.basicCm.on('changes', this.debounce(() => this.onBasicTextChange(), () => config.debounceCompile));
+            this.basicCm.on("changes", this.debounce(this.onBasicTextChange, () => config.debounceCompile));
             const compiledEditor = window.document.getElementById("compiledEditor");
             this.compiledCm = WinCodeMirror(compiledEditor, {
                 lineNumbers: true,
-                mode: 'javascript'
+                mode: "javascript"
             });
-            this.compiledCm.on('changes', this.debounce(() => this.onCompiledTextChange(), () => config.debounceExecute));
+            this.compiledCm.on("changes", this.debounce(this.onCompiledTextChange, () => config.debounceExecute));
         }
         const basicAreaButton = window.document.getElementById("basicAreaButton");
-        basicAreaButton.addEventListener('click', (event) => this.onBasicAreaButtonClick(event), false);
+        basicAreaButton.addEventListener("click", this.onBasicAreaButtonClick, false);
         const compiledAreaButton = window.document.getElementById("compiledAreaButton");
-        compiledAreaButton.addEventListener('click', (event) => this.onCompiledAreaButtonClick(event), false);
+        compiledAreaButton.addEventListener("click", this.onCompiledAreaButtonClick, false);
         const outputAreaButton = window.document.getElementById("outputAreaButton");
-        outputAreaButton.addEventListener('click', (event) => this.onOutputAreaButtonClick(event), false);
+        outputAreaButton.addEventListener("click", this.onOutputAreaButtonClick, false);
         window.addEventListener("popstate", (event) => {
             if (event.state) {
                 Object.assign(config, core.getDefaultConfigMap); // load defaults
                 const args = this.parseUri(config);
                 core.parseArgs(args, config);
-                databaseSelect.dispatchEvent(new Event('change'));
+                databaseSelect.dispatchEvent(new Event("change"));
             }
         });
         if (config.basicAreaHidden) {
-            this.onBasicAreaButtonClick(new Event('click'));
+            basicAreaButton.dispatchEvent(new Event("click"));
         }
         if (config.compiledAreaHidden) {
-            this.onCompiledAreaButtonClick(new Event('click'));
+            compiledAreaButton.dispatchEvent(new Event("click"));
         }
         if (config.outputAreaHidden) {
-            this.onOutputAreaButtonClick(new Event('click'));
+            outputAreaButton.dispatchEvent(new Event("click"));
+        }
+        if (!config.autoCompile) {
+            autoCompileInput.checked = false;
+            autoCompileInput.dispatchEvent(new Event("change"));
+        }
+        if (!config.autoExecute) {
+            autoExecuteInput.checked = false;
+            autoExecuteInput.dispatchEvent(new Event("change"));
         }
         UI.asyncDelay(() => {
             const databaseMap = core.initDatabaseMap();
             this.setDatabaseSelectOptions(databaseMap, config.database);
             const url = window.location.href;
             history.replaceState({}, "", url);
-            databaseSelect.dispatchEvent(new Event('change'));
+            databaseSelect.dispatchEvent(new Event("change"));
         }, 10);
     }
 }

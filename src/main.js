@@ -3,6 +3,8 @@ import { NodeParts } from "./NodeParts";
 import { BasicVmBrowser } from "./BasicVmBrowser";
 const core = new Core({
     action: "compile,run",
+    autoCompile: true,
+    autoExecute: true,
     basicAreaHidden: false,
     compiledAreaHidden: false,
     databaseDirs: "examples,https://benchmarko.github.io/CPCBasicApps/rosetta", // example base directories (comma separated)
