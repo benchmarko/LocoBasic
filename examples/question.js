@@ -12,7 +12,6 @@ PRINT "What do you do when..."
 PRINT
 DIM a(n)
 GOSUB 1000 ' Shuffle the indices
-'FOR i = 1 TO n: PRINT USING "##"; a(i);: PRINT " ";: NEXT: PRINT
 '
 FOR i = 1 TO n
   j = a(i)

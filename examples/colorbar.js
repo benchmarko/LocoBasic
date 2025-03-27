@@ -11,5 +11,4 @@ MODE 0
 FOR x=0 TO 15
   FOR z=0 TO 39 STEP 4:DRAWR 0,400,x:MOVER 4,-400:NEXT z
 NEXT x
-'CALL &bb06 ' wait for key press
 `);

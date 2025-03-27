@@ -5,7 +5,7 @@
 cpcBasic.addItem("", `
 REM lifegame - Game of Life
 maxlp=10
-cols=30:rows=20:DIM grid(cols+1, rows):DIM newg(cols+1, rows):DIM mc(rows)
+cols=30:rows=20:DIM grid(cols+1, rows):DIM newg(cols+1, rows):DIM smc(rows)
 '
 MODE 1
 GOSUB 700 'random
@@ -29,17 +29,17 @@ PRINT "Stop after";lp;"generations"
 IF changed=0 THEN PRINT " No change any more"
 STOP
 '
-300 'output
-FOR r=1 TO rows-1
-  FOR c=1 TO mc(r)
+REM output
+300 FOR r=1 TO rows-1
+  FOR c=1 TO smc(r)
     IF grid(c,r)=0 THEN PRINT " "; ELSE PRINT "*";
   NEXT c
   PRINT
 NEXT r
 RETURN
 '
-400 'compute
-FOR r=1 TO rows-1
+REM compute
+400 FOR r=1 TO rows-1
   mc1=0
   FOR c=1 TO cols
     nbs=grid(c-1,r-1)+grid(c-1,r)+grid(c-1,r+1)+grid(c,r-1)+grid(c,r+1)+grid(c+1,r-1)+grid(c+1,r)+grid(c+1,r+1)
@@ -48,11 +48,11 @@ FOR r=1 TO rows-1
     newg(c,r)=ng1
     IF ng1>0 THEN mc1=c
   NEXT c
-  mc(r)=mc1
+  smc(r)=mc1
 NEXT r
 RETURN
 '
-' copy newg->grid
+REM copy newg->grid
 500 changed=0
 FOR r=1 TO rows-1
   FOR c=1 TO cols
@@ -61,22 +61,21 @@ FOR r=1 TO rows-1
 NEXT r
 RETURN
 '
-'
-' random
+REM random
 700 FOR w=1 TO 50
-  c=INT(cols*RND(1)+1):r=INT(rows*RND(1)+1): grid(c,r)=1:IF c>mc(r) THEN mc(r)=c
+  c=INT(cols*RND(1)+1):r=INT(rows*RND(1)+1): grid(c,r)=1:IF c>smc(r) THEN smc(r)=c
 NEXT w
 'grid(4,5)=1:grid(5,5)=1:grid(6,5)=1
 RETURN
 '
-' draw pattern at pos c1,r1
+REM draw pattern at pos c1,r1
 800 READ n
 FOR r=1 TO n
   READ pat$
   FOR c=1 TO LEN(pat$)
     IF MID$(pat$,c,1)="1" THEN grid(c1+c,r1+r)=1
   NEXT c
-  IF (c1+LEN(pat$))>mc(r1+r) THEN mc(r1+r)=c1+LEN(pat$)
+  IF (c1+LEN(pat$))>smc(r1+r) THEN smc(r1+r)=c1+LEN(pat$)
 NEXT r
 RETURN
 '

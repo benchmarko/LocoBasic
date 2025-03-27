@@ -9,23 +9,32 @@ REM
 MODE 2
 GOSUB 5000 :'read cooordinates
 '
-DIM house$(25,80),smc(25): 'house will grow so we do not need to init smc
+cols=80:rows=25
+DIM scr$(cols,rows),smc(rows)
 '
 FOR sc=0.5 TO 1 STEP 0.1
-t=TIME+50
-GOSUB 1000 'init
-GOSUB 2000 'draw
-GOSUB 3000 'print
+GOSUB 500
+NEXT
 '
-WHILE TIME<t AND INKEY$="":FRAME:WEND
+FOR sc=1 TO 0.5 STEP -0.1
+GOSUB 500
 NEXT
 END
 '
+REM animate
+500 t=TIME+50
+GOSUB 1000 'init
+GOSUB 2000 'draw
+GOSUB 3000 'print
+WHILE TIME<t AND INKEY$="":FRAME:WEND
+RETURN
+'
 REM Initialize the grid with spaces
-1000 FOR y = 1 TO 25
-  FOR x = 1 TO 80
-    house$(y, x) = " "
+1000 FOR y = 1 TO rows
+  FOR x = 1 TO cols
+    scr$(x, y) = " "
   NEXT x
+  smc(y)=0
 NEXT y
 RETURN
 '
@@ -49,9 +58,8 @@ REM Bresenham's Line Algorithm
   err1 = dx - dy
 '
   WHILE x0 <> x1 OR y0 <> y1
-    'house$(y0, x0) = "*"
     y0s=ROUND(y0*sc): x0s=ROUND(x0*sc)
-    house$(y0s, x0s) = "*"
+    scr$(x0s, y0s) = "*"
     IF x0s>smc(y0s) THEN smc(y0s)=x0s 
     e2 = 2 * err1
     IF e2 > -dy THEN err1 = err1 - dy: x0 = x0 + sx
@@ -62,9 +70,9 @@ RETURN
 '
 REM Print the house
 3000 CLS
-FOR y = 1 TO 25
+FOR y = 1 TO rows
   FOR x = 1 TO smc(y)
-    PRINT house$(y, x);
+    PRINT scr$(x, y);
   NEXT x
   PRINT
 NEXT y

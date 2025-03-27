@@ -13,7 +13,6 @@ x=ROUND(640*RND)
 y=ROUND(400*RND)
 FOR i=1 TO 20000
   v=ROUND(RND*2+1)
-  'on v goto 70,100,130
   IF v=1 THEN x=x/2:y=y/2 ELSE IF v=2 THEN x=320+(320-x)/2:y=400-(400-y)/2 ELSE x=640-(640-x)/2:y=y/2
   PLOT ROUND(x),ROUND(y),v
 NEXT i

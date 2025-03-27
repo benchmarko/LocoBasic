@@ -8,14 +8,14 @@ MODE 2
 DEG
 r=180:'radius
 s=360/p:'step size
-DEF FNx(i)=SIN(s*i)*r+320:DEF FNy(i)=COS(s*i)*r+200
+DEF FNx(i)=SIN(s*i)*r+320
+DEF FNy(i)=COS(s*i)*r+200
 '
-'p=48:d=15:a=0
 READ p,d,a
 WHILE p>=0
   t=TIME+300
   GOSUB 980
-  WHILE TIME<t:FRAME:WEND
+  WHILE TIME<t AND INKEY$="":FRAME:WEND
   READ p,d,a
 WEND
 END
@@ -26,7 +26,9 @@ s=360/p:'step size
 FOR i=0 TO p-1:PLOT FNx(i),FNy(i):NEXT
 d0=d
 FOR i=0 TO p-1
-MOVE FNx(i),FNy(i):DRAW FNx(i+d0),FNy(i+d0):d0=d0+a
+  MOVE FNx(i),FNy(i)
+  DRAW FNx(i+d0),FNy(i+d0)
+  d0=d0+a
 NEXT
 RETURN
 '
