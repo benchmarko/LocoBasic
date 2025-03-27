@@ -19,6 +19,8 @@ export type DatabaseMapType = Record<string, DatabaseType>;
 
 export type ConfigType = {
     action: string; // "compile,run"
+    autoCompile: boolean;
+    autoExecute: boolean;
     basicAreaHidden: boolean;
     compiledAreaHidden: boolean;
     databaseDirs: string, // example base directories (comma separated)

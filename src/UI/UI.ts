@@ -1,6 +1,6 @@
-import type { Editor } from 'codemirror';
+import type { Editor } from "codemirror";
 import type { ConfigEntryType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore, IUI, IVmAdmin } from "../Interfaces";
-import { LocoBasicMode } from './LocoBasicMode';
+import { LocoBasicMode } from "./LocoBasicMode";
 
 // Worker:
 type PlainErrorEventType = {
@@ -18,7 +18,7 @@ type ProcessingQueueType = {
 const workerFn = (): void => {
     const doEvalAndReply = (jsText: string) => {
         self.addEventListener(
-            'error',
+            "error",
             (errorEvent) => {
                 errorEvent.preventDefault();
                 const { lineno, colno, message } = errorEvent;
@@ -31,12 +31,12 @@ const workerFn = (): void => {
         const plainErrorEventObj: PlainErrorEventType = {
             lineno: -1,
             colno: -1,
-            message: 'No Error: Parsing successful!'
+            message: "No Error: Parsing successful!"
         };
         self.postMessage(JSON.stringify(plainErrorEventObj));
     };
 
-    self.addEventListener('message', (e) => {
+    self.addEventListener("message", (e) => {
         doEvalAndReply(e.data);
     });
 };
@@ -89,38 +89,38 @@ export class UI implements IUI {
     private async fnLoadScriptOrStyle(script: HTMLScriptElement | HTMLLinkElement): Promise<string> {
         return new Promise((resolve, reject) => {
             const onScriptLoad = function (event: Event) {
-				const type = event.type; // "load" or "error"
-				const node = event.currentTarget as HTMLScriptElement | HTMLLinkElement;
-				const key = node.getAttribute("data-key") as string;
+                const type = event.type; // "load" or "error"
+                const node = event.currentTarget as HTMLScriptElement | HTMLLinkElement;
+                const key = node.getAttribute("data-key") as string;
 
-				node.removeEventListener("load", onScriptLoad, false);
-				node.removeEventListener("error", onScriptLoad, false);
+                node.removeEventListener("load", onScriptLoad, false);
+                node.removeEventListener("error", onScriptLoad, false);
 
-				if (type === "load") {
-					resolve(key);
-				} else {
-					reject(key);
-				}
-			};
+                if (type === "load") {
+                    resolve(key);
+                } else {
+                    reject(key);
+                }
+            };
             script.addEventListener("load", onScriptLoad, false);
             script.addEventListener("error", onScriptLoad, false);
             document.getElementsByTagName("head")[0].appendChild(script);
         });
-	}
+    }
 
-	private async loadScript(url: string, key: string): Promise<string> {
-		const script = document.createElement("script");
+    private async loadScript(url: string, key: string): Promise<string> {
+        const script = document.createElement("script");
 
-		script.type = "text/javascript";
-		script.async = true;
-		script.src = url;
+        script.type = "text/javascript";
+        script.async = true;
+        script.src = url;
 
-		script.setAttribute("data-key", key);
+        script.setAttribute("data-key", key);
 
-		return this.fnLoadScriptOrStyle(script);
-	}
+        return this.fnLoadScriptOrStyle(script);
+    }
 
-    public getCurrentDataKey() : string {
+    public getCurrentDataKey(): string {
         return document.currentScript && document.currentScript.getAttribute("data-key") || "";
     }
 
@@ -196,13 +196,15 @@ export class UI implements IUI {
         area.style.clear = clearLeft ? "left" : "";
     }
 
-    private onBasicAreaButtonClick(_event: Event){ // eslint-disable-line @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onBasicAreaButtonClick = (_event: Event) => { // bound this
         const basicVisible = this.toggleAreaHidden("basicAreaInner", this.basicCm);
         const compiledAreaInner = document.getElementById("compiledAreaInner") as HTMLElement;
         this.setClearLeft("compiledArea", !basicVisible || compiledAreaInner.hidden);
     }
 
-    private onCompiledAreaButtonClick(_event: Event){ // eslint-disable-line @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onCompiledAreaButtonClick = (_event: Event) => { // bound this
         const compiledVisible = this.toggleAreaHidden("compiledAreaInner", this.compiledCm);
         const basicAreaInner = document.getElementById("basicAreaInner") as HTMLElement;
         this.setClearLeft("compiledArea", !compiledVisible || basicAreaInner.hidden);
@@ -210,13 +212,15 @@ export class UI implements IUI {
         this.setClearLeft("outputArea", !compiledVisible || outputAreaInner.hidden);
     }
 
-    private onOutputAreaButtonClick(_event: Event){ // eslint-disable-line @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onOutputAreaButtonClick = (_event: Event) => { // bound this
         const outputVisible = this.toggleAreaHidden("outputAreaInner");
         const compiledAreaInner = document.getElementById("compiledAreaInner") as HTMLElement;
         this.setClearLeft("outputArea", !outputVisible || compiledAreaInner.hidden);
     }
 
-    private async onExecuteButtonClick(_event: Event): Promise<void> { // eslint-disable-line @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onExecuteButtonClick = async (_event: Event): Promise<void> => { // bound this
         const core = this.getCore();
         if (!this.vm) {
             return;
@@ -239,17 +243,18 @@ export class UI implements IUI {
         this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
     }
 
-    private onCompiledTextChange(): void {
+    private onCompiledTextChange = (): void => { // bound this
         const autoExecuteInput = document.getElementById("autoExecuteInput") as HTMLInputElement;
         if (autoExecuteInput.checked) {
             const executeButton = window.document.getElementById("executeButton") as HTMLButtonElement;
             if (!executeButton.disabled) {
-                executeButton.dispatchEvent(new Event('click'));
+                executeButton.dispatchEvent(new Event("click"));
             }
         }
     }
 
-    private onCompileButtonClick(_event: Event): void { // eslint-disable-line @typescript-eslint/no-unused-vars
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onCompileButtonClick = (_event: Event): void => { // bound this
         const core = this.getCore();
         this.setButtonDisabled("compileButton", true);
         const input = this.basicCm ? this.basicCm.getValue() : "";
@@ -263,17 +268,30 @@ export class UI implements IUI {
         }, 1);
     }
 
-    private onStopButtonClick(_event: Event): void { // eslint-disable-line @typescript-eslint/no-unused-vars
+    private onAutoCompileInputChange = (event: Event): void => { // bound this
+        const autoCompileInput = event.target as HTMLInputElement;
+
+        this.updateConfigParameter("autoCompile", autoCompileInput.checked);
+    }
+
+    private onAutoExecuteInputChange = (event: Event): void => { // bound this
+        const autoExecuteInput = event.target as HTMLInputElement;
+
+        this.updateConfigParameter("autoExecute", autoExecuteInput.checked);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onStopButtonClick = (_event: Event): void => { // bound this
         this.escape = true;
         this.setButtonDisabled("stopButton", true);
     }
 
-    private async onBasicTextChange(): Promise<void> {
+    private onBasicTextChange = async (): Promise<void> => { // bound this
         const autoCompileInput = document.getElementById("autoCompileInput") as HTMLInputElement;
         if (autoCompileInput.checked) {
             const compileButton = window.document.getElementById("compileButton") as HTMLButtonElement;
             if (!compileButton.disabled) {
-                compileButton.dispatchEvent(new Event('click'));
+                compileButton.dispatchEvent(new Event("click"));
             }
         }
     }
@@ -290,10 +308,10 @@ export class UI implements IUI {
         } catch (error) {
             console.error("Load Example", scriptName, error);
         }
-        return example.script || ""; //TTT
+        return example.script || "";
     }
 
-    private async onExampleSelectChange(event: Event): Promise<void> {
+    private onExampleSelectChange = async (event: Event): Promise<void> => { // bound this
         const core = this.getCore();
 
         this.setOutputText("");
@@ -306,7 +324,7 @@ export class UI implements IUI {
             this.updateConfigParameter("example", exampleName);
 
             const script = await this.getExampleScript(example);
-       
+
             if (this.basicCm) {
                 this.basicCm.setValue(script);
             }
@@ -317,7 +335,7 @@ export class UI implements IUI {
 
     private setExampleSelectOptions(exampleMap: ExampleMapType, exampleKey: string): void {
         const maxTitleLength = 160;
-		const maxTextLength = 60; // (32 visible?)
+        const maxTextLength = 60; // (32 visible?)
         const exampleSelect = document.getElementById("exampleSelect") as HTMLSelectElement;
         exampleSelect.options.length = 0;
 
@@ -350,7 +368,7 @@ export class UI implements IUI {
         return databaseItem.exampleMap;
     }
 
-    private async onDatabaseSelectChange(event: Event): Promise<void> {
+    private onDatabaseSelectChange = async (event: Event): Promise<void> => { // bound this
         const core = this.getCore();
         const databaseSelect = event.target as HTMLSelectElement;
 
@@ -367,9 +385,9 @@ export class UI implements IUI {
         const exampleMap = await this.getExampleMap(databaseItem);
 
         this.setExampleSelectOptions(exampleMap, config.example);
-        
+
         const exampleSelect = window.document.getElementById("exampleSelect") as HTMLSelectElement;
-        exampleSelect.dispatchEvent(new Event('change'));
+        exampleSelect.dispatchEvent(new Event("change"));
     }
 
     private setDatabaseSelectOptions(databaseMap: DatabaseMapType, database: string): void {
@@ -388,25 +406,25 @@ export class UI implements IUI {
         }
     }
 
-    private onHelpButtonClick(): void {
+    private onHelpButtonClick = (): void => { // bound this
         window.open("https://github.com/benchmarko/LocoBasic/#readme");
     }
 
-	private static fnDownloadBlob(blob: Blob, filename: string): void {
-		const url = URL.createObjectURL(blob);
-		const a = document.createElement("a");
-		const clickHandler = function () {
-				setTimeout(function () {
-					URL.revokeObjectURL(url);
-					a.removeEventListener("click", clickHandler);
-				}, 150);
-			};
+    private static fnDownloadBlob(blob: Blob, filename: string): void {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const clickHandler = function () {
+            setTimeout(function () {
+                URL.revokeObjectURL(url);
+                a.removeEventListener("click", clickHandler);
+            }, 150);
+        };
 
-		a.href = url;
-		a.download = filename;
-		a.addEventListener("click", clickHandler, false);
-		a.click();
-	}
+        a.href = url;
+        a.download = filename;
+        a.addEventListener("click", clickHandler, false);
+        a.click();
+    }
 
     private getExampleName(): string {
         const input = this.basicCm ? this.basicCm.getValue() : "";
@@ -416,7 +434,7 @@ export class UI implements IUI {
         return name;
     }
 
-    private onExportSvgButtonClick(): void {
+    private onExportSvgButtonClick = (): void => { // bound this
         const outputText = window.document.getElementById("outputText") as HTMLElement;
         const svgElements = outputText.getElementsByTagName("svg");
         if (!svgElements.length) {
@@ -424,25 +442,24 @@ export class UI implements IUI {
             return;
         }
         const svgElement = svgElements[0];
-        // svgElement.setAttribute("xmlns", "http://www.w3.org/2000/svg");
         const svgData = svgElement.outerHTML;
         const preface = '<?xml version="1.0" standalone="no"?>\r\n';
         const svgBlob = new Blob([preface, svgData], {
-            type:"image/svg+xml;charset=utf-8"
+            type: "image/svg+xml;charset=utf-8"
         });
 
         const example = this.getExampleName();
         const filename = `${example}.svg`;
         UI.fnDownloadBlob(svgBlob, filename);
-    } 
+    }
 
     public getKeyFromBuffer(): string {
-		const key = this.keyBuffer.length ? this.keyBuffer.shift() as string : "";
-		return key;
-	}
+        const key = this.keyBuffer.length ? this.keyBuffer.shift() as string : "";
+        return key;
+    }
 
     private putKeyInBuffer(key: string): void {
-		this.keyBuffer.push(key);
+        this.keyBuffer.push(key);
     }
 
     private onOutputTextKeydown(event: KeyboardEvent): void {
@@ -476,7 +493,7 @@ export class UI implements IUI {
             isProcessing = true;
             const { resolve, jsText } = processingQueue.shift() as ProcessingQueueType;
             worker.addEventListener(
-                'message',
+                "message",
                 ({ data }) => {
                     resolve(JSON.parse(data));
                     if (processingQueue.length) {
@@ -504,9 +521,9 @@ export class UI implements IUI {
     }
 
     private static describeError(stringToEval: string, lineno: number, colno: number): string {
-        const lines = stringToEval.split('\n');
+        const lines = stringToEval.split("\n");
         const line = lines[lineno - 1];
-        return `${line}\n${' '.repeat(colno - 1) + '^'}`;
+        return `${line}\n${" ".repeat(colno - 1) + "^"}`;
     }
 
     public async checkSyntax(str: string): Promise<string> {
@@ -514,7 +531,7 @@ export class UI implements IUI {
 
         let output = "";
         const { lineno, colno, message } = await getErrorEvent(str);
-        if (message === 'No Error: Parsing successful!') {
+        if (message === "No Error: Parsing successful!") {
             return "";
         }
         output += `Syntax error thrown at: Line ${lineno - 2}, col: ${colno}\n`;
@@ -538,7 +555,7 @@ export class UI implements IUI {
     }
 
     private parseUri(config: Record<string, ConfigEntryType>): string[] {
-        const urlQuery = window.location.search.substring(1); 
+        const urlQuery = window.location.search.substring(1);
         const rSearch = /([^&=]+)=?([^&]*)/g;
         const args: string[] = [];
         let match: RegExpExecArray | null;
@@ -563,25 +580,31 @@ export class UI implements IUI {
         core.setOnCheckSyntax((s: string) => Promise.resolve(this.checkSyntax(s)));
 
         const compileButton = window.document.getElementById("compileButton") as HTMLButtonElement;
-        compileButton.addEventListener('click', (event) => this.onCompileButtonClick(event), false);
+        compileButton.addEventListener("click", this.onCompileButtonClick, false);
 
         const executeButton = window.document.getElementById("executeButton") as HTMLButtonElement;
-        executeButton.addEventListener('click', (event) => this.onExecuteButtonClick(event), false);
+        executeButton.addEventListener("click", this.onExecuteButtonClick, false);
 
         const stopButton = window.document.getElementById("stopButton") as HTMLButtonElement;
-        stopButton.addEventListener('click', (event) => this.onStopButtonClick(event), false);
+        stopButton.addEventListener("click", this.onStopButtonClick, false);
+
+        const autoCompileInput = window.document.getElementById("autoCompileInput") as HTMLInputElement;
+        autoCompileInput.addEventListener("change", this.onAutoCompileInputChange, false);
+
+        const autoExecuteInput = window.document.getElementById("autoExecuteInput") as HTMLInputElement;
+        autoExecuteInput.addEventListener("change", this.onAutoExecuteInputChange, false);
 
         const databaseSelect = window.document.getElementById("databaseSelect") as HTMLSelectElement;
-        databaseSelect.addEventListener('change', (event) => this.onDatabaseSelectChange(event));
+        databaseSelect.addEventListener("change", this.onDatabaseSelectChange);
 
         const exampleSelect = window.document.getElementById("exampleSelect") as HTMLSelectElement;
-        exampleSelect.addEventListener('change', (event) => this.onExampleSelectChange(event));
+        exampleSelect.addEventListener("change", this.onExampleSelectChange);
 
         const helpButton = window.document.getElementById("helpButton") as HTMLButtonElement;
-        helpButton.addEventListener('click', () => this.onHelpButtonClick());
+        helpButton.addEventListener("click", this.onHelpButtonClick);
 
         const exportSvgButton = window.document.getElementById("exportSvgButton") as HTMLButtonElement;
-        exportSvgButton.addEventListener('click', () => this.onExportSvgButtonClick());
+        exportSvgButton.addEventListener("click", this.onExportSvgButtonClick);
 
         const WinCodeMirror = window.CodeMirror;
         if (WinCodeMirror) {
@@ -591,44 +614,54 @@ export class UI implements IUI {
             const basicEditor = window.document.getElementById("basicEditor") as HTMLElement;
             this.basicCm = WinCodeMirror(basicEditor, {
                 lineNumbers: true,
-                mode: 'lbasic'
+                mode: "lbasic"
             });
-            this.basicCm.on('changes', this.debounce(() => this.onBasicTextChange(), () => config.debounceCompile));
+            this.basicCm.on("changes", this.debounce(this.onBasicTextChange, () => config.debounceCompile));
 
             const compiledEditor = window.document.getElementById("compiledEditor") as HTMLElement;
             this.compiledCm = WinCodeMirror(compiledEditor, {
                 lineNumbers: true,
-                mode: 'javascript'
+                mode: "javascript"
             });
-            this.compiledCm.on('changes', this.debounce(() => this.onCompiledTextChange(), () => config.debounceExecute));
+            this.compiledCm.on("changes", this.debounce(this.onCompiledTextChange, () => config.debounceExecute));
         }
 
         const basicAreaButton = window.document.getElementById("basicAreaButton") as HTMLButtonElement;
-        basicAreaButton.addEventListener('click', (event) => this.onBasicAreaButtonClick(event), false);
+        basicAreaButton.addEventListener("click", this.onBasicAreaButtonClick, false);
 
         const compiledAreaButton = window.document.getElementById("compiledAreaButton") as HTMLButtonElement;
-        compiledAreaButton.addEventListener('click', (event) => this.onCompiledAreaButtonClick(event), false);
+        compiledAreaButton.addEventListener("click", this.onCompiledAreaButtonClick, false);
 
         const outputAreaButton = window.document.getElementById("outputAreaButton") as HTMLButtonElement;
-        outputAreaButton.addEventListener('click', (event) => this.onOutputAreaButtonClick(event), false);
+        outputAreaButton.addEventListener("click", this.onOutputAreaButtonClick, false);
 
         window.addEventListener("popstate", (event: PopStateEvent) => {
             if (event.state) {
                 Object.assign(config, core.getDefaultConfigMap); // load defaults
                 const args = this.parseUri(config);
                 core.parseArgs(args, config);
-                databaseSelect.dispatchEvent(new Event('change'));
+                databaseSelect.dispatchEvent(new Event("change"));
             }
         });
 
         if (config.basicAreaHidden) {
-            this.onBasicAreaButtonClick(new Event('click'));
+            basicAreaButton.dispatchEvent(new Event("click"));
         }
         if (config.compiledAreaHidden) {
-            this.onCompiledAreaButtonClick(new Event('click'));
+            compiledAreaButton.dispatchEvent(new Event("click"));
         }
         if (config.outputAreaHidden) {
-            this.onOutputAreaButtonClick(new Event('click'));
+            outputAreaButton.dispatchEvent(new Event("click"));
+        }
+
+        if (!config.autoCompile) {
+            autoCompileInput.checked = false;
+            autoCompileInput.dispatchEvent(new Event("change"));
+        }
+
+        if (!config.autoExecute) {
+            autoExecuteInput.checked = false;
+            autoExecuteInput.dispatchEvent(new Event("change"));
         }
 
         UI.asyncDelay(() => {
@@ -636,7 +669,7 @@ export class UI implements IUI {
             this.setDatabaseSelectOptions(databaseMap, config.database);
             const url = window.location.href;
             history.replaceState({}, "", url);
-            databaseSelect.dispatchEvent(new Event('change'));
+            databaseSelect.dispatchEvent(new Event("change"));
         }, 10);
     }
 }

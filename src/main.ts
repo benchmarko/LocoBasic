@@ -20,6 +20,8 @@ declare const window: WindowProperties | undefined;
 
 const core: ICore = new Core({
     action: "compile,run",
+    autoCompile: true,
+    autoExecute: true,
     basicAreaHidden: false,
     compiledAreaHidden: false,
     databaseDirs: "examples,https://benchmarko.github.io/CPCBasicApps/rosetta", // example base directories (comma separated)
