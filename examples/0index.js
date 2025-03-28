@@ -24,6 +24,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Animate a pendulum (ASCII)"
 		},
 		{
+			"key": "animate2",
+			"title": "Animate a pendulum (graphical)"
+		},
+		{
 			"key": "barnsley",
 			"title": "Barnsley fern"
 		},

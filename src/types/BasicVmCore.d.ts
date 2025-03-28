@@ -11,6 +11,7 @@ export declare class BasicVmCore implements IVmAdmin {
     private graphicsY;
     protected colorsForPens: number[];
     private backgroundColor;
+    private isTag;
     protected readonly cpcColors: string[];
     protected readonly defaultColorsForPens: number[];
     constructor();
@@ -31,7 +32,9 @@ export declare class BasicVmCore implements IVmAdmin {
     mode(num: number): void;
     paper(n: number): void;
     pen(n: number): void;
+    private printGraphicsText;
     print(...args: string[]): void;
+    tag(active: boolean): void;
     getEscape(): boolean;
     getOutput(): string;
     setOutput(str: string): void;

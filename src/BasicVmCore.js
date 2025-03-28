@@ -12,6 +12,7 @@ export class BasicVmCore {
         this.graphicsY = 399;
         this.colorsForPens = [];
         this.backgroundColor = "";
+        this.isTag = false; // text at graphics
         this.cpcColors = [
             "#000000", //  0 Black
             "#000080", //  1 Blue
@@ -81,6 +82,7 @@ export class BasicVmCore {
     }
     cls() {
         this.output = "";
+        this.isTag = false;
         this.currPaper = -1;
         this.currPen = -1;
         this.graphicsBuffer.length = 0;
@@ -190,8 +192,26 @@ export class BasicVmCore {
             this.currPen = n;
         }
     }
+    printGraphicsText(text) {
+        const yOffset = 16;
+        let styleStr = "";
+        if (this.currGraphicsPen >= 0) { // TTT or >?
+            const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
+            styleStr = ` style="color: ${color}"`;
+        }
+        this.graphicsBuffer.push(`<text x="${this.graphicsX}" y="${this.graphicsY + yOffset}"${styleStr}>${text}</text>`);
+    }
     print(...args) {
-        this.output += args.join('');
+        const text = args.join('');
+        if (this.isTag) {
+            this.printGraphicsText(text);
+        }
+        else {
+            this.output += text;
+        }
+    }
+    tag(active) {
+        this.isTag = active;
     }
     getEscape() {
         return false;

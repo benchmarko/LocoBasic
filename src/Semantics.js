@@ -116,6 +116,9 @@ function getCodeSnippets() {
         str$: function str$(num) {
             return num >= 0 ? ` ${num}` : String(num);
         },
+        tag: function tag(active) {
+            _o.tag(active);
+        },
         time: function time() {
             return ((Date.now() - _startTime) * 3 / 10) | 0;
         },
@@ -634,6 +637,14 @@ function getSemantics(semanticsHelper) {
         },
         StringS_num(_stringLit, _open, len, _commaLit, num, _close) {
             return `String.fromCharCode(${num.eval()}).repeat(${len.eval()})`;
+        },
+        Tag(_tagLit) {
+            semanticsHelper.addInstr("tag");
+            return `tag(true)`;
+        },
+        Tagoff(_tagoffLit) {
+            semanticsHelper.addInstr("tag");
+            return `tag(false)`;
         },
         Tan: cosSinTan,
         Time(_timeLit) {

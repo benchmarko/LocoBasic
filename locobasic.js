@@ -122,6 +122,8 @@
       | Restore
       | Return
       | Stop
+      | Tag
+      | Tagoff
       | While
       | Wend
       | ArrayAssign
@@ -351,6 +353,12 @@
       = stringS "(" NumExp "," StrExp ")" -- str
       | stringS "(" NumExp "," NumExp ")" -- num
 
+    Tag
+      = tag
+
+    Tagoff
+      = tagoff
+      
     Tan
       = tan "(" NumExp ")"
 
@@ -1381,6 +1389,9 @@
             str$: function str$(num) {
                 return num >= 0 ? ` ${num}` : String(num);
             },
+            tag: function tag(active) {
+                _o.tag(active);
+            },
             time: function time() {
                 return ((Date.now() - _startTime) * 3 / 10) | 0;
             },
@@ -1900,6 +1911,14 @@
             StringS_num(_stringLit, _open, len, _commaLit, num, _close) {
                 return `String.fromCharCode(${num.eval()}).repeat(${len.eval()})`;
             },
+            Tag(_tagLit) {
+                semanticsHelper.addInstr("tag");
+                return `tag(true)`;
+            },
+            Tagoff(_tagoffLit) {
+                semanticsHelper.addInstr("tag");
+                return `tag(false)`;
+            },
             Tan: cosSinTan,
             Time(_timeLit) {
                 semanticsHelper.addInstr("time");
@@ -2365,6 +2384,7 @@
             this.graphicsY = 399;
             this.colorsForPens = [];
             this.backgroundColor = "";
+            this.isTag = false; // text at graphics
             this.cpcColors = [
                 "#000000", //  0 Black
                 "#000080", //  1 Blue
@@ -2434,6 +2454,7 @@
         }
         cls() {
             this.output = "";
+            this.isTag = false;
             this.currPaper = -1;
             this.currPen = -1;
             this.graphicsBuffer.length = 0;
@@ -2543,8 +2564,26 @@
                 this.currPen = n;
             }
         }
+        printGraphicsText(text) {
+            const yOffset = 16;
+            let styleStr = "";
+            if (this.currGraphicsPen >= 0) { // TTT or >?
+                const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
+                styleStr = ` style="color: ${color}"`;
+            }
+            this.graphicsBuffer.push(`<text x="${this.graphicsX}" y="${this.graphicsY + yOffset}"${styleStr}>${text}</text>`);
+        }
         print(...args) {
-            this.output += args.join('');
+            const text = args.join('');
+            if (this.isTag) {
+                this.printGraphicsText(text);
+            }
+            else {
+                this.output += text;
+            }
+        }
+        tag(active) {
+            this.isTag = active;
         }
         getEscape() {
             return false;
@@ -2652,6 +2691,7 @@
         paper(num) { this.debug("paper:", num); },
         pen(num) { this.debug("pen:", num); },
         print(...args) { this._output += args.join(''); },
+        tag(active) { this.debug("tag:", active); },
         getEscape() { return false; }
     };
     function isUrl(s) {

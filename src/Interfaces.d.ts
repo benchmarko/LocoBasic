@@ -36,11 +36,12 @@ export interface IVm {
     graphicsPen(num: number): void;
     ink(num: number, col: number): void;
     inkey$(): Promise<string>;
-    input(_msg: string): Promise<string | null>;
+    input(msg: string): Promise<string | null>;
     mode(num: number): void;
     paper(color: number): void;
     pen(color: number): void;
-    print(_msg: string): void;
+    print(msg: string): void;
+    tag(active: boolean): void;
     getEscape(): boolean;
 }
 export interface IVmAdmin extends IVm {
