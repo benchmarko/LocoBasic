@@ -122,6 +122,9 @@ function getCodeSnippets() {
         str$: function str$(num: number) {
             return num >= 0 ? ` ${num}` : String(num);
         },
+		tag: function tag(active: boolean) {
+            _o.tag(active);
+        },
         time: function time() {
             return ((Date.now() - _startTime) * 3 / 10) | 0;
         },
@@ -767,6 +770,16 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 
 		StringS_num(_stringLit: Node, _open: Node, len: Node, _commaLit: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `String.fromCharCode(${num.eval()}).repeat(${len.eval()})`;
+		},
+
+		Tag(_tagLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addInstr("tag");
+			return `tag(true)`;
+		},
+
+		Tagoff(_tagoffLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addInstr("tag");
+			return `tag(false)`;
 		},
 
 		Tan: cosSinTan,

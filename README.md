@@ -43,7 +43,7 @@ LocoBasic Links:
 
 ## LocoBasic Language Description
 
-Keywords should be uppercase, but all lowercase is also accepted (not-strict mode).
+Keywords should be all uppercase, but all lowercase is also accepted (not-strict mode).
 
 ### Control Structures
 
@@ -78,11 +78,15 @@ Keywords should be uppercase, but all lowercase is also accepted (not-strict mod
 - **Endless Loops**
   - Not trapped automatically. Restarting the browser window may be required to recover.
 - **STOP and END**
-  - These halt execution only at the top level. Within subroutines, they simply return.
+  - These stop execution, but only at the top level. Within subroutines, they simply return.
+  - During *FRAME* or *INKEY$*, the "Stop" button gets active. It allows to terminate the running program. It is not possible to continue a terminated program.
 - **PEN and PAPER**
   - When using node.js in a terminal, ANSI colors are used.
-- **GRAPHICS PEN, DRAW, DRAWR, MOVE, MOVER, PLOT, PLOTR**
-  - These can be used to create SVG graphics. Graphics is separate from text.
+- **GRAPHICS PEN, DRAW, DRAWR, MOVE, MOVER, PLOT, PLOTR, TAG (and PRINT)**
+  - These can be used to create SVG graphics which can be exported with the button "Export SVG". Graphics is separate from text.
+- **FRAME**
+  - Text and graphics output is buffered until it is flushed with *FRAME* or at the end of the progam.
+  - To start a new graphical output after *FRAME*, use *CLS* or *MODE*.
 
 ### Operators
 
@@ -104,6 +108,7 @@ Keywords should be uppercase, but all lowercase is also accepted (not-strict mod
 - `CINT(number)` Returns the integer part of *number*.
   - Same as *INT*.
 - `CLS` Clears the output window.
+  - **Note:** In LocoBasic, *PEN*, *PAPER*, *GRAPHICS PEN*, *TAG* are also initialized.
 - `COS(number)` Returns the cosine of the given *number*.
   - *number* should be in radians (when *RAD* is active) or in degrees (when *DEG* is active).
 - `DATA ["string", number,...]` Defines string or numerical data to be read by *READ*.
@@ -122,6 +127,8 @@ Keywords should be uppercase, but all lowercase is also accepted (not-strict mod
 - `DIM arrayVariable(dim1 [, dim2, ...])` Initializes an array.
   - Can be multi-dimensional.
   - Elements will be initialized with 0 or "" depending on the variable type.
+  - **Note:** In LocoBasic, array variables cannot have the same name as normal variables.
+    So it is not possible to have variable "a" and "a[]" at the same time.
 - `DRAW x,y`: Draw a line to position x,y.
 - `DRAWR x,y`: Draw a line relative with offset x,y.
 - `END` Ends execution.
@@ -141,6 +148,8 @@ Keywords should be uppercase, but all lowercase is also accepted (not-strict mod
 - `GRAPHICS PEN number` Sets the graphics pen.
 - `HEX$(number [, padding])` Converts a number to its hexadecimal representation.
 - `IF expression THEN statements [ELSE statements]` control structure (in one line).
+- `INK pen,color` Sets the color (0..27) for PEN pen and GRAPHICS PEN pen.
+  - **Note:** In LocoBasic, only following drawings get the new ink, existing drawings are not modified.
 - `INKEY$`: Gets the pressed character from the key buffer or an empty string if the buffer is empty.
 - `INPUT [message;] variable` Prompts the user for input (string or numeric).
 - `INSTR([startPos,] string1, string2)` Returns the first position of *string2* in *string1*, starting at optional *startPos*.
@@ -195,6 +204,8 @@ Keywords should be uppercase, but all lowercase is also accepted (not-strict mod
 - `STR$(number)` Converts a number to its string representation.
   - A positive number is prefixed with a space.
 - `STRING$(number, character | ASCIInumber)` Returns *character* (or `CHR$(ASCIInumber)`) repeated *number* times.
+- `TAG` Activates text at graphics mode. PRINT uses graphics cursor position and graphics color.
+- `TAGOFF` Deactivates text at graphics mode. Uses text at text positons with text pen again.
 - `TAN(number)` Returns the tangent of the given *number*.
   - *number* should be in radians (when *RAD* is active) or in degrees (when *DEG* is active).
 - `TIME` Returns the current system time in 1/300 sec.
@@ -209,7 +220,6 @@ Keywords should be uppercase, but all lowercase is also accepted (not-strict mod
 
 - Do we want keywords all uppercase? And variables all lowercase?
   And maybe new features with capital letter? E.g. If...Then...Else...Endif on multiple lines?
-- Create syntax highlighting for BASIC for CodeMirror, maybe similar to the [amstradbasic-vscode](https://github.com/dfreniche/amstradbasic-vscode/blob/master/syntaxes/amstradbasic.tmLanguage.json) or [CPCReady](https://marketplace.visualstudio.com/items?itemName=CPCReady.basic-language-extension) extension
 
 ### Done
 
@@ -229,14 +239,15 @@ Keywords should be uppercase, but all lowercase is also accepted (not-strict mod
 - `ERASE var | strVar` sets `var=0; strVar=""`, not really needed, just to run such programs
 - `MID$` as assign? `a$="abcde": MID$(a$,3,2)="w": ?a$`
 - command line tool should output a stand alone running JS file for node
+- Create syntax highlighting for BASIC with CodeMirror, maybe similar to the [amstradbasic-vscode](https://github.com/dfreniche/amstradbasic-vscode/blob/master/syntaxes/amstradbasic.tmLanguage.json) or [CPCReady](https://marketplace.visualstudio.com/items?itemName=CPCReady.basic-language-extension) extension
 
 ### Not implemented
 
 after auto border break call cat chain clear clg closein closeout cont copychr$
- creal cursor dec defint defreal defstr deg delete derr di edit ei eof erl err every fill  fre
- goto graphicsPaper himem ink inkey inkey$ inp joy key let line list load locate mask memory merge new
+ creal cursor dec defint defreal defstr delete derr di edit ei eof erl err every fill fre
+ goto graphicsPaper himem inkey inp joy key let line list load locate mask memory merge new
  on openin openout origin out peek poke pos rad randomize release remain renum resume run
- save sound spc speed sq swap symbol tab tag tagoff test testr troff tron unt vpos wait width window write xpos ypos zone
+ save sound spc speed sq swap symbol tab test testr troff tron unt vpos wait width window write xpos ypos zone
 
 ### Resources
 

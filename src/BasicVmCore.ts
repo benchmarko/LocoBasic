@@ -14,6 +14,7 @@ export class BasicVmCore implements IVmAdmin {
     private graphicsY: number = 399;
     protected colorsForPens: number[] = [];
     private backgroundColor = "";
+    private isTag: boolean = false; // text at graphics
 
     protected readonly cpcColors = [
         "#000000", //  0 Black
@@ -95,6 +96,7 @@ export class BasicVmCore implements IVmAdmin {
 
     public cls(): void {
         this.output = "";
+        this.isTag = false;
         this.currPaper = -1;
         this.currPen = -1;
         this.graphicsBuffer.length = 0;
@@ -219,8 +221,27 @@ export class BasicVmCore implements IVmAdmin {
         }
     }
 
+    private printGraphicsText(text: string): void {
+        const yOffset = 16;
+        let styleStr = "";
+        if (this.currGraphicsPen >= 0) { // TTT or >?
+            const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
+            styleStr = ` style="color: ${color}"`;
+        }
+        this.graphicsBuffer.push(`<text x="${this.graphicsX}" y="${this.graphicsY + yOffset}"${styleStr}>${text}</text>`);
+    }
+
     public print(...args: string[]): void {
-        this.output += args.join('');
+        const text = args.join('');
+        if (this.isTag) {
+            this.printGraphicsText(text);
+        } else {
+            this.output += text;
+        }
+    }
+
+    public tag(active: boolean): void {
+        this.isTag = active;
     }
 
     public getEscape(): boolean {

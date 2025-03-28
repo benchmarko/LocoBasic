@@ -40,7 +40,7 @@ declare function require(name: string): NodeFs | NodeHttps | NodeModule | NodePa
 
 interface DummyVm extends IVm {
     _output: string;
-    debug(...args: (string | number)[]): void;
+    debug(...args: (string | number | boolean)[]): void;
 }
 
 // The functions from dummyVm will be stringified in the putScriptInFrame function
@@ -58,6 +58,7 @@ const dummyVm: DummyVm = {
     paper(num: number) { this.debug("paper:", num); },
     pen(num: number) { this.debug("pen:", num); },
     print(...args: (string | number)[]) { this._output += args.join(''); },
+    tag(active: boolean) { this.debug("tag:", active); },
     getEscape() { return false; }
 };
 

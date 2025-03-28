@@ -122,6 +122,15 @@ MOVER -10,-20,7
 ''PLOTR 10,20,,3
 ''PLOTR x,y,m,g1
 '
+x=40+4:y=50+70
+TAG
+MOVE x,y,3
+PRINT "Text";
+MOVE x+w+50,y-40,1
+PRINT "at";
+MOVE x+2*(w+50)-2,y-40*2,2
+PRINT "graphics";
+TAGOFF
 ''a=TEST(10,20)
 ''a=TEST(x,y)
 ''a=TESTR(10,-20)

@@ -52,6 +52,8 @@ export const arithmetic = {
       | Restore
       | Return
       | Stop
+      | Tag
+      | Tagoff
       | While
       | Wend
       | ArrayAssign
@@ -281,6 +283,12 @@ export const arithmetic = {
       = stringS "(" NumExp "," StrExp ")" -- str
       | stringS "(" NumExp "," NumExp ")" -- num
 
+    Tag
+      = tag
+
+    Tagoff
+      = tagoff
+      
     Tan
       = tan "(" NumExp ")"
 
