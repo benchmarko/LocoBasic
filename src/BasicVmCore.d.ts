@@ -7,6 +7,8 @@ export declare class BasicVmCore implements IVmAdmin {
     private readonly graphicsBuffer;
     private readonly graphicsPathBuffer;
     private currGraphicsPen;
+    private originX;
+    private originY;
     private graphicsX;
     private graphicsY;
     protected colorsForPens: number[];
@@ -30,6 +32,7 @@ export declare class BasicVmCore implements IVmAdmin {
     inkey$(): Promise<string>;
     input(msg: string): Promise<string | null>;
     mode(num: number): void;
+    origin(x: number, y: number): void;
     paper(n: number): void;
     pen(n: number): void;
     private printGraphicsText;

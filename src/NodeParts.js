@@ -14,6 +14,7 @@ const dummyVm = {
     async inkey$() { return Promise.resolve(""); },
     async input(msg) { console.log(msg); return ""; },
     mode(num) { this.debug("mode:", num); },
+    origin(x, y) { this.debug("origin:", x, y); },
     paper(num) { this.debug("paper:", num); },
     pen(num) { this.debug("pen:", num); },
     print(...args) { this._output += args.join(''); },

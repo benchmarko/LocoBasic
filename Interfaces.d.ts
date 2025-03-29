@@ -38,6 +38,7 @@ export interface IVm {
     inkey$(): Promise<string>;
     input(msg: string): Promise<string | null>;
     mode(num: number): void;
+    origin(x: number, y: number): void;
     paper(color: number): void;
     pen(color: number): void;
     print(msg: string): void;

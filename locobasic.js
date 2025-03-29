@@ -111,6 +111,7 @@
       | Mover
       | Next
       | On
+      | Origin
       | Paper
       | Pen
       | Plot
@@ -285,6 +286,9 @@
 
     On
       = on NumExp gosub NonemptyListOf<label, ",">
+
+    Origin
+      = origin NumExp "," NumExp
 
     Paper
       = paper NumExp
@@ -1356,6 +1360,9 @@
             mover: function mover(x, y) {
                 _o.drawMovePlot("m", x, y);
             },
+            origin: function origin(x, y) {
+                _o.origin(x, y);
+            },
             paper: function paper(n) {
                 _o.paper(n);
             },
@@ -1798,13 +1805,17 @@
                 semanticsHelper.addIndent(-2 * argumentList.length);
                 return '} '.repeat(argumentList.length).slice(0, -1);
             },
-            On(_nLit, e1, _gosubLit, args) {
+            On(_onLit, e1, _gosubLit, args) {
                 const index = e1.eval();
                 const argumentList = args.asIteration().children.map(child => child.sourceString);
                 for (let i = 0; i < argumentList.length; i += 1) {
                     semanticsHelper.addGosubLabel(argumentList[i]);
                 }
                 return `([${argumentList.map((label) => `_${label}`).join(",")}]?.[${index} - 1] || (() => undefined))()`; // 1-based index
+            },
+            Origin(_originLit, x, _comma1, y) {
+                semanticsHelper.addInstr("origin");
+                return `origin(${x.eval()}, ${y.eval()})`;
             },
             Paper(_paperLit, e) {
                 semanticsHelper.addInstr("paper");
@@ -2380,6 +2391,8 @@
             this.graphicsBuffer = [];
             this.graphicsPathBuffer = [];
             this.currGraphicsPen = -1;
+            this.originX = 0;
+            this.originY = 0;
             this.graphicsX = 0;
             this.graphicsY = 399;
             this.colorsForPens = [];
@@ -2442,15 +2455,11 @@
             // override
             return "";
         }
-        /*
-        protected getColorForPen(_num: number): string { // eslint-disable-line @typescript-eslint/no-unused-vars
-            // override
-            return ""; //return cpcColors[colorsForPens[num]];
-        }
-        */
         resetColors() {
             this.colorsForPens = [...this.defaultColorsForPens];
             this.backgroundColor = "";
+            this.originX = 0;
+            this.originY = 0;
         }
         cls() {
             this.output = "";
@@ -2468,7 +2477,8 @@
             x = Math.round(x);
             y = Math.round(y);
             const isAbsolute = type === type.toUpperCase();
-            y = isAbsolute ? 399 - y : -y;
+            x = isAbsolute ? x + this.originX : x;
+            y = isAbsolute ? 399 - y - this.originY : -y;
             const isPlot = type.toLowerCase() === "p";
             const svgPathCmd = isPlot
                 ? `${isAbsolute ? "M" : "m"}${x} ${y}h1v1h-1v-1`
@@ -2552,6 +2562,10 @@
             this.currMode = num;
             this.cls();
         }
+        origin(x, y) {
+            this.originX = x;
+            this.originY = y;
+        }
         paper(n) {
             if (n !== this.currPaper) {
                 this.output += this.fnGetPaperColor(this.colorsForPens[n]);
@@ -2571,7 +2585,7 @@
                 const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
                 styleStr = ` style="color: ${color}"`;
             }
-            this.graphicsBuffer.push(`<text x="${this.graphicsX}" y="${this.graphicsY + yOffset}"${styleStr}>${text}</text>`);
+            this.graphicsBuffer.push(`<text x="${this.graphicsX + this.originX}" y="${this.graphicsY + this.originY + yOffset}"${styleStr}>${text}</text>`);
         }
         print(...args) {
             const text = args.join('');
@@ -2688,6 +2702,7 @@
         async inkey$() { return Promise.resolve(""); },
         async input(msg) { console.log(msg); return ""; },
         mode(num) { this.debug("mode:", num); },
+        origin(x, y) { this.debug("origin:", x, y); },
         paper(num) { this.debug("paper:", num); },
         pen(num) { this.debug("pen:", num); },
         print(...args) { this._output += args.join(''); },

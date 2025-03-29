@@ -40,6 +40,7 @@ export const arithmetic = {
       | Mover
       | Next
       | On
+      | Origin
       | Paper
       | Pen
       | Plot
@@ -214,6 +215,9 @@ export const arithmetic = {
 
     On
       = on NumExp gosub NonemptyListOf<label, ",">
+
+    Origin
+      = origin NumExp "," NumExp
 
     Paper
       = paper NumExp

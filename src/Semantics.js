@@ -83,6 +83,9 @@ function getCodeSnippets() {
         mover: function mover(x, y) {
             _o.drawMovePlot("m", x, y);
         },
+        origin: function origin(x, y) {
+            _o.origin(x, y);
+        },
         paper: function paper(n) {
             _o.paper(n);
         },
@@ -525,13 +528,17 @@ function getSemantics(semanticsHelper) {
             semanticsHelper.addIndent(-2 * argumentList.length);
             return '} '.repeat(argumentList.length).slice(0, -1);
         },
-        On(_nLit, e1, _gosubLit, args) {
+        On(_onLit, e1, _gosubLit, args) {
             const index = e1.eval();
             const argumentList = args.asIteration().children.map(child => child.sourceString);
             for (let i = 0; i < argumentList.length; i += 1) {
                 semanticsHelper.addGosubLabel(argumentList[i]);
             }
             return `([${argumentList.map((label) => `_${label}`).join(",")}]?.[${index} - 1] || (() => undefined))()`; // 1-based index
+        },
+        Origin(_originLit, x, _comma1, y) {
+            semanticsHelper.addInstr("origin");
+            return `origin(${x.eval()}, ${y.eval()})`;
         },
         Paper(_paperLit, e) {
             semanticsHelper.addInstr("paper");

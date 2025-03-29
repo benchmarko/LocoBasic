@@ -8,6 +8,8 @@ export class BasicVmCore {
         this.graphicsBuffer = [];
         this.graphicsPathBuffer = [];
         this.currGraphicsPen = -1;
+        this.originX = 0;
+        this.originY = 0;
         this.graphicsX = 0;
         this.graphicsY = 399;
         this.colorsForPens = [];
@@ -70,15 +72,11 @@ export class BasicVmCore {
         // override
         return "";
     }
-    /*
-    protected getColorForPen(_num: number): string { // eslint-disable-line @typescript-eslint/no-unused-vars
-        // override
-        return ""; //return cpcColors[colorsForPens[num]];
-    }
-    */
     resetColors() {
         this.colorsForPens = [...this.defaultColorsForPens];
         this.backgroundColor = "";
+        this.originX = 0;
+        this.originY = 0;
     }
     cls() {
         this.output = "";
@@ -96,7 +94,8 @@ export class BasicVmCore {
         x = Math.round(x);
         y = Math.round(y);
         const isAbsolute = type === type.toUpperCase();
-        y = isAbsolute ? 399 - y : -y;
+        x = isAbsolute ? x + this.originX : x;
+        y = isAbsolute ? 399 - y - this.originY : -y;
         const isPlot = type.toLowerCase() === "p";
         const svgPathCmd = isPlot
             ? `${isAbsolute ? "M" : "m"}${x} ${y}h1v1h-1v-1`
@@ -180,6 +179,10 @@ export class BasicVmCore {
         this.currMode = num;
         this.cls();
     }
+    origin(x, y) {
+        this.originX = x;
+        this.originY = y;
+    }
     paper(n) {
         if (n !== this.currPaper) {
             this.output += this.fnGetPaperColor(this.colorsForPens[n]);
@@ -199,7 +202,7 @@ export class BasicVmCore {
             const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
             styleStr = ` style="color: ${color}"`;
         }
-        this.graphicsBuffer.push(`<text x="${this.graphicsX}" y="${this.graphicsY + yOffset}"${styleStr}>${text}</text>`);
+        this.graphicsBuffer.push(`<text x="${this.graphicsX + this.originX}" y="${this.graphicsY + this.originY + yOffset}"${styleStr}>${text}</text>`);
     }
     print(...args) {
         const text = args.join('');
