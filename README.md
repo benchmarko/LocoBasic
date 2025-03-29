@@ -171,6 +171,7 @@ Keywords should be all uppercase, but all lowercase is also accepted (not-strict
 - `ON index GOSUB line1 [,line2...]` Calls subroutine at position *index* (1-based) in the list.
   - Check `GOSUB` for how to define a subroutine.
   - If no subroutine matches the index, do nothing.
+- `ORIGIN x,y` Sets the origin of the coordinate system for graphical output.
 - `PAPER number` Sets the background color for the text output with *PRINT*.
 - `PEN number` Sets the color for the text output with *PRINT*.
   - For the terminal, [ANSI escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code#Colors) for colors are used.
@@ -244,9 +245,9 @@ Keywords should be all uppercase, but all lowercase is also accepted (not-strict
 ### Not implemented
 
 after auto border break call cat chain clear clg closein closeout cont copychr$
- creal cursor dec defint defreal defstr delete derr di edit ei eof erl err every fill fre
+ creal cursor defint defreal defstr delete derr di edit ei eof erl err every fill fre
  goto graphicsPaper himem inkey inp joy key let line list load locate mask memory merge new
- on openin openout origin out peek poke pos rad randomize release remain renum resume run
+ on openin openout origin out peek poke pos randomize release remain renum resume run
  save sound spc speed sq swap symbol tab test testr troff tron unt vpos wait width window write xpos ypos zone
 
 ### Resources

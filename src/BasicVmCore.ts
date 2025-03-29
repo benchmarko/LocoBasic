@@ -10,6 +10,8 @@ export class BasicVmCore implements IVmAdmin {
     private readonly graphicsBuffer: string[] = [];
     private readonly graphicsPathBuffer: string[] = [];
     private currGraphicsPen: number = -1;
+    private originX: number = 0;
+    private originY: number = 0;
     private graphicsX: number = 0;
     private graphicsY: number = 399;
     protected colorsForPens: number[] = [];
@@ -55,7 +57,7 @@ export class BasicVmCore implements IVmAdmin {
         1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
     ];
 
-   public constructor() {
+    public constructor() {
         this.resetColors();
     }
 
@@ -82,16 +84,11 @@ export class BasicVmCore implements IVmAdmin {
         return "";
     }
 
-    /*
-    protected getColorForPen(_num: number): string { // eslint-disable-line @typescript-eslint/no-unused-vars
-        // override
-        return ""; //return cpcColors[colorsForPens[num]];
-    }
-    */
-
     private resetColors(): void {
         this.colorsForPens = [...this.defaultColorsForPens];
         this.backgroundColor = "";
+        this.originX = 0;
+        this.originY = 0;
     }
 
     public cls(): void {
@@ -107,31 +104,32 @@ export class BasicVmCore implements IVmAdmin {
         this.fnOnCls();
     }
 
-	public drawMovePlot(type: string, x: number, y: number): void {
-		x = Math.round(x);
-		y = Math.round(y);
-	
-		const isAbsolute = type === type.toUpperCase();
-			y = isAbsolute ? 399 - y : -y;
+    public drawMovePlot(type: string, x: number, y: number): void {
+        x = Math.round(x);
+        y = Math.round(y);
 
-		const isPlot = type.toLowerCase() === "p";
-		const svgPathCmd = isPlot
+        const isAbsolute = type === type.toUpperCase();
+        x = isAbsolute ? x + this.originX : x;
+        y = isAbsolute ? 399 - y - this.originY : -y;
+
+        const isPlot = type.toLowerCase() === "p";
+        const svgPathCmd = isPlot
             ? `${isAbsolute ? "M" : "m"}${x} ${y}h1v1h-1v-1`
             : `${type}${x} ${y}`;
-	
-        if (!this.graphicsPathBuffer.length && svgPathCmd[0] !== "M") { // path must start with a absolute move
-			this.graphicsPathBuffer.push(`M${this.graphicsX} ${this.graphicsY}`);
-		}
-		this.graphicsPathBuffer.push(svgPathCmd);
 
-		if (isAbsolute) {
-			this.graphicsX = x;
-			this.graphicsY = y;
-		} else {
-			this.graphicsX += x;
-			this.graphicsY += y;
-		}
-	}
+        if (!this.graphicsPathBuffer.length && svgPathCmd[0] !== "M") { // path must start with a absolute move
+            this.graphicsPathBuffer.push(`M${this.graphicsX} ${this.graphicsY}`);
+        }
+        this.graphicsPathBuffer.push(svgPathCmd);
+
+        if (isAbsolute) {
+            this.graphicsX = x;
+            this.graphicsY = y;
+        } else {
+            this.graphicsX += x;
+            this.graphicsY += y;
+        }
+    }
 
     private flushGraphicsPath(): void {
         if (this.graphicsPathBuffer.length) {
@@ -207,9 +205,14 @@ export class BasicVmCore implements IVmAdmin {
         this.cls();
     }
 
+    public origin(x: number, y: number): void {
+        this.originX = x;
+        this.originY = y;
+    }
+
     public paper(n: number): void {
         if (n !== this.currPaper) {
-           this.output += this.fnGetPaperColor(this.colorsForPens[n]);
+            this.output += this.fnGetPaperColor(this.colorsForPens[n]);
             this.currPaper = n;
         }
     }
@@ -228,7 +231,7 @@ export class BasicVmCore implements IVmAdmin {
             const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
             styleStr = ` style="color: ${color}"`;
         }
-        this.graphicsBuffer.push(`<text x="${this.graphicsX}" y="${this.graphicsY + yOffset}"${styleStr}>${text}</text>`);
+        this.graphicsBuffer.push(`<text x="${this.graphicsX + this.originX}" y="${this.graphicsY + this.originY + yOffset}"${styleStr}>${text}</text>`);
     }
 
     public print(...args: string[]): void {
@@ -250,9 +253,9 @@ export class BasicVmCore implements IVmAdmin {
 
     public getOutput(): string {
         this.resetColors();
-		return this.output;
-	}
+        return this.output;
+    }
     public setOutput(str: string): void {
-		this.output = str;
-	}
+        this.output = str;
+    }
 }

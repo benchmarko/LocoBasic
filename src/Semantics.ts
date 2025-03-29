@@ -89,6 +89,9 @@ function getCodeSnippets() {
         mover: function mover(x: number, y: number) {
             _o.drawMovePlot("m", x, y);
         },
+		origin: function origin(x: number, y: number) {
+            _o.origin(x, y);
+        },
         paper: function paper(n: number) {
             _o.paper(n);
         },
@@ -630,7 +633,7 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 			return '} '.repeat(argumentList.length).slice(0, -1);
 		},
 
-		On(_nLit: Node, e1: Node, _gosubLit: Node, args: Node) {
+		On(_onLit: Node, e1: Node, _gosubLit: Node, args: Node) {
 			const index = e1.eval();
 			const argumentList = args.asIteration().children.map(child => child.sourceString);
 		
@@ -639,6 +642,11 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 			}
 		
 			return `([${argumentList.map((label) => `_${label}`).join(",")}]?.[${index} - 1] || (() => undefined))()`; // 1-based index
+		},
+
+		Origin(_originLit: Node, x: Node, _comma1: Node, y: Node) {
+			semanticsHelper.addInstr("origin");
+			return `origin(${x.eval()}, ${y.eval()})`;
 		},
 
 		Paper(_paperLit: Node, e: Node) {

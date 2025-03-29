@@ -6,8 +6,7 @@ cpcBasic.addItem("", `
 REM striart - String Art
 MODE 2
 DEG
-r=180:'radius
-s=360/p:'step size
+r=180: 'radius
 DEF FNx(i)=SIN(s*i)*r+320
 DEF FNy(i)=COS(s*i)*r+200
 '
@@ -20,7 +19,7 @@ WHILE p>=0
 WEND
 END
 '
-REM draw
+REM draw figure
 980 CLS
 s=360/p:'step size
 FOR i=0 TO p-1:PLOT FNx(i),FNy(i):NEXT
@@ -32,12 +31,12 @@ FOR i=0 TO p-1
 NEXT
 RETURN
 '
-DATA 48,15,0:  'ring, stop at drop
-DATA 48,15,1:  'rounded heart
-DATA 48,15,-1: 'Fan, Rays
-DATA 48,15,-2: 'Diagonally hatched
-DATA 48,15,-3: 'diagonal "triangulated"
-DATA 48,15,-4: 'Diagonally irregular "checkered"
+DATA 48,15,0:   'ring, stop at drop
+DATA 48,15,1:   'rounded heart
+DATA 48,15,-1:  'Fan, Rays
+DATA 48,15,-2:  'Diagonally hatched
+DATA 48,15,-3:  'diagonal "triangulated"
+DATA 48,15,-4:  'Diagonally irregular "checkered"
 DATA 48,15,-10: 'skeins with thin stripes
-DATA -1,-1,-1: '"end"
+DATA -1,-1,-1:  '"end"
 `);
