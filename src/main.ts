@@ -22,8 +22,6 @@ const core: ICore = new Core({
     action: "compile,run",
     autoCompile: true,
     autoExecute: true,
-    basicAreaHidden: false,
-    compiledAreaHidden: false,
     databaseDirs: "examples,https://benchmarko.github.io/CPCBasicApps/rosetta", // example base directories (comma separated)
 	database: "examples", // examples, apps, saved
     debounceCompile: 800,
@@ -33,7 +31,9 @@ const core: ICore = new Core({
     fileName: "",
     grammar: "basic", // basic or strict
     input: "",
-    outputAreaHidden: false
+    showBasic: true,
+    showCompiled: false,
+    showOutput: true
 });
 
 if (typeof window !== "undefined") {

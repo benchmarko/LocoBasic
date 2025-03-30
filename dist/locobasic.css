@@ -1,14 +1,40 @@
 /* locobasic.css */
 
-.flexBox {
-  float: left;
+body {
+  background-color: beige;
+}
+
+.area {
+  margin-bottom: 10px;
+  max-width: 704px;
+}
+
+.toolbarAreaInner {
+  background-color: lightgray;
   padding: 2px;
-  margin: 2px;
-  background-color: LightGrey;
+  padding-bottom: 5px;
+  border: 1px solid gray;
+}
+
+.toolbarLine {
+  padding: 4px;
+}
+
+.toolbarLineItemRight {
+  float: right;
+}
+
+#outputText {
+  overflow: auto;
+  height: 30em;
+  padding: 2px;
+  margin: 0px;
+  background-color: #ffffff;
+  resize: both;
   border: 1px solid grey;
 }
 
 .CodeMirror {
-  width: 51em;
-  /* height: auto; */
+  border: 1px solid grey;
+  resize: horizontal;
 }

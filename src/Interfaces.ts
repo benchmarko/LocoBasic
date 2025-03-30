@@ -21,8 +21,6 @@ export type ConfigType = {
     action: string; // "compile,run"
     autoCompile: boolean;
     autoExecute: boolean;
-    basicAreaHidden: boolean;
-    compiledAreaHidden: boolean;
     databaseDirs: string, // example base directories (comma separated)
 	database: string, // examples, apps, saved
     debounceCompile: number;
@@ -32,7 +30,9 @@ export type ConfigType = {
     fileName: string;
     grammar: string; // "basic" or "strict"
     input: string;
-    outputAreaHidden: boolean;
+    showBasic: boolean;
+    showCompiled: boolean;
+    showOutput: boolean;
 };
 
 export interface IVm {

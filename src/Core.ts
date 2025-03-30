@@ -92,7 +92,7 @@ export class Core implements ICore {
     public async executeScript(compiledScript: string, vm: IVmAdmin): Promise<string> {
         vm.setOutput("");
 
-        if (compiledScript.startsWith("ERROR")) {
+        if (compiledScript.startsWith("ERROR:")) {
             return "ERROR";
         }
 

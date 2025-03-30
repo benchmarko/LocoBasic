@@ -59,11 +59,11 @@ export class UI implements IUI {
     private debounce<T extends (...args: unknown[]) => void | Promise<void>>(func: T, fngetDelay: () => number): (...args: Parameters<T>) => void {
         let timeoutId: ReturnType<typeof setTimeout>;
         return function (this: unknown, ...args: Parameters<T>) {
-            const context = this;
-            const delay = fngetDelay();
+            // use delay 0 when change comes from "SetValue" (ant not form "+input")
+            const delay = (args as any)?.[1]?.[0]?.origin === "setValue" ? 0 : fngetDelay();
             clearTimeout(timeoutId);
             timeoutId = setTimeout(() => {
-                func.apply(context, args);
+                func.apply(this, args); // we expect "this" to be null
             }, delay);
         };
     }
@@ -178,62 +178,29 @@ export class UI implements IUI {
         element.disabled = disabled;
     }
 
-    private toggleAreaHidden(id: string, editor?: Editor): boolean {
-        const area = document.getElementById(id) as HTMLElement;
-        area.hidden = !area.hidden;
-        if (!area.hidden && editor) {
-            editor.refresh();
-        }
-
-        const parameterName = id.replace("Inner", "Hidden");
-        this.updateConfigParameter(parameterName, area.hidden);
-
-        return !area.hidden;
-    }
-
-    private setClearLeft(id: string, clearLeft: boolean): void {
-        const area = document.getElementById(id) as HTMLElement;
-        area.style.clear = clearLeft ? "left" : "";
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    private onBasicAreaButtonClick = (_event: Event) => { // bound this
-        const basicVisible = this.toggleAreaHidden("basicAreaInner", this.basicCm);
-        const compiledAreaInner = document.getElementById("compiledAreaInner") as HTMLElement;
-        this.setClearLeft("compiledArea", !basicVisible || compiledAreaInner.hidden);
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    private onCompiledAreaButtonClick = (_event: Event) => { // bound this
-        const compiledVisible = this.toggleAreaHidden("compiledAreaInner", this.compiledCm);
-        const basicAreaInner = document.getElementById("basicAreaInner") as HTMLElement;
-        this.setClearLeft("compiledArea", !compiledVisible || basicAreaInner.hidden);
-        const outputAreaInner = document.getElementById("outputAreaInner") as HTMLElement;
-        this.setClearLeft("outputArea", !compiledVisible || outputAreaInner.hidden);
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    private onOutputAreaButtonClick = (_event: Event) => { // bound this
-        const outputVisible = this.toggleAreaHidden("outputAreaInner");
-        const compiledAreaInner = document.getElementById("compiledAreaInner") as HTMLElement;
-        this.setClearLeft("outputArea", !outputVisible || compiledAreaInner.hidden);
+    private hasCompiledError() {
+        const compiledScript = this.compiledCm ? this.compiledCm.getValue() : "";
+        const hasError = compiledScript.startsWith("ERROR:");
+        this.setOutputText(hasError ? compiledScript : "");
+        return hasError;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onExecuteButtonClick = async (_event: Event): Promise<void> => { // bound this
         const core = this.getCore();
-        if (!this.vm) {
+        if (!this.vm || this.hasCompiledError()) {
             return;
         }
-        const compiledScript = this.compiledCm ? this.compiledCm.getValue() : "";
+        
         this.setButtonDisabled("executeButton", true);
         this.setButtonDisabled("stopButton", false);
         this.setSelectDisabled("databaseSelect", true);
         this.setSelectDisabled("exampleSelect", true);
         this.escape = false;
         this.keyBuffer.length = 0;
-        const outputText = window.document.getElementById("outputText") as HTMLPreElement;
+        const outputText = document.getElementById("outputText") as HTMLPreElement;
         outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
+        const compiledScript = this.compiledCm ? this.compiledCm.getValue() : "";
         const output = await core.executeScript(compiledScript, this.vm) || "";
         outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
         this.setButtonDisabled("executeButton", false);
@@ -244,6 +211,9 @@ export class UI implements IUI {
     }
 
     private onCompiledTextChange = (): void => { // bound this
+        if (this.hasCompiledError()) {
+            return;
+        }
         const autoExecuteInput = document.getElementById("autoExecuteInput") as HTMLInputElement;
         if (autoExecuteInput.checked) {
             const executeButton = window.document.getElementById("executeButton") as HTMLButtonElement;
@@ -278,6 +248,29 @@ export class UI implements IUI {
         const autoExecuteInput = event.target as HTMLInputElement;
 
         this.updateConfigParameter("autoExecute", autoExecuteInput.checked);
+    }
+
+    private toggleAreaHidden(id: string, editor?: Editor): boolean {
+        const area = document.getElementById(id) as HTMLElement;
+        area.hidden = !area.hidden;
+        if (!area.hidden && editor) {
+            editor.refresh();
+        }
+        return !area.hidden;
+    }
+
+    private onShowBasicInputChange = (event: Event): void => { // bound this
+        const showBasicInput = event.target as HTMLInputElement;
+        this.toggleAreaHidden("basicArea", this.basicCm);
+
+        this.updateConfigParameter("showBasic", showBasicInput.checked);
+    }
+
+    private onShowCompiledInputChange = (event: Event): void => { // bound this
+        const showCompiledInput = event.target as HTMLInputElement;
+        this.toggleAreaHidden("compiledArea", this.compiledCm);
+
+        this.updateConfigParameter("showCompiled", showCompiledInput.checked);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -594,6 +587,12 @@ export class UI implements IUI {
         const autoExecuteInput = window.document.getElementById("autoExecuteInput") as HTMLInputElement;
         autoExecuteInput.addEventListener("change", this.onAutoExecuteInputChange, false);
 
+        const showBasicInput = window.document.getElementById("showBasicInput") as HTMLInputElement;
+        showBasicInput.addEventListener("change", this.onShowBasicInputChange, false);
+
+        const showCompiledInput = window.document.getElementById("showCompiledInput") as HTMLInputElement;
+        showCompiledInput.addEventListener("change", this.onShowCompiledInputChange, false);
+
         const databaseSelect = window.document.getElementById("databaseSelect") as HTMLSelectElement;
         databaseSelect.addEventListener("change", this.onDatabaseSelectChange);
 
@@ -626,15 +625,6 @@ export class UI implements IUI {
             this.compiledCm.on("changes", this.debounce(this.onCompiledTextChange, () => config.debounceExecute));
         }
 
-        const basicAreaButton = window.document.getElementById("basicAreaButton") as HTMLButtonElement;
-        basicAreaButton.addEventListener("click", this.onBasicAreaButtonClick, false);
-
-        const compiledAreaButton = window.document.getElementById("compiledAreaButton") as HTMLButtonElement;
-        compiledAreaButton.addEventListener("click", this.onCompiledAreaButtonClick, false);
-
-        const outputAreaButton = window.document.getElementById("outputAreaButton") as HTMLButtonElement;
-        outputAreaButton.addEventListener("click", this.onOutputAreaButtonClick, false);
-
         window.addEventListener("popstate", (event: PopStateEvent) => {
             if (event.state) {
                 Object.assign(config, core.getDefaultConfigMap); // load defaults
@@ -644,23 +634,27 @@ export class UI implements IUI {
             }
         });
 
-        if (config.basicAreaHidden) {
-            basicAreaButton.dispatchEvent(new Event("click"));
-        }
-        if (config.compiledAreaHidden) {
-            compiledAreaButton.dispatchEvent(new Event("click"));
-        }
-        if (config.outputAreaHidden) {
-            outputAreaButton.dispatchEvent(new Event("click"));
+        if (!config.showOutput) {
+            this.toggleAreaHidden("outputArea",);
         }
 
-        if (!config.autoCompile) {
-            autoCompileInput.checked = false;
+        if (showBasicInput.checked !== config.showBasic) {
+            showBasicInput.checked = config.showBasic;
+            showBasicInput.dispatchEvent(new Event("change"));
+        }
+
+        if (showCompiledInput.checked !== config.showCompiled) {
+            showCompiledInput.checked = config.showCompiled;
+            showCompiledInput.dispatchEvent(new Event("change"));
+        }
+
+        if (autoCompileInput.checked !== config.autoCompile) {
+            autoCompileInput.checked = config.autoCompile;
             autoCompileInput.dispatchEvent(new Event("change"));
         }
 
-        if (!config.autoExecute) {
-            autoExecuteInput.checked = false;
+        if (autoExecuteInput.checked !== config.autoExecute) {
+            autoExecuteInput.checked = config.autoExecute;
             autoExecuteInput.dispatchEvent(new Event("change"));
         }
 

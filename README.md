@@ -247,7 +247,7 @@ Keywords should be all uppercase, but all lowercase is also accepted (not-strict
 after auto border break call cat chain clear clg closein closeout cont copychr$
  creal cursor defint defreal defstr delete derr di edit ei eof erl err every fill fre
  goto graphicsPaper himem inkey inp joy key let line list load locate mask memory merge new
- on openin openout origin out peek poke pos randomize release remain renum resume run
+ on openin openout out peek poke pos randomize release remain renum resume run
  save sound spc speed sq swap symbol tab test testr troff tron unt vpos wait width window write xpos ypos zone
 
 ### Resources
