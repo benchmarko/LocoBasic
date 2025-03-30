@@ -39,9 +39,7 @@ RETURN
 '
 ' new sec
 400 s=s+1
-IF s=60 THEN s=0:m=m+1
-IF m=60 THEN m=0:h=h+1
-IF h=24 THEN h=0
+IF s=60 THEN s=0:m=m+1: IF m=60 THEN m=0:h=h+1: IF h=24 THEN h=0
 pm=6*m
 MOVE 0,0:DRAW 0.7*r*SIN(pm),0.7*r*COS(pm),2
 ph=30*h+0.5*m

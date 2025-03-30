@@ -98,7 +98,7 @@ export class Core {
     }
     async executeScript(compiledScript, vm) {
         vm.setOutput("");
-        if (compiledScript.startsWith("ERROR")) {
+        if (compiledScript.startsWith("ERROR:")) {
             return "ERROR";
         }
         const syntaxError = await this.onCheckSyntax(compiledScript);

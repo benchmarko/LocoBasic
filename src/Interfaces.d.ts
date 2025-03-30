@@ -16,8 +16,6 @@ export type ConfigType = {
     action: string;
     autoCompile: boolean;
     autoExecute: boolean;
-    basicAreaHidden: boolean;
-    compiledAreaHidden: boolean;
     databaseDirs: string;
     database: string;
     debounceCompile: number;
@@ -27,7 +25,9 @@ export type ConfigType = {
     fileName: string;
     grammar: string;
     input: string;
-    outputAreaHidden: boolean;
+    showBasic: boolean;
+    showCompiled: boolean;
+    showOutput: boolean;
 };
 export interface IVm {
     cls(): void;

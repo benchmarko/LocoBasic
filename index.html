@@ -1,53 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="locobasic.css">
-  <title>LocoBasic v0.1.60</title>
+  <title>LocoBasic v0.1.61</title>
 </head>
 
 <body>
-  <div id="basicArea" class="flexBox">
-    <button id="basicAreaButton" class="legendButton" title="Show/Hide CPC">LocoBasic</button>
-    <select id="databaseSelect" title="Database"></select>
-    <select id="exampleSelect" title="Example"></select>
-    <button id="helpButton" title="Help">Help</button>
-    <div id="basicAreaInner">
-      <div id="basicEditor" class="CodeMirror"></div>
-    </div>
-    <input id="autoCompileInput" type="checkbox" title="automatic compile" checked>
-    <label for="autoCompileInput" title="auto compile on change">Auto</label>
-    <button id="compileButton" title="Compile to JavaScript">Compile</button>
-  </div>
-
-  <div id="compiledArea" class="flexBox">
-    <button id="compiledAreaButton" class="legendButton" title="Show/Hide JavaScript">JavaScript</button>
-    <div id="compiledAreaInner">
-      <div id="compiledEditor" class="CodeMirror"></div>
-    </div>
-    <input id="autoExecuteInput" type="checkbox" title="automatic execute" checked>
-    <label for="autoExecuteInput" title="auto execute on change">Auto</label>
-    <button id="executeButton" title="Execute JavaScript">Execute</button>
-    <button id="stopButton" title="Stop Execution">Stop</button>
-  </div>
-
-  <div id="outputArea" class="flexBox">
-    <button id="outputAreaButton" class="legendButton" title="Show/Hide Output">Output</button>
-    <button id="exportSvgButton" title="Export as SVG">Export SVG</button>
-    <div id="outputAreaInner">
-      <pre id="outputText" contenteditable="true" spellcheck="false" autocomplete="off" autocapitalize="off" style="overflow:auto; width: 604px; height: 30em; margin: 0px; background-color: #ffffff"></pre>
+  <div id="toolbarArea" class="area">
+    <div class="toolbarAreaInner">
+      <div class="toolbarLine">
+        <span class="legendTitle" title="LocoBasic">LocoBasic</span>
+        <select id="databaseSelect" title="Database"></select>
+        <select id="exampleSelect" title="Example"></select>
+        <button id="helpButton" title="Open LocoBasic Readme">Help</button>
+        <button id="exportSvgButton" title="Export SVG">SVG</button>
+      </div>
     </div>
   </div>
 
-  <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
-  <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js" defer></script>
-  <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/search/search.min.js" defer></script>
-  <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/search/searchcursor.min.js" defer></script>
-  <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/dialog/dialog.min.js" defer></script>
-  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css"></link>
-  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/dialog/dialog.css"></link>
-  
+  <div id="outputArea" class="area">
+    <pre id="outputText" contenteditable="true" spellcheck="false" autocomplete="off" autocapitalize="off"></pre>
+  </div>
+
+  <div id="basicIoolbarArea" class="area">
+    <div class="toolbarAreaInner">
+      <div class="toolbarLine">
+        <span>
+          <input id="autoExecuteInput" type="checkbox" title="Automatic execute" checked>
+          <button id="executeButton" title="Execute JavaScript">Execute</button>
+        </span>
+        <button id="stopButton" title="Stop Execution" disabled>Stop</button>
+        <span class="toolbarLineItemRight">
+          <input id="showBasicInput" type="checkbox" title="Show Basic" checked>
+          <label for="showBasicInput" title="Show Basic">Basic</label>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div id="basicArea" class="area">
+    <div id="basicEditor" class="CodeMirror"></div>
+  </div>
+
+  <div id="compiledToolbarArea" class="area">
+    <div class="toolbarAreaInner">
+      <div class="toolbarLine">
+        <span>
+          <input id="autoCompileInput" type="checkbox" title="Automatic compile on change" checked>
+          <button id="compileButton" title="Compile to JavaScript">Compile</button>
+        </span>
+        <span class="toolbarLineItemRight">
+          <input id="showCompiledInput" type="checkbox" title="Show JavaScript">
+          <label for="showCompiledInput" title="Show JavaScript">JavaScript</label>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div id="compiledArea" class="area" hidden>
+    <div id="compiledEditor" class="CodeMirror"></div>
+  </div>
+
+  <script language="javascript" type="text/javascript"
+    src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
+  <script language="javascript" type="text/javascript"
+    src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js" defer></script>
+  <script language="javascript" type="text/javascript"
+    src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/search/search.min.js" defer></script>
+  <script language="javascript" type="text/javascript"
+    src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/search/searchcursor.min.js" defer></script>
+  <script language="javascript" type="text/javascript"
+    src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/dialog/dialog.min.js" defer></script>
+  <link rel="stylesheet" type="text/css"
+    href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
+  </link>
+  <link rel="stylesheet" type="text/css"
+    href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/dialog/dialog.css">
+  </link>
+
   <script src="https://unpkg.com/ohm-js@17/dist/ohm.min.js"></script>
 
   <script>

@@ -2326,7 +2326,7 @@
         }
         async executeScript(compiledScript, vm) {
             vm.setOutput("");
-            if (compiledScript.startsWith("ERROR")) {
+            if (compiledScript.startsWith("ERROR:")) {
                 return "ERROR";
             }
             const syntaxError = await this.onCheckSyntax(compiledScript);
@@ -3068,8 +3068,6 @@ node hello1.js
         action: "compile,run",
         autoCompile: true,
         autoExecute: true,
-        basicAreaHidden: false,
-        compiledAreaHidden: false,
         databaseDirs: "examples,https://benchmarko.github.io/CPCBasicApps/rosetta", // example base directories (comma separated)
         database: "examples", // examples, apps, saved
         debounceCompile: 800,
@@ -3079,7 +3077,9 @@ node hello1.js
         fileName: "",
         grammar: "basic", // basic or strict
         input: "",
-        outputAreaHidden: false
+        showBasic: true,
+        showCompiled: false,
+        showOutput: true
     });
     if (typeof window !== "undefined") {
         window.onload = () => {
