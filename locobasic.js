@@ -122,6 +122,7 @@
       | Rem
       | Restore
       | Return
+      | Rsx
       | Stop
       | Tag
       | Tagoff
@@ -334,6 +335,10 @@
     
     Round
       = round "(" NumExp ("," NumExp)? ")"
+
+    Rsx
+      = "|" ident "," NonemptyListOf<AnyFnArg, ","> -- withArgs
+      | "|" ident -- noArgs
 
     Sgn
       = sgn "(" NumExp ")"
@@ -1389,6 +1394,9 @@
             round: function round(num, dec) {
                 return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
             },
+            rsx: function rsx(cmd, ...args) {
+                _o.rsx(cmd, args);
+            },
             stop: function stop() {
                 _o.flush();
                 return "stop";
@@ -1891,6 +1899,18 @@
                 }
                 return `Math.round(${value.eval()})`; // common round without decimals places
                 // A better way to avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
+            },
+            Rsx_noArgs(_rsxLit, cmd) {
+                semanticsHelper.addInstr("rsx");
+                const cmdString = cmd.sourceString;
+                return `rsx("${cmdString}")`;
+            },
+            Rsx_withArgs(_rsxLit, cmd, _comma, args) {
+                semanticsHelper.addInstr("rsx");
+                const cmdString = cmd.sourceString;
+                const argumentList = evalChildren(args.asIteration().children);
+                const parameterString = ", " + argumentList.join(', ');
+                return `rsx("${cmdString}"${parameterString})`;
             },
             Sgn(_sgnLit, _open, e, _close) {
                 return `Math.sign(${e.eval()})`;
@@ -2514,7 +2534,7 @@
                 this.output = "";
             }
             if (this.graphicsBuffer.length) {
-                // separate print for svg graphics (we are checking for output starting with svg to enable expor SVG button)ays 0
+                // separate print for svg graphics (we are checking for output starting with svg to enable export SVG button)ays 0
                 const backgroundColorStr = this.backgroundColor !== "" ? ` style="background-color:${this.backgroundColor}"` : '';
                 this.fnOnPrint(`<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" stroke="currentColor"${backgroundColorStr}>\n${this.graphicsBuffer.join("\n")}"\n</svg>\n`);
                 this.graphicsBuffer.length = 0;
@@ -2585,7 +2605,8 @@
                 const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
                 styleStr = ` style="color: ${color}"`;
             }
-            this.graphicsBuffer.push(`<text x="${this.graphicsX + this.originX}" y="${this.graphicsY + this.originY + yOffset}"${styleStr}>${text}</text>`);
+            this.flushGraphicsPath(); // maybe a path is open
+            this.graphicsBuffer.push(`<text x="${this.graphicsX}" y="${this.graphicsY + yOffset}"${styleStr}>${text}</text>`);
         }
         print(...args) {
             const text = args.join('');
@@ -2594,6 +2615,50 @@
             }
             else {
                 this.output += text;
+            }
+        }
+        rsxCircle(args) {
+            // x: number, y: number, radius: number
+            const [x, y, radius] = args.map((p) => typeof p === "number" ? Math.round(p) : 0);
+            let strokeStr = "";
+            if (this.currGraphicsPen >= 0) { // TTT or >?
+                const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
+                strokeStr = ` stroke="${color}"`;
+            }
+            this.flushGraphicsPath(); // maybe a path is open
+            // if we want origin: x + this.originX, 399 - y - this.originY
+            this.graphicsBuffer.push(`<circle cx="${x}" cy="${399 - y}" r="${radius}"${strokeStr} />`);
+        }
+        rsxRect(args) {
+            // x: number, y: number, w: number, h: number
+            const [x1, y1, x2, y2] = args.map((p) => typeof p === "number" ? Math.round(p) : 0);
+            let x = x1;
+            let y = y1;
+            let width = x2 - x;
+            let height = y - y2;
+            if (width < 0) {
+                width = -width;
+                x = x2;
+            }
+            if (height < 0) {
+                height = -height;
+                y = y2;
+            }
+            let strokeStr = "";
+            if (this.currGraphicsPen >= 0) { // TTT or >?
+                const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
+                strokeStr = ` stroke="${color}"`;
+            }
+            this.flushGraphicsPath(); // maybe a path is open
+            this.graphicsBuffer.push(`<rect x="${x}" y="${399 - y}" width="${width}" height="${height}"${strokeStr} />`);
+        }
+        rsx(cmd, args) {
+            cmd = cmd.toLowerCase();
+            if (cmd === "circle") {
+                this.rsxCircle(args);
+            }
+            else if (cmd === "rect") {
+                this.rsxRect(args);
             }
         }
         tag(active) {
@@ -2706,6 +2771,7 @@
         paper(num) { this.debug("paper:", num); },
         pen(num) { this.debug("pen:", num); },
         print(...args) { this._output += args.join(''); },
+        rsx(cmd, args) { this._output += cmd + "," + args.join(''); },
         tag(active) { this.debug("tag:", active); },
         getEscape() { return false; }
     };

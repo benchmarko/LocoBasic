@@ -112,6 +112,9 @@ function getCodeSnippets() {
         round: function round(num, dec) {
             return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
         },
+        rsx: function rsx(cmd, ...args) {
+            _o.rsx(cmd, args);
+        },
         stop: function stop() {
             _o.flush();
             return "stop";
@@ -614,6 +617,18 @@ function getSemantics(semanticsHelper) {
             }
             return `Math.round(${value.eval()})`; // common round without decimals places
             // A better way to avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
+        },
+        Rsx_noArgs(_rsxLit, cmd) {
+            semanticsHelper.addInstr("rsx");
+            const cmdString = cmd.sourceString;
+            return `rsx("${cmdString}")`;
+        },
+        Rsx_withArgs(_rsxLit, cmd, _comma, args) {
+            semanticsHelper.addInstr("rsx");
+            const cmdString = cmd.sourceString;
+            const argumentList = evalChildren(args.asIteration().children);
+            const parameterString = ", " + argumentList.join(', ');
+            return `rsx("${cmdString}"${parameterString})`;
         },
         Sgn(_sgnLit, _open, e, _close) {
             return `Math.sign(${e.eval()})`;
