@@ -12,6 +12,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "First Program (empty)"
 		},
 		{
+			"key": "2cv",
+			"title": "2cv - 2CV (CPC Doodle)"
+		},
+		{
 			"key": "abelian",
 			"title": "Abelian sandpile model (ASCII)"
 		},
@@ -26,6 +30,10 @@ cpcBasic.addIndex("./examples", {
 		{
 			"key": "animate2",
 			"title": "Animate a pendulum (graphical)"
+		},
+		{
+			"key": "archidr",
+			"title": "Little Architect Draw Examples"
 		},
 		{
 			"key": "barnsley",
