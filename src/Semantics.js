@@ -618,17 +618,17 @@ function getSemantics(semanticsHelper) {
             return `Math.round(${value.eval()})`; // common round without decimals places
             // A better way to avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
         },
-        Rsx_noArgs(_rsxLit, cmd) {
+        Rsx(_rsxLit, cmd, e) {
+            var _a;
             semanticsHelper.addInstr("rsx");
-            const cmdString = cmd.sourceString;
-            return `rsx("${cmdString}")`;
+            const cmdString = cmd.sourceString.toLowerCase();
+            const rsxArgs = ((_a = e.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+            return `rsx("${cmdString}"${rsxArgs})`;
         },
-        Rsx_withArgs(_rsxLit, cmd, _comma, args) {
-            semanticsHelper.addInstr("rsx");
-            const cmdString = cmd.sourceString;
+        RsxArgs(_comma, args) {
             const argumentList = evalChildren(args.asIteration().children);
             const parameterString = ", " + argumentList.join(', ');
-            return `rsx("${cmdString}"${parameterString})`;
+            return parameterString;
         },
         Sgn(_sgnLit, _open, e, _close) {
             return `Math.sign(${e.eval()})`;

@@ -37,6 +37,7 @@ export declare class BasicVmCore implements IVmAdmin {
     pen(n: number): void;
     private printGraphicsText;
     print(...args: string[]): void;
+    private static getRsxNumArgs;
     private rsxCircle;
     private rsxRect;
     rsx(cmd: string, args: (number | string)[]): void;

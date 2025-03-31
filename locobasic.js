@@ -337,8 +337,10 @@
       = round "(" NumExp ("," NumExp)? ")"
 
     Rsx
-      = "|" ident "," NonemptyListOf<AnyFnArg, ","> -- withArgs
-      | "|" ident -- noArgs
+      = "|" ident RsxArgs?
+
+    RsxArgs
+      = "," NonemptyListOf<AnyFnArg, ",">
 
     Sgn
       = sgn "(" NumExp ")"
@@ -1900,17 +1902,17 @@
                 return `Math.round(${value.eval()})`; // common round without decimals places
                 // A better way to avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
             },
-            Rsx_noArgs(_rsxLit, cmd) {
+            Rsx(_rsxLit, cmd, e) {
+                var _a;
                 semanticsHelper.addInstr("rsx");
-                const cmdString = cmd.sourceString;
-                return `rsx("${cmdString}")`;
+                const cmdString = cmd.sourceString.toLowerCase();
+                const rsxArgs = ((_a = e.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+                return `rsx("${cmdString}"${rsxArgs})`;
             },
-            Rsx_withArgs(_rsxLit, cmd, _comma, args) {
-                semanticsHelper.addInstr("rsx");
-                const cmdString = cmd.sourceString;
+            RsxArgs(_comma, args) {
                 const argumentList = evalChildren(args.asIteration().children);
                 const parameterString = ", " + argumentList.join(', ');
-                return `rsx("${cmdString}"${parameterString})`;
+                return parameterString;
             },
             Sgn(_sgnLit, _open, e, _close) {
                 return `Math.sign(${e.eval()})`;
@@ -2617,9 +2619,18 @@
                 this.output += text;
             }
         }
+        static getRsxNumArgs(args, count) {
+            if (args.length !== count) {
+                console.warn(`getRsxNumArgs: Wrong number of arguments. Expected ${count}, got ${args.length}`);
+            }
+            // pad with 0 if less than count
+            return Array.from({ length: count }, (_, i) => {
+                const p = args[i];
+                return typeof p === "number" ? Math.round(p) : 0;
+            });
+        }
         rsxCircle(args) {
-            // x: number, y: number, radius: number
-            const [x, y, radius] = args.map((p) => typeof p === "number" ? Math.round(p) : 0);
+            const [x, y, radius] = BasicVmCore.getRsxNumArgs(args, 3);
             let strokeStr = "";
             if (this.currGraphicsPen >= 0) { // TTT or >?
                 const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
@@ -2630,35 +2641,29 @@
             this.graphicsBuffer.push(`<circle cx="${x}" cy="${399 - y}" r="${radius}"${strokeStr} />`);
         }
         rsxRect(args) {
-            // x: number, y: number, w: number, h: number
-            const [x1, y1, x2, y2] = args.map((p) => typeof p === "number" ? Math.round(p) : 0);
-            let x = x1;
-            let y = y1;
-            let width = x2 - x;
-            let height = y - y2;
-            if (width < 0) {
-                width = -width;
-                x = x2;
-            }
-            if (height < 0) {
-                height = -height;
-                y = y2;
-            }
-            let strokeStr = "";
-            if (this.currGraphicsPen >= 0) { // TTT or >?
-                const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
-                strokeStr = ` stroke="${color}"`;
-            }
-            this.flushGraphicsPath(); // maybe a path is open
+            // Extract and round arguments
+            const [x1, y1, x2, y2] = BasicVmCore.getRsxNumArgs(args, 4);
+            // Calculate position and dimensions
+            const x = Math.min(x1, x2);
+            const y = Math.max(y1, y2); // y is inverted
+            const width = Math.abs(x2 - x1);
+            const height = Math.abs(y2 - y1);
+            // Determine stroke color if a pen is active
+            const strokeStr = this.currGraphicsPen >= 0 ? ` stroke="${this.cpcColors[this.colorsForPens[this.currGraphicsPen]]}"` : "";
+            // Flush any open graphics path
+            this.flushGraphicsPath();
+            // Add the rectangle to the graphics buffer
             this.graphicsBuffer.push(`<rect x="${x}" y="${399 - y}" width="${width}" height="${height}"${strokeStr} />`);
         }
         rsx(cmd, args) {
-            cmd = cmd.toLowerCase();
             if (cmd === "circle") {
                 this.rsxCircle(args);
             }
             else if (cmd === "rect") {
                 this.rsxRect(args);
+            }
+            else {
+                throw new Error(`Unknown RSX command: |${cmd}`);
             }
         }
         tag(active) {
