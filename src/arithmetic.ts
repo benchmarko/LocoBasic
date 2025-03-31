@@ -52,6 +52,7 @@ export const arithmetic = {
       | Rem
       | Restore
       | Return
+      | Rsx
       | Stop
       | Tag
       | Tagoff
@@ -264,6 +265,10 @@ export const arithmetic = {
     
     Round
       = round "(" NumExp ("," NumExp)? ")"
+
+    Rsx
+      = "|" ident "," NonemptyListOf<AnyFnArg, ","> -- withArgs
+      | "|" ident -- noArgs
 
     Sgn
       = sgn "(" NumExp ")"

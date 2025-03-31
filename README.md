@@ -82,8 +82,8 @@ Keywords should be all uppercase, but all lowercase is also accepted (not-strict
   - During *FRAME* or *INKEY$*, the "Stop" button gets active. It allows to terminate the running program. It is not possible to continue a terminated program.
 - **PEN and PAPER**
   - When using node.js in a terminal, ANSI colors are used.
-- **GRAPHICS PEN, DRAW, DRAWR, MOVE, MOVER, PLOT, PLOTR, TAG (and PRINT)**
-  - These can be used to create SVG graphics which can be exported with the button "Export SVG". Graphics is separate from text.
+- **GRAPHICS PEN, DRAW, DRAWR, MOVE, MOVER, PLOT, PLOTR, TAG (and PRINT), |CIRCLE, |RECT**
+  - These can be used to create [Scalable Vector Graphics](https://developer.mozilla.org/en-US/docs/Web/SVG) (SVG), which can be exported with the "SVG" button. Graphics is separate from text.
 - **FRAME**
   - Text and graphics output is buffered until it is flushed with *FRAME* or at the end of the progam.
   - To start a new graphical output after *FRAME*, use *CLS* or *MODE*.
@@ -182,6 +182,7 @@ Keywords should be all uppercase, but all lowercase is also accepted (not-strict
   - Arguments must be separated by `;`.
   - Numbers are padded with trailing space, and leading space for positive numbers.
   - **Limitations:** No support for `TAB()`, `SPC()`. Formatting with `USING` only for one number as with `DEC$()`. No additional characters in the format string.
+  - When *TAG* is active, it creates [SVG text](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/text).
 - `RAD` Switch to radians mode (default) for *ATN*, *COS*, *SIN*, *TAN*.
   - **Note:** In LocoBasic, the flag is used at compile time starting from its lexical position and not dynamically during execution.
 - `READ variable` Reads the next value from a `DATA` statement into *variable*.
@@ -216,6 +217,11 @@ Keywords should be all uppercase, but all lowercase is also accepted (not-strict
 - `WEND` Ends a *WHILE* loop.
 - `WHILE expression` Control structure: repeats until *expression* is false.
 - `number XOR number` In expressions: exclusive-OR.
+
+### Resident System Extensions (RSX)
+
+- `|CIRCLE x,y,radius` Draws a circle, creating shape [SVG circle](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/circle).
+- `|RECT,x0,y0,x1,y1` Draws a rectangle, creating shape [SVG rect](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/rect).
 
 ### TODO
 

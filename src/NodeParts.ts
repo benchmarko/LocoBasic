@@ -59,6 +59,7 @@ const dummyVm: DummyVm = {
     paper(num: number) { this.debug("paper:", num); },
     pen(num: number) { this.debug("pen:", num); },
     print(...args: (string | number)[]) { this._output += args.join(''); },
+    rsx(cmd: string, args: (string | number)[]) { this._output += cmd + "," + args.join(''); },
     tag(active: boolean) { this.debug("tag:", active); },
     getEscape() { return false; }
 };

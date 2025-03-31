@@ -48,6 +48,7 @@ export interface IVm {
     paper(color: number): void;
     pen(color: number): void;
     print(msg: string): void;
+    rsx(cmd: string, args: (string | number)[]): void;
     tag(active: boolean): void;
     getEscape(): boolean;
 }

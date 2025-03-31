@@ -118,6 +118,9 @@ function getCodeSnippets() {
         round: function round(num: number, dec: number) {
             return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
         },
+		rsx: function rsx(cmd: string, ...args: (string | number)[]) {
+            _o.rsx(cmd, args);
+        },
         stop: function stop() {
             _o.flush();
             return "stop";
@@ -739,6 +742,20 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 			}
 			return `Math.round(${value.eval()})`; // common round without decimals places
 			// A better way to avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
+		},
+
+		Rsx_noArgs(_rsxLit: Node, cmd: Node) {
+			semanticsHelper.addInstr("rsx");
+			const cmdString = cmd.sourceString;
+			return `rsx("${cmdString}")`;
+		},
+
+		Rsx_withArgs(_rsxLit: Node, cmd: Node, _comma: Node, args: Node) {
+			semanticsHelper.addInstr("rsx");
+			const cmdString = cmd.sourceString;
+			const argumentList = evalChildren(args.asIteration().children);
+			const parameterString = ", " + argumentList.join(', ');
+			return `rsx("${cmdString}"${parameterString})`;
 		},
 
 		Sgn(_sgnLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
