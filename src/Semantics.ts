@@ -744,18 +744,17 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 			// A better way to avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
 		},
 
-		Rsx_noArgs(_rsxLit: Node, cmd: Node) {
+		Rsx(_rsxLit: Node, cmd: Node, e: Node) {
 			semanticsHelper.addInstr("rsx");
-			const cmdString = cmd.sourceString;
-			return `rsx("${cmdString}")`;
+			const cmdString = cmd.sourceString.toLowerCase();
+			const rsxArgs: string = e.child(0)?.eval() || "";
+			return `rsx("${cmdString}"${rsxArgs})`;
 		},
 
-		Rsx_withArgs(_rsxLit: Node, cmd: Node, _comma: Node, args: Node) {
-			semanticsHelper.addInstr("rsx");
-			const cmdString = cmd.sourceString;
+		RsxArgs(_comma: Node, args: Node) {
 			const argumentList = evalChildren(args.asIteration().children);
 			const parameterString = ", " + argumentList.join(', ');
-			return `rsx("${cmdString}"${parameterString})`;
+			return parameterString;
 		},
 
 		Sgn(_sgnLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars

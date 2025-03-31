@@ -118,6 +118,7 @@ MOVE 0,0
 DRAW SIN(360/10*i)*20,COS(360/10*i)*20
 NEXT
 RAD
+ORIGIN 0,0
 '
 ''
 ''PLOT 10,20,7,3
@@ -146,4 +147,9 @@ TAGOFF
 '
 ''a=XPOS
 ''a=YPOS
+'
+x=40:y=250
+|CIRCLE,x+2*w+w/2,y+h/2,w/2
+|RECT,x,y,x+w,y+h
+'
 `);

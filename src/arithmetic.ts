@@ -267,8 +267,10 @@ export const arithmetic = {
       = round "(" NumExp ("," NumExp)? ")"
 
     Rsx
-      = "|" ident "," NonemptyListOf<AnyFnArg, ","> -- withArgs
-      | "|" ident -- noArgs
+      = "|" ident RsxArgs?
+
+    RsxArgs
+      = "," NonemptyListOf<AnyFnArg, ",">
 
     Sgn
       = sgn "(" NumExp ")"

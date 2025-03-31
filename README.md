@@ -277,4 +277,4 @@ after auto border break call cat chain clear clg closein closeout cont copychr$
 
 - Another BASIC compiler: [ugBASIC](https://ugbasic.iwashere.eu/target/cpc#examples)
 
-### **mv, 02/2025 **
+### **mv, 02/2025**
