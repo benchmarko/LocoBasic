@@ -216,6 +216,8 @@ Keywords should be all uppercase, but all lowercase is also accepted (not-strict
   - Supports hexadecimal and binary formats.
 - `WEND` Ends a *WHILE* loop.
 - `WHILE expression` Control structure: repeats until *expression* is false.
+- `XPOS` Returns the x-pos of the current graphical cursor position
+- `YPOS` Returns the y-pos of the current graphical cursor position
 - `number XOR number` In expressions: exclusive-OR.
 
 ### Resident System Extensions (RSX)
@@ -254,7 +256,7 @@ after auto border break call cat chain clear clg closein closeout cont copychr$
  creal cursor defint defreal defstr delete derr di edit ei eof erl err every fill fre
  goto graphicsPaper himem inkey inp joy key let line list load locate mask memory merge new
  on openin openout out peek poke pos randomize release remain renum resume run
- save sound spc speed sq swap symbol tab test testr troff tron unt vpos wait width window write xpos ypos zone
+ save sound spc speed sq swap symbol tab test testr troff tron unt vpos wait width window write zone
 
 ### Resources
 

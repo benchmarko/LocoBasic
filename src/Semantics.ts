@@ -136,6 +136,12 @@ function getCodeSnippets() {
         },
         val: function val(str: string) {
             return Number(str.replace("&x", "0b").replace("&", "0x"));
+        },
+		xpos: function xpos() {
+            return _o.xpos();
+        },
+		ypos: function ypos() {
+            return _o.ypos();
         }
     };
     return codeSnippets;
@@ -837,6 +843,16 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 			const cond = e.eval();
 			semanticsHelper.nextIndentAdd(2);
 			return `while (${cond}) {`;
+		},
+
+		Xpos(_xposLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addInstr("xpos");
+			return `xpos()`;
+		},
+
+		Ypos(_xposLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addInstr("ypos");
+			return `ypos()`;
 		},
 
 		XorExp_xor(a: Node, _op: Node, b: Node) {

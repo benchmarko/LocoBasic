@@ -318,6 +318,12 @@ export const arithmetic = {
     While
       = while NumExp
 
+    Xpos
+      = xpos
+
+    Ypos
+      = ypos
+
     If
       = if NumExp then Statements (else Statements)?
 
@@ -439,6 +445,8 @@ export const arithmetic = {
       | Tan
       | Time
       | Val
+      | Xpos
+      | Ypos
 
     ArrayArgs
       = NonemptyListOf<NumExp, ",">

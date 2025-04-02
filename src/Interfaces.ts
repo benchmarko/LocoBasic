@@ -50,6 +50,8 @@ export interface IVm {
     print(msg: string): void;
     rsx(cmd: string, args: (string | number)[]): void;
     tag(active: boolean): void;
+    xpos(): number;
+    ypos(): number;
     getEscape(): boolean;
 }
 

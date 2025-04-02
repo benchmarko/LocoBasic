@@ -61,6 +61,8 @@ const dummyVm: DummyVm = {
     print(...args: (string | number)[]) { this._output += args.join(''); },
     rsx(cmd: string, args: (string | number)[]) { this._output += cmd + "," + args.join(''); },
     tag(active: boolean) { this.debug("tag:", active); },
+    xpos() { this.debug("xpos:"); return 0; },
+    ypos() { this.debug("ypos:"); return 0; },
     getEscape() { return false; }
 };
 
