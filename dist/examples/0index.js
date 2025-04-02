@@ -13,7 +13,7 @@ cpcBasic.addIndex("./examples", {
 		},
 		{
 			"key": "2cv",
-			"title": "2cv - 2CV (CPC Doodle)"
+			"title": "2CV (CPC Doodle)"
 		},
 		{
 			"key": "abelian",
@@ -68,6 +68,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Draw a clock"
 		},
 		{
+			"key": "drawsp",
+			"title": "Draw a sphere (ASCII)"
+		},
+		{
 			"key": "elizabos",
 			"title": "Eliza (Boss)"
 		},
@@ -86,6 +90,10 @@ cpcBasic.addIndex("./examples", {
 		{
 			"key": "labyrint",
 			"title": "Drawing Labyrinth"
+		},
+		{
+			"key": "langtons",
+			"title": "Langton's ant"
 		},
 		{
 			"key": "lifegame",
@@ -108,12 +116,24 @@ cpcBasic.addIndex("./examples", {
 			"title": "Man Sprite"
 		},
 		{
+			"key": "matrixra",
+			"title": "Matrix digital rain"
+		},
+		{
+			"key": "mcnugget",
+			"title": "McNuggets problem"
+		},
+		{
 			"key": "nicholas",
 			"title": "House of St. Nicholas"
 		},
 		{
 			"key": "ninedig",
 			"title": "Nine Digits Puzzle"
+		},
+		{
+			"key": "nqueens",
+			"title": "N-queens problem"
 		},
 		{
 			"key": "question",
