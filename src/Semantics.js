@@ -130,6 +130,12 @@ function getCodeSnippets() {
         },
         val: function val(str) {
             return Number(str.replace("&x", "0b").replace("&", "0x"));
+        },
+        xpos: function xpos() {
+            return _o.xpos();
+        },
+        ypos: function ypos() {
+            return _o.ypos();
         }
     };
     return codeSnippets;
@@ -693,6 +699,14 @@ function getSemantics(semanticsHelper) {
             const cond = e.eval();
             semanticsHelper.nextIndentAdd(2);
             return `while (${cond}) {`;
+        },
+        Xpos(_xposLit) {
+            semanticsHelper.addInstr("xpos");
+            return `xpos()`;
+        },
+        Ypos(_xposLit) {
+            semanticsHelper.addInstr("ypos");
+            return `ypos()`;
         },
         XorExp_xor(a, _op, b) {
             return `${a.eval()} ^ ${b.eval()}`;

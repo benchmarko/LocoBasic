@@ -42,6 +42,8 @@ export declare class BasicVmCore implements IVmAdmin {
     private rsxRect;
     rsx(cmd: string, args: (number | string)[]): void;
     tag(active: boolean): void;
+    xpos(): number;
+    ypos(): number;
     getEscape(): boolean;
     getOutput(): string;
     setOutput(str: string): void;

@@ -20,6 +20,8 @@ const dummyVm = {
     print(...args) { this._output += args.join(''); },
     rsx(cmd, args) { this._output += cmd + "," + args.join(''); },
     tag(active) { this.debug("tag:", active); },
+    xpos() { this.debug("xpos:"); return 0; },
+    ypos() { this.debug("ypos:"); return 0; },
     getEscape() { return false; }
 };
 function isUrl(s) {

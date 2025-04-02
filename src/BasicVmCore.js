@@ -87,36 +87,36 @@ export class BasicVmCore {
         this.graphicsPathBuffer.length = 0;
         this.currGraphicsPen = -1;
         this.graphicsX = 0;
-        this.graphicsY = 399;
+        this.graphicsY = 0;
         this.fnOnCls();
     }
     drawMovePlot(type, x, y) {
         x = Math.round(x);
         y = Math.round(y);
-        const isAbsolute = type === type.toUpperCase();
-        x = isAbsolute ? x + this.originX : x;
-        y = isAbsolute ? 399 - y - this.originY : -y;
-        const isPlot = type.toLowerCase() === "p";
-        const svgPathCmd = isPlot
-            ? `${isAbsolute ? "M" : "m"}${x} ${y}h1v1h-1v-1`
-            : `${type}${x} ${y}`;
-        if (!this.graphicsPathBuffer.length && svgPathCmd[0] !== "M") { // path must start with a absolute move
-            this.graphicsPathBuffer.push(`M${this.graphicsX} ${this.graphicsY}`);
+        if (!this.graphicsPathBuffer.length && type !== "M" && type !== "P") { // path must start with an absolute move
+            this.graphicsPathBuffer.push(`M${this.graphicsX + this.originX} ${399 - this.graphicsY - this.originY}`);
         }
-        this.graphicsPathBuffer.push(svgPathCmd);
+        const isAbsolute = type === type.toUpperCase();
         if (isAbsolute) {
             this.graphicsX = x;
             this.graphicsY = y;
+            x = this.graphicsX + this.originX;
+            y = 399 - this.graphicsY - this.originY;
         }
         else {
             this.graphicsX += x;
             this.graphicsY += y;
+            y = -y;
         }
+        const svgPathCmd = (type === "P" || type === "p")
+            ? `${isAbsolute ? "M" : "m"}${x} ${y}h1v1h-1v-1`
+            : `${type}${x} ${y}`;
+        this.graphicsPathBuffer.push(svgPathCmd);
     }
     flushGraphicsPath() {
         if (this.graphicsPathBuffer.length) {
             let strokeStr = "";
-            if (this.currGraphicsPen > 0) {
+            if (this.currGraphicsPen >= 0) {
                 const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
                 strokeStr = `stroke="${color}" `;
             }
@@ -133,7 +133,7 @@ export class BasicVmCore {
         if (this.graphicsBuffer.length) {
             // separate print for svg graphics (we are checking for output starting with svg to enable export SVG button)ays 0
             const backgroundColorStr = this.backgroundColor !== "" ? ` style="background-color:${this.backgroundColor}"` : '';
-            this.fnOnPrint(`<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" stroke="currentColor"${backgroundColorStr}>\n${this.graphicsBuffer.join("\n")}"\n</svg>\n`);
+            this.fnOnPrint(`<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" shape-rendering="optimizeSpeed" stroke="currentColor"${backgroundColorStr}>\n${this.graphicsBuffer.join("\n")}"\n</svg>\n`);
             this.graphicsBuffer.length = 0;
         }
     }
@@ -198,12 +198,12 @@ export class BasicVmCore {
     printGraphicsText(text) {
         const yOffset = 16;
         let styleStr = "";
-        if (this.currGraphicsPen >= 0) { // TTT or >?
+        if (this.currGraphicsPen >= 0) {
             const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
             styleStr = ` style="color: ${color}"`;
         }
         this.flushGraphicsPath(); // maybe a path is open
-        this.graphicsBuffer.push(`<text x="${this.graphicsX}" y="${this.graphicsY + yOffset}"${styleStr}>${text}</text>`);
+        this.graphicsBuffer.push(`<text x="${this.graphicsX + this.originX}" y="${399 - this.graphicsY - this.originY + yOffset}"${styleStr}>${text}</text>`);
     }
     print(...args) {
         const text = args.join('');
@@ -227,7 +227,7 @@ export class BasicVmCore {
     rsxCircle(args) {
         const [x, y, radius] = BasicVmCore.getRsxNumArgs(args, 3);
         let strokeStr = "";
-        if (this.currGraphicsPen >= 0) { // TTT or >?
+        if (this.currGraphicsPen >= 0) {
             const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
             strokeStr = ` stroke="${color}"`;
         }
@@ -263,6 +263,12 @@ export class BasicVmCore {
     }
     tag(active) {
         this.isTag = active;
+    }
+    xpos() {
+        return this.graphicsX;
+    }
+    ypos() {
+        return this.graphicsY;
     }
     getEscape() {
         return false;
