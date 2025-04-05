@@ -2605,6 +2605,7 @@
         mode(num) {
             this.currMode = num;
             this.cls();
+            this.origin(0, 0);
         }
         origin(x, y) {
             this.originX = x;
