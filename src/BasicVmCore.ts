@@ -203,6 +203,7 @@ export class BasicVmCore implements IVmAdmin {
     public mode(num: number): void {
         this.currMode = num;
         this.cls();
+        this.origin(0, 0);
     }
 
     public origin(x: number, y: number): void {
