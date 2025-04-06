@@ -88,6 +88,7 @@
 
     Statement
       = Comment
+      | After
       | Cls
       | Data
       | Def
@@ -98,6 +99,7 @@
       | End
       | Erase
       | Error
+      | Every
       | For
       | Frame
       | Gosub
@@ -137,6 +139,9 @@
 
     Abs
       = abs "(" NumExp ")"
+    
+    After
+      = after NumExp ("," NumExp)? gosub label
 
     Asc
       = asc "(" StrExp ")"
@@ -205,6 +210,9 @@
 
     Error
       = error NumExp
+
+    Every
+      = every NumExp ("," NumExp)? gosub label
 
     Exp
       = exp "(" NumExp ")"
@@ -320,6 +328,9 @@
 
     Rem
       = rem partToEol
+
+    Remain
+      = remain "(" NumExp ")"
 
     Restore
       = restore label?
@@ -507,6 +518,7 @@
       | Max
       | Min
       | Pi
+      | Remain
       | Rnd
       | Round
       | Sgn
@@ -1296,8 +1308,12 @@
         let _dataPtr = 0;
         const _restoreMap = {};
         const _startTime = 0;
+        //const _timer: (number | NodeJS.Timeout | undefined)[] = [];
         const frame = async () => { }; // dummy
         const codeSnippets = {
+            after: function after(timeout, timer, fn) {
+                _o.getTimerMap()[timer] = setTimeout(() => fn(), timeout * 20);
+            },
             bin$: function bin$(num, pad = 0) {
                 return num.toString(2).toUpperCase().padStart(pad, "0");
             },
@@ -1327,6 +1343,9 @@
             end: function end() {
                 _o.flush();
                 return "end";
+            },
+            every: function every(timeout, timer, fn) {
+                _o.getTimerMap()[timer] = setInterval(() => fn(), timeout * 20);
             },
             frame: async function frame() {
                 _o.flush();
@@ -1397,6 +1416,14 @@
             },
             read: function read() {
                 return _data[_dataPtr++];
+            },
+            remain: function remain(timer) {
+                const timerMap = _o.getTimerMap();
+                const value = timerMap[timer];
+                clearTimeout(value);
+                clearInterval(value);
+                timerMap[timer] = undefined;
+                return value; // not really remain
             },
             restore: function restore(label) {
                 _dataPtr = _restoreMap[label];
@@ -1505,6 +1532,10 @@
                         restoreMap[label.label] = label.dataIndex;
                     }
                 }
+                const instrMap = semanticsHelper.getInstrMap();
+                //if (instrMap.after || instrMap.every || instrMap.remain) {
+                //	lineList.unshift(`const _timer = [];`);
+                //}
                 const dataList = semanticsHelper.getDataList();
                 if (dataList.length) {
                     for (const key of Object.keys(restoreMap)) {
@@ -1518,7 +1549,6 @@
                     lineList.push(`function _defineData() {\n  const _data = [\n${dataList.join(",\n")}\n  ];\n  const _restoreMap = ${JSON.stringify(restoreMap)};\n  return {_data, _restoreMap};\n}`);
                 }
                 lineList.push("// library");
-                const instrMap = semanticsHelper.getInstrMap();
                 const codeSnippets = getCodeSnippets();
                 let needsAsync = false;
                 let needsStartTime = false;
@@ -1591,6 +1621,15 @@
             },
             Abs(_absLit, _open, e, _close) {
                 return `Math.abs(${e.eval()})`;
+            },
+            After(_afterLit, e1, _comma1, e2, _gosubLit, label) {
+                var _a;
+                semanticsHelper.addInstr("after");
+                const timeout = e1.eval();
+                const timer = ((_a = e2.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || 0;
+                const labelString = label.sourceString;
+                semanticsHelper.addGosubLabel(labelString);
+                return `after(${timeout}, ${timer}, _${labelString})`;
             },
             Asc(_ascLit, _open, e, _close) {
                 return `(${e.eval()}).charCodeAt(0)`;
@@ -1678,6 +1717,15 @@
             },
             Error(_errorLit, e) {
                 return `throw new Error(${e.eval()})`;
+            },
+            Every(_everyLit, e1, _comma1, e2, _gosubLit, label) {
+                var _a;
+                semanticsHelper.addInstr("every");
+                const timeout = e1.eval();
+                const timer = ((_a = e2.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || 0;
+                const labelString = label.sourceString;
+                semanticsHelper.addGosubLabel(labelString);
+                return `every(${timeout}, ${timer}, _${labelString})`;
             },
             Exp(_expLit, _open, e, _close) {
                 return `Math.exp(${e.eval()})`;
@@ -1887,6 +1935,10 @@
             },
             Rem(_remLit, remain) {
                 return `// ${remain.sourceString}`;
+            },
+            Remain(_remainLit, _open, e, _close) {
+                semanticsHelper.addInstr("remain");
+                return `remain(${e.eval()})`;
             },
             Restore(_restoreLit, e) {
                 const labelString = e.sourceString || "0";
@@ -2381,9 +2433,9 @@
             let output = "";
             try {
                 const fnScript = new Function("_o", compiledScript);
-                const result = fnScript(vm) || "";
-                if (result instanceof Promise) {
-                    await result;
+                const result = await fnScript(vm);
+                if (this.config.debug > 0) {
+                    console.debug("executeScript: ", result);
                 }
                 vm.flush();
                 output = vm.getOutput() || "";
@@ -2402,6 +2454,17 @@
                         const errLine = lineNumber - 2; // lineNumber -2 because of anonymous function added by new Function() constructor
                         output += ` (Line ${errLine}, column ${columnNumber})`;
                     }
+                }
+            }
+            // remain for all timers
+            const timerMap = vm.getTimerMap();
+            for (const timer in timerMap) {
+                if (timerMap[timer] !== undefined) {
+                    const timerMap = vm.getTimerMap();
+                    const value = timerMap[timer];
+                    clearTimeout(value);
+                    clearInterval(value);
+                    timerMap[timer] = undefined;
                 }
             }
             return output;
@@ -2442,6 +2505,7 @@
             this.colorsForPens = [];
             this.backgroundColor = "";
             this.isTag = false; // text at graphics
+            this.timerMap = {};
             this.cpcColors = [
                 "#000000", //  0 Black
                 "#000080", //  1 Blue
@@ -2701,6 +2765,9 @@
         getEscape() {
             return false;
         }
+        getTimerMap() {
+            return this.timerMap;
+        }
         getOutput() {
             this.resetColors();
             return this.output;
@@ -2809,7 +2876,8 @@
         tag(active) { this.debug("tag:", active); },
         xpos() { this.debug("xpos:"); return 0; },
         ypos() { this.debug("ypos:"); return 0; },
-        getEscape() { return false; }
+        getEscape() { return false; },
+        getTimerMap() { return {}; }
     };
     function isUrl(s) {
         return s.startsWith("http"); // http or https

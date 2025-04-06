@@ -17,6 +17,7 @@ export const arithmetic = {
 
     Statement
       = Comment
+      | After
       | Cls
       | Data
       | Def
@@ -27,6 +28,7 @@ export const arithmetic = {
       | End
       | Erase
       | Error
+      | Every
       | For
       | Frame
       | Gosub
@@ -66,6 +68,9 @@ export const arithmetic = {
 
     Abs
       = abs "(" NumExp ")"
+    
+    After
+      = after NumExp ("," NumExp)? gosub label
 
     Asc
       = asc "(" StrExp ")"
@@ -134,6 +139,9 @@ export const arithmetic = {
 
     Error
       = error NumExp
+
+    Every
+      = every NumExp ("," NumExp)? gosub label
 
     Exp
       = exp "(" NumExp ")"
@@ -249,6 +257,9 @@ export const arithmetic = {
 
     Rem
       = rem partToEol
+
+    Remain
+      = remain "(" NumExp ")"
 
     Restore
       = restore label?
@@ -436,6 +447,7 @@ export const arithmetic = {
       | Max
       | Min
       | Pi
+      | Remain
       | Rnd
       | Round
       | Sgn

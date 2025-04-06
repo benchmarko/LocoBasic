@@ -29,6 +29,7 @@ export type ConfigType = {
     showCompiled: boolean;
     showOutput: boolean;
 };
+export type TimerMapType = Record<number, number | NodeJS.Timeout | undefined>;
 export interface IVm {
     cls(): void;
     drawMovePlot(type: string, x: number, y: number): void;
@@ -47,6 +48,7 @@ export interface IVm {
     xpos(): number;
     ypos(): number;
     getEscape(): boolean;
+    getTimerMap(): TimerMapType;
 }
 export interface IVmAdmin extends IVm {
     getOutput(): string;

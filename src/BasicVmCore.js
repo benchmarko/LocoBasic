@@ -15,6 +15,7 @@ export class BasicVmCore {
         this.colorsForPens = [];
         this.backgroundColor = "";
         this.isTag = false; // text at graphics
+        this.timerMap = {};
         this.cpcColors = [
             "#000000", //  0 Black
             "#000080", //  1 Blue
@@ -273,6 +274,9 @@ export class BasicVmCore {
     }
     getEscape() {
         return false;
+    }
+    getTimerMap() {
+        return this.timerMap;
     }
     getOutput() {
         this.resetColors();

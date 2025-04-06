@@ -22,7 +22,8 @@ const dummyVm = {
     tag(active) { this.debug("tag:", active); },
     xpos() { this.debug("xpos:"); return 0; },
     ypos() { this.debug("ypos:"); return 0; },
-    getEscape() { return false; }
+    getEscape() { return false; },
+    getTimerMap() { return {}; }
 };
 function isUrl(s) {
     return s.startsWith("http"); // http or https

@@ -4,8 +4,12 @@ function getCodeSnippets() {
     let _dataPtr = 0;
     const _restoreMap = {};
     const _startTime = 0;
+    //const _timer: (number | NodeJS.Timeout | undefined)[] = [];
     const frame = async () => { }; // dummy
     const codeSnippets = {
+        after: function after(timeout, timer, fn) {
+            _o.getTimerMap()[timer] = setTimeout(() => fn(), timeout * 20);
+        },
         bin$: function bin$(num, pad = 0) {
             return num.toString(2).toUpperCase().padStart(pad, "0");
         },
@@ -35,6 +39,9 @@ function getCodeSnippets() {
         end: function end() {
             _o.flush();
             return "end";
+        },
+        every: function every(timeout, timer, fn) {
+            _o.getTimerMap()[timer] = setInterval(() => fn(), timeout * 20);
         },
         frame: async function frame() {
             _o.flush();
@@ -105,6 +112,14 @@ function getCodeSnippets() {
         },
         read: function read() {
             return _data[_dataPtr++];
+        },
+        remain: function remain(timer) {
+            const timerMap = _o.getTimerMap();
+            const value = timerMap[timer];
+            clearTimeout(value);
+            clearInterval(value);
+            timerMap[timer] = undefined;
+            return value; // not really remain
         },
         restore: function restore(label) {
             _dataPtr = _restoreMap[label];
@@ -213,6 +228,10 @@ function getSemantics(semanticsHelper) {
                     restoreMap[label.label] = label.dataIndex;
                 }
             }
+            const instrMap = semanticsHelper.getInstrMap();
+            //if (instrMap.after || instrMap.every || instrMap.remain) {
+            //	lineList.unshift(`const _timer = [];`);
+            //}
             const dataList = semanticsHelper.getDataList();
             if (dataList.length) {
                 for (const key of Object.keys(restoreMap)) {
@@ -226,7 +245,6 @@ function getSemantics(semanticsHelper) {
                 lineList.push(`function _defineData() {\n  const _data = [\n${dataList.join(",\n")}\n  ];\n  const _restoreMap = ${JSON.stringify(restoreMap)};\n  return {_data, _restoreMap};\n}`);
             }
             lineList.push("// library");
-            const instrMap = semanticsHelper.getInstrMap();
             const codeSnippets = getCodeSnippets();
             let needsAsync = false;
             let needsStartTime = false;
@@ -299,6 +317,15 @@ function getSemantics(semanticsHelper) {
         },
         Abs(_absLit, _open, e, _close) {
             return `Math.abs(${e.eval()})`;
+        },
+        After(_afterLit, e1, _comma1, e2, _gosubLit, label) {
+            var _a;
+            semanticsHelper.addInstr("after");
+            const timeout = e1.eval();
+            const timer = ((_a = e2.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || 0;
+            const labelString = label.sourceString;
+            semanticsHelper.addGosubLabel(labelString);
+            return `after(${timeout}, ${timer}, _${labelString})`;
         },
         Asc(_ascLit, _open, e, _close) {
             return `(${e.eval()}).charCodeAt(0)`;
@@ -386,6 +413,15 @@ function getSemantics(semanticsHelper) {
         },
         Error(_errorLit, e) {
             return `throw new Error(${e.eval()})`;
+        },
+        Every(_everyLit, e1, _comma1, e2, _gosubLit, label) {
+            var _a;
+            semanticsHelper.addInstr("every");
+            const timeout = e1.eval();
+            const timer = ((_a = e2.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || 0;
+            const labelString = label.sourceString;
+            semanticsHelper.addGosubLabel(labelString);
+            return `every(${timeout}, ${timer}, _${labelString})`;
         },
         Exp(_expLit, _open, e, _close) {
             return `Math.exp(${e.eval()})`;
@@ -595,6 +631,10 @@ function getSemantics(semanticsHelper) {
         },
         Rem(_remLit, remain) {
             return `// ${remain.sourceString}`;
+        },
+        Remain(_remainLit, _open, e, _close) {
+            semanticsHelper.addInstr("remain");
+            return `remain(${e.eval()})`;
         },
         Restore(_restoreLit, e) {
             const labelString = e.sourceString || "0";

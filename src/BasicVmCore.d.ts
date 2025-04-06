@@ -1,4 +1,4 @@
-import type { IVmAdmin } from "./Interfaces";
+import type { IVmAdmin, TimerMapType } from "./Interfaces";
 export declare class BasicVmCore implements IVmAdmin {
     private output;
     private currPaper;
@@ -14,6 +14,7 @@ export declare class BasicVmCore implements IVmAdmin {
     protected colorsForPens: number[];
     private backgroundColor;
     private isTag;
+    private timerMap;
     protected readonly cpcColors: string[];
     protected readonly defaultColorsForPens: number[];
     constructor();
@@ -45,6 +46,7 @@ export declare class BasicVmCore implements IVmAdmin {
     xpos(): number;
     ypos(): number;
     getEscape(): boolean;
+    getTimerMap(): TimerMapType;
     getOutput(): string;
     setOutput(str: string): void;
 }
