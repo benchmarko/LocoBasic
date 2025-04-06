@@ -28,12 +28,18 @@ function getCodeSnippets() {
             const pad = " ".repeat(Math.max(0, format.length - str.length));
             return pad + str;
         },
-        dim: function dim(dims: number[], initVal: string | number = 0) {
+        dim: function dim(dims: number[], initVal: string | number) {
             const createRecursiveArray = (depth: number): RecursiveArray<string | number> => {
-                const length = dims[depth] + 1; // +1 because of 0-based index
-                const array = Array.from({ length }, () =>
-                    depth + 1 < dims.length ? createRecursiveArray(depth + 1) : initVal
-                );
+                const length = dims[depth] + 1;
+				const array: RecursiveArray<string | number> = new Array(length);
+				depth += 1;
+				if (depth < dims.length) {
+					for (let i = 0; i < length; i += 1) {
+						array[i] = createRecursiveArray(depth);
+					}
+				} else {
+					array.fill(initVal);
+				}
                 return array;
             };
             return createRecursiveArray(0);
@@ -455,7 +461,6 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 
 		Dim(_dimLit: Node, dimArgs: Node) {
 			const argumentList: string[] = evalChildren(dimArgs.asIteration().children);
-			semanticsHelper.addInstr("dim");
 			return argumentList.join("; ");
 		},
 
@@ -1015,10 +1020,16 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 
 		DimArrayIdent(ident: Node, _open: Node, indices: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			const identStr = ident.eval();
-			const initValStr = identStr.endsWith("$") ? ', ""' : '';
-			semanticsHelper.addInstr("dim");
+			const indicesStr = indices.eval();
+			const isMultiDimensional = indicesStr.includes(","); // also for expressions containing comma
+			const initVal = identStr.endsWith("$") ? '""' : "0";
 
-			return `${identStr} = dim([${indices.eval()}]${initValStr})`;
+			if (isMultiDimensional) { // one value (not detected for expressions containing comma)
+				semanticsHelper.addInstr("dim");
+				return `${identStr} = dim([${indicesStr}], ${initVal})`;
+			}
+
+			return `${identStr} = new Array(${indicesStr}).fill(${initVal})`;
 		},
 
 		decimalValue(value: Node) {
