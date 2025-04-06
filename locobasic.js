@@ -1326,10 +1326,19 @@
                 const pad = " ".repeat(Math.max(0, format.length - str.length));
                 return pad + str;
             },
-            dim: function dim(dims, initVal = 0) {
+            dim: function dim(dims, initVal) {
                 const createRecursiveArray = (depth) => {
-                    const length = dims[depth] + 1; // +1 because of 0-based index
-                    const array = Array.from({ length }, () => depth + 1 < dims.length ? createRecursiveArray(depth + 1) : initVal);
+                    const length = dims[depth] + 1;
+                    const array = new Array(length);
+                    depth += 1;
+                    if (depth < dims.length) {
+                        for (let i = 0; i < length; i += 1) {
+                            array[i] = createRecursiveArray(depth);
+                        }
+                    }
+                    else {
+                        array.fill(initVal);
+                    }
                     return array;
                 };
                 return createRecursiveArray(0);
@@ -1697,7 +1706,6 @@
             },
             Dim(_dimLit, dimArgs) {
                 const argumentList = evalChildren(dimArgs.asIteration().children);
-                semanticsHelper.addInstr("dim");
                 return argumentList.join("; ");
             },
             Draw: drawMovePlot,
@@ -2152,9 +2160,14 @@
             },
             DimArrayIdent(ident, _open, indices, _close) {
                 const identStr = ident.eval();
-                const initValStr = identStr.endsWith("$") ? ', ""' : '';
-                semanticsHelper.addInstr("dim");
-                return `${identStr} = dim([${indices.eval()}]${initValStr})`;
+                const indicesStr = indices.eval();
+                const isMultiDimensional = indicesStr.includes(","); // also for expressions containing comma
+                const initVal = identStr.endsWith("$") ? '""' : "0";
+                if (isMultiDimensional) { // one value (not detected for expressions containing comma)
+                    semanticsHelper.addInstr("dim");
+                    return `${identStr} = dim([${indicesStr}], ${initVal})`;
+                }
+                return `${identStr} = new Array(${indicesStr}).fill(${initVal})`;
             },
             decimalValue(value) {
                 return value.sourceString;
@@ -2711,10 +2724,12 @@
                 console.warn(`getRsxNumArgs: Wrong number of arguments. Expected ${count}, got ${args.length}`);
             }
             // pad with 0 if less than count
-            return Array.from({ length: count }, (_, i) => {
+            const result = [];
+            for (let i = 0; i < count; i += 1) {
                 const p = args[i];
-                return typeof p === "number" ? Math.round(p) : 0;
-            });
+                result.push(typeof p === "number" ? Math.round(p) : 0);
+            }
+            return result;
         }
         rsxCircle(args) {
             const [x, y, radius] = BasicVmCore.getRsxNumArgs(args, 3);

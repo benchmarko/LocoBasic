@@ -221,10 +221,12 @@ export class BasicVmCore {
             console.warn(`getRsxNumArgs: Wrong number of arguments. Expected ${count}, got ${args.length}`);
         }
         // pad with 0 if less than count
-        return Array.from({ length: count }, (_, i) => {
+        const result = [];
+        for (let i = 0; i < count; i += 1) {
             const p = args[i];
-            return typeof p === "number" ? Math.round(p) : 0;
-        });
+            result.push(typeof p === "number" ? Math.round(p) : 0);
+        }
+        return result;
     }
     rsxCircle(args) {
         const [x, y, radius] = BasicVmCore.getRsxNumArgs(args, 3);
