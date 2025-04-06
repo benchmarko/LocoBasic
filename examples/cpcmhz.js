@@ -13,7 +13,7 @@ FOR i=0 TO loops-1
   c=0:t1=TIME:t=t1
   WHILE t=t1:t=TIME:c=c+1:WEND
   c=0:t1=t+ms300
-  WHILE t<t1:t=TIME:c=c+1:WEND
+  WHILE TIME<t1:c=c+1:WEND
   r(i)=c
 NEXT
 PRINT "In";ROUND(ms300*10/3);"ms we can count to:";

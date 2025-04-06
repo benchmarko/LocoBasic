@@ -22,7 +22,7 @@ function getCodeSnippets() {
             const pad = " ".repeat(Math.max(0, format.length - str.length));
             return pad + str;
         },
-        dim: function dim(dims, initVal) {
+        dim: function dim(dims, value = 0) {
             const createRecursiveArray = (depth) => {
                 const length = dims[depth] + 1;
                 const array = new Array(length);
@@ -33,11 +33,14 @@ function getCodeSnippets() {
                     }
                 }
                 else {
-                    array.fill(initVal);
+                    array.fill(value);
                 }
                 return array;
             };
             return createRecursiveArray(0);
+        },
+        dim1: function dim1(dim, value = 0) {
+            return new Array(dim + 1).fill(value);
         },
         draw: function draw(x, y) {
             _o.drawMovePlot("L", x, y);
@@ -851,19 +854,19 @@ function getSemantics(semanticsHelper) {
             return `${ident.eval()}[${e.eval()}]`;
         },
         DimArrayArgs(args) {
-            //return args.asIteration().children.map(c => String(c.eval())).join(", ");
             return evalChildren(args.asIteration().children).join(", ");
         },
         DimArrayIdent(ident, _open, indices, _close) {
             const identStr = ident.eval();
             const indicesStr = indices.eval();
             const isMultiDimensional = indicesStr.includes(","); // also for expressions containing comma
-            const initVal = identStr.endsWith("$") ? '""' : "0";
+            const valueStr = identStr.endsWith("$") ? ', ""' : "";
             if (isMultiDimensional) { // one value (not detected for expressions containing comma)
                 semanticsHelper.addInstr("dim");
-                return `${identStr} = dim([${indicesStr}], ${initVal})`;
+                return `${identStr} = dim([${indicesStr}]${valueStr})`;
             }
-            return `${identStr} = new Array(${indicesStr}).fill(${initVal})`;
+            semanticsHelper.addInstr("dim1");
+            return `${identStr} = dim1(${indicesStr}${valueStr})`;
         },
         decimalValue(value) {
             return value.sourceString;
