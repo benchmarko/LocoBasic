@@ -105,10 +105,10 @@ export class Core implements ICore {
         let output = "";
         try {
             const fnScript = new Function("_o", compiledScript);
-            const result = fnScript(vm as IVm) || "";
+            const result = await fnScript(vm as IVm);
 
-            if (result instanceof Promise) {
-                await result;
+            if (this.config.debug > 0) {
+                console.debug("executeScript: ", result);
             }
             vm.flush();
             output = vm.getOutput() || "";
@@ -127,6 +127,18 @@ export class Core implements ICore {
                     const errLine = lineNumber - 2; // lineNumber -2 because of anonymous function added by new Function() constructor
                     output += ` (Line ${errLine}, column ${columnNumber})`;
                 }
+            }
+        }
+
+        // remain for all timers
+        const timerMap = vm.getTimerMap();
+        for (const timer in timerMap) {
+            if (timerMap[timer] !== undefined) {
+                const timerMap = vm.getTimerMap();
+			    const value = timerMap[timer];
+                clearTimeout(value);
+                clearInterval(value);
+                timerMap[timer] = undefined;
             }
         }
         return output;

@@ -100,6 +100,7 @@ Keywords should be all uppercase, but all lowercase is also accepted (not-strict
 ### Supported Commands and Functions
 
 - `ABS(number)` Returns the absolute value of *number*.
+- `AFTER timeout GOSUB line` Calls subroutine line after timeout*20 msec (timeout 1/50 sec).
 - `ASC(character)` Returns the ASCII number of *character*.
 - `ÀTN(number)` Returns the arctangent of the given *number*.
   - The returned value is in radians (when *RAD* is active) or in degrees (when *DEG* is active).
@@ -136,6 +137,7 @@ Keywords should be all uppercase, but all lowercase is also accepted (not-strict
 - `ERASE variable, [variable,...]` Erases array variables.
   - Specify variable name without indices.
 - `ERROR number` Throws an error with *number*.
+- `EVERY timeout GOSUB line` Calls subroutine line in intervals of imeout*20 msec (timeout 1/50 sec).
 - `EXP(number)` Returns e raised to the power of *number*.
 - `FIX(number)` Truncates *number*.
 - `FOR variable = start to end [STEP increment]` Control structure.
@@ -187,6 +189,7 @@ Keywords should be all uppercase, but all lowercase is also accepted (not-strict
   - **Note:** In LocoBasic, the flag is used at compile time starting from its lexical position and not dynamically during execution.
 - `READ variable` Reads the next value from a `DATA` statement into *variable*.
 - `REM` A comment until end of line, same as "'".
+- `REMAIN(0)` Clears a running timer started with *AFTER* or *EVERY*. Returns timer ID (on a CPC it returns remaining time)
 - `RESTORE [line]` Resets the `DATA` pointer to a specified *line* number.
 - `RETURN` Returns from a subroutine.
   - See *GOSUB*, *ON... GOSUB*.
@@ -252,10 +255,10 @@ Keywords should be all uppercase, but all lowercase is also accepted (not-strict
 
 ### Not implemented
 
-after auto border break call cat chain clear clg closein closeout cont copychr$
- creal cursor defint defreal defstr delete derr di edit ei eof erl err every fill fre
+ auto border break call cat chain clear clg closein closeout cont copychr$
+ creal cursor defint defreal defstr delete derr di edit ei eof erl err fill fre
  goto graphicsPaper himem inkey inp joy key let line list load locate mask memory merge new
- on openin openout out peek poke pos randomize release remain renum resume run
+ on openin openout out peek poke pos randomize release renum resume run
  save sound spc speed sq swap symbol tab test testr troff tron unt vpos wait width window write zone
 
 ### Resources

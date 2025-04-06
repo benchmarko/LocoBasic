@@ -1,4 +1,4 @@
-import type { IVmAdmin } from "./Interfaces";
+import type { IVmAdmin, TimerMapType } from "./Interfaces";
 
 const strokeWidthForMode: number[] = [4, 2, 1, 1];
 
@@ -17,6 +17,7 @@ export class BasicVmCore implements IVmAdmin {
     protected colorsForPens: number[] = [];
     private backgroundColor = "";
     private isTag: boolean = false; // text at graphics
+    private timerMap: TimerMapType = {};
 
     protected readonly cpcColors = [
         "#000000", //  0 Black
@@ -312,6 +313,10 @@ export class BasicVmCore implements IVmAdmin {
 
     public getEscape(): boolean {
         return false;
+    }
+
+    public getTimerMap(): TimerMapType {
+        return this.timerMap;
     }
 
     public getOutput(): string {

@@ -9,9 +9,13 @@ function getCodeSnippets() {
     let _dataPtr = 0;
     const _restoreMap: Record<string, number> = {};
 	const _startTime = 0;
+	//const _timer: (number | NodeJS.Timeout | undefined)[] = [];
 	const frame = async () => {}; // dummy
 
     const codeSnippets = {
+		after: function after(timeout: number, timer: number, fn: () => void) {
+			_o.getTimerMap()[timer] = setTimeout(() => fn(), timeout * 20);
+		},
 		bin$: function bin$(num: number, pad: number = 0): string {
             return num.toString(2).toUpperCase().padStart(pad, "0");
         },
@@ -44,6 +48,9 @@ function getCodeSnippets() {
             _o.flush();
             return "end";
         },
+		every: function every(timeout: number, timer: number, fn: () => void) {
+			_o.getTimerMap()[timer] = setInterval(() => fn(), timeout * 20);
+		},
         frame: async function frame() {
             _o.flush();
 			if (_o.getEscape()) {
@@ -112,6 +119,14 @@ function getCodeSnippets() {
         read: function read() {
             return _data[_dataPtr++];
         },
+		remain: function remain(timer: number) {
+			const timerMap = _o.getTimerMap();
+			const value = timerMap[timer];
+			clearTimeout(value);
+			clearInterval(value);
+			timerMap[timer] = undefined;
+			return value; // not really remain
+		},
         restore: function restore(label: string) {
             _dataPtr = _restoreMap[label];
         },
@@ -233,6 +248,11 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
                 }
             }
 
+			const instrMap = semanticsHelper.getInstrMap();
+			//if (instrMap.after || instrMap.every || instrMap.remain) {
+			//	lineList.unshift(`const _timer = [];`);
+			//}
+
             const dataList = semanticsHelper.getDataList();
             if (dataList.length) {
                 for (const key of Object.keys(restoreMap)) {
@@ -248,7 +268,6 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 
             lineList.push("// library");
 
-            const instrMap = semanticsHelper.getInstrMap();
             const codeSnippets = getCodeSnippets();
 
             let needsAsync = false;
@@ -340,6 +359,15 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
         Abs(_absLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
             return `Math.abs(${e.eval()})`;
         },
+
+		After(_afterLit: Node, e1: Node, _comma1: Node, e2: Node, _gosubLit: Node, label: Node) {
+			semanticsHelper.addInstr("after");
+			const timeout = e1.eval();
+			const timer = e2.child(0)?.eval() || 0;
+			const labelString = label.sourceString;
+			semanticsHelper.addGosubLabel(labelString);
+			return `after(${timeout}, ${timer}, _${labelString})`;
+		},
 
         Asc(_ascLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
             return `(${e.eval()}).charCodeAt(0)`;
@@ -454,6 +482,15 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 
 		Error(_errorLit: Node, e: Node) {
 			return `throw new Error(${e.eval()})`;
+		},
+
+		Every(_everyLit: Node, e1: Node, _comma1: Node, e2: Node, _gosubLit: Node, label: Node) {
+			semanticsHelper.addInstr("every");
+			const timeout = e1.eval();
+			const timer = e2.child(0)?.eval() || 0;
+			const labelString = label.sourceString;
+			semanticsHelper.addGosubLabel(labelString);
+			return `every(${timeout}, ${timer}, _${labelString})`;
 		},
 
 		Exp(_expLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -715,6 +752,11 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 
 		Rem(_remLit: Node, remain: Node) {
 			return `// ${remain.sourceString}`;
+		},
+
+		Remain(_remainLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addInstr("remain");
+			return `remain(${e.eval()})`;
 		},
 
 		Restore(_restoreLit: Node, e: Node) {

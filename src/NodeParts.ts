@@ -63,7 +63,8 @@ const dummyVm: DummyVm = {
     tag(active: boolean) { this.debug("tag:", active); },
     xpos() { this.debug("xpos:"); return 0; },
     ypos() { this.debug("ypos:"); return 0; },
-    getEscape() { return false; }
+    getEscape() { return false; },
+    getTimerMap() { return {}; }
 };
 
 function isUrl(s: string) {
