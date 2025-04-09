@@ -80,6 +80,11 @@ export class UI {
             const autoExecuteInput = event.target;
             this.updateConfigParameter("autoExecute", autoExecuteInput.checked);
         };
+        this.onShowOutputInputChange = (event) => {
+            const showOutputInput = event.target;
+            this.toggleAreaHidden("outputArea");
+            this.updateConfigParameter("showOutput", showOutputInput.checked);
+        };
         this.onShowBasicInputChange = (event) => {
             const showBasicInput = event.target;
             this.toggleAreaHidden("basicArea", this.basicCm);
@@ -473,6 +478,8 @@ export class UI {
         autoCompileInput.addEventListener("change", this.onAutoCompileInputChange, false);
         const autoExecuteInput = window.document.getElementById("autoExecuteInput");
         autoExecuteInput.addEventListener("change", this.onAutoExecuteInputChange, false);
+        const showOutputInput = window.document.getElementById("showOutputInput");
+        showOutputInput.addEventListener("change", this.onShowOutputInputChange, false);
         const showBasicInput = window.document.getElementById("showBasicInput");
         showBasicInput.addEventListener("change", this.onShowBasicInputChange, false);
         const showCompiledInput = window.document.getElementById("showCompiledInput");
@@ -510,8 +517,14 @@ export class UI {
                 databaseSelect.dispatchEvent(new Event("change"));
             }
         });
+        /*
         if (!config.showOutput) {
-            this.toggleAreaHidden("outputArea");
+            this.toggleAreaHidden("outputArea",);
+        }
+        */
+        if (showOutputInput.checked !== config.showOutput) {
+            showOutputInput.checked = config.showOutput;
+            showOutputInput.dispatchEvent(new Event("change"));
         }
         if (showBasicInput.checked !== config.showBasic) {
             showBasicInput.checked = config.showBasic;

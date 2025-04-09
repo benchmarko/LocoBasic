@@ -9,50 +9,61 @@ MODE 1
 cols=40:rows=25
 DIM scr$(cols,rows),smc(rows)
 '
+' Pendulum parameters
 theta = PI/2
 g = 9.81
 l = 0.5
 speed1 = 0
 px = 20
 py = 1
+scale = 20 ' Scale factor for pendulum length
+steps = 10 ' Number of steps for drawing the pendulum
+accelFactor = 50
 '
-i=0
-WHILE i<48
+' Main loop
+FOR i = 0 TO 47
   t=TIME+25
-  GOSUB 1000 'init
-  GOSUB 500 'compute
-  GOSUB 3000 'output
+  GOSUB 1000 ' Initialize screen
+  GOSUB 500  ' Compute pendulum position
+  GOSUB 3000 ' Output screen
   WHILE TIME<t:FRAME:WEND
-  i=i+1
-WEND
+NEXT i
 END
 '
-500 bx = px+l*20*SIN(theta)
-by = py-l*20*COS(theta)
-FOR x=px TO bx STEP (bx-px)/10
-  y=py+(x-px)*(by-py)/(bx-px)
-  rx=ROUND(x): ry=ROUND(y)
-  scr$(rx,ry)="."
-  IF rx>smc(ry) THEN smc(ry)=rx
+' Compute pendulum position
+500 bx = px + l * scale * SIN(theta)
+by = py - l * scale * COS(theta)
+'
+dx = (bx - px) / steps
+dy = (by - py) / steps
+FOR step1 = 0 TO steps
+  x = px + step1 * dx
+  y = py + step1 * dy
+  rx = ROUND(x)
+  ry = ROUND(y)
+  scr$(rx, ry) = "."
+  IF rx > smc(ry) THEN smc(ry) = rx
 NEXT
-rx=ROUND(bx): ry=ROUND(by)
-scr$(rx,ry)="o"
-IF rx>smc(ry) THEN smc(ry)=rx
-accel=g*SIN(theta)/l/50
-speed1=speed1+accel/10
-theta=theta+speed1
+'
+rx = ROUND(bx)
+ry = ROUND(by)
+scr$(rx, ry) = "o"
+IF rx > smc(ry) THEN smc(ry) = rx
+accel = g * SIN(theta) / l / accelFactor
+speed1 = speed1 + accel / steps
+theta = theta + speed1
 RETURN
 '
-REM Initialize scr with spaces
+' Initialize screen with spaces
 1000 FOR y = 1 TO rows
   FOR x = 1 TO cols
-    scr$(x,y) = " "
+    scr$(x, y) = " "
   NEXT x
-  smc(y)=0
+  smc(y) = 0
 NEXT y
 RETURN
 '
-'REM output scr
+' Output screen
 3000 CLS
 FOR y = 1 TO rows
   FOR x = 1 TO smc(y)

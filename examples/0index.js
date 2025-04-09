@@ -36,6 +36,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Little Architect Draw Examples"
 		},
 		{
+			"key": "archidr0",
+			"title": "Little Architect Draw Example (no RSX)"
+		},
+		{
 			"key": "barnsley",
 			"title": "Barnsley fern"
 		},

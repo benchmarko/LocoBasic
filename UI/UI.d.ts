@@ -35,6 +35,7 @@ export declare class UI implements IUI {
     private onAutoCompileInputChange;
     private onAutoExecuteInputChange;
     private toggleAreaHidden;
+    private onShowOutputInputChange;
     private onShowBasicInputChange;
     private onShowCompiledInputChange;
     private onStopButtonClick;
