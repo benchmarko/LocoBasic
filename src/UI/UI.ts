@@ -259,6 +259,13 @@ export class UI implements IUI {
         return !area.hidden;
     }
 
+    private onShowOutputInputChange = (event: Event): void => { // bound this
+        const showOutputInput = event.target as HTMLInputElement;
+        this.toggleAreaHidden("outputArea");
+
+        this.updateConfigParameter("showOutput", showOutputInput.checked);
+    }
+
     private onShowBasicInputChange = (event: Event): void => { // bound this
         const showBasicInput = event.target as HTMLInputElement;
         this.toggleAreaHidden("basicArea", this.basicCm);
@@ -587,6 +594,9 @@ export class UI implements IUI {
         const autoExecuteInput = window.document.getElementById("autoExecuteInput") as HTMLInputElement;
         autoExecuteInput.addEventListener("change", this.onAutoExecuteInputChange, false);
 
+        const showOutputInput = window.document.getElementById("showOutputInput") as HTMLInputElement;
+        showOutputInput.addEventListener("change", this.onShowOutputInputChange, false);
+
         const showBasicInput = window.document.getElementById("showBasicInput") as HTMLInputElement;
         showBasicInput.addEventListener("change", this.onShowBasicInputChange, false);
 
@@ -634,8 +644,14 @@ export class UI implements IUI {
             }
         });
 
+        /*
         if (!config.showOutput) {
             this.toggleAreaHidden("outputArea",);
+        }
+        */
+        if (showOutputInput.checked !== config.showOutput) {
+            showOutputInput.checked = config.showOutput;
+            showOutputInput.dispatchEvent(new Event("change"));
         }
 
         if (showBasicInput.checked !== config.showBasic) {
