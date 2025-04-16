@@ -140,7 +140,7 @@ function getCodeSnippets() {
             return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
         },
         rsx: function rsx(cmd, ...args) {
-            _o.rsx(cmd, args);
+            return _o.rsx(cmd, args);
         },
         stop: function stop() {
             _o.flush();
@@ -680,12 +680,37 @@ function getSemantics(semanticsHelper) {
             semanticsHelper.addInstr("rsx");
             const cmdString = cmd.sourceString.toLowerCase();
             const rsxArgs = ((_a = e.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
-            return `rsx("${cmdString}"${rsxArgs})`;
+            if (rsxArgs === "") {
+                return `rsx("${cmdString}"${rsxArgs})`;
+            }
+            // need assign, not so nice to use <RSXFUNCTION>" as separator
+            return rsxArgs.replace("<RSXFUNCTION>", `rsx("${cmdString}"`) + ")";
+        },
+        RsxAddressOfIdent(_adressOfLit, ident) {
+            const identString = ident.sourceString.toLowerCase();
+            return `@${identString}`;
         },
         RsxArgs(_comma, args) {
             const argumentList = evalChildren(args.asIteration().children);
-            const parameterString = ", " + argumentList.join(', ');
-            return parameterString;
+            const assignList = [];
+            for (let i = 0; i < argumentList.length; i += 1) {
+                if (argumentList[i].startsWith("@")) {
+                    argumentList[i] = argumentList[i].substring(1); // remove "@"
+                    assignList.push(argumentList[i]);
+                }
+                else {
+                    assignList.push(undefined);
+                }
+            }
+            while (assignList.length && assignList[assignList.length - 1] === undefined) {
+                assignList.pop();
+            }
+            let result = "";
+            if (assignList.length) {
+                result = `[${assignList.join(", ")}] = `;
+            }
+            result += `<RSXFUNCTION>, ${argumentList.join(", ")}`;
+            return result;
         },
         Sgn(_sgnLit, _open, e, _close) {
             return `Math.sign(${e.eval()})`;

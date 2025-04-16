@@ -1075,7 +1075,7 @@ b=5:c=7:a=b XOR c: IF a<>2 THEN ERROR 33
 ' zone
 ''ZONE 13+n
 '
-' rsx
+PRINT "RSX"
 '
 ''|A
 ''|B
@@ -1097,6 +1097,12 @@ b=5:c=7:a=b XOR c: IF a<>2 THEN ERROR 33
 ''|MODE,3
 ''|RENUM,1,2,3,4
 ''|
+d$=SPACE$(11)
+|DATE,@d$
+PRINT "|DATE ";d$;", ";
+t$=SPACE$(8)
+|TIME,@t$: 'get current time from RTC ("HH MM SS")
+PRINT "|TIME ";t$
 '
 '
 PRINT "Completed."
