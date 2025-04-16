@@ -246,21 +246,22 @@ export class BasicVmCore implements IVmAdmin {
         }
     }
 
-    private static getRsxNumArgs(args: (number | string)[], count: number): number[] {
+    private static getRsxNumArgs(cmd: string, args: (number | string)[], count: number): number[] {
         if (args.length !== count) {
-            console.warn(`getRsxNumArgs: Wrong number of arguments. Expected ${count}, got ${args.length}`);
+            throw new Error(`|${cmd.toUpperCase()}: Wrong number of arguments: ${args.length} <> ${count}`);
         }
-        // pad with 0 if less than count
-        const result: number[] = [];
-        for (let i = 0; i < count; i += 1) {
-            const p = args[i];
-            result.push(typeof p === "number" ? Math.round(p) : 0);
-        }
-        return result;
+        return args.map((p) => typeof p === "number" ? Math.round(p) : 0);
     }
 
-    private rsxCircle(args: (number | string)[]) {
-        const [x, y, radius] = BasicVmCore.getRsxNumArgs(args, 3);
+    private static getRsxStrArgs(cmd: string, args: (number | string)[], count: number): string[] {
+        if (args.length !== count) {
+            throw new Error(`|${cmd.toUpperCase()}: Wrong number of arguments: ${args.length} <> ${count}`);
+        }
+        return args.map((p) => typeof p === "string" ? p : String(p));
+    }
+
+    private rsxCircle(cmd: string, args: (number | string)[]) {
+        const [x, y, radius] = BasicVmCore.getRsxNumArgs(cmd, args, 3);
         let strokeStr = "";
         if (this.currGraphicsPen >= 0) {
             const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
@@ -271,9 +272,26 @@ export class BasicVmCore implements IVmAdmin {
         this.graphicsBuffer.push(`<circle cx="${x}" cy="${399 - y}" r="${radius}"${strokeStr} />`);
     }
 
-    private rsxRect(args: (number | string)[]) {
+    // returns a date string in the format "ww DD MM YY" with ww=day of week
+    // see https://www.cpcwiki.eu/imgs/b/b4/DXS_RTC_-_User_Manual.pdf
+    private rsxDate(cmd: string, args: (number | string)[]) {
+        const [str] = BasicVmCore.getRsxStrArgs(cmd, args, 1);
+        if (str.length < 11) {
+            throw new Error(`|${cmd.toUpperCase()}: String too short!`);
+        }
+        const date = new Date();
+        // Get the day of the week (0-6) and convert to 1-7
+        const dayOfWeek = (date.getDay() + 1) % 7;
+        const day = date.getDate();
+        const month = date.getMonth() + 1; // Months are zero-based
+        const year = date.getFullYear() % 100; // Get last two digits of the year
+        const dateStr = `${String(dayOfWeek).padStart(2, '0')} ${String(day).padStart(2, '0')} ${String(month).padStart(2, '0')} ${String(year).padStart(2, '0')}`;
+        args[0] = dateStr;
+    }
+
+    private rsxRect(cmd: string, args: (number | string)[]) {
         // Extract and round arguments
-        const [x1, y1, x2, y2] =  BasicVmCore.getRsxNumArgs(args, 4);
+        const [x1, y1, x2, y2] =  BasicVmCore.getRsxNumArgs(cmd, args, 4);
     
         // Calculate position and dimensions
         const x = Math.min(x1, x2);
@@ -291,14 +309,39 @@ export class BasicVmCore implements IVmAdmin {
         this.graphicsBuffer.push(`<rect x="${x}" y="${399 - y}" width="${width}" height="${height}"${strokeStr} />`);
     }
 
-    public rsx(cmd: string, args: (number | string)[]): void {
-        if (cmd === "circle") {
-            this.rsxCircle(args);
-        } else if (cmd === "rect") {
-            this.rsxRect(args);
-        } else {
-            throw new Error(`Unknown RSX command: |${cmd}`);
+    // returns a time string in the format "HH MM SS"
+    // see https://www.cpcwiki.eu/imgs/b/b4/DXS_RTC_-_User_Manual.pdf
+    private rsxTime(cmd: string, args: (number | string)[]) {
+        const [str] = BasicVmCore.getRsxStrArgs(cmd, args, 1);
+        if (str.length < 8) {
+            throw new Error(`|${cmd.toUpperCase()}: String too short!`);
         }
+        const date = new Date();
+        const hours = date.getHours();
+        const minutes = date.getMinutes();
+        const seconds = date.getSeconds();
+        const timeStr = `${String(hours).padStart(2, '0')} ${String(minutes).padStart(2, '0')} ${String(seconds).padStart(2, '0')}`;
+        args[0] = timeStr;
+    }
+
+    public rsx(cmd: string, args: (number | string)[]): (number | string)[] {
+         switch (cmd) {
+            case "circle":
+                this.rsxCircle(cmd, args);
+                break;
+            case "date":
+                this.rsxDate(cmd, args);
+                break;
+            case "rect":
+                this.rsxRect(cmd, args);
+                break;
+            case "time":
+                this.rsxTime(cmd, args);
+                break;
+            default:
+                throw new Error(`Unknown RSX command: |${cmd}`);
+        }
+        return args;
     }
 
     public tag(active: boolean): void {

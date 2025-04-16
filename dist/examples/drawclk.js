@@ -6,13 +6,16 @@ cpcBasic.addItem("", `
 REM drawclk - Draw a clock
 REM https://rosettacode.org/wiki/Draw_a_clock#Locomotive_Basic
 REM GNU FDL 1.2 (https://www.gnu.org/licenses/fdl-1.2.html)
-REM modifications: draw clock every second, no xor mode; |CIRCLE
+REM modifications: draw clock every second, no xor mode; |CIRCLE; |TIME
 MODE 1
 DEG
-t$="01:30":'INPUT "Current time (HH:MM)";t$
-h=VAL(MID$(t$,1,2))
+' https://www.cpcwiki.eu/index.php/Dobbertin_Smart_Watch
+t$=SPACE$(8): |TIME,@t$: 'get current time from RTC ("HH MM SS")
+'t$="01:30:00":'INPUT "Current time (HH:MM:SS)";t$
+h=VAL(LEFT$(t$,2))
 m=VAL(MID$(t$,4,2))
-r=150:s=0
+s=VAL(RIGHT$(t$,2))
+r=150
 ph=0:pm=0
 ORIGIN 320,200
 '
@@ -29,20 +32,19 @@ END
 '
 ' draw clock
 400 CLS
+TAG
+MOVE -25,r/2
+PRINT USING "##:##:##";h;m;s;
 FOR a=0 TO 360 STEP 6
   IF a MOD 30>0 THEN z=0.9 ELSE z=0.8
   MOVE z*r*SIN(a),z*r*COS(a)
   DRAW r*SIN(a),r*COS(a)
 NEXT
 |CIRCLE,320,200,r
-'MOVE 0,r
-'FOR a=0 TO 360 STEP 6
-'  DRAW r*SIN(a),r*COS(a)
-'NEXT
+'MOVE 0,r: FOR a=0 TO 360 STEP 6: DRAW r*SIN(a),r*COS(a): NEXT
 '
 ' new sec
 s=s+1
-' draw sec
 a=6*s
 MOVE 0,0:DRAW 0.8*r*SIN(a-6),0.8*r*COS(a-6),3
 '

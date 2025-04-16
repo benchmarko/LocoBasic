@@ -143,7 +143,7 @@ function getCodeSnippets() {
             return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
         },
 		rsx: function rsx(cmd: string, ...args: (string | number)[]) {
-            _o.rsx(cmd, args);
+            return _o.rsx(cmd, args);
         },
         stop: function stop() {
             _o.flush();
@@ -804,13 +804,43 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 			semanticsHelper.addInstr("rsx");
 			const cmdString = cmd.sourceString.toLowerCase();
 			const rsxArgs: string = e.child(0)?.eval() || "";
-			return `rsx("${cmdString}"${rsxArgs})`;
+
+			if (rsxArgs === "") {
+				return `rsx("${cmdString}"${rsxArgs})`;
+			}
+			// need assign, not so nice to use <RSXFUNCTION>" as separator
+			return rsxArgs.replace("<RSXFUNCTION>", `rsx("${cmdString}"`) + ")";
+		},
+
+		RsxAddressOfIdent(_adressOfLit: Node, ident: Node) {
+			const identString = ident.sourceString.toLowerCase();
+			return `@${identString}`;
 		},
 
 		RsxArgs(_comma: Node, args: Node) {
 			const argumentList = evalChildren(args.asIteration().children);
-			const parameterString = ", " + argumentList.join(', ');
-			return parameterString;
+
+			const assignList = [];
+			for (let i = 0; i < argumentList.length; i += 1) {
+				if (argumentList[i].startsWith("@")) {
+					argumentList[i] = argumentList[i].substring(1); // remove "@"
+					assignList.push(argumentList[i]);
+				} else {
+					assignList.push(undefined);
+				}
+			}
+
+			while (assignList.length && assignList[assignList.length - 1] === undefined) {
+				assignList.pop();
+			}
+
+			let result = "";
+
+			if (assignList.length) {
+				result = `[${assignList.join(", ")}] = `;
+			}
+			result += `<RSXFUNCTION>, ${argumentList.join(", ")}`;
+			return result;
 		},
 
 		Sgn(_sgnLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
