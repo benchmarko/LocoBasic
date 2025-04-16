@@ -692,24 +692,17 @@ function getSemantics(semanticsHelper) {
         },
         RsxArgs(_comma, args) {
             const argumentList = evalChildren(args.asIteration().children);
-            const assignList = [];
-            for (let i = 0; i < argumentList.length; i += 1) {
-                if (argumentList[i].startsWith("@")) {
-                    argumentList[i] = argumentList[i].substring(1); // remove "@"
-                    assignList.push(argumentList[i]);
-                }
-                else {
-                    assignList.push(undefined);
-                }
-            }
+            // Remove "@" prefix from arguments
+            const argumentListNoAddr = argumentList.map(arg => arg.startsWith("@") ? arg.substring(1) : arg);
+            // Extract assignments and remove "@" prefix
+            const assignList = argumentList.map(arg => arg.startsWith("@") ? arg.substring(1) : undefined);
+            // Remove trailing undefined values
             while (assignList.length && assignList[assignList.length - 1] === undefined) {
                 assignList.pop();
             }
-            let result = "";
-            if (assignList.length) {
-                result = `[${assignList.join(", ")}] = `;
-            }
-            result += `<RSXFUNCTION>, ${argumentList.join(", ")}`;
+            // Build the result string
+            const assignments = assignList.length ? `[${assignList.join(", ")}] = ` : "";
+            const result = `${assignments}<RSXFUNCTION>, ${argumentListNoAddr.join(", ")}`;
             return result;
         },
         Sgn(_sgnLit, _open, e, _close) {

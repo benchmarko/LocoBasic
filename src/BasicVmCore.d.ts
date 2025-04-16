@@ -38,12 +38,11 @@ export declare class BasicVmCore implements IVmAdmin {
     pen(n: number): void;
     private printGraphicsText;
     print(...args: string[]): void;
-    private static getRsxNumArgs;
-    private static getRsxStrArgs;
     private rsxCircle;
     private rsxDate;
     private rsxRect;
     private rsxTime;
+    private rsxMap;
     rsx(cmd: string, args: (number | string)[]): (number | string)[];
     tag(active: boolean): void;
     xpos(): number;

@@ -2001,24 +2001,17 @@
             },
             RsxArgs(_comma, args) {
                 const argumentList = evalChildren(args.asIteration().children);
-                const assignList = [];
-                for (let i = 0; i < argumentList.length; i += 1) {
-                    if (argumentList[i].startsWith("@")) {
-                        argumentList[i] = argumentList[i].substring(1); // remove "@"
-                        assignList.push(argumentList[i]);
-                    }
-                    else {
-                        assignList.push(undefined);
-                    }
-                }
+                // Remove "@" prefix from arguments
+                const argumentListNoAddr = argumentList.map(arg => arg.startsWith("@") ? arg.substring(1) : arg);
+                // Extract assignments and remove "@" prefix
+                const assignList = argumentList.map(arg => arg.startsWith("@") ? arg.substring(1) : undefined);
+                // Remove trailing undefined values
                 while (assignList.length && assignList[assignList.length - 1] === undefined) {
                     assignList.pop();
                 }
-                let result = "";
-                if (assignList.length) {
-                    result = `[${assignList.join(", ")}] = `;
-                }
-                result += `<RSXFUNCTION>, ${argumentList.join(", ")}`;
+                // Build the result string
+                const assignments = assignList.length ? `[${assignList.join(", ")}] = ` : "";
+                const result = `${assignments}<RSXFUNCTION>, ${argumentListNoAddr.join(", ")}`;
                 return result;
             },
             Sgn(_sgnLit, _open, e, _close) {
@@ -2589,6 +2582,24 @@
             this.defaultColorsForPens = [
                 1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
             ];
+            this.rsxMap = {
+                circle: {
+                    argTypes: ["number", "number", "number"],
+                    fn: this.rsxCircle.bind(this)
+                },
+                date: {
+                    argTypes: ["string"],
+                    fn: this.rsxDate.bind(this)
+                },
+                rect: {
+                    argTypes: ["number", "number", "number", "number"],
+                    fn: this.rsxRect.bind(this)
+                },
+                time: {
+                    argTypes: ["string"],
+                    fn: this.rsxTime.bind(this)
+                }
+            };
             this.resetColors();
         }
         fnOnCls() {
@@ -2752,20 +2763,8 @@
                 this.output += text;
             }
         }
-        static getRsxNumArgs(cmd, args, count) {
-            if (args.length !== count) {
-                throw new Error(`|${cmd.toUpperCase()}: Wrong number of arguments: ${args.length} <> ${count}`);
-            }
-            return args.map((p) => typeof p === "number" ? Math.round(p) : 0);
-        }
-        static getRsxStrArgs(cmd, args, count) {
-            if (args.length !== count) {
-                throw new Error(`|${cmd.toUpperCase()}: Wrong number of arguments: ${args.length} <> ${count}`);
-            }
-            return args.map((p) => typeof p === "string" ? p : String(p));
-        }
-        rsxCircle(cmd, args) {
-            const [x, y, radius] = BasicVmCore.getRsxNumArgs(cmd, args, 3);
+        rsxCircle(args) {
+            const [x, y, radius] = args.map((p) => Math.round(p));
             let strokeStr = "";
             if (this.currGraphicsPen >= 0) {
                 const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
@@ -2777,11 +2776,7 @@
         }
         // returns a date string in the format "ww DD MM YY" with ww=day of week
         // see https://www.cpcwiki.eu/imgs/b/b4/DXS_RTC_-_User_Manual.pdf
-        rsxDate(cmd, args) {
-            const [str] = BasicVmCore.getRsxStrArgs(cmd, args, 1);
-            if (str.length < 11) {
-                throw new Error(`|${cmd.toUpperCase()}: String too short!`);
-            }
+        rsxDate(args) {
             const date = new Date();
             // Get the day of the week (0-6) and convert to 1-7
             const dayOfWeek = (date.getDay() + 1) % 7;
@@ -2791,9 +2786,9 @@
             const dateStr = `${String(dayOfWeek).padStart(2, '0')} ${String(day).padStart(2, '0')} ${String(month).padStart(2, '0')} ${String(year).padStart(2, '0')}`;
             args[0] = dateStr;
         }
-        rsxRect(cmd, args) {
+        rsxRect(args) {
             // Extract and round arguments
-            const [x1, y1, x2, y2] = BasicVmCore.getRsxNumArgs(cmd, args, 4);
+            const [x1, y1, x2, y2] = args.map((p) => Math.round(p));
             // Calculate position and dimensions
             const x = Math.min(x1, x2);
             const y = Math.max(y1, y2); // y is inverted
@@ -2808,11 +2803,7 @@
         }
         // returns a time string in the format "HH MM SS"
         // see https://www.cpcwiki.eu/imgs/b/b4/DXS_RTC_-_User_Manual.pdf
-        rsxTime(cmd, args) {
-            const [str] = BasicVmCore.getRsxStrArgs(cmd, args, 1);
-            if (str.length < 8) {
-                throw new Error(`|${cmd.toUpperCase()}: String too short!`);
-            }
+        rsxTime(args) {
             const date = new Date();
             const hours = date.getHours();
             const minutes = date.getMinutes();
@@ -2821,22 +2812,22 @@
             args[0] = timeStr;
         }
         rsx(cmd, args) {
-            switch (cmd) {
-                case "circle":
-                    this.rsxCircle(cmd, args);
-                    break;
-                case "date":
-                    this.rsxDate(cmd, args);
-                    break;
-                case "rect":
-                    this.rsxRect(cmd, args);
-                    break;
-                case "time":
-                    this.rsxTime(cmd, args);
-                    break;
-                default:
-                    throw new Error(`Unknown RSX command: |${cmd}`);
+            if (!this.rsxMap[cmd]) {
+                throw new Error(`Unknown RSX command: |${cmd.toUpperCase()}`);
             }
+            const rsxInfo = this.rsxMap[cmd];
+            const expectedArgs = rsxInfo.argTypes.length;
+            if (args.length !== expectedArgs) {
+                throw new Error(`|${cmd.toUpperCase()}: Wrong number of arguments: ${args.length} <> ${expectedArgs}`);
+            }
+            for (let i = 0; i < args.length; i += 1) {
+                const expectedType = rsxInfo.argTypes[i];
+                const arg = args[i];
+                if (typeof arg !== expectedType) {
+                    throw new Error(`|${cmd.toUpperCase()}: Wrong argument type (pos ${i}): ${typeof arg}`);
+                }
+            }
+            rsxInfo.fn(args);
             return args;
         }
         tag(active) {
