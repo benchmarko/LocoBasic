@@ -44,7 +44,6 @@ export class Parser {
         const oldEnd = oldInput.length - (input.length - end);
         try {
             if (start > 0) {
-                //console.log(`DEBUG: parseAndEval: (${start}, ${oldEnd}) “${oldInput.substring(start, oldEnd)}" => “${input.substring(start, end)}” (${start}, ${end})`);
                 matcher.replaceInputRange(start, oldEnd, input.substring(start, end));
             }
             else {

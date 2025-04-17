@@ -48,12 +48,6 @@ export class LocoBasicMode {
             if (/[[\](),]/.test(ch)) {
                 return null;
             }
-            /*
-            if (/\d/.test(ch)) {
-                stream.eatWhile(/[\w.]/);
-                return "number";
-            }
-            */
             if (ch === "." && stream.match(/^\d\d*(?:[eE][+-]?\d+)?/)) {
                 return "number";
             }

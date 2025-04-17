@@ -30,8 +30,10 @@ export class UI {
             if (!this.vm || this.hasCompiledError()) {
                 return;
             }
+            this.setAreaHidden("convertArea"); // to be sure for execute; TODO: hide area if clicked anywhere outside 
             this.setButtonDisabled("executeButton", true);
             this.setButtonDisabled("stopButton", false);
+            this.setButtonDisabled("convertButton", true);
             this.setSelectDisabled("databaseSelect", true);
             this.setSelectDisabled("exampleSelect", true);
             this.escape = false;
@@ -43,6 +45,7 @@ export class UI {
             outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
             this.setButtonDisabled("executeButton", false);
             this.setButtonDisabled("stopButton", true);
+            this.setButtonDisabled("convertButton", false);
             this.setSelectDisabled("databaseSelect", false);
             this.setSelectDisabled("exampleSelect", false);
             this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
@@ -70,6 +73,9 @@ export class UI {
                     this.compiledCm.setValue(compiledScript);
                 }
                 this.setButtonDisabled("compileButton", false);
+                if (!compiledScript.startsWith("ERROR:")) {
+                    this.setButtonDisabled("labelRemoveButton", false);
+                }
             }, 1);
         };
         this.onAutoCompileInputChange = (event) => {
@@ -100,7 +106,37 @@ export class UI {
             this.escape = true;
             this.setButtonDisabled("stopButton", true);
         };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onConvertButtonClick = (_event) => {
+            this.toggleAreaHidden("convertArea");
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onLabelAddButtonClick = (_event) => {
+            const input = this.basicCm.getValue();
+            const output = input ? UI.addLabels(input) : "";
+            if (output && output !== input) {
+                this.basicCm.setValue(output);
+            }
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onLabelRemoveButtonClick = (_event) => {
+            const input = this.basicCm.getValue();
+            const core = this.getCore();
+            const semanticsHelper = core.getSemanticsHelper();
+            const usedLabels = semanticsHelper.getUsedLabels();
+            const allUsedLabels = {};
+            for (const type of Object.keys(usedLabels)) {
+                for (const label of Object.keys(usedLabels[type])) {
+                    allUsedLabels[label] = true;
+                }
+            }
+            const output = UI.removeUnusedLabels(input, allUsedLabels);
+            if (output && output !== input) {
+                this.basicCm.setValue(output);
+            }
+        };
         this.onBasicTextChange = async () => {
+            this.setButtonDisabled("labelRemoveButton", true);
             const autoCompileInput = document.getElementById("autoCompileInput");
             if (autoCompileInput.checked) {
                 const compileButton = window.document.getElementById("compileButton");
@@ -281,6 +317,36 @@ export class UI {
             editor.refresh();
         }
         return !area.hidden;
+    }
+    setAreaHidden(id) {
+        const area = document.getElementById(id);
+        if (!area.hidden) {
+            area.hidden = true;
+        }
+        return area.hidden;
+    }
+    static addLabels(input) {
+        const lineParts = input.split("\n");
+        let lastLine = 0;
+        for (let i = 0; i < lineParts.length; i += 1) {
+            let lineNum = parseInt(lineParts[i], 10);
+            if (isNaN(lineNum)) {
+                lineNum = lastLine + 1;
+                lineParts[i] = `${lineNum} ${lineParts[i]}`;
+            }
+            lastLine = lineNum;
+        }
+        return lineParts.join("\n");
+    }
+    static removeUnusedLabels(input, usedLabels) {
+        const lineParts = input.split("\n");
+        for (let i = 0; i < lineParts.length; i += 1) {
+            const lineNum = parseInt(lineParts[i], 10);
+            if (!isNaN(lineNum) && !usedLabels[lineNum]) {
+                lineParts[i] = lineParts[i].replace(/^\d+\s/, "");
+            }
+        }
+        return lineParts.join("\n");
     }
     async getExampleScript(example) {
         if (example.script !== undefined) {
@@ -474,6 +540,12 @@ export class UI {
         executeButton.addEventListener("click", this.onExecuteButtonClick, false);
         const stopButton = window.document.getElementById("stopButton");
         stopButton.addEventListener("click", this.onStopButtonClick, false);
+        const convertButton = window.document.getElementById("convertButton");
+        convertButton.addEventListener("click", this.onConvertButtonClick, false);
+        const labelAddButton = window.document.getElementById("labelAddButton");
+        labelAddButton.addEventListener("click", this.onLabelAddButtonClick, false);
+        const labelRemoveButton = window.document.getElementById("labelRemoveButton");
+        labelRemoveButton.addEventListener("click", this.onLabelRemoveButtonClick, false);
         const autoCompileInput = window.document.getElementById("autoCompileInput");
         autoCompileInput.addEventListener("change", this.onAutoCompileInputChange, false);
         const autoExecuteInput = window.document.getElementById("autoExecuteInput");
@@ -509,6 +581,7 @@ export class UI {
             });
             this.compiledCm.on("changes", this.debounce(this.onCompiledTextChange, () => config.debounceExecute));
         }
+        // if the user navigate back...
         window.addEventListener("popstate", (event) => {
             if (event.state) {
                 Object.assign(config, core.getDefaultConfigMap); // load defaults
@@ -517,11 +590,6 @@ export class UI {
                 databaseSelect.dispatchEvent(new Event("change"));
             }
         });
-        /*
-        if (!config.showOutput) {
-            this.toggleAreaHidden("outputArea",);
-        }
-        */
         if (showOutputInput.checked !== config.showOutput) {
             showOutputInput.checked = config.showOutput;
             showOutputInput.dispatchEvent(new Event("change"));

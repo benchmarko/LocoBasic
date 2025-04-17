@@ -4,7 +4,6 @@ function getCodeSnippets() {
     let _dataPtr = 0;
     const _restoreMap = {};
     const _startTime = 0;
-    //const _timer: (number | NodeJS.Timeout | undefined)[] = [];
     const frame = async () => { }; // dummy
     const codeSnippets = {
         after: function after(timeout, timer, fn) {
@@ -184,7 +183,7 @@ function evalChildren(children) {
 function createComparisonExpression(a, op, b) {
     return `-(${a.eval()} ${op} ${b.eval()})`;
 }
-function getSemantics(semanticsHelper) {
+function getSemanticsActionDict(semanticsHelper) {
     const drawMovePlot = (lit, x, _comma1, y, _comma2, e3) => {
         var _a;
         const command = lit.sourceString.toLowerCase();
@@ -209,7 +208,8 @@ function getSemantics(semanticsHelper) {
             const variableDeclarations = variableList.length ? "let " + variableList.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
             // find subroutines
             const definedLabels = semanticsHelper.getDefinedLabels();
-            const gosubLabels = semanticsHelper.getGosubLabels();
+            const usedLabels = semanticsHelper.getUsedLabels();
+            const gosubLabels = usedLabels["gosub"] || {};
             const restoreMap = semanticsHelper.getRestoreMap();
             const awaitLabels = [];
             let subroutineStart;
@@ -336,7 +336,7 @@ function getSemantics(semanticsHelper) {
             const timeout = e1.eval();
             const timer = ((_a = e2.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || 0;
             const labelString = label.sourceString;
-            semanticsHelper.addGosubLabel(labelString);
+            semanticsHelper.addUsedLabel(labelString, "gosub");
             return `after(${timeout}, ${timer}, _${labelString})`;
         },
         Asc(_ascLit, _open, e, _close) {
@@ -431,7 +431,7 @@ function getSemantics(semanticsHelper) {
             const timeout = e1.eval();
             const timer = ((_a = e2.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || 0;
             const labelString = label.sourceString;
-            semanticsHelper.addGosubLabel(labelString);
+            semanticsHelper.addUsedLabel(labelString, "gosub");
             return `every(${timeout}, ${timer}, _${labelString})`;
         },
         Exp(_expLit, _open, e, _close) {
@@ -478,7 +478,7 @@ function getSemantics(semanticsHelper) {
         },
         Gosub(_gosubLit, e) {
             const labelString = e.sourceString;
-            semanticsHelper.addGosubLabel(labelString);
+            semanticsHelper.addUsedLabel(labelString, "gosub");
             return `_${labelString}()`;
         },
         GraphicsPen(_graphicsLit, _penLit, e) {
@@ -588,7 +588,8 @@ function getSemantics(semanticsHelper) {
             const index = e1.eval();
             const argumentList = args.asIteration().children.map(child => child.sourceString);
             for (let i = 0; i < argumentList.length; i += 1) {
-                semanticsHelper.addGosubLabel(argumentList[i]);
+                const labelString = argumentList[i];
+                semanticsHelper.addUsedLabel(labelString, "gosub");
             }
             return `([${argumentList.map((label) => `_${label}`).join(",")}]?.[${index} - 1] || (() => undefined))()`; // 1-based index
         },
@@ -650,6 +651,7 @@ function getSemantics(semanticsHelper) {
         Restore(_restoreLit, e) {
             const labelString = e.sourceString || "0";
             semanticsHelper.addRestoreLabel(labelString);
+            semanticsHelper.addUsedLabel(labelString, "restore");
             semanticsHelper.addInstr("restore");
             return `restore(${labelString})`;
         },
@@ -927,7 +929,7 @@ export class Semantics {
         this.indentAdd = 0;
         this.variables = {};
         this.definedLabels = [];
-        this.gosubLabels = {};
+        this.usedLabels = {};
         this.dataList = [];
         this.dataIndex = 0;
         this.restoreMap = {};
@@ -985,14 +987,18 @@ export class Semantics {
     getDefinedLabels() {
         return this.definedLabels;
     }
-    addGosubLabel(label) {
-        this.gosubLabels[label] = this.gosubLabels[label] || {
+    addUsedLabel(label, type) {
+        if (!this.usedLabels[type]) {
+            this.usedLabels[type] = {};
+        }
+        const usedLabelsForType = this.usedLabels[type];
+        usedLabelsForType[label] = usedLabelsForType[label] || {
             count: 0
         };
-        this.gosubLabels[label].count = (this.gosubLabels[label].count || 0) + 1;
+        usedLabelsForType[label].count = (usedLabelsForType[label].count || 0) + 1;
     }
-    getGosubLabels() {
-        return this.gosubLabels;
+    getUsedLabels() {
+        return this.usedLabels;
     }
     getInstrMap() {
         return this.instrMap;
@@ -1041,7 +1047,7 @@ export class Semantics {
         this.indentAdd = 0;
         Semantics.deleteAllItems(this.variables);
         this.definedLabels.length = 0;
-        Semantics.deleteAllItems(this.gosubLabels);
+        Semantics.deleteAllItems(this.usedLabels);
         this.dataList.length = 0;
         this.dataIndex = 0;
         Semantics.deleteAllItems(this.restoreMap);
@@ -1049,8 +1055,8 @@ export class Semantics {
         this.isDeg = false;
         this.isDefContext = false;
     }
-    getSemantics() {
-        return getSemantics(this);
+    getSemanticsActionDict() {
+        return getSemanticsActionDict(this);
     }
 }
 Semantics.reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;

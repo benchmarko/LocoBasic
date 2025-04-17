@@ -84,13 +84,13 @@ export class Core {
     }
     compileScript(script) {
         if (!this.arithmeticParser) {
-            const semantics = this.semantics.getSemantics();
+            const semanticsActionDict = this.semantics.getSemanticsActionDict();
             if (this.config.grammar === "strict") {
-                const basicParser = new Parser(arithmetic.basicGrammar, semantics);
-                this.arithmeticParser = new Parser(arithmetic.strictGrammar, semantics, basicParser);
+                const basicParser = new Parser(arithmetic.basicGrammar, semanticsActionDict);
+                this.arithmeticParser = new Parser(arithmetic.strictGrammar, semanticsActionDict, basicParser);
             }
             else {
-                this.arithmeticParser = new Parser(arithmetic.basicGrammar, semantics);
+                this.arithmeticParser = new Parser(arithmetic.basicGrammar, semanticsActionDict);
             }
         }
         this.semantics.resetParser();
@@ -144,6 +144,9 @@ export class Core {
             }
         }
         return output;
+    }
+    getSemanticsHelper() {
+        return this.semantics;
     }
     parseArgs(args, config) {
         for (const arg of args) {

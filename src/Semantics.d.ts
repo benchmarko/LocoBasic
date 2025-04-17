@@ -1,12 +1,12 @@
 import type { ActionDict } from "ohm-js";
-import type { DefinedLabelEntryType, GosubLabelEntryType, ISemanticsHelper } from "./Interfaces";
+import type { DefinedLabelEntryType, UsedLabelEntryType, ISemanticsHelper } from "./Interfaces";
 export declare class Semantics implements ISemanticsHelper {
     private lineIndex;
     private indent;
     private indentAdd;
     private readonly variables;
     private readonly definedLabels;
-    private readonly gosubLabels;
+    private readonly usedLabels;
     private readonly dataList;
     private dataIndex;
     private readonly restoreMap;
@@ -26,8 +26,8 @@ export declare class Semantics implements ISemanticsHelper {
     getDataIndex(): number;
     addDefinedLabel(label: string, line: number): void;
     getDefinedLabels(): DefinedLabelEntryType[];
-    addGosubLabel(label: string): void;
-    getGosubLabels(): Record<string, GosubLabelEntryType>;
+    addUsedLabel(label: string, type: string): void;
+    getUsedLabels(): Record<string, Record<string, UsedLabelEntryType>>;
     getInstrMap(): Record<string, number>;
     addInstr(name: string): number;
     getVariables(): string[];
@@ -39,6 +39,6 @@ export declare class Semantics implements ISemanticsHelper {
     addRestoreLabel(label: string): void;
     getDataList(): (string | number)[];
     resetParser(): void;
-    getSemantics(): ActionDict<string>;
+    getSemanticsActionDict(): ActionDict<string>;
 }
 //# sourceMappingURL=Semantics.d.ts.map

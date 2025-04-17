@@ -54,6 +54,40 @@ export interface IVmAdmin extends IVm {
     getOutput(): string;
     setOutput(str: string): void;
 }
+export type DefinedLabelEntryType = {
+    label: string;
+    first: number;
+    last: number;
+    dataIndex: number;
+};
+export type UsedLabelEntryType = {
+    count: number;
+};
+export interface ISemanticsHelper {
+    addDataIndex(count: number): void;
+    addDefinedLabel(label: string, line: number): void;
+    addUsedLabel(label: string, type: string): void;
+    addIndent(num: number): number;
+    addInstr(name: string): number;
+    addRestoreLabel(label: string): void;
+    applyNextIndent(): void;
+    getDataIndex(): number;
+    getDataList(): (string | number)[];
+    getDefinedLabels(): DefinedLabelEntryType[];
+    getUsedLabels(): Record<string, Record<string, UsedLabelEntryType>>;
+    getIndent(): number;
+    getIndentStr(): string;
+    getInstrMap(): Record<string, number>;
+    getRestoreMap(): Record<string, number>;
+    getVariable(name: string): string;
+    getVariables(): string[];
+    incrementLineIndex(): number;
+    nextIndentAdd(num: number): void;
+    setIndent(indent: number): void;
+    setDeg(isDeg: boolean): void;
+    getDeg(): boolean;
+    setDefContext(isDef: boolean): void;
+}
 export interface ICore {
     getDefaultConfigMap(): ConfigType;
     getConfigMap(): ConfigType;
@@ -63,6 +97,7 @@ export interface ICore {
     getExampleMap(): ExampleMapType;
     setExampleMap(exampleMap: ExampleMapType): void;
     getExample(name: string): ExampleType;
+    getSemanticsHelper(): ISemanticsHelper;
     compileScript(script: string): string;
     executeScript(compiledScript: string, vm: IVmAdmin): Promise<string>;
     setOnCheckSyntax(fn: (s: string) => Promise<string>): void;
@@ -84,39 +119,5 @@ export interface IUI {
     checkSyntax(str: string): Promise<string>;
     prompt(msg: string): string | null;
     getKeyFromBuffer(): string;
-}
-export type DefinedLabelEntryType = {
-    label: string;
-    first: number;
-    last: number;
-    dataIndex: number;
-};
-export type GosubLabelEntryType = {
-    count: number;
-};
-export interface ISemanticsHelper {
-    addDataIndex(count: number): void;
-    addDefinedLabel(label: string, line: number): void;
-    addGosubLabel(label: string): void;
-    addIndent(num: number): number;
-    addInstr(name: string): number;
-    addRestoreLabel(label: string): void;
-    applyNextIndent(): void;
-    getDataIndex(): number;
-    getDataList(): (string | number)[];
-    getDefinedLabels(): DefinedLabelEntryType[];
-    getGosubLabels(): Record<string, GosubLabelEntryType>;
-    getIndent(): number;
-    getIndentStr(): string;
-    getInstrMap(): Record<string, number>;
-    getRestoreMap(): Record<string, number>;
-    getVariable(name: string): string;
-    getVariables(): string[];
-    incrementLineIndex(): number;
-    nextIndentAdd(num: number): void;
-    setIndent(indent: number): void;
-    setDeg(isDeg: boolean): void;
-    getDeg(): boolean;
-    setDefContext(isDef: boolean): void;
 }
 //# sourceMappingURL=Interfaces.d.ts.map

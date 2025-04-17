@@ -38,3 +38,20 @@ body {
   border: 1px solid grey;
   resize: horizontal;
 }
+
+.buttonPopoverContainer {
+	display: inline-flex;
+}
+
+.popover {
+	margin-top: 1.5em;
+	padding: 2px;
+	border: 0.5px solid #7A7A7A;
+	position: absolute;
+	background-color: WhiteSmoke;
+  z-index: 1;
+}
+
+.popoverElement {
+	margin: 3px;
+}

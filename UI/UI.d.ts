@@ -35,10 +35,16 @@ export declare class UI implements IUI {
     private onAutoCompileInputChange;
     private onAutoExecuteInputChange;
     private toggleAreaHidden;
+    private setAreaHidden;
     private onShowOutputInputChange;
     private onShowBasicInputChange;
     private onShowCompiledInputChange;
     private onStopButtonClick;
+    private onConvertButtonClick;
+    private static addLabels;
+    private static removeUnusedLabels;
+    private onLabelAddButtonClick;
+    private onLabelRemoveButtonClick;
     private onBasicTextChange;
     private getExampleScript;
     private onExampleSelectChange;
