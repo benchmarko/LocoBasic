@@ -1,5 +1,6 @@
 import type { Mode, StringStream } from 'codemirror';
 
+// Codemirror Mode defining syntax highlighting for Loco-BASIC 
 
 interface State {
     tokenize: ((stream: StringStream, state: State) => string | null) | null;
@@ -63,13 +64,6 @@ export class LocoBasicMode {
             if (/[[\](),]/.test(ch)) {
                 return null;
             }
-
-            /*
-            if (/\d/.test(ch)) {
-                stream.eatWhile(/[\w.]/);
-                return "number";
-            }
-            */
 
             if (ch === "." && stream.match(/^\d\d*(?:[eE][+-]?\d+)?/)) {
                 return "number";

@@ -1,5 +1,5 @@
 import type { ActionDict, Node } from "ohm-js";
-import type { IVm, DefinedLabelEntryType, GosubLabelEntryType, ISemanticsHelper } from "./Interfaces";
+import type { IVm, DefinedLabelEntryType, UsedLabelEntryType, ISemanticsHelper } from "./Interfaces";
 
 type RecursiveArray<T> = T | RecursiveArray<T>[];
 
@@ -9,7 +9,6 @@ function getCodeSnippets() {
     let _dataPtr = 0;
     const _restoreMap: Record<string, number> = {};
 	const _startTime = 0;
-	//const _timer: (number | NodeJS.Timeout | undefined)[] = [];
 	const frame = async () => {}; // dummy
 
     const codeSnippets = {
@@ -192,7 +191,7 @@ function createComparisonExpression(a: Node, op: string, b: Node): string {
 	return `-(${a.eval()} ${op} ${b.eval()})`;
 }
 
-function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
+function getSemanticsActionDict(semanticsHelper: ISemanticsHelper): ActionDict<string> {
     const drawMovePlot = (lit: Node, x: Node, _comma1: Node, y: Node, _comma2: Node, e3: Node) => {
         const command = lit.sourceString.toLowerCase();
         semanticsHelper.addInstr(command);
@@ -220,7 +219,8 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 
             // find subroutines
             const definedLabels = semanticsHelper.getDefinedLabels();
-            const gosubLabels = semanticsHelper.getGosubLabels();
+            const usedLabels = semanticsHelper.getUsedLabels();
+			const gosubLabels = usedLabels["gosub"] || {};
             const restoreMap = semanticsHelper.getRestoreMap();
 
             const awaitLabels: string[] = [];
@@ -374,7 +374,7 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 			const timeout = e1.eval();
 			const timer = e2.child(0)?.eval() || 0;
 			const labelString = label.sourceString;
-			semanticsHelper.addGosubLabel(labelString);
+			semanticsHelper.addUsedLabel(labelString, "gosub");
 			return `after(${timeout}, ${timer}, _${labelString})`;
 		},
 
@@ -497,7 +497,7 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 			const timeout = e1.eval();
 			const timer = e2.child(0)?.eval() || 0;
 			const labelString = label.sourceString;
-			semanticsHelper.addGosubLabel(labelString);
+			semanticsHelper.addUsedLabel(labelString, "gosub");
 			return `every(${timeout}, ${timer}, _${labelString})`;
 		},
 
@@ -553,7 +553,7 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 
 		Gosub(_gosubLit: Node, e: Node) {
 			const labelString = e.sourceString;
-			semanticsHelper.addGosubLabel(labelString);
+			semanticsHelper.addUsedLabel(labelString, "gosub");
 		
 			return `_${labelString}()`;
 		},
@@ -692,7 +692,8 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 			const argumentList = args.asIteration().children.map(child => child.sourceString);
 		
 			for (let i = 0; i < argumentList.length; i += 1) {
-				semanticsHelper.addGosubLabel(argumentList[i]);
+				const labelString = argumentList[i];
+				semanticsHelper.addUsedLabel(labelString, "gosub");
 			}
 		
 			return `([${argumentList.map((label) => `_${label}`).join(",")}]?.[${index} - 1] || (() => undefined))()`; // 1-based index
@@ -770,6 +771,7 @@ function getSemantics(semanticsHelper: ISemanticsHelper): ActionDict<string> {
 		Restore(_restoreLit: Node, e: Node) {
 			const labelString = e.sourceString || "0";
 			semanticsHelper.addRestoreLabel(labelString);
+			semanticsHelper.addUsedLabel(labelString, "restore");
 		
 			semanticsHelper.addInstr("restore");
 			return `restore(${labelString})`;
@@ -1115,7 +1117,7 @@ export class Semantics implements ISemanticsHelper {
 	private readonly variables: Record<string, number> = {};
 
 	private readonly definedLabels: DefinedLabelEntryType[] = [];
-	private readonly gosubLabels: Record<string, GosubLabelEntryType> = {};
+	private readonly usedLabels: Record<string, Record<string, UsedLabelEntryType>> = {};
 
 	private readonly dataList: (string | number)[] = [];
 	private dataIndex = 0;
@@ -1190,15 +1192,19 @@ export class Semantics implements ISemanticsHelper {
 		return this.definedLabels;
 	}
 
-	public addGosubLabel(label: string): void {
-		this.gosubLabels[label] = this.gosubLabels[label] || {
+	public addUsedLabel(label: string, type: string): void {
+		if (!this.usedLabels[type]) {
+			this.usedLabels[type] = {};
+		}
+		const usedLabelsForType = this.usedLabels[type];
+		usedLabelsForType[label] = usedLabelsForType[label] || {
 			count: 0
 		};
-		this.gosubLabels[label].count = (this.gosubLabels[label].count || 0) + 1;
+		usedLabelsForType[label].count = (usedLabelsForType[label].count || 0) + 1;
 	}
 
-	public getGosubLabels(): Record<string, GosubLabelEntryType> {
-		return this.gosubLabels;
+	public getUsedLabels(): Record<string, Record<string, UsedLabelEntryType>> {
+		return this.usedLabels;
 	}
 
 	public getInstrMap(): Record<string, number> {
@@ -1259,7 +1265,7 @@ export class Semantics implements ISemanticsHelper {
 		this.indentAdd = 0;
 		Semantics.deleteAllItems(this.variables);
 		this.definedLabels.length = 0;
-		Semantics.deleteAllItems(this.gosubLabels);
+		Semantics.deleteAllItems(this.usedLabels);
 		this.dataList.length = 0;
 		this.dataIndex = 0;
 		Semantics.deleteAllItems(this.restoreMap);
@@ -1268,7 +1274,7 @@ export class Semantics implements ISemanticsHelper {
 		this.isDefContext = false;
 	}
 
-	public getSemantics(): ActionDict<string> {
-		return getSemantics(this);
+	public getSemanticsActionDict(): ActionDict<string> {
+		return getSemanticsActionDict(this);
 	}
 }

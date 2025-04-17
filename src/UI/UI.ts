@@ -192,8 +192,11 @@ export class UI implements IUI {
             return;
         }
         
+        this.setAreaHidden("convertArea"); // to be sure for execute; TODO: hide area if clicked anywhere outside 
+
         this.setButtonDisabled("executeButton", true);
         this.setButtonDisabled("stopButton", false);
+        this.setButtonDisabled("convertButton", true);
         this.setSelectDisabled("databaseSelect", true);
         this.setSelectDisabled("exampleSelect", true);
         this.escape = false;
@@ -205,6 +208,7 @@ export class UI implements IUI {
         outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
         this.setButtonDisabled("executeButton", false);
         this.setButtonDisabled("stopButton", true);
+        this.setButtonDisabled("convertButton", false);
         this.setSelectDisabled("databaseSelect", false);
         this.setSelectDisabled("exampleSelect", false);
         this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
@@ -235,6 +239,9 @@ export class UI implements IUI {
                 this.compiledCm.setValue(compiledScript);
             }
             this.setButtonDisabled("compileButton", false);
+            if (!compiledScript.startsWith("ERROR:")) {
+                this.setButtonDisabled("labelRemoveButton", false);
+            }
         }, 1);
     }
 
@@ -257,6 +264,14 @@ export class UI implements IUI {
             editor.refresh();
         }
         return !area.hidden;
+    }
+
+    private setAreaHidden(id: string): boolean {
+        const area = document.getElementById(id) as HTMLElement;
+        if (!area.hidden) {
+            area.hidden = true;
+        }
+        return area.hidden;
     }
 
     private onShowOutputInputChange = (event: Event): void => { // bound this
@@ -286,7 +301,75 @@ export class UI implements IUI {
         this.setButtonDisabled("stopButton", true);
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onConvertButtonClick = (_event: Event): void => { // bound this
+        this.toggleAreaHidden("convertArea");
+    }
+
+    private static addLabels(input: string) {
+		const lineParts = input.split("\n");
+		let lastLine = 0;
+
+		for (let i = 0; i < lineParts.length; i += 1) {
+			let lineNum = parseInt(lineParts[i], 10);
+
+			if (isNaN(lineNum)) {
+				lineNum = lastLine + 1;
+				lineParts[i] = `${lineNum} ${lineParts[i]}`;
+			}
+			lastLine = lineNum;
+		}
+		return lineParts.join("\n");
+	}
+
+    private static removeUnusedLabels(input: string, usedLabels: Record<string, unknown>) {
+        const lineParts = input.split("\n");
+		for (let i = 0; i < lineParts.length; i += 1) {
+			const lineNum = parseInt(lineParts[i], 10);
+
+			if (!isNaN(lineNum) && !usedLabels[lineNum]) {
+				lineParts[i] = lineParts[i].replace(/^\d+\s/, "");
+			}
+		}
+		return lineParts.join("\n");
+	}
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onLabelAddButtonClick = (_event: Event): void => { // bound this
+        const input = this.basicCm!.getValue();
+        const output = input ? UI.addLabels(input) : "";
+
+        if (output && output !== input) {
+            this.basicCm!.setValue(output);
+        }
+    }
+    
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onLabelRemoveButtonClick = (_event: Event): void => { // bound this
+        const input = this.basicCm!.getValue();
+
+        const core = this.getCore();
+        const semanticsHelper = core.getSemanticsHelper();
+        const usedLabels = semanticsHelper.getUsedLabels();
+       
+        const allUsedLabels: Record<string, boolean> = {};
+        for (const type of Object.keys(usedLabels)) {
+            for (const label of Object.keys(usedLabels[type])) {
+                allUsedLabels[label] = true;
+            }
+        }
+
+        const output = UI.removeUnusedLabels(input, allUsedLabels);
+
+        if (output && output !== input) {
+            this.basicCm!.setValue(output);
+        }
+
+
+    }
+
     private onBasicTextChange = async (): Promise<void> => { // bound this
+        this.setButtonDisabled("labelRemoveButton", true);
         const autoCompileInput = document.getElementById("autoCompileInput") as HTMLInputElement;
         if (autoCompileInput.checked) {
             const compileButton = window.document.getElementById("compileButton") as HTMLButtonElement;
@@ -588,6 +671,15 @@ export class UI implements IUI {
         const stopButton = window.document.getElementById("stopButton") as HTMLButtonElement;
         stopButton.addEventListener("click", this.onStopButtonClick, false);
 
+        const convertButton = window.document.getElementById("convertButton") as HTMLButtonElement;
+        convertButton.addEventListener("click", this.onConvertButtonClick, false);
+
+        const labelAddButton = window.document.getElementById("labelAddButton") as HTMLButtonElement;
+        labelAddButton.addEventListener("click", this.onLabelAddButtonClick, false);
+        
+        const labelRemoveButton = window.document.getElementById("labelRemoveButton") as HTMLButtonElement;
+        labelRemoveButton.addEventListener("click", this.onLabelRemoveButtonClick, false);
+        
         const autoCompileInput = window.document.getElementById("autoCompileInput") as HTMLInputElement;
         autoCompileInput.addEventListener("change", this.onAutoCompileInputChange, false);
 
@@ -635,6 +727,7 @@ export class UI implements IUI {
             this.compiledCm.on("changes", this.debounce(this.onCompiledTextChange, () => config.debounceExecute));
         }
 
+        // if the user navigate back...
         window.addEventListener("popstate", (event: PopStateEvent) => {
             if (event.state) {
                 Object.assign(config, core.getDefaultConfigMap); // load defaults
@@ -644,11 +737,6 @@ export class UI implements IUI {
             }
         });
 
-        /*
-        if (!config.showOutput) {
-            this.toggleAreaHidden("outputArea",);
-        }
-        */
         if (showOutputInput.checked !== config.showOutput) {
             showOutputInput.checked = config.showOutput;
             showOutputInput.dispatchEvent(new Event("change"));

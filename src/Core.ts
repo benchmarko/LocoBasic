@@ -77,12 +77,12 @@ export class Core implements ICore {
 
     public compileScript(script: string): string {
         if (!this.arithmeticParser) {
-            const semantics = this.semantics.getSemantics();
+            const semanticsActionDict = this.semantics.getSemanticsActionDict();
             if (this.config.grammar === "strict") {
-                const basicParser = new Parser(arithmetic.basicGrammar, semantics);
-                this.arithmeticParser = new Parser(arithmetic.strictGrammar, semantics, basicParser);
+                const basicParser = new Parser(arithmetic.basicGrammar, semanticsActionDict);
+                this.arithmeticParser = new Parser(arithmetic.strictGrammar, semanticsActionDict, basicParser);
             } else {
-                this.arithmeticParser = new Parser(arithmetic.basicGrammar, semantics);
+                this.arithmeticParser = new Parser(arithmetic.basicGrammar, semanticsActionDict);
             }
         }
         this.semantics.resetParser();
@@ -142,6 +142,10 @@ export class Core implements ICore {
             }
         }
         return output;
+    }
+
+    public getSemanticsHelper() {
+        return this.semantics;
     }
 
     public addIndex = (dir: string, input: Record<string, ExampleType[]> | (() => void)): void => { // need property function because we need bound "this"
