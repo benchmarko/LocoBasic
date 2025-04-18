@@ -26,7 +26,7 @@ REM animate
 GOSUB 1000 'init
 GOSUB 2000 'draw
 GOSUB 3000 'print
-WHILE TIME<t AND INKEY$="":FRAME:WEND
+WHILE TIME<t AND INKEY$="":WEND
 RETURN
 '
 REM Initialize the grid with spaces

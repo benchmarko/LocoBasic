@@ -21,7 +21,7 @@ FOR rows = 5 TO 95 STEP 5
   PRINT "height";height;", cols=";cols;", rows=";rows;", time=";ROUND(t*10/3,3)
   FRAME
   GOSUB 700 'graphical output
-  FRAME:t=t0+300:WHILE TIME<t AND INKEY$="":FRAME:WEND
+  FRAME:t=t0+300:WHILE TIME<t AND INKEY$="":WEND
 NEXT rows
 END
 '
