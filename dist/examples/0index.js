@@ -60,6 +60,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Countries and Cities"
 		},
 		{
+			"key": "cpc464ch",
+			"title": "CPC 464 Character Art"
+		},
+		{
 			"key": "cpcmhz",
 			"title": "CPC MHz: Time measurement"
 		},
@@ -70,6 +74,14 @@ cpcBasic.addIndex("./examples", {
 		{
 			"key": "drawclk",
 			"title": "Draw a clock"
+		},
+		{
+			"key": "draworg",
+			"title": "Draw Organ"
+		},
+		{
+			"key": "drawroc",
+			"title": "Draw Rocking CPC Demo Organ"
 		},
 		{
 			"key": "drawsp",
@@ -190,6 +202,10 @@ cpcBasic.addIndex("./examples", {
 		{
 			"key": "testsub",
 			"title": "Test Subroutines"
+		},
+		{
+			"key": "yinyang",
+			"title": "Yin and yang"
 		}
 	]
 });

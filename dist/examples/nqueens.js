@@ -7,7 +7,7 @@ REM nqueens - N-queens problem
 REM https://rosettacode.org/wiki/N-queens_problem#Locomotive_Basic
 REM GNU FDL 1.2 (https://www.gnu.org/licenses/fdl-1.2.html)
 REM modifications: print board without LOCATE; GOTO removed
-MODE 1 ':defint a-z
+MODE 1
 n=3: WHILE n<4:INPUT "How many queens (N>=4)";n:WEND
 DIM q(n),e(n),o(n)
 r=n MOD 6
@@ -42,14 +42,6 @@ FOR j=1 TO n
   NEXT
   PRINT n+1-j
 NEXT
-'for i=1 to n
-'locate i,26-q(i):print chr$(238);
-'locate i,24-n   :print chr$(96+i);
-'locate n+1,26-i :print i;
-'next
-'locate 1,1
-'call &bb06
-'end
 RETURN
 '
 ' the simple case
@@ -70,11 +62,8 @@ GOSUB 900:' edit list when remainder is 3
 GOSUB 460
 RETURN
 '
-460 'for i=1 to n
-'if e(i)=2 then e(i)=-1 else if e(i)=0 then e(i)=2:goto 500
-'next
 ' edit list some more
-FOR i=1 TO n
+460 FOR i=1 TO n
   IF o(i)=1 OR o(i)=3 THEN o(i)=-1 ELSE IF o(i)=0 THEN o(i)=1:o(i+1)=3:RETURN
 NEXT
 '
