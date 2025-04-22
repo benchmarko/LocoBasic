@@ -138,7 +138,7 @@ function getCodeSnippets() {
         round: function round(num, dec) {
             return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
         },
-        rsx: function rsx(cmd, ...args) {
+        rsx: async function rsx(cmd, ...args) {
             return _o.rsx(cmd, args);
         },
         stop: function stop() {
@@ -683,10 +683,10 @@ function getSemanticsActionDict(semanticsHelper) {
             const cmdString = cmd.sourceString.toLowerCase();
             const rsxArgs = ((_a = e.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
             if (rsxArgs === "") {
-                return `rsx("${cmdString}"${rsxArgs})`;
+                return `await rsx("${cmdString}"${rsxArgs})`;
             }
             // need assign, not so nice to use <RSXFUNCTION>" as separator
-            return rsxArgs.replace("<RSXFUNCTION>", `rsx("${cmdString}"`) + ")";
+            return rsxArgs.replace("<RSXFUNCTION>", `await rsx("${cmdString}"`) + ")";
         },
         RsxAddressOfIdent(_adressOfLit, ident) {
             const identString = ident.sourceString.toLowerCase();

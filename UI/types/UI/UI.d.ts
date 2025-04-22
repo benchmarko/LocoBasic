@@ -25,6 +25,7 @@ export declare class UI implements IUI {
      * @returns A promise that resolves to the user input or null if canceled.
      */
     prompt(msg: string): string | null;
+    speak(text: string, pitch: number): Promise<void>;
     private updateConfigParameter;
     private setButtonDisabled;
     private setSelectDisabled;

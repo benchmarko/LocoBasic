@@ -16,6 +16,7 @@ export class BasicVmCore {
         this.backgroundColor = "";
         this.isTag = false; // text at graphics
         this.timerMap = {};
+        this.pitch = 1;
         this.cpcColors = [
             "#000000", //  0 Black
             "#000080", //  1 Blue
@@ -62,16 +63,24 @@ export class BasicVmCore {
                 argTypes: ["string"],
                 fn: this.rsxDate.bind(this)
             },
+            pitch: {
+                argTypes: ["number"],
+                fn: this.rsxPitch.bind(this)
+            },
             rect: {
                 argTypes: ["number", "number", "number", "number"],
                 fn: this.rsxRect.bind(this)
+            },
+            say: {
+                argTypes: ["string"],
+                fn: this.rsxSay.bind(this)
             },
             time: {
                 argTypes: ["string"],
                 fn: this.rsxTime.bind(this)
             }
         };
-        this.resetColors();
+        this.reset();
     }
     fnOnCls() {
         // override
@@ -91,11 +100,16 @@ export class BasicVmCore {
         // override
         return "";
     }
-    resetColors() {
+    fnOnSpeak(_text, _pitch) {
+        // override
+        return Promise.resolve();
+    }
+    reset() {
         this.colorsForPens = [...this.defaultColorsForPens];
         this.backgroundColor = "";
         this.originX = 0;
         this.originY = 0;
+        this.pitch = 1;
     }
     cls() {
         this.output = "";
@@ -247,7 +261,7 @@ export class BasicVmCore {
     }
     // returns a date string in the format "ww DD MM YY" with ww=day of week
     // see https://www.cpcwiki.eu/imgs/b/b4/DXS_RTC_-_User_Manual.pdf
-    rsxDate(args) {
+    async rsxDate(args) {
         const date = new Date();
         // Get the day of the week (0-6) and convert to 1-7
         const dayOfWeek = (date.getDay() + 1) % 7;
@@ -256,6 +270,7 @@ export class BasicVmCore {
         const year = date.getFullYear() % 100; // Get last two digits of the year
         const dateStr = `${String(dayOfWeek).padStart(2, '0')} ${String(day).padStart(2, '0')} ${String(month).padStart(2, '0')} ${String(year).padStart(2, '0')}`;
         args[0] = dateStr;
+        return Promise.resolve(args);
     }
     rsxRect(args) {
         // Extract and round arguments
@@ -272,17 +287,25 @@ export class BasicVmCore {
         // Add the rectangle to the graphics buffer
         this.graphicsBuffer.push(`<rect x="${x}" y="${399 - y}" width="${width}" height="${height}"${strokeStr} />`);
     }
+    rsxPitch(args) {
+        this.pitch = args[0] / 10; // 0..20 => 0..2
+    }
+    async rsxSay(args) {
+        const text = args[0];
+        return this.fnOnSpeak(text, this.pitch).then(() => args);
+    }
     // returns a time string in the format "HH MM SS"
     // see https://www.cpcwiki.eu/imgs/b/b4/DXS_RTC_-_User_Manual.pdf
-    rsxTime(args) {
+    async rsxTime(args) {
         const date = new Date();
         const hours = date.getHours();
         const minutes = date.getMinutes();
         const seconds = date.getSeconds();
         const timeStr = `${String(hours).padStart(2, '0')} ${String(minutes).padStart(2, '0')} ${String(seconds).padStart(2, '0')}`;
         args[0] = timeStr;
+        return Promise.resolve(args);
     }
-    rsx(cmd, args) {
+    async rsx(cmd, args) {
         if (!this.rsxMap[cmd]) {
             throw new Error(`Unknown RSX command: |${cmd.toUpperCase()}`);
         }
@@ -298,8 +321,13 @@ export class BasicVmCore {
                 throw new Error(`|${cmd.toUpperCase()}: Wrong argument type (pos ${i}): ${typeof arg}`);
             }
         }
-        rsxInfo.fn(args);
-        return args;
+        const result = rsxInfo.fn(args);
+        if (result instanceof Promise) {
+            return result;
+        }
+        else {
+            return args;
+        }
     }
     tag(active) {
         this.isTag = active;
@@ -317,7 +345,7 @@ export class BasicVmCore {
         return this.timerMap;
     }
     getOutput() {
-        this.resetColors();
+        this.reset();
         return this.output;
     }
     setOutput(str) {

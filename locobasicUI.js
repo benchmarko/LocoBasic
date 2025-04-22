@@ -387,6 +387,30 @@
             const input = window.prompt(msg);
             return input;
         }
+        async speak(text, pitch) {
+            // wait for user interaction to start sound (how to?)
+            return new Promise((resolve, reject) => {
+                if (!window.speechSynthesis) {
+                    reject(new Error("Speech synthesis is not supported in this browser."));
+                    return;
+                }
+                const msg = new SpeechSynthesisUtterance(text);
+                msg.pitch = pitch; //0 to 2
+                msg.onend = () => resolve();
+                msg.onerror = (event) => {
+                    if (event.error === "not-allowed") {
+                        // Chrome needs user interaction
+                        window.addEventListener("click", () => {
+                            window.speechSynthesis.speak(msg);
+                        }, { once: true });
+                    }
+                    else {
+                        reject(new Error(`Speech synthesis error: ${event.error}`));
+                    }
+                };
+                window.speechSynthesis.speak(msg);
+            });
+        }
         updateConfigParameter(name, value) {
             const core = this.getCore();
             const configAsRecord = core.getConfigMap();

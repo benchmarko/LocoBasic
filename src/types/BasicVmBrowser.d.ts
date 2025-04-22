@@ -20,6 +20,7 @@ export declare class BasicVmBrowser extends BasicVmCore {
      * @param msg - The message to print.
      */
     fnOnPrint(msg: string): void;
+    fnOnSpeak(text: string, pitch: number): Promise<void>;
     /**
      * Gets the pen color by index.
      * @param num - The index of the pen color.

@@ -15,6 +15,7 @@ export declare class BasicVmCore implements IVmAdmin {
     private backgroundColor;
     private isTag;
     private timerMap;
+    private pitch;
     protected readonly cpcColors: string[];
     protected readonly defaultColorsForPens: number[];
     constructor();
@@ -23,7 +24,8 @@ export declare class BasicVmCore implements IVmAdmin {
     protected fnOnPrint(_msg: string): void;
     protected fnGetPenColor(_num: number): string;
     protected fnGetPaperColor(_num: number): string;
-    private resetColors;
+    protected fnOnSpeak(_text: string, _pitch: number): Promise<void>;
+    private reset;
     cls(): void;
     drawMovePlot(type: string, x: number, y: number): void;
     private flushGraphicsPath;
@@ -41,9 +43,11 @@ export declare class BasicVmCore implements IVmAdmin {
     private rsxCircle;
     private rsxDate;
     private rsxRect;
+    private rsxPitch;
+    private rsxSay;
     private rsxTime;
     private rsxMap;
-    rsx(cmd: string, args: (number | string)[]): (number | string)[];
+    rsx(cmd: string, args: (number | string)[]): Promise<(number | string)[]>;
     tag(active: boolean): void;
     xpos(): number;
     ypos(): number;
