@@ -50,7 +50,7 @@ export interface IVm {
     paper(color: number): void;
     pen(color: number): void;
     print(msg: string): void;
-    rsx(cmd: string, args: (string | number)[]): void;
+    rsx(cmd: string, args: (string | number)[]): Promise<(number | string)[]>;
     tag(active: boolean): void;
     xpos(): number;
     ypos(): number;
@@ -134,5 +134,6 @@ export interface IUI {
     getColor(color: string, background: boolean): string;
     checkSyntax(str: string): Promise<string>;
     prompt(msg: string): string | null;
+    speak(text: string, pitch: number): Promise<void>;
     getKeyFromBuffer(): string;
 }

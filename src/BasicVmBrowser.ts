@@ -38,6 +38,10 @@ export class BasicVmBrowser extends BasicVmCore {
         this.ui.addOutputText(msg);
     }
 
+    public async fnOnSpeak(text: string, pitch: number): Promise<void> {
+        return this.ui.speak(text, pitch);
+    }
+
     /**
      * Gets the pen color by index.
      * @param num - The index of the pen color.
