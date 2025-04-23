@@ -11,9 +11,13 @@ PRINT "Funny Questions and Answers"
 PRINT
 PRINT "What do you do when..."
 PRINT
+GOSUB 300: 'Prepare data
+GOSUB 500: 'Say a random combination
+GOSUB 600: 'Output all combinations
+END
 '
 ' Read questions and answers
-READ n
+300 READ n
 DIM question$(n), answer$(n)
 FOR i = 1 TO n
   READ question$(i), answer$(i)
@@ -28,23 +32,40 @@ FOR i = 1 TO n
   a(i) = a(j)
   a(j) = i 
 NEXT i
+RETURN
+'
+' Say a random combination
+500 i=INT(RND*n+1)
+GOSUB 800: 'prepare question and answer i
+PRINT i;
+FRAME: '|SAY,STR$(i)
+PRINT q$; "? -- ";
+FRAME:|SAY,q$
+t=TIME+150:WHILE TIME<t:FRAME:WEND
+PRINT a$; "."
+FRAME:|PITCH,14:|SAY,a$:|PITCH,10
+PRINT:PRINT STRING$(60,"-"):PRINT
+RETURN
 '
 ' Output all combinations
-FOR i = 1 TO n
-  j = a(i)
+600 FOR i = 1 TO n
   PRINT i;
-  q$=question$(i)
-  a$=answer$(j)
-  ' Check question for plural marker "!p"
-  p$="it"
-  IF RIGHT$(q$,2)="|p" THEN q$=LEFT$(q$,LEN(q$)-2):p$="them"
-  ' Replace pattern "{it}" in answer by "it" or "them"
-  p1=INSTR(a$,"{it}"):IF p1>0 THEN a$=LEFT$(a$,p1-1)+p$+MID$(a$,p1+4)
+  GOSUB 800: 'prepare question and answer i
   PRINT q$; "? -- ";
   PRINT a$; "."
   PRINT
 NEXT i
-END
+RETURN
+'
+' Prepare question and answer i
+800 q$=question$(i)
+a$=answer$(a(i))
+' Check question for plural marker "!p"
+p$="it"
+IF RIGHT$(q$,2)="|p" THEN q$=LEFT$(q$,LEN(q$)-2):p$="them"
+' Replace pattern "{it}" in answer by "it" or "them"
+p1=INSTR(a$,"{it}"):IF p1>0 THEN a$=LEFT$(a$,p1-1)+p$+MID$(a$,p1+4)
+RETURN
 '
 DATA 75
 DATA "You find a corpse", "Dig a grave"

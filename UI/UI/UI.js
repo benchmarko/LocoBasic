@@ -283,7 +283,6 @@ export class UI {
         return input;
     }
     async speak(text, pitch) {
-        // wait for user interaction to start sound (how to?)
         return new Promise((resolve, reject) => {
             if (!window.speechSynthesis) {
                 reject(new Error("Speech synthesis is not supported in this browser."));

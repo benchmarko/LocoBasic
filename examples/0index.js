@@ -100,6 +100,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Big Factorials"
 		},
 		{
+			"key": "forest",
+			"title": "Forest fire"
+		},
+		{
 			"key": "funcspec",
 			"title": "Functional Spectrum"
 		},
