@@ -153,8 +153,6 @@ export class UI implements IUI {
     }
 
     public async speak(text: string, pitch: number): Promise<void> {
-        // wait for user interaction to start sound (how to?)
-
         return new Promise<void>((resolve, reject) => {
             if (!window.speechSynthesis) {
                 reject(new Error("Speech synthesis is not supported in this browser."));
