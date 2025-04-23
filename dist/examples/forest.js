@@ -22,7 +22,7 @@ GOSUB 1000
 '
 ' Simulation loop
 tend=TIME+300*5
-WHILE TIME<tend
+WHILE TIME<tend AND INKEY$=""
   FOR y=1 TO dimy-1
     FOR x=1 TO dimx-1
       ON forest(x,y)+1 GOSUB 500,600,700
