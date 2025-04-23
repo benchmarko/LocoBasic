@@ -5,9 +5,10 @@
 cpcBasic.addItem("", `
 REM funcspec - Functional Spectrum
 REM
-m = 2
+m = 3
+lbasic = &8000>0: ' fast hack to detect LocoBasic
 xd = 2 ^ (2 - MIN(m, 2))
-yd = ((m = 3) + 2)
+IF lbasic THEN yd=2 ELSE yd = ((m = 3) + 2)
 cols = 80 / xd - 1
 rows = 50 / yd
 MODE m
@@ -49,6 +50,7 @@ FOR z = 1 TO rows
   NEXT s
   PRINT
 NEXT z
+PEN 1
 t = TIME + 40: WHILE TIME < t: FRAME: WEND
 RETURN
 '

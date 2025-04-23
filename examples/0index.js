@@ -88,6 +88,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Draw a sphere (ASCII)"
 		},
 		{
+			"key": "drawsp2",
+			"title": "Draw a sphere (graphical)"
+		},
+		{
 			"key": "elizabos",
 			"title": "Eliza (Boss)"
 		},
@@ -106,6 +110,10 @@ cpcBasic.addIndex("./examples", {
 		{
 			"key": "funcspec",
 			"title": "Functional Spectrum"
+		},
+		{
+			"key": "juliaset",
+			"title": "Julia set"
 		},
 		{
 			"key": "labyrint",
@@ -170,6 +178,10 @@ cpcBasic.addIndex("./examples", {
 		{
 			"key": "scrollit",
 			"title": "Scrolling text"
+		},
+		{
+			"key": "showasc",
+			"title": "Show ASCII table"
 		},
 		{
 			"key": "sierpin",

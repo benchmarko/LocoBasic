@@ -36,13 +36,13 @@ RETURN
 '
 ' Say a random combination
 500 i=INT(RND*n+1)
-GOSUB 800: 'prepare question and answer i
+GOSUB 800: 'prepare combination i
 PRINT i;
 FRAME: '|SAY,STR$(i)
-PRINT q$; "? -- ";
+PRINT q$;"?"
 FRAME:|SAY,q$
 t=TIME+150:WHILE TIME<t:FRAME:WEND
-PRINT a$; "."
+PRINT SPACE$(7);"-- ";a$;"."
 FRAME:|PITCH,14:|SAY,a$:|PITCH,10
 PRINT:PRINT STRING$(60,"-"):PRINT
 RETURN
@@ -51,8 +51,8 @@ RETURN
 600 FOR i = 1 TO n
   PRINT i;
   GOSUB 800: 'prepare question and answer i
-  PRINT q$; "? -- ";
-  PRINT a$; "."
+  PRINT q$;"?"
+  PRINT SPACE$(7);"-- ";a$;"."
   PRINT
 NEXT i
 RETURN
