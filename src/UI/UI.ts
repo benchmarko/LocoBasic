@@ -49,6 +49,7 @@ export class UI implements IUI {
     private readonly keyBuffer: string[] = []; // buffered pressed keys
     private escape = false;
     private fnOnKeyPressHandler: (event: KeyboardEvent) => void;
+    private speechSynthesisUtterance?: SpeechSynthesisUtterance;
 
     private static getErrorEvent?: (s: string) => Promise<PlainErrorEventType>;
 
@@ -84,6 +85,28 @@ export class UI implements IUI {
 
     public getEscape() {
         return this.escape;
+    }
+
+    private toggleElementHidden(id: string, editor?: Editor): boolean {
+        const element = document.getElementById(id) as HTMLElement;
+        element.hidden = !element.hidden;
+        if (!element.hidden && editor) {
+            editor.refresh();
+        }
+        return !element.hidden;
+    }
+
+    private setElementHidden(id: string): boolean {
+        const element = document.getElementById(id) as HTMLElement;
+        if (!element.hidden) {
+            element.hidden = true;
+        }
+        return element.hidden;
+    }
+
+    private setButtonOrSelectDisabled(id: string, disabled: boolean) {
+        const element = window.document.getElementById(id) as HTMLButtonElement | HTMLSelectElement;
+        element.disabled = disabled;
     }
 
     private async fnLoadScriptOrStyle(script: HTMLScriptElement | HTMLLinkElement): Promise<string> {
@@ -128,14 +151,14 @@ export class UI implements IUI {
         const outputText = document.getElementById("outputText") as HTMLPreElement;
         outputText.innerHTML += value;
         if (value.startsWith("<svg xmlns=")) {
-            this.setButtonDisabled("exportSvgButton", false);
+            this.setButtonOrSelectDisabled("exportSvgButton", false);
         }
     }
 
     public setOutputText(value: string): void {
         const outputText = document.getElementById("outputText") as HTMLPreElement;
         outputText.innerText = value;
-        this.setButtonDisabled("exportSvgButton", true);
+        this.setButtonOrSelectDisabled("exportSvgButton", true);
     }
 
     public getColor(color: string, background: boolean): string {
@@ -152,31 +175,46 @@ export class UI implements IUI {
         return input;
     }
 
-    public async speak(text: string, pitch: number): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            if (!window.speechSynthesis) {
-                reject(new Error("Speech synthesis is not supported in this browser."));
-                return;
-            }
+    private handleNotAllowedError(msg: SpeechSynthesisUtterance): void {
+        const speakFn = () => {
+            window.removeEventListener("click", speakFn);
+            window.removeEventListener("touchend", speakFn);
+            this.setElementHidden("startSpeechButton");
+            window.speechSynthesis.speak(msg);
+        };
+        // wait for user action and retry
+        this.toggleElementHidden("startSpeechButton");
+        window.addEventListener("click", speakFn);
+        window.addEventListener("touchend", speakFn); // maybe needed for iPhone
+    }
 
-            const msg = new SpeechSynthesisUtterance(text);
-            msg.pitch = pitch; //0 to 2
+    private getSpeechSynthesisUtterance() {
+        if (this.speechSynthesisUtterance) {
+            return this.speechSynthesisUtterance;
+        }
+        this.speechSynthesisUtterance = new SpeechSynthesisUtterance();
+        this.speechSynthesisUtterance.lang = document.documentElement.lang; // should be "en"
+        return this.speechSynthesisUtterance;
+    }
+
+    public async speak(text: string, pitch: number): Promise<void> {
+        const msg = this.getSpeechSynthesisUtterance();
+        msg.text = text;
+        msg.pitch = pitch; // 0 to 2
+    
+        return new Promise<void>((resolve, reject) => {
             msg.onend = () => resolve();
             msg.onerror = (event) => {
                 if (event.error === "not-allowed") {
-                    // Chrome needs user interaction
-                    window.addEventListener("click", () => {
-                        window.speechSynthesis.speak(msg);
-                    }
-                    , { once: true });
+                    this.handleNotAllowedError(msg);
                 } else {
                     reject(new Error(`Speech synthesis error: ${event.error}`));
                 }
-            }
+            };
             window.speechSynthesis.speak(msg);
-        })
+        });
     }
-
+    
     private updateConfigParameter(name: string, value: string | boolean) {
         const core = this.getCore();
         const configAsRecord = core.getConfigMap() as Record<string, unknown>;
@@ -193,16 +231,6 @@ export class UI implements IUI {
         history.pushState({}, "", url.href);
     }
 
-    private setButtonDisabled(id: string, disabled: boolean) {
-        const button = window.document.getElementById(id) as HTMLButtonElement;
-        button.disabled = disabled;
-    }
-
-    private setSelectDisabled(id: string, disabled: boolean) {
-        const element = window.document.getElementById(id) as HTMLSelectElement;
-        element.disabled = disabled;
-    }
-
     private hasCompiledError() {
         const compiledScript = this.compiledCm ? this.compiledCm.getValue() : "";
         const hasError = compiledScript.startsWith("ERROR:");
@@ -217,13 +245,13 @@ export class UI implements IUI {
             return;
         }
         
-        this.setAreaHidden("convertArea"); // to be sure for execute; TODO: hide area if clicked anywhere outside 
+        this.setElementHidden("convertArea"); // to be sure for execute; TODO: hide area if clicked anywhere outside 
 
-        this.setButtonDisabled("executeButton", true);
-        this.setButtonDisabled("stopButton", false);
-        this.setButtonDisabled("convertButton", true);
-        this.setSelectDisabled("databaseSelect", true);
-        this.setSelectDisabled("exampleSelect", true);
+        this.setButtonOrSelectDisabled("executeButton", true);
+        this.setButtonOrSelectDisabled("stopButton", false);
+        this.setButtonOrSelectDisabled("convertButton", true);
+        this.setButtonOrSelectDisabled("databaseSelect", true);
+        this.setButtonOrSelectDisabled("exampleSelect", true);
         this.escape = false;
         this.keyBuffer.length = 0;
         const outputText = document.getElementById("outputText") as HTMLPreElement;
@@ -231,11 +259,11 @@ export class UI implements IUI {
         const compiledScript = this.compiledCm ? this.compiledCm.getValue() : "";
         const output = await core.executeScript(compiledScript, this.vm) || "";
         outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
-        this.setButtonDisabled("executeButton", false);
-        this.setButtonDisabled("stopButton", true);
-        this.setButtonDisabled("convertButton", false);
-        this.setSelectDisabled("databaseSelect", false);
-        this.setSelectDisabled("exampleSelect", false);
+        this.setButtonOrSelectDisabled("executeButton", false);
+        this.setButtonOrSelectDisabled("stopButton", true);
+        this.setButtonOrSelectDisabled("convertButton", false);
+        this.setButtonOrSelectDisabled("databaseSelect", false);
+        this.setButtonOrSelectDisabled("exampleSelect", false);
         this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
     }
 
@@ -255,7 +283,7 @@ export class UI implements IUI {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onCompileButtonClick = (_event: Event): void => { // bound this
         const core = this.getCore();
-        this.setButtonDisabled("compileButton", true);
+        this.setButtonOrSelectDisabled("compileButton", true);
         const input = this.basicCm ? this.basicCm.getValue() : "";
         UI.asyncDelay(() => {
             const compiledScript = core.compileScript(input) || "";
@@ -263,9 +291,9 @@ export class UI implements IUI {
             if (this.compiledCm) {
                 this.compiledCm.setValue(compiledScript);
             }
-            this.setButtonDisabled("compileButton", false);
+            this.setButtonOrSelectDisabled("compileButton", false);
             if (!compiledScript.startsWith("ERROR:")) {
-                this.setButtonDisabled("labelRemoveButton", false);
+                this.setButtonOrSelectDisabled("labelRemoveButton", false);
             }
         }, 1);
     }
@@ -282,40 +310,23 @@ export class UI implements IUI {
         this.updateConfigParameter("autoExecute", autoExecuteInput.checked);
     }
 
-    private toggleAreaHidden(id: string, editor?: Editor): boolean {
-        const area = document.getElementById(id) as HTMLElement;
-        area.hidden = !area.hidden;
-        if (!area.hidden && editor) {
-            editor.refresh();
-        }
-        return !area.hidden;
-    }
-
-    private setAreaHidden(id: string): boolean {
-        const area = document.getElementById(id) as HTMLElement;
-        if (!area.hidden) {
-            area.hidden = true;
-        }
-        return area.hidden;
-    }
-
     private onShowOutputInputChange = (event: Event): void => { // bound this
         const showOutputInput = event.target as HTMLInputElement;
-        this.toggleAreaHidden("outputArea");
+        this.toggleElementHidden("outputArea");
 
         this.updateConfigParameter("showOutput", showOutputInput.checked);
     }
 
     private onShowBasicInputChange = (event: Event): void => { // bound this
         const showBasicInput = event.target as HTMLInputElement;
-        this.toggleAreaHidden("basicArea", this.basicCm);
+        this.toggleElementHidden("basicArea", this.basicCm);
 
         this.updateConfigParameter("showBasic", showBasicInput.checked);
     }
 
     private onShowCompiledInputChange = (event: Event): void => { // bound this
         const showCompiledInput = event.target as HTMLInputElement;
-        this.toggleAreaHidden("compiledArea", this.compiledCm);
+        this.toggleElementHidden("compiledArea", this.compiledCm);
 
         this.updateConfigParameter("showCompiled", showCompiledInput.checked);
     }
@@ -323,12 +334,12 @@ export class UI implements IUI {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onStopButtonClick = (_event: Event): void => { // bound this
         this.escape = true;
-        this.setButtonDisabled("stopButton", true);
+        this.setButtonOrSelectDisabled("stopButton", true);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onConvertButtonClick = (_event: Event): void => { // bound this
-        this.toggleAreaHidden("convertArea");
+        this.toggleElementHidden("convertArea");
     }
 
     private static addLabels(input: string) {
@@ -394,7 +405,7 @@ export class UI implements IUI {
     }
 
     private onBasicTextChange = async (): Promise<void> => { // bound this
-        this.setButtonDisabled("labelRemoveButton", true);
+        this.setButtonOrSelectDisabled("labelRemoveButton", true);
         const autoCompileInput = document.getElementById("autoCompileInput") as HTMLInputElement;
         if (autoCompileInput.checked) {
             const compileButton = window.document.getElementById("compileButton") as HTMLButtonElement;
