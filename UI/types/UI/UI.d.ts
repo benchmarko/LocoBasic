@@ -6,6 +6,7 @@ export declare class UI implements IUI {
     private compiledCm?;
     private readonly keyBuffer;
     private escape;
+    private initialUserAction;
     private fnOnKeyPressHandler;
     private speechSynthesisUtterance?;
     private static getErrorEvent?;
@@ -14,6 +15,7 @@ export declare class UI implements IUI {
     private static asyncDelay;
     private getCore;
     getEscape(): boolean;
+    setEscape(escape: boolean): void;
     private toggleElementHidden;
     private setElementHidden;
     private setButtonOrSelectDisabled;
@@ -29,11 +31,11 @@ export declare class UI implements IUI {
      * @returns A promise that resolves to the user input or null if canceled.
      */
     prompt(msg: string): string | null;
-    private handleNotAllowedError;
     private getSpeechSynthesisUtterance;
     speak(text: string, pitch: number): Promise<void>;
     private updateConfigParameter;
     private hasCompiledError;
+    private updateButtonStates;
     private onExecuteButtonClick;
     private onCompiledTextChange;
     private onCompileButtonClick;
@@ -67,6 +69,8 @@ export declare class UI implements IUI {
     checkSyntax(str: string): Promise<string>;
     private fnDecodeUri;
     private parseUri;
+    private initializeEditor;
+    private syncInputState;
     onWindowLoadContinue(core: ICore, vm: IVmAdmin): void;
 }
 //# sourceMappingURL=UI.d.ts.map

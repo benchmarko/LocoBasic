@@ -24,30 +24,38 @@ export class UI {
     constructor() {
         this.keyBuffer = []; // buffered pressed keys
         this.escape = false;
+        this.initialUserAction = false;
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onExecuteButtonClick = async (_event) => {
+            var _a;
             const core = this.getCore();
             if (!this.vm || this.hasCompiledError()) {
                 return;
             }
-            this.setElementHidden("convertArea"); // to be sure for execute; TODO: hide area if clicked anywhere outside 
-            this.setButtonOrSelectDisabled("executeButton", true);
-            this.setButtonOrSelectDisabled("stopButton", false);
-            this.setButtonOrSelectDisabled("convertButton", true);
-            this.setButtonOrSelectDisabled("databaseSelect", true);
-            this.setButtonOrSelectDisabled("exampleSelect", true);
-            this.escape = false;
+            this.setElementHidden("convertArea");
+            const buttonStates = {
+                executeButton: true,
+                stopButton: false,
+                convertButton: true,
+                databaseSelect: true,
+                exampleSelect: true
+            };
+            this.updateButtonStates(buttonStates);
+            this.setEscape(false);
             this.keyBuffer.length = 0;
             const outputText = document.getElementById("outputText");
             outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
-            const compiledScript = this.compiledCm ? this.compiledCm.getValue() : "";
+            // Execute the compiled script
+            const compiledScript = ((_a = this.compiledCm) === null || _a === void 0 ? void 0 : _a.getValue()) || "";
             const output = await core.executeScript(compiledScript, this.vm) || "";
             outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
-            this.setButtonOrSelectDisabled("executeButton", false);
-            this.setButtonOrSelectDisabled("stopButton", true);
-            this.setButtonOrSelectDisabled("convertButton", false);
-            this.setButtonOrSelectDisabled("databaseSelect", false);
-            this.setButtonOrSelectDisabled("exampleSelect", false);
+            this.updateButtonStates({
+                executeButton: false,
+                stopButton: true,
+                convertButton: false,
+                databaseSelect: false,
+                exampleSelect: false
+            });
             this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
         };
         this.onCompiledTextChange = () => {
@@ -103,8 +111,12 @@ export class UI {
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onStopButtonClick = (_event) => {
-            this.escape = true;
+            this.setEscape(true);
             this.setButtonOrSelectDisabled("stopButton", true);
+            const startSpeechButton = window.document.getElementById("startSpeechButton");
+            if (!startSpeechButton.hidden) {
+                startSpeechButton.dispatchEvent(new Event("click"));
+            }
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onConvertButtonClick = (_event) => {
@@ -227,6 +239,14 @@ export class UI {
     getEscape() {
         return this.escape;
     }
+    setEscape(escape) {
+        this.escape = escape;
+        if (escape) {
+            if (this.speechSynthesisUtterance && this.speechSynthesisUtterance.text) {
+                window.speechSynthesis.cancel();
+            }
+        }
+    }
     toggleElementHidden(id, editor) {
         const element = document.getElementById(id);
         element.hidden = !element.hidden;
@@ -301,39 +321,35 @@ export class UI {
         const input = window.prompt(msg);
         return input;
     }
-    handleNotAllowedError(msg) {
-        const speakFn = () => {
-            window.removeEventListener("click", speakFn);
-            window.removeEventListener("touchend", speakFn);
-            this.setElementHidden("startSpeechButton");
-            window.speechSynthesis.speak(msg);
-        };
-        // wait for user action and retry
-        this.toggleElementHidden("startSpeechButton");
-        window.addEventListener("click", speakFn);
-        window.addEventListener("touchend", speakFn); // maybe needed for iPhone
-    }
-    getSpeechSynthesisUtterance() {
+    async getSpeechSynthesisUtterance() {
         if (this.speechSynthesisUtterance) {
             return this.speechSynthesisUtterance;
         }
         this.speechSynthesisUtterance = new SpeechSynthesisUtterance();
         this.speechSynthesisUtterance.lang = document.documentElement.lang; // should be "en"
-        return this.speechSynthesisUtterance;
+        if (this.initialUserAction) {
+            return this.speechSynthesisUtterance;
+        }
+        this.toggleElementHidden("startSpeechButton");
+        const startSpeechButton = window.document.getElementById("startSpeechButton");
+        return new Promise((resolve) => {
+            startSpeechButton.addEventListener("click", () => {
+                this.setElementHidden("startSpeechButton");
+                resolve(this.speechSynthesisUtterance);
+            }, { once: true });
+        });
     }
     async speak(text, pitch) {
-        const msg = this.getSpeechSynthesisUtterance();
+        const msg = await this.getSpeechSynthesisUtterance();
+        if (this.getEscape()) { // program already escaped? 
+            return Promise.reject("Speech canceled.");
+        }
         msg.text = text;
         msg.pitch = pitch; // 0 to 2
         return new Promise((resolve, reject) => {
             msg.onend = () => resolve();
             msg.onerror = (event) => {
-                if (event.error === "not-allowed") {
-                    this.handleNotAllowedError(msg);
-                }
-                else {
-                    reject(new Error(`Speech synthesis error: ${event.error}`));
-                }
+                reject(new Error(`Speech synthesis: ${event.error}`));
             };
             window.speechSynthesis.speak(msg);
         });
@@ -357,6 +373,12 @@ export class UI {
         const hasError = compiledScript.startsWith("ERROR:");
         this.setOutputText(hasError ? compiledScript : "");
         return hasError;
+    }
+    // Helper function to update button states
+    updateButtonStates(states) {
+        Object.entries(states).forEach(([id, disabled]) => {
+            this.setButtonOrSelectDisabled(id, disabled);
+        });
     }
     static addLabels(input) {
         const lineParts = input.split("\n");
@@ -472,7 +494,7 @@ export class UI {
     onOutputTextKeydown(event) {
         const key = event.key;
         if (key === "Escape") {
-            this.escape = true;
+            this.setEscape(true);
         }
         else if (key === "Enter") {
             this.putKeyInBuffer("\x0d");
@@ -560,6 +582,22 @@ export class UI {
         }
         return args;
     }
+    initializeEditor(editorId, mode, changeHandler, debounceDelay) {
+        const editorElement = window.document.getElementById(editorId);
+        const editor = window.CodeMirror(editorElement, {
+            lineNumbers: true,
+            mode,
+        });
+        editor.on("changes", this.debounce(changeHandler, () => debounceDelay)); // changeHandler.bind(this)
+        return editor;
+    }
+    syncInputState(inputId, configValue) {
+        const input = window.document.getElementById(inputId);
+        if (input.checked !== configValue) {
+            input.checked = configValue;
+            input.dispatchEvent(new Event("change"));
+        }
+    }
     onWindowLoadContinue(core, vm) {
         this.core = core;
         this.vm = vm;
@@ -567,87 +605,70 @@ export class UI {
         const args = this.parseUri(config);
         core.parseArgs(args, config);
         core.setOnCheckSyntax((s) => Promise.resolve(this.checkSyntax(s)));
-        const compileButton = window.document.getElementById("compileButton");
-        compileButton.addEventListener("click", this.onCompileButtonClick, false);
-        const executeButton = window.document.getElementById("executeButton");
-        executeButton.addEventListener("click", this.onExecuteButtonClick, false);
-        const stopButton = window.document.getElementById("stopButton");
-        stopButton.addEventListener("click", this.onStopButtonClick, false);
-        const convertButton = window.document.getElementById("convertButton");
-        convertButton.addEventListener("click", this.onConvertButtonClick, false);
-        const labelAddButton = window.document.getElementById("labelAddButton");
-        labelAddButton.addEventListener("click", this.onLabelAddButtonClick, false);
-        const labelRemoveButton = window.document.getElementById("labelRemoveButton");
-        labelRemoveButton.addEventListener("click", this.onLabelRemoveButtonClick, false);
-        const autoCompileInput = window.document.getElementById("autoCompileInput");
-        autoCompileInput.addEventListener("change", this.onAutoCompileInputChange, false);
-        const autoExecuteInput = window.document.getElementById("autoExecuteInput");
-        autoExecuteInput.addEventListener("change", this.onAutoExecuteInputChange, false);
-        const showOutputInput = window.document.getElementById("showOutputInput");
-        showOutputInput.addEventListener("change", this.onShowOutputInputChange, false);
-        const showBasicInput = window.document.getElementById("showBasicInput");
-        showBasicInput.addEventListener("change", this.onShowBasicInputChange, false);
-        const showCompiledInput = window.document.getElementById("showCompiledInput");
-        showCompiledInput.addEventListener("change", this.onShowCompiledInputChange, false);
-        const databaseSelect = window.document.getElementById("databaseSelect");
-        databaseSelect.addEventListener("change", this.onDatabaseSelectChange);
-        const exampleSelect = window.document.getElementById("exampleSelect");
-        exampleSelect.addEventListener("change", this.onExampleSelectChange);
-        const helpButton = window.document.getElementById("helpButton");
-        helpButton.addEventListener("click", this.onHelpButtonClick);
-        const exportSvgButton = window.document.getElementById("exportSvgButton");
-        exportSvgButton.addEventListener("click", this.onExportSvgButtonClick);
+        // Map of element IDs to event handlers
+        const buttonHandlers = {
+            compileButton: this.onCompileButtonClick,
+            executeButton: this.onExecuteButtonClick,
+            stopButton: this.onStopButtonClick,
+            convertButton: this.onConvertButtonClick,
+            labelAddButton: this.onLabelAddButtonClick,
+            labelRemoveButton: this.onLabelRemoveButtonClick,
+            helpButton: this.onHelpButtonClick,
+            exportSvgButton: this.onExportSvgButtonClick,
+        };
+        const inputAndSelectHandlers = {
+            autoCompileInput: this.onAutoCompileInputChange,
+            autoExecuteInput: this.onAutoExecuteInputChange,
+            showOutputInput: this.onShowOutputInputChange,
+            showBasicInput: this.onShowBasicInputChange,
+            showCompiledInput: this.onShowCompiledInputChange,
+            databaseSelect: this.onDatabaseSelectChange,
+            exampleSelect: this.onExampleSelectChange,
+        };
+        // Attach event listeners for buttons
+        Object.entries(buttonHandlers).forEach(([id, handler]) => {
+            const element = window.document.getElementById(id);
+            element.addEventListener("click", handler, false);
+        });
+        // Attach event listeners for inputs or selects
+        Object.entries(inputAndSelectHandlers).forEach(([id, handler]) => {
+            const element = window.document.getElementById(id);
+            element.addEventListener("change", handler, false); // handler.bind(this)
+        });
+        // Initialize CodeMirror editors
         const WinCodeMirror = window.CodeMirror;
         if (WinCodeMirror) {
             const getModeFn = LocoBasicMode.getMode;
             WinCodeMirror.defineMode("lbasic", getModeFn);
-            const basicEditor = window.document.getElementById("basicEditor");
-            this.basicCm = WinCodeMirror(basicEditor, {
-                lineNumbers: true,
-                mode: "lbasic"
-            });
-            this.basicCm.on("changes", this.debounce(this.onBasicTextChange, () => config.debounceCompile));
-            const compiledEditor = window.document.getElementById("compiledEditor");
-            this.compiledCm = WinCodeMirror(compiledEditor, {
-                lineNumbers: true,
-                mode: "javascript"
-            });
-            this.compiledCm.on("changes", this.debounce(this.onCompiledTextChange, () => config.debounceExecute));
+            this.basicCm = this.initializeEditor("basicEditor", "lbasic", this.onBasicTextChange, config.debounceCompile);
+            this.compiledCm = this.initializeEditor("compiledEditor", "javascript", this.onCompiledTextChange, config.debounceExecute);
         }
-        // if the user navigate back...
+        // Handle browser navigation (popstate)
         window.addEventListener("popstate", (event) => {
             if (event.state) {
-                Object.assign(config, core.getDefaultConfigMap); // load defaults
+                Object.assign(config, core.getDefaultConfigMap()); // load defaults
                 const args = this.parseUri(config);
                 core.parseArgs(args, config);
+                const databaseSelect = window.document.getElementById("databaseSelect");
                 databaseSelect.dispatchEvent(new Event("change"));
             }
         });
-        if (showOutputInput.checked !== config.showOutput) {
-            showOutputInput.checked = config.showOutput;
-            showOutputInput.dispatchEvent(new Event("change"));
-        }
-        if (showBasicInput.checked !== config.showBasic) {
-            showBasicInput.checked = config.showBasic;
-            showBasicInput.dispatchEvent(new Event("change"));
-        }
-        if (showCompiledInput.checked !== config.showCompiled) {
-            showCompiledInput.checked = config.showCompiled;
-            showCompiledInput.dispatchEvent(new Event("change"));
-        }
-        if (autoCompileInput.checked !== config.autoCompile) {
-            autoCompileInput.checked = config.autoCompile;
-            autoCompileInput.dispatchEvent(new Event("change"));
-        }
-        if (autoExecuteInput.checked !== config.autoExecute) {
-            autoExecuteInput.checked = config.autoExecute;
-            autoExecuteInput.dispatchEvent(new Event("change"));
-        }
+        // Sync UI state with config
+        this.syncInputState("showOutputInput", config.showOutput);
+        this.syncInputState("showBasicInput", config.showBasic);
+        this.syncInputState("showCompiledInput", config.showCompiled);
+        this.syncInputState("autoCompileInput", config.autoCompile);
+        this.syncInputState("autoExecuteInput", config.autoExecute);
+        window.document.addEventListener("click", () => {
+            this.initialUserAction = true;
+        }, { once: true });
+        // Initialize database and examples
         UI.asyncDelay(() => {
             const databaseMap = core.initDatabaseMap();
             this.setDatabaseSelectOptions(databaseMap, config.database);
             const url = window.location.href;
             history.replaceState({}, "", url);
+            const databaseSelect = window.document.getElementById("databaseSelect");
             databaseSelect.dispatchEvent(new Event("change"));
         }, 10);
     }
