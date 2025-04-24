@@ -48,6 +48,7 @@ export class UI implements IUI {
     private compiledCm?: Editor;
     private readonly keyBuffer: string[] = []; // buffered pressed keys
     private escape = false;
+    private initialUserAction = false;
     private fnOnKeyPressHandler: (event: KeyboardEvent) => void;
     private speechSynthesisUtterance?: SpeechSynthesisUtterance;
 
@@ -85,6 +86,15 @@ export class UI implements IUI {
 
     public getEscape() {
         return this.escape;
+    }
+
+    public setEscape(escape: boolean) {
+        this.escape = escape;
+        if (escape) {
+            if (this.speechSynthesisUtterance && this.speechSynthesisUtterance.text) {
+                window.speechSynthesis.cancel();
+            }
+        }
     }
 
     private toggleElementHidden(id: string, editor?: Editor): boolean {
@@ -175,42 +185,40 @@ export class UI implements IUI {
         return input;
     }
 
-    private handleNotAllowedError(msg: SpeechSynthesisUtterance): void {
-        const speakFn = () => {
-            window.removeEventListener("click", speakFn);
-            window.removeEventListener("touchend", speakFn);
-            this.setElementHidden("startSpeechButton");
-            window.speechSynthesis.speak(msg);
-        };
-        // wait for user action and retry
-        this.toggleElementHidden("startSpeechButton");
-        window.addEventListener("click", speakFn);
-        window.addEventListener("touchend", speakFn); // maybe needed for iPhone
-    }
-
-    private getSpeechSynthesisUtterance() {
+    private async getSpeechSynthesisUtterance() {
         if (this.speechSynthesisUtterance) {
             return this.speechSynthesisUtterance;
         }
         this.speechSynthesisUtterance = new SpeechSynthesisUtterance();
         this.speechSynthesisUtterance.lang = document.documentElement.lang; // should be "en"
-        return this.speechSynthesisUtterance;
+        if (this.initialUserAction) {
+            return this.speechSynthesisUtterance;
+        }
+
+        this.toggleElementHidden("startSpeechButton");
+        const startSpeechButton = window.document.getElementById("startSpeechButton") as HTMLButtonElement;
+        return new Promise<SpeechSynthesisUtterance>((resolve) => {
+            startSpeechButton.addEventListener("click", () => {
+                this.setElementHidden("startSpeechButton");
+                resolve(this.speechSynthesisUtterance as SpeechSynthesisUtterance);
+            }, { once: true });
+        });
     }
 
     public async speak(text: string, pitch: number): Promise<void> {
-        const msg = this.getSpeechSynthesisUtterance();
+        const msg = await this.getSpeechSynthesisUtterance();
+        if (this.getEscape()) { // program already escaped? 
+            return Promise.reject("Speech canceled.");
+        }
         msg.text = text;
         msg.pitch = pitch; // 0 to 2
     
         return new Promise<void>((resolve, reject) => {
             msg.onend = () => resolve();
             msg.onerror = (event) => {
-                if (event.error === "not-allowed") {
-                    this.handleNotAllowedError(msg);
-                } else {
-                    reject(new Error(`Speech synthesis error: ${event.error}`));
-                }
+                reject(new Error(`Speech synthesis: ${event.error}`));
             };
+
             window.speechSynthesis.speak(msg);
         });
     }
@@ -238,34 +246,53 @@ export class UI implements IUI {
         return hasError;
     }
 
+    // Helper function to update button states
+    private updateButtonStates(states: Record<string, boolean>): void {
+        Object.entries(states).forEach(([id, disabled]) => {
+            this.setButtonOrSelectDisabled(id, disabled);
+        });
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    private onExecuteButtonClick = async (_event: Event): Promise<void> => { // bound this
+    private onExecuteButtonClick = async (_event: Event): Promise<void> => {
         const core = this.getCore();
         if (!this.vm || this.hasCompiledError()) {
             return;
         }
-        
-        this.setElementHidden("convertArea"); // to be sure for execute; TODO: hide area if clicked anywhere outside 
-
-        this.setButtonOrSelectDisabled("executeButton", true);
-        this.setButtonOrSelectDisabled("stopButton", false);
-        this.setButtonOrSelectDisabled("convertButton", true);
-        this.setButtonOrSelectDisabled("databaseSelect", true);
-        this.setButtonOrSelectDisabled("exampleSelect", true);
-        this.escape = false;
+    
+        this.setElementHidden("convertArea");
+    
+        const buttonStates = {
+            executeButton: true,
+            stopButton: false,
+            convertButton: true,
+            databaseSelect: true,
+            exampleSelect: true
+        };
+        this.updateButtonStates(buttonStates);
+    
+        this.setEscape(false);
         this.keyBuffer.length = 0;
+    
         const outputText = document.getElementById("outputText") as HTMLPreElement;
         outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
-        const compiledScript = this.compiledCm ? this.compiledCm.getValue() : "";
+    
+        // Execute the compiled script
+        const compiledScript = this.compiledCm?.getValue() || "";
         const output = await core.executeScript(compiledScript, this.vm) || "";
+    
         outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
-        this.setButtonOrSelectDisabled("executeButton", false);
-        this.setButtonOrSelectDisabled("stopButton", true);
-        this.setButtonOrSelectDisabled("convertButton", false);
-        this.setButtonOrSelectDisabled("databaseSelect", false);
-        this.setButtonOrSelectDisabled("exampleSelect", false);
+    
+        this.updateButtonStates({
+            executeButton: false,
+            stopButton: true,
+            convertButton: false,
+            databaseSelect: false,
+            exampleSelect: false
+        });
+    
         this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
-    }
+    };
 
     private onCompiledTextChange = (): void => { // bound this
         if (this.hasCompiledError()) {
@@ -333,8 +360,12 @@ export class UI implements IUI {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onStopButtonClick = (_event: Event): void => { // bound this
-        this.escape = true;
+        this.setEscape(true);
         this.setButtonOrSelectDisabled("stopButton", true);
+        const startSpeechButton = window.document.getElementById("startSpeechButton") as HTMLButtonElement;
+        if (!startSpeechButton.hidden) {
+            startSpeechButton.dispatchEvent(new Event("click"));
+        }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -400,8 +431,6 @@ export class UI implements IUI {
         if (output && output !== input) {
             this.basicCm!.setValue(output);
         }
-
-
     }
 
     private onBasicTextChange = async (): Promise<void> => { // bound this
@@ -584,7 +613,7 @@ export class UI implements IUI {
     private onOutputTextKeydown(event: KeyboardEvent): void {
         const key = event.key;
         if (key === "Escape") {
-            this.escape = true;
+            this.setEscape(true);
         } else if (key === "Enter") {
             this.putKeyInBuffer("\x0d");
             event.preventDefault();
@@ -690,6 +719,29 @@ export class UI implements IUI {
         return args;
     }
 
+    private initializeEditor(
+        editorId: string,
+        mode: string,
+        changeHandler: () => void,
+        debounceDelay: number
+    ): Editor {
+        const editorElement = window.document.getElementById(editorId) as HTMLElement;
+        const editor = window.CodeMirror(editorElement, {
+            lineNumbers: true,
+            mode,
+        });
+        editor.on("changes", this.debounce(changeHandler, () => debounceDelay)); // changeHandler.bind(this)
+        return editor;
+    }
+    
+    private syncInputState(inputId: string, configValue: boolean): void {
+        const input = window.document.getElementById(inputId) as HTMLInputElement;
+        if (input.checked !== configValue) {
+            input.checked = configValue;
+            input.dispatchEvent(new Event("change"));
+        }
+    }
+
     public onWindowLoadContinue(core: ICore, vm: IVmAdmin): void {
         this.core = core;
         this.vm = vm;
@@ -697,112 +749,80 @@ export class UI implements IUI {
         const args = this.parseUri(config);
         core.parseArgs(args, config);
         core.setOnCheckSyntax((s: string) => Promise.resolve(this.checkSyntax(s)));
-
-        const compileButton = window.document.getElementById("compileButton") as HTMLButtonElement;
-        compileButton.addEventListener("click", this.onCompileButtonClick, false);
-
-        const executeButton = window.document.getElementById("executeButton") as HTMLButtonElement;
-        executeButton.addEventListener("click", this.onExecuteButtonClick, false);
-
-        const stopButton = window.document.getElementById("stopButton") as HTMLButtonElement;
-        stopButton.addEventListener("click", this.onStopButtonClick, false);
-
-        const convertButton = window.document.getElementById("convertButton") as HTMLButtonElement;
-        convertButton.addEventListener("click", this.onConvertButtonClick, false);
-
-        const labelAddButton = window.document.getElementById("labelAddButton") as HTMLButtonElement;
-        labelAddButton.addEventListener("click", this.onLabelAddButtonClick, false);
-        
-        const labelRemoveButton = window.document.getElementById("labelRemoveButton") as HTMLButtonElement;
-        labelRemoveButton.addEventListener("click", this.onLabelRemoveButtonClick, false);
-        
-        const autoCompileInput = window.document.getElementById("autoCompileInput") as HTMLInputElement;
-        autoCompileInput.addEventListener("change", this.onAutoCompileInputChange, false);
-
-        const autoExecuteInput = window.document.getElementById("autoExecuteInput") as HTMLInputElement;
-        autoExecuteInput.addEventListener("change", this.onAutoExecuteInputChange, false);
-
-        const showOutputInput = window.document.getElementById("showOutputInput") as HTMLInputElement;
-        showOutputInput.addEventListener("change", this.onShowOutputInputChange, false);
-
-        const showBasicInput = window.document.getElementById("showBasicInput") as HTMLInputElement;
-        showBasicInput.addEventListener("change", this.onShowBasicInputChange, false);
-
-        const showCompiledInput = window.document.getElementById("showCompiledInput") as HTMLInputElement;
-        showCompiledInput.addEventListener("change", this.onShowCompiledInputChange, false);
-
-        const databaseSelect = window.document.getElementById("databaseSelect") as HTMLSelectElement;
-        databaseSelect.addEventListener("change", this.onDatabaseSelectChange);
-
-        const exampleSelect = window.document.getElementById("exampleSelect") as HTMLSelectElement;
-        exampleSelect.addEventListener("change", this.onExampleSelectChange);
-
-        const helpButton = window.document.getElementById("helpButton") as HTMLButtonElement;
-        helpButton.addEventListener("click", this.onHelpButtonClick);
-
-        const exportSvgButton = window.document.getElementById("exportSvgButton") as HTMLButtonElement;
-        exportSvgButton.addEventListener("click", this.onExportSvgButtonClick);
-
+    
+        // Map of element IDs to event handlers
+        const buttonHandlers: Record<string, EventListener> = {
+            compileButton: this.onCompileButtonClick,
+            executeButton: this.onExecuteButtonClick,
+            stopButton: this.onStopButtonClick,
+            convertButton: this.onConvertButtonClick,
+            labelAddButton: this.onLabelAddButtonClick,
+            labelRemoveButton: this.onLabelRemoveButtonClick,
+            helpButton: this.onHelpButtonClick,
+            exportSvgButton: this.onExportSvgButtonClick,
+        };
+    
+        const inputAndSelectHandlers: Record<string, EventListener> = {
+            autoCompileInput: this.onAutoCompileInputChange,
+            autoExecuteInput: this.onAutoExecuteInputChange,
+            showOutputInput: this.onShowOutputInputChange,
+            showBasicInput: this.onShowBasicInputChange,
+            showCompiledInput: this.onShowCompiledInputChange,
+            databaseSelect: this.onDatabaseSelectChange,
+            exampleSelect: this.onExampleSelectChange,
+        };
+    
+        // Attach event listeners for buttons
+        Object.entries(buttonHandlers).forEach(([id, handler]) => {
+            const element = window.document.getElementById(id) as HTMLButtonElement;
+            element.addEventListener("click", handler, false);
+        });
+    
+        // Attach event listeners for inputs or selects
+        Object.entries(inputAndSelectHandlers).forEach(([id, handler]) => {
+            const element = window.document.getElementById(id) as HTMLInputElement | HTMLSelectElement;
+            element.addEventListener("change", handler, false); // handler.bind(this)
+        });
+    
+        // Initialize CodeMirror editors
         const WinCodeMirror = window.CodeMirror;
         if (WinCodeMirror) {
             const getModeFn = LocoBasicMode.getMode;
             WinCodeMirror.defineMode("lbasic", getModeFn);
-
-            const basicEditor = window.document.getElementById("basicEditor") as HTMLElement;
-            this.basicCm = WinCodeMirror(basicEditor, {
-                lineNumbers: true,
-                mode: "lbasic"
-            });
-            this.basicCm.on("changes", this.debounce(this.onBasicTextChange, () => config.debounceCompile));
-
-            const compiledEditor = window.document.getElementById("compiledEditor") as HTMLElement;
-            this.compiledCm = WinCodeMirror(compiledEditor, {
-                lineNumbers: true,
-                mode: "javascript"
-            });
-            this.compiledCm.on("changes", this.debounce(this.onCompiledTextChange, () => config.debounceExecute));
+    
+            this.basicCm = this.initializeEditor("basicEditor", "lbasic", this.onBasicTextChange, config.debounceCompile);
+            this.compiledCm = this.initializeEditor("compiledEditor", "javascript", this.onCompiledTextChange, config.debounceExecute);
         }
-
-        // if the user navigate back...
+    
+        // Handle browser navigation (popstate)
         window.addEventListener("popstate", (event: PopStateEvent) => {
             if (event.state) {
-                Object.assign(config, core.getDefaultConfigMap); // load defaults
+                Object.assign(config, core.getDefaultConfigMap()); // load defaults
                 const args = this.parseUri(config);
                 core.parseArgs(args, config);
+                const databaseSelect = window.document.getElementById("databaseSelect") as HTMLSelectElement;
                 databaseSelect.dispatchEvent(new Event("change"));
             }
         });
-
-        if (showOutputInput.checked !== config.showOutput) {
-            showOutputInput.checked = config.showOutput;
-            showOutputInput.dispatchEvent(new Event("change"));
-        }
-
-        if (showBasicInput.checked !== config.showBasic) {
-            showBasicInput.checked = config.showBasic;
-            showBasicInput.dispatchEvent(new Event("change"));
-        }
-
-        if (showCompiledInput.checked !== config.showCompiled) {
-            showCompiledInput.checked = config.showCompiled;
-            showCompiledInput.dispatchEvent(new Event("change"));
-        }
-
-        if (autoCompileInput.checked !== config.autoCompile) {
-            autoCompileInput.checked = config.autoCompile;
-            autoCompileInput.dispatchEvent(new Event("change"));
-        }
-
-        if (autoExecuteInput.checked !== config.autoExecute) {
-            autoExecuteInput.checked = config.autoExecute;
-            autoExecuteInput.dispatchEvent(new Event("change"));
-        }
-
+    
+        // Sync UI state with config
+        this.syncInputState("showOutputInput", config.showOutput);
+        this.syncInputState("showBasicInput", config.showBasic);
+        this.syncInputState("showCompiledInput", config.showCompiled);
+        this.syncInputState("autoCompileInput", config.autoCompile);
+        this.syncInputState("autoExecuteInput", config.autoExecute);
+    
+        window.document.addEventListener("click", () => {
+            this.initialUserAction = true;
+        }, { once: true });
+            
+        // Initialize database and examples
         UI.asyncDelay(() => {
             const databaseMap = core.initDatabaseMap();
             this.setDatabaseSelectOptions(databaseMap, config.database);
             const url = window.location.href;
             history.replaceState({}, "", url);
+            const databaseSelect = window.document.getElementById("databaseSelect") as HTMLSelectElement;
             databaseSelect.dispatchEvent(new Event("change"));
         }, 10);
     }
