@@ -135,12 +135,12 @@
                 if (!this.vm || this.hasCompiledError()) {
                     return;
                 }
-                this.setAreaHidden("convertArea"); // to be sure for execute; TODO: hide area if clicked anywhere outside 
-                this.setButtonDisabled("executeButton", true);
-                this.setButtonDisabled("stopButton", false);
-                this.setButtonDisabled("convertButton", true);
-                this.setSelectDisabled("databaseSelect", true);
-                this.setSelectDisabled("exampleSelect", true);
+                this.setElementHidden("convertArea"); // to be sure for execute; TODO: hide area if clicked anywhere outside 
+                this.setButtonOrSelectDisabled("executeButton", true);
+                this.setButtonOrSelectDisabled("stopButton", false);
+                this.setButtonOrSelectDisabled("convertButton", true);
+                this.setButtonOrSelectDisabled("databaseSelect", true);
+                this.setButtonOrSelectDisabled("exampleSelect", true);
                 this.escape = false;
                 this.keyBuffer.length = 0;
                 const outputText = document.getElementById("outputText");
@@ -148,11 +148,11 @@
                 const compiledScript = this.compiledCm ? this.compiledCm.getValue() : "";
                 const output = await core.executeScript(compiledScript, this.vm) || "";
                 outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
-                this.setButtonDisabled("executeButton", false);
-                this.setButtonDisabled("stopButton", true);
-                this.setButtonDisabled("convertButton", false);
-                this.setSelectDisabled("databaseSelect", false);
-                this.setSelectDisabled("exampleSelect", false);
+                this.setButtonOrSelectDisabled("executeButton", false);
+                this.setButtonOrSelectDisabled("stopButton", true);
+                this.setButtonOrSelectDisabled("convertButton", false);
+                this.setButtonOrSelectDisabled("databaseSelect", false);
+                this.setButtonOrSelectDisabled("exampleSelect", false);
                 this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
             };
             this.onCompiledTextChange = () => {
@@ -170,16 +170,16 @@
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onCompileButtonClick = (_event) => {
                 const core = this.getCore();
-                this.setButtonDisabled("compileButton", true);
+                this.setButtonOrSelectDisabled("compileButton", true);
                 const input = this.basicCm ? this.basicCm.getValue() : "";
                 UI.asyncDelay(() => {
                     const compiledScript = core.compileScript(input) || "";
                     if (this.compiledCm) {
                         this.compiledCm.setValue(compiledScript);
                     }
-                    this.setButtonDisabled("compileButton", false);
+                    this.setButtonOrSelectDisabled("compileButton", false);
                     if (!compiledScript.startsWith("ERROR:")) {
-                        this.setButtonDisabled("labelRemoveButton", false);
+                        this.setButtonOrSelectDisabled("labelRemoveButton", false);
                     }
                 }, 1);
             };
@@ -193,27 +193,27 @@
             };
             this.onShowOutputInputChange = (event) => {
                 const showOutputInput = event.target;
-                this.toggleAreaHidden("outputArea");
+                this.toggleElementHidden("outputArea");
                 this.updateConfigParameter("showOutput", showOutputInput.checked);
             };
             this.onShowBasicInputChange = (event) => {
                 const showBasicInput = event.target;
-                this.toggleAreaHidden("basicArea", this.basicCm);
+                this.toggleElementHidden("basicArea", this.basicCm);
                 this.updateConfigParameter("showBasic", showBasicInput.checked);
             };
             this.onShowCompiledInputChange = (event) => {
                 const showCompiledInput = event.target;
-                this.toggleAreaHidden("compiledArea", this.compiledCm);
+                this.toggleElementHidden("compiledArea", this.compiledCm);
                 this.updateConfigParameter("showCompiled", showCompiledInput.checked);
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onStopButtonClick = (_event) => {
                 this.escape = true;
-                this.setButtonDisabled("stopButton", true);
+                this.setButtonOrSelectDisabled("stopButton", true);
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onConvertButtonClick = (_event) => {
-                this.toggleAreaHidden("convertArea");
+                this.toggleElementHidden("convertArea");
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onLabelAddButtonClick = (_event) => {
@@ -241,7 +241,7 @@
                 }
             };
             this.onBasicTextChange = async () => {
-                this.setButtonDisabled("labelRemoveButton", true);
+                this.setButtonOrSelectDisabled("labelRemoveButton", true);
                 const autoCompileInput = document.getElementById("autoCompileInput");
                 if (autoCompileInput.checked) {
                     const compileButton = window.document.getElementById("compileButton");
@@ -332,6 +332,25 @@
         getEscape() {
             return this.escape;
         }
+        toggleElementHidden(id, editor) {
+            const element = document.getElementById(id);
+            element.hidden = !element.hidden;
+            if (!element.hidden && editor) {
+                editor.refresh();
+            }
+            return !element.hidden;
+        }
+        setElementHidden(id) {
+            const element = document.getElementById(id);
+            if (!element.hidden) {
+                element.hidden = true;
+            }
+            return element.hidden;
+        }
+        setButtonOrSelectDisabled(id, disabled) {
+            const element = window.document.getElementById(id);
+            element.disabled = disabled;
+        }
         async fnLoadScriptOrStyle(script) {
             return new Promise((resolve, reject) => {
                 const onScriptLoad = function (event) {
@@ -367,13 +386,13 @@
             const outputText = document.getElementById("outputText");
             outputText.innerHTML += value;
             if (value.startsWith("<svg xmlns=")) {
-                this.setButtonDisabled("exportSvgButton", false);
+                this.setButtonOrSelectDisabled("exportSvgButton", false);
             }
         }
         setOutputText(value) {
             const outputText = document.getElementById("outputText");
             outputText.innerText = value;
-            this.setButtonDisabled("exportSvgButton", true);
+            this.setButtonOrSelectDisabled("exportSvgButton", true);
         }
         getColor(color, background) {
             return `<span style="${background ? 'background-color' : 'color'}: ${color}">`;
@@ -387,21 +406,35 @@
             const input = window.prompt(msg);
             return input;
         }
+        handleNotAllowedError(msg) {
+            const speakFn = () => {
+                window.removeEventListener("click", speakFn);
+                window.removeEventListener("touchend", speakFn);
+                this.setElementHidden("startSpeechButton");
+                window.speechSynthesis.speak(msg);
+            };
+            // wait for user action and retry
+            this.toggleElementHidden("startSpeechButton");
+            window.addEventListener("click", speakFn);
+            window.addEventListener("touchend", speakFn); // maybe needed for iPhone
+        }
+        getSpeechSynthesisUtterance() {
+            if (this.speechSynthesisUtterance) {
+                return this.speechSynthesisUtterance;
+            }
+            this.speechSynthesisUtterance = new SpeechSynthesisUtterance();
+            this.speechSynthesisUtterance.lang = document.documentElement.lang; // should be "en"
+            return this.speechSynthesisUtterance;
+        }
         async speak(text, pitch) {
+            const msg = this.getSpeechSynthesisUtterance();
+            msg.text = text;
+            msg.pitch = pitch; // 0 to 2
             return new Promise((resolve, reject) => {
-                if (!window.speechSynthesis) {
-                    reject(new Error("Speech synthesis is not supported in this browser."));
-                    return;
-                }
-                const msg = new SpeechSynthesisUtterance(text);
-                msg.pitch = pitch; //0 to 2
                 msg.onend = () => resolve();
                 msg.onerror = (event) => {
                     if (event.error === "not-allowed") {
-                        // Chrome needs user interaction
-                        window.addEventListener("click", () => {
-                            window.speechSynthesis.speak(msg);
-                        }, { once: true });
+                        this.handleNotAllowedError(msg);
                     }
                     else {
                         reject(new Error(`Speech synthesis error: ${event.error}`));
@@ -424,34 +457,11 @@
             }
             history.pushState({}, "", url.href);
         }
-        setButtonDisabled(id, disabled) {
-            const button = window.document.getElementById(id);
-            button.disabled = disabled;
-        }
-        setSelectDisabled(id, disabled) {
-            const element = window.document.getElementById(id);
-            element.disabled = disabled;
-        }
         hasCompiledError() {
             const compiledScript = this.compiledCm ? this.compiledCm.getValue() : "";
             const hasError = compiledScript.startsWith("ERROR:");
             this.setOutputText(hasError ? compiledScript : "");
             return hasError;
-        }
-        toggleAreaHidden(id, editor) {
-            const area = document.getElementById(id);
-            area.hidden = !area.hidden;
-            if (!area.hidden && editor) {
-                editor.refresh();
-            }
-            return !area.hidden;
-        }
-        setAreaHidden(id) {
-            const area = document.getElementById(id);
-            if (!area.hidden) {
-                area.hidden = true;
-            }
-            return area.hidden;
         }
         static addLabels(input) {
             const lineParts = input.split("\n");

@@ -7,12 +7,16 @@ export declare class UI implements IUI {
     private readonly keyBuffer;
     private escape;
     private fnOnKeyPressHandler;
+    private speechSynthesisUtterance?;
     private static getErrorEvent?;
     constructor();
     private debounce;
     private static asyncDelay;
     private getCore;
     getEscape(): boolean;
+    private toggleElementHidden;
+    private setElementHidden;
+    private setButtonOrSelectDisabled;
     private fnLoadScriptOrStyle;
     private loadScript;
     getCurrentDataKey(): string;
@@ -25,18 +29,16 @@ export declare class UI implements IUI {
      * @returns A promise that resolves to the user input or null if canceled.
      */
     prompt(msg: string): string | null;
+    private handleNotAllowedError;
+    private getSpeechSynthesisUtterance;
     speak(text: string, pitch: number): Promise<void>;
     private updateConfigParameter;
-    private setButtonDisabled;
-    private setSelectDisabled;
     private hasCompiledError;
     private onExecuteButtonClick;
     private onCompiledTextChange;
     private onCompileButtonClick;
     private onAutoCompileInputChange;
     private onAutoExecuteInputChange;
-    private toggleAreaHidden;
-    private setAreaHidden;
     private onShowOutputInputChange;
     private onShowBasicInputChange;
     private onShowCompiledInputChange;
