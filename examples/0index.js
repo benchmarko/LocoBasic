@@ -120,6 +120,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Drawing Labyrinth"
 		},
 		{
+			"key": "landscap",
+			"title": "Landscape"
+		},
+		{
 			"key": "langtons",
 			"title": "Langton's ant"
 		},
