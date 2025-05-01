@@ -184,25 +184,78 @@ export class UI implements IUI {
         const input = window.prompt(msg);
         return input;
     }
+    
+    private async waitForVoices(callback: () => void): Promise<void> {
+        return new Promise<void>((resolve) => {
+            window.speechSynthesis.addEventListener("voiceschanged", () => {
+                callback();
+                resolve();
+            }, { once: true });
 
-    private async getSpeechSynthesisUtterance() {
+            if (window.speechSynthesis.getVoices().length) {
+                callback();
+                resolve();
+            }
+        });
+    }
+
+    private async waitForUserInteraction(buttonId: string): Promise<void> {
+        this.toggleElementHidden(buttonId);
+        const button = document.getElementById(buttonId) as HTMLButtonElement;
+
+        return new Promise<void>((resolve) => {
+            button.addEventListener("click", () => {
+                this.setElementHidden(buttonId);
+                resolve();
+            }, { once: true });
+        });
+    }
+    
+    private logVoiceDebugInfo(selectedVoice?: SpeechSynthesisVoice): void {
+        const debug = this.getCore().getConfigMap().debug;
+        if (debug > 1) {
+            const voicesString = window.speechSynthesis.getVoices().map((v, i) => `${i}: ${v.lang}: ${v.name}`).join("\n ");
+            const msg = `getSpeechSynthesisUtterance: voice=${selectedVoice?.lang}: ${selectedVoice?.name}, voices:\n ${voicesString}`;
+            console.log(msg);
+            if (debug >= 16) {
+                this.addOutputText(msg + "\n");
+            }
+        }
+    }
+
+    private async getSpeechSynthesisUtterance(): Promise<SpeechSynthesisUtterance> {
         if (this.speechSynthesisUtterance) {
             return this.speechSynthesisUtterance;
         }
-        this.speechSynthesisUtterance = new SpeechSynthesisUtterance();
-        this.speechSynthesisUtterance.lang = document.documentElement.lang; // should be "en"
-        if (this.initialUserAction) {
-            return this.speechSynthesisUtterance;
+    
+        if (!window.speechSynthesis) {
+            throw new Error("Speech Synthesis API is not supported in this browser.");
         }
 
-        this.toggleElementHidden("startSpeechButton");
-        const startSpeechButton = window.document.getElementById("startSpeechButton") as HTMLButtonElement;
-        return new Promise<SpeechSynthesisUtterance>((resolve) => {
-            startSpeechButton.addEventListener("click", () => {
-                this.setElementHidden("startSpeechButton");
-                resolve(this.speechSynthesisUtterance as SpeechSynthesisUtterance);
-            }, { once: true });
-        });
+        this.speechSynthesisUtterance = new SpeechSynthesisUtterance();
+        const utterance = this.speechSynthesisUtterance;
+        utterance.lang = document.documentElement.lang || "en";
+    
+        const selectVoice = (): SpeechSynthesisVoice | undefined => {
+            const voices = window.speechSynthesis.getVoices();
+            return voices.find((voice) => voice.lang === "en-GB" && voice.name === "Daniel");
+        };
+    
+        const onVoicesChanged = (): void => {
+            const selectedVoice = selectVoice();
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+            this.logVoiceDebugInfo(selectedVoice);
+        };
+    
+        await this.waitForVoices(onVoicesChanged);
+    
+        if (!this.initialUserAction) {
+            await this.waitForUserInteraction("startSpeechButton");
+        }
+    
+        return utterance;
     }
 
     public async speak(text: string, pitch: number): Promise<void> {
