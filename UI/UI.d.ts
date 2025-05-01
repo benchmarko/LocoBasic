@@ -31,6 +31,9 @@ export declare class UI implements IUI {
      * @returns A promise that resolves to the user input or null if canceled.
      */
     prompt(msg: string): string | null;
+    private waitForVoices;
+    private waitForUserInteraction;
+    private logVoiceDebugInfo;
     private getSpeechSynthesisUtterance;
     speak(text: string, pitch: number): Promise<void>;
     private updateConfigParameter;

@@ -426,23 +426,65 @@
             const input = window.prompt(msg);
             return input;
         }
+        async waitForVoices(callback) {
+            return new Promise((resolve) => {
+                window.speechSynthesis.addEventListener("voiceschanged", () => {
+                    callback();
+                    resolve();
+                }, { once: true });
+                if (window.speechSynthesis.getVoices().length) {
+                    callback();
+                    resolve();
+                }
+            });
+        }
+        async waitForUserInteraction(buttonId) {
+            this.toggleElementHidden(buttonId);
+            const button = document.getElementById(buttonId);
+            return new Promise((resolve) => {
+                button.addEventListener("click", () => {
+                    this.setElementHidden(buttonId);
+                    resolve();
+                }, { once: true });
+            });
+        }
+        logVoiceDebugInfo(selectedVoice) {
+            const debug = this.getCore().getConfigMap().debug;
+            if (debug > 1) {
+                const voicesString = window.speechSynthesis.getVoices().map((v, i) => `${i}: ${v.lang}: ${v.name}`).join("\n ");
+                const msg = `getSpeechSynthesisUtterance: voice=${selectedVoice === null || selectedVoice === void 0 ? void 0 : selectedVoice.lang}: ${selectedVoice === null || selectedVoice === void 0 ? void 0 : selectedVoice.name}, voices:\n ${voicesString}`;
+                console.log(msg);
+                if (debug >= 16) {
+                    this.addOutputText(msg + "\n");
+                }
+            }
+        }
         async getSpeechSynthesisUtterance() {
             if (this.speechSynthesisUtterance) {
                 return this.speechSynthesisUtterance;
             }
-            this.speechSynthesisUtterance = new SpeechSynthesisUtterance();
-            this.speechSynthesisUtterance.lang = document.documentElement.lang; // should be "en"
-            if (this.initialUserAction) {
-                return this.speechSynthesisUtterance;
+            if (!window.speechSynthesis) {
+                throw new Error("Speech Synthesis API is not supported in this browser.");
             }
-            this.toggleElementHidden("startSpeechButton");
-            const startSpeechButton = window.document.getElementById("startSpeechButton");
-            return new Promise((resolve) => {
-                startSpeechButton.addEventListener("click", () => {
-                    this.setElementHidden("startSpeechButton");
-                    resolve(this.speechSynthesisUtterance);
-                }, { once: true });
-            });
+            this.speechSynthesisUtterance = new SpeechSynthesisUtterance();
+            const utterance = this.speechSynthesisUtterance;
+            utterance.lang = document.documentElement.lang || "en";
+            const selectVoice = () => {
+                const voices = window.speechSynthesis.getVoices();
+                return voices.find((voice) => voice.lang === "en-GB" && voice.name === "Daniel");
+            };
+            const onVoicesChanged = () => {
+                const selectedVoice = selectVoice();
+                if (selectedVoice) {
+                    utterance.voice = selectedVoice;
+                }
+                this.logVoiceDebugInfo(selectedVoice);
+            };
+            await this.waitForVoices(onVoicesChanged);
+            if (!this.initialUserAction) {
+                await this.waitForUserInteraction("startSpeechButton");
+            }
+            return utterance;
         }
         async speak(text, pitch) {
             const msg = await this.getSpeechSynthesisUtterance();
