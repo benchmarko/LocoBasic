@@ -225,11 +225,13 @@ Keywords should be all uppercase, but all lowercase is also accepted (not-strict
 
 ### Resident System Extensions (RSX)
 
-- `|CIRCLE x,y,radius` Draws a circle, creating shape [SVG circle](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/circle).
+- `|ARC,x,y,rx,ry,angle,large-arc-flag,sweep-flag,x,y[,fillPen]` Draws an arc curve, creating shape [SVG Elliptical arc curve](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/d#elliptical_arc_curve).
+- `|CIRCLE.cx,cy,r[,fillPen]` Draws a circle, creating shape [SVG circle](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/circle).
 - `d$=SPACE$(11): |DATE,@d$` Returns a date string in the format "ww DD MM YY" (ww=day of week) from the Real Time Clock (RTC).
   See also: [Dobbertin Smart Watch](https://www.cpcwiki.eu/index.php/Dobbertin_Smart_Watch)
+- `|ELLIPSE.cx,cy,rx,ry[,fillPen]` Draws a circle, creating shape [SVG ellipse](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/ellipse).
 - `|PITCH,n` Sets the speech synthesis pitch (1-20; default: 10)
-- `|RECT,x0,y0,x1,y1` Draws a rectangle, creating shape [SVG rect](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/rect). See also: *|CIRCLE*.
+- `|RECT,x,y,x2,y2[,fillPen]` Draws a rectangle, creating shape [SVG rect](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/rect). See also: *|CIRCLE*.
 - `|SAY,"Hello"` Says "Hello" using speech synthesis. See also: *|PITCH*.
 - `t$=SPACE$(8): |TIME,@t$` Returns a time string in the format "HH MM SS" from the Real Time Clock (RTC).
   See also: [Dobbertin Smart Watch](https://www.cpcwiki.eu/index.php/Dobbertin_Smart_Watch), *|DATE*.

@@ -258,22 +258,36 @@ export class BasicVmCore implements IVmAdmin {
         }
     }
 
+    private getStrokeAndFillStr(fill: number): string {
+        const strokeStr = this.currGraphicsPen >= 0 ? ` stroke="${this.cpcColors[this.colorsForPens[this.currGraphicsPen]]}"` : "";
+        const fillStr = fill >= 0 ? ` fill="${this.cpcColors[this.colorsForPens[fill]]}"` : "";
+        return `${strokeStr}${fillStr}`;
+    }
 
-    private rsxCircle(args: (number | string)[]) {
-        const [x, y, radius] = args.map((p) => Math.round(p as number));
-        let strokeStr = "";
-        if (this.currGraphicsPen >= 0) {
-            const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
-            strokeStr = ` stroke="${color}"`;
-        }
+    private rsxArc = (args: (number | string)[]) => { // bound this
+        const [x, y, rx, ry, rotx, long, sweep, endx, endy, fill] = args.map((p) => Math.round(p as number));
+
+        //if (!this.graphicsPathBuffer.length) { // path must start with an absolute move
+        //this.graphicsPathBuffer.push(`M${x} ${399 - y}`);
+        //}
+        this.flushGraphicsPath(); // maybe a path is open
+        const strokeAndFillStr = this.getStrokeAndFillStr(fill);
+        const svgPathCmd = `M${x} ${399 - y} A${rx} ${ry} ${rotx} ${long} ${sweep} ${endx} ${399 - endy}`;
+        this.graphicsBuffer.push(`<path${strokeAndFillStr} d="${svgPathCmd}" />`);
+    }
+
+    private rsxCircle = (args: (number | string)[]) => { // bound this
+        const [cx, cy, r, fill] = args.map((p) => Math.round(p as number));
+
+        const strokeAndFillStr = this.getStrokeAndFillStr(fill);
         this.flushGraphicsPath(); // maybe a path is open
         // if we want origin: x + this.originX, 399 - y - this.originY
-        this.graphicsBuffer.push(`<circle cx="${x}" cy="${399 - y}" r="${radius}"${strokeStr} />`);
+        this.graphicsBuffer.push(`<circle cx="${cx}" cy="${399 - cy}" r="${r}"${strokeAndFillStr} />`);
     }
 
     // returns a date string in the format "ww DD MM YY" with ww=day of week
     // see https://www.cpcwiki.eu/imgs/b/b4/DXS_RTC_-_User_Manual.pdf
-    private async rsxDate(args: (number | string)[]) {
+    private rsxDate = async (args: (number | string)[]) => { // bound this
         const date = new Date();
         // Get the day of the week (0-6) and convert to 1-7
         const dayOfWeek = (date.getDay() + 1) % 7;
@@ -284,39 +298,40 @@ export class BasicVmCore implements IVmAdmin {
         args[0] = dateStr;
         return Promise.resolve(args);
     }
-
-    private rsxRect(args: (number | string)[]) {
-        // Extract and round arguments
-        const [x1, y1, x2, y2] = args.map((p) => Math.round(p as number));
     
-        // Calculate position and dimensions
+    private rsxEllipse = (args: (number | string)[]) => { // bound this
+        const [cx, cy, rx, ry, fill] = args.map((p) => Math.round(p as number));
+
+        const strokeAndFillStr = this.getStrokeAndFillStr(fill);
+        this.flushGraphicsPath();
+        this.graphicsBuffer.push(`<ellipse cx="${cx}" cy="${399 - cy}" rx="${rx}"ry="${ry}"${strokeAndFillStr} />`);
+    }
+
+    private rsxRect = (args: (number | string)[]) => { // bound this
+        const [x1, y1, x2, y2, fill] = args.map((p) => Math.round(p as number));
+    
         const x = Math.min(x1, x2);
         const y = Math.max(y1, y2); // y is inverted
         const width = Math.abs(x2 - x1);
         const height = Math.abs(y2 - y1);
     
-        // Determine stroke color if a pen is active
-        const strokeStr = this.currGraphicsPen >= 0 ? ` stroke="${this.cpcColors[this.colorsForPens[this.currGraphicsPen]]}"` : "";
-    
-        // Flush any open graphics path
+        const strokeAndFillStr = this.getStrokeAndFillStr(fill);
         this.flushGraphicsPath();
-    
-        // Add the rectangle to the graphics buffer
-        this.graphicsBuffer.push(`<rect x="${x}" y="${399 - y}" width="${width}" height="${height}"${strokeStr} />`);
+        this.graphicsBuffer.push(`<rect x="${x}" y="${399 - y}" width="${width}" height="${height}"${strokeAndFillStr} />`);
     }
 
-    private rsxPitch(args: (number | string)[]) {
+    private rsxPitch = (args: (number | string)[]) => { // bound this
         this.pitch = (args[0] as number) / 10; // 0..20 => 0..2
     }
 
-    private async rsxSay(args: (number | string)[]) {
+    private rsxSay = async (args: (number | string)[]) => { // bound this
         const text = args[0] as string;
         return this.fnOnSpeak(text, this.pitch).then(() => args);
     }
 
     // returns a time string in the format "HH MM SS"
     // see https://www.cpcwiki.eu/imgs/b/b4/DXS_RTC_-_User_Manual.pdf
-    private async rsxTime(args: (number | string)[]) {
+    private rsxTime = async (args: (number | string)[]) => { // bound this
         const date = new Date();
         const hours = date.getHours();
         const minutes = date.getMinutes();
@@ -327,29 +342,37 @@ export class BasicVmCore implements IVmAdmin {
     }
 
     private rsxMap: RsxMapType = {
+        arc: {
+            argTypes: ["number", "number", "number", "number", "number", "number", "number", "number", "number", "number?"],
+            fn: this.rsxArc
+        },
         circle: {
-            argTypes: ["number", "number", "number"],
-            fn: this.rsxCircle.bind(this)
+            argTypes: ["number", "number", "number", "number?"],
+            fn: this.rsxCircle
         },
         date: {
             argTypes: ["string"],
-            fn: this.rsxDate.bind(this)
+            fn: this.rsxDate
+        },
+        ellipse: {
+            argTypes: ["number", "number", "number", "number", "number?"],
+            fn: this.rsxEllipse
         },
         pitch: {
             argTypes: ["number"],
-            fn: this.rsxPitch.bind(this)
+            fn: this.rsxPitch
         },
         rect: {
-            argTypes: ["number", "number", "number", "number"],
-            fn: this.rsxRect.bind(this)
+            argTypes: ["number", "number", "number", "number", "number?"],
+            fn: this.rsxRect
         },
         say: {
             argTypes: ["string"],
-            fn: this.rsxSay.bind(this)
+            fn: this.rsxSay
         },
         time: {
             argTypes: ["string"],
-            fn: this.rsxTime.bind(this)
+            fn: this.rsxTime
         }
     }
 
@@ -360,12 +383,17 @@ export class BasicVmCore implements IVmAdmin {
         const rsxInfo = this.rsxMap[cmd];
         const expectedArgs = rsxInfo.argTypes.length;
 
-        if (args.length !== expectedArgs) {
-            throw new Error(`|${cmd.toUpperCase()}: Wrong number of arguments: ${args.length} <> ${expectedArgs}`);
+        const optionalArgs = rsxInfo.argTypes.filter((type) => type.endsWith("?")).length;
+        if (args.length < expectedArgs - optionalArgs) {
+            throw new Error(`|${cmd.toUpperCase()}: Wrong number of arguments: ${args.length} < ${expectedArgs - optionalArgs}`);
+        }
+
+        if (args.length > expectedArgs) {
+            throw new Error(`|${cmd.toUpperCase()}: Wrong number of arguments: ${args.length} > ${expectedArgs}`);
         }
 
         for (let i = 0; i < args.length; i += 1) {
-            const expectedType = rsxInfo.argTypes[i];
+            const expectedType = rsxInfo.argTypes[i].replace("?", "");
             const arg = args[i];
             if (typeof arg !== expectedType) {
                 throw new Error(`|${cmd.toUpperCase()}: Wrong argument type (pos ${i}): ${typeof arg}`);
