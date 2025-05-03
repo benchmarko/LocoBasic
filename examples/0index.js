@@ -234,6 +234,10 @@ cpcBasic.addIndex("./examples", {
 		{
 			"key": "yinyang",
 			"title": "Yin and yang"
+		},
+		{
+			"key": "yinyang2",
+			"title": "Yin and yang (with RSX)"
 		}
 	]
 });

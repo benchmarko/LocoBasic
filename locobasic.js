@@ -2591,30 +2591,102 @@
             this.defaultColorsForPens = [
                 1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
             ];
+            this.rsxArc = (args) => {
+                const [x, y, rx, ry, rotx, long, sweep, endx, endy, fill] = args.map((p) => Math.round(p));
+                //if (!this.graphicsPathBuffer.length) { // path must start with an absolute move
+                //this.graphicsPathBuffer.push(`M${x} ${399 - y}`);
+                //}
+                this.flushGraphicsPath(); // maybe a path is open
+                const strokeAndFillStr = this.getStrokeAndFillStr(fill);
+                const svgPathCmd = `M${x} ${399 - y} A${rx} ${ry} ${rotx} ${long} ${sweep} ${endx} ${399 - endy}`;
+                this.graphicsBuffer.push(`<path${strokeAndFillStr} d="${svgPathCmd}" />`);
+            };
+            this.rsxCircle = (args) => {
+                const [cx, cy, r, fill] = args.map((p) => Math.round(p));
+                const strokeAndFillStr = this.getStrokeAndFillStr(fill);
+                this.flushGraphicsPath(); // maybe a path is open
+                // if we want origin: x + this.originX, 399 - y - this.originY
+                this.graphicsBuffer.push(`<circle cx="${cx}" cy="${399 - cy}" r="${r}"${strokeAndFillStr} />`);
+            };
+            // returns a date string in the format "ww DD MM YY" with ww=day of week
+            // see https://www.cpcwiki.eu/imgs/b/b4/DXS_RTC_-_User_Manual.pdf
+            this.rsxDate = async (args) => {
+                const date = new Date();
+                // Get the day of the week (0-6) and convert to 1-7
+                const dayOfWeek = (date.getDay() + 1) % 7;
+                const day = date.getDate();
+                const month = date.getMonth() + 1; // Months are zero-based
+                const year = date.getFullYear() % 100; // Get last two digits of the year
+                const dateStr = `${String(dayOfWeek).padStart(2, '0')} ${String(day).padStart(2, '0')} ${String(month).padStart(2, '0')} ${String(year).padStart(2, '0')}`;
+                args[0] = dateStr;
+                return Promise.resolve(args);
+            };
+            this.rsxEllipse = (args) => {
+                const [cx, cy, rx, ry, fill] = args.map((p) => Math.round(p));
+                const strokeAndFillStr = this.getStrokeAndFillStr(fill);
+                this.flushGraphicsPath();
+                this.graphicsBuffer.push(`<ellipse cx="${cx}" cy="${399 - cy}" rx="${rx}"ry="${ry}"${strokeAndFillStr} />`);
+            };
+            this.rsxRect = (args) => {
+                const [x1, y1, x2, y2, fill] = args.map((p) => Math.round(p));
+                const x = Math.min(x1, x2);
+                const y = Math.max(y1, y2); // y is inverted
+                const width = Math.abs(x2 - x1);
+                const height = Math.abs(y2 - y1);
+                const strokeAndFillStr = this.getStrokeAndFillStr(fill);
+                this.flushGraphicsPath();
+                this.graphicsBuffer.push(`<rect x="${x}" y="${399 - y}" width="${width}" height="${height}"${strokeAndFillStr} />`);
+            };
+            this.rsxPitch = (args) => {
+                this.pitch = args[0] / 10; // 0..20 => 0..2
+            };
+            this.rsxSay = async (args) => {
+                const text = args[0];
+                return this.fnOnSpeak(text, this.pitch).then(() => args);
+            };
+            // returns a time string in the format "HH MM SS"
+            // see https://www.cpcwiki.eu/imgs/b/b4/DXS_RTC_-_User_Manual.pdf
+            this.rsxTime = async (args) => {
+                const date = new Date();
+                const hours = date.getHours();
+                const minutes = date.getMinutes();
+                const seconds = date.getSeconds();
+                const timeStr = `${String(hours).padStart(2, '0')} ${String(minutes).padStart(2, '0')} ${String(seconds).padStart(2, '0')}`;
+                args[0] = timeStr;
+                return Promise.resolve(args);
+            };
             this.rsxMap = {
+                arc: {
+                    argTypes: ["number", "number", "number", "number", "number", "number", "number", "number", "number", "number?"],
+                    fn: this.rsxArc
+                },
                 circle: {
-                    argTypes: ["number", "number", "number"],
-                    fn: this.rsxCircle.bind(this)
+                    argTypes: ["number", "number", "number", "number?"],
+                    fn: this.rsxCircle
                 },
                 date: {
                     argTypes: ["string"],
-                    fn: this.rsxDate.bind(this)
+                    fn: this.rsxDate
+                },
+                ellipse: {
+                    argTypes: ["number", "number", "number", "number", "number?"],
+                    fn: this.rsxEllipse
                 },
                 pitch: {
                     argTypes: ["number"],
-                    fn: this.rsxPitch.bind(this)
+                    fn: this.rsxPitch
                 },
                 rect: {
-                    argTypes: ["number", "number", "number", "number"],
-                    fn: this.rsxRect.bind(this)
+                    argTypes: ["number", "number", "number", "number", "number?"],
+                    fn: this.rsxRect
                 },
                 say: {
                     argTypes: ["string"],
-                    fn: this.rsxSay.bind(this)
+                    fn: this.rsxSay
                 },
                 time: {
                     argTypes: ["string"],
-                    fn: this.rsxTime.bind(this)
+                    fn: this.rsxTime
                 }
             };
             this.reset();
@@ -2785,62 +2857,10 @@
                 this.output += text;
             }
         }
-        rsxCircle(args) {
-            const [x, y, radius] = args.map((p) => Math.round(p));
-            let strokeStr = "";
-            if (this.currGraphicsPen >= 0) {
-                const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
-                strokeStr = ` stroke="${color}"`;
-            }
-            this.flushGraphicsPath(); // maybe a path is open
-            // if we want origin: x + this.originX, 399 - y - this.originY
-            this.graphicsBuffer.push(`<circle cx="${x}" cy="${399 - y}" r="${radius}"${strokeStr} />`);
-        }
-        // returns a date string in the format "ww DD MM YY" with ww=day of week
-        // see https://www.cpcwiki.eu/imgs/b/b4/DXS_RTC_-_User_Manual.pdf
-        async rsxDate(args) {
-            const date = new Date();
-            // Get the day of the week (0-6) and convert to 1-7
-            const dayOfWeek = (date.getDay() + 1) % 7;
-            const day = date.getDate();
-            const month = date.getMonth() + 1; // Months are zero-based
-            const year = date.getFullYear() % 100; // Get last two digits of the year
-            const dateStr = `${String(dayOfWeek).padStart(2, '0')} ${String(day).padStart(2, '0')} ${String(month).padStart(2, '0')} ${String(year).padStart(2, '0')}`;
-            args[0] = dateStr;
-            return Promise.resolve(args);
-        }
-        rsxRect(args) {
-            // Extract and round arguments
-            const [x1, y1, x2, y2] = args.map((p) => Math.round(p));
-            // Calculate position and dimensions
-            const x = Math.min(x1, x2);
-            const y = Math.max(y1, y2); // y is inverted
-            const width = Math.abs(x2 - x1);
-            const height = Math.abs(y2 - y1);
-            // Determine stroke color if a pen is active
+        getStrokeAndFillStr(fill) {
             const strokeStr = this.currGraphicsPen >= 0 ? ` stroke="${this.cpcColors[this.colorsForPens[this.currGraphicsPen]]}"` : "";
-            // Flush any open graphics path
-            this.flushGraphicsPath();
-            // Add the rectangle to the graphics buffer
-            this.graphicsBuffer.push(`<rect x="${x}" y="${399 - y}" width="${width}" height="${height}"${strokeStr} />`);
-        }
-        rsxPitch(args) {
-            this.pitch = args[0] / 10; // 0..20 => 0..2
-        }
-        async rsxSay(args) {
-            const text = args[0];
-            return this.fnOnSpeak(text, this.pitch).then(() => args);
-        }
-        // returns a time string in the format "HH MM SS"
-        // see https://www.cpcwiki.eu/imgs/b/b4/DXS_RTC_-_User_Manual.pdf
-        async rsxTime(args) {
-            const date = new Date();
-            const hours = date.getHours();
-            const minutes = date.getMinutes();
-            const seconds = date.getSeconds();
-            const timeStr = `${String(hours).padStart(2, '0')} ${String(minutes).padStart(2, '0')} ${String(seconds).padStart(2, '0')}`;
-            args[0] = timeStr;
-            return Promise.resolve(args);
+            const fillStr = fill >= 0 ? ` fill="${this.cpcColors[this.colorsForPens[fill]]}"` : "";
+            return `${strokeStr}${fillStr}`;
         }
         async rsx(cmd, args) {
             if (!this.rsxMap[cmd]) {
@@ -2848,11 +2868,15 @@
             }
             const rsxInfo = this.rsxMap[cmd];
             const expectedArgs = rsxInfo.argTypes.length;
-            if (args.length !== expectedArgs) {
-                throw new Error(`|${cmd.toUpperCase()}: Wrong number of arguments: ${args.length} <> ${expectedArgs}`);
+            const optionalArgs = rsxInfo.argTypes.filter((type) => type.endsWith("?")).length;
+            if (args.length < expectedArgs - optionalArgs) {
+                throw new Error(`|${cmd.toUpperCase()}: Wrong number of arguments: ${args.length} < ${expectedArgs - optionalArgs}`);
+            }
+            if (args.length > expectedArgs) {
+                throw new Error(`|${cmd.toUpperCase()}: Wrong number of arguments: ${args.length} > ${expectedArgs}`);
             }
             for (let i = 0; i < args.length; i += 1) {
-                const expectedType = rsxInfo.argTypes[i];
+                const expectedType = rsxInfo.argTypes[i].replace("?", "");
                 const arg = args[i];
                 if (typeof arg !== expectedType) {
                     throw new Error(`|${cmd.toUpperCase()}: Wrong argument type (pos ${i}): ${typeof arg}`);
