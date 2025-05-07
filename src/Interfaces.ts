@@ -83,7 +83,6 @@ export interface ISemanticsHelper {
     addIndent(num: number): number;
     addInstr(name: string): number;
     addRestoreLabel(label: string): void;
-    applyNextIndent(): void;
     getDataIndex(): number;
     getDataList(): (string | number)[];
     getDefinedLabels(): DefinedLabelEntryType[];
@@ -95,7 +94,6 @@ export interface ISemanticsHelper {
     getVariable(name: string): string;
     getVariables(): string[];
     incrementLineIndex(): number;
-    nextIndentAdd(num: number): void;
     setIndent(indent: number): void;
     setDeg(isDeg: boolean): void;
     getDeg(): boolean;

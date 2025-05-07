@@ -209,6 +209,18 @@ function getSemanticsActionDict(semanticsHelper: ISemanticsHelper): ActionDict<s
         return semanticsHelper.getDeg() ? `Math.${func}((${e.eval()}) * Math.PI / 180)` : `Math.${func}(${e.eval()})`;
     }
 
+	const loopBlock = (startNode: Node, content: Node, separator: Node, endNode: Node) => {
+		const startStr = startNode.eval();
+		const contentStr = evalChildren(content.children).join(';');
+		const endStr = endNode.eval();
+
+		let separatorStr = separator.eval();
+		if (contentStr && !contentStr.endsWith("}")) {
+			separatorStr = ";" + separatorStr;
+		}
+		return `${startStr}${contentStr}${separatorStr}${endStr}`;
+	}
+
     // Semantics to evaluate an arithmetic expression
     const semantics: ActionDict<string> = {
         Program(lines: Node) {
@@ -241,6 +253,7 @@ function getSemanticsActionDict(semanticsHelper: ISemanticsHelper): ActionDict<s
                             hasAwait = true; // quick check
                         }
                         lineList[i] = "  " + lineList[i]; // indent
+						lineList[i] = lineList[i].replace(/\n/g, "\n  ");
                     }
 
                     const asyncStr = hasAwait ? "async " : "";
@@ -258,9 +271,6 @@ function getSemanticsActionDict(semanticsHelper: ISemanticsHelper): ActionDict<s
             }
 
 			const instrMap = semanticsHelper.getInstrMap();
-			//if (instrMap.after || instrMap.every || instrMap.remain) {
-			//	lineList.unshift(`const _timer = [];`);
-			//}
 
             const dataList = semanticsHelper.getDataList();
             if (dataList.length) {
@@ -343,7 +353,6 @@ function getSemanticsActionDict(semanticsHelper: ISemanticsHelper): ActionDict<s
             const semi = lineStr === "" || lineStr.endsWith("{") || lineStr.endsWith("}") || lineStr.startsWith("//") || commentStr ? "" : ";";
 
             const indentStr = semanticsHelper.getIndentStr();
-            semanticsHelper.applyNextIndent();
 
             return indentStr + lineStr + commentStr + semi;
         },
@@ -364,6 +373,24 @@ function getSemanticsActionDict(semanticsHelper: ISemanticsHelper): ActionDict<s
             const value = e.eval();
             return `${resolvedVariableName} = ${value}`;
         },
+
+		LoopBlockContent(separator: Node, stmts: Node) {
+			const separatorStr = separator.eval();
+			const lineStr = stmts.eval();
+
+			return `${separatorStr}${lineStr}`;
+		},
+
+		LoopBlockSeparator_colon(_colonLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return "";
+		},
+
+		LoopBlockSeparator_newline(comment: Node, eol: Node, _label: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			// labels in blocks are ignored
+			const commentStr = comment.sourceString ? ` //${comment.sourceString.substring(1)}` : "";
+			const eolStr = eol.sourceString + semanticsHelper.getIndentStr();
+			return `${commentStr}${eolStr}`;
+		},
 
         Abs(_absLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
             return `Math.abs(${e.eval()})`;
@@ -540,11 +567,13 @@ function getSemanticsActionDict(semanticsHelper: ISemanticsHelper): ActionDict<s
 				comparisonStatement = stepAsNumber >= 0 ? `${variableExpression} <= ${endExpression}` : `${variableExpression} >= ${endExpression}`;
 			}
 		
-			semanticsHelper.nextIndentAdd(2);
+			semanticsHelper.addIndent(2);
 			const result = `for (${variableExpression} = ${startExpression}; ${comparisonStatement}; ${variableExpression} += ${stepExpression}) {`;
 		
 			return result;
 		},
+
+		ForNextBlock: loopBlock,
 
 		Frame(_frameLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.addInstr("frame");
@@ -678,13 +707,9 @@ function getSemanticsActionDict(semanticsHelper: ISemanticsHelper): ActionDict<s
 
 		Mover: drawMovePlot,
 
-		Next(_nextLit: Node, variables: Node) {
-			const argumentList = evalChildren(variables.asIteration().children);
-			if (!argumentList.length) {
-				argumentList.push("_any");
-			}
-			semanticsHelper.addIndent(-2 * argumentList.length);
-			return '} '.repeat(argumentList.length).slice(0, -1);
+		Next(_nextLit: Node, _variable: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addIndent(-2);
+			return "}";
 		},
 
 		On(_onLit: Node, e1: Node, _gosubLit: Node, args: Node) {
@@ -920,9 +945,11 @@ function getSemanticsActionDict(semanticsHelper: ISemanticsHelper): ActionDict<s
 
 		While(_whileLit: Node, e: Node) {
 			const cond = e.eval();
-			semanticsHelper.nextIndentAdd(2);
+			semanticsHelper.addIndent(2);
 			return `while (${cond}) {`;
 		},
+
+		WhileWendBlock: loopBlock,
 
 		Xpos(_xposLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.addInstr("xpos");
@@ -1112,7 +1139,7 @@ export class Semantics implements ISemanticsHelper {
 	private lineIndex = 0;
 
 	private indent = 0;
-	private indentAdd = 0;
+	//private indentAdd = 0;
 
 	private readonly variables: Record<string, number> = {};
 
@@ -1139,9 +1166,11 @@ export class Semantics implements ISemanticsHelper {
 	}
 
 	public addIndent(num: number): number {
+		/*
 		if (num < 0) {
 			this.applyNextIndent();
 		}
+		*/
 		this.indent += num;
 		return this.indent;
 	}
@@ -1162,14 +1191,12 @@ export class Semantics implements ISemanticsHelper {
 		return " ".repeat(this.indent);
 	}
 
+	/*
 	public applyNextIndent(): void {
 		this.indent += this.indentAdd;
 		this.indentAdd = 0;
 	}
-
-	public nextIndentAdd(num: number): void {
-		this.indentAdd += num;
-	}
+	*/
 
 	public addDataIndex(count: number): number {
 		return this.dataIndex += count;
@@ -1262,7 +1289,7 @@ export class Semantics implements ISemanticsHelper {
 	public resetParser(): void {
 		this.lineIndex = 0;
 		this.indent = 0;
-		this.indentAdd = 0;
+		//this.indentAdd = 0;
 		Semantics.deleteAllItems(this.variables);
 		this.definedLabels.length = 0;
 		Semantics.deleteAllItems(this.usedLabels);

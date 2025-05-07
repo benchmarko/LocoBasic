@@ -169,7 +169,7 @@ Keywords should be all uppercase, but all lowercase is also accepted (not-strict
   - Nearly the same as *CLS*. For graphical output, it sets the stroke width.
 - `MOVE x,y`: Move the graphical cursor to position x,y.
 - `MOVER x,y`: Move the graphical cursor relative with offset x,y.
-- `NEXT` Closes a *FOR* loop.
+- `NEXT [variable]` Closes a *FOR* loop.
 - `ON index GOSUB line1 [,line2...]` Calls subroutine at position *index* (1-based) in the list.
   - Check `GOSUB` for how to define a subroutine.
   - If no subroutine matches the index, do nothing.
