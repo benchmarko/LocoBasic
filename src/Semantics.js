@@ -200,6 +200,16 @@ function getSemanticsActionDict(semanticsHelper) {
         const func = lit.sourceString.toLowerCase();
         return semanticsHelper.getDeg() ? `Math.${func}((${e.eval()}) * Math.PI / 180)` : `Math.${func}(${e.eval()})`;
     };
+    const loopBlock = (startNode, content, separator, endNode) => {
+        const startStr = startNode.eval();
+        const contentStr = evalChildren(content.children).join(';');
+        const endStr = endNode.eval();
+        let separatorStr = separator.eval();
+        if (contentStr && !contentStr.endsWith("}")) {
+            separatorStr = ";" + separatorStr;
+        }
+        return `${startStr}${contentStr}${separatorStr}${endStr}`;
+    };
     // Semantics to evaluate an arithmetic expression
     const semantics = {
         Program(lines) {
@@ -227,6 +237,7 @@ function getSemanticsActionDict(semanticsHelper) {
                             hasAwait = true; // quick check
                         }
                         lineList[i] = "  " + lineList[i]; // indent
+                        lineList[i] = lineList[i].replace(/\n/g, "\n  ");
                     }
                     const asyncStr = hasAwait ? "async " : "";
                     lineList[first] = `${indentStr}${asyncStr}function _${subroutineStart.label}() {${indentStr}\n` + lineList[first];
@@ -241,9 +252,6 @@ function getSemanticsActionDict(semanticsHelper) {
                 }
             }
             const instrMap = semanticsHelper.getInstrMap();
-            //if (instrMap.after || instrMap.every || instrMap.remain) {
-            //	lineList.unshift(`const _timer = [];`);
-            //}
             const dataList = semanticsHelper.getDataList();
             if (dataList.length) {
                 for (const key of Object.keys(restoreMap)) {
@@ -310,7 +318,6 @@ function getSemanticsActionDict(semanticsHelper) {
             const commentStr = comment.sourceString ? `; //${comment.sourceString.substring(1)}` : "";
             const semi = lineStr === "" || lineStr.endsWith("{") || lineStr.endsWith("}") || lineStr.startsWith("//") || commentStr ? "" : ";";
             const indentStr = semanticsHelper.getIndentStr();
-            semanticsHelper.applyNextIndent();
             return indentStr + lineStr + commentStr + semi;
         },
         Statements(stmt, _stmtSep, stmts) {
@@ -326,6 +333,20 @@ function getSemanticsActionDict(semanticsHelper) {
             const resolvedVariableName = semanticsHelper.getVariable(variableName);
             const value = e.eval();
             return `${resolvedVariableName} = ${value}`;
+        },
+        LoopBlockContent(separator, stmts) {
+            const separatorStr = separator.eval();
+            const lineStr = stmts.eval();
+            return `${separatorStr}${lineStr}`;
+        },
+        LoopBlockSeparator_colon(_colonLit) {
+            return "";
+        },
+        LoopBlockSeparator_newline(comment, eol, _label) {
+            // labels in blocks are ignored
+            const commentStr = comment.sourceString ? ` //${comment.sourceString.substring(1)}` : "";
+            const eolStr = eol.sourceString + semanticsHelper.getIndentStr();
+            return `${commentStr}${eolStr}`;
         },
         Abs(_absLit, _open, e, _close) {
             return `Math.abs(${e.eval()})`;
@@ -468,10 +489,11 @@ function getSemanticsActionDict(semanticsHelper) {
             else {
                 comparisonStatement = stepAsNumber >= 0 ? `${variableExpression} <= ${endExpression}` : `${variableExpression} >= ${endExpression}`;
             }
-            semanticsHelper.nextIndentAdd(2);
+            semanticsHelper.addIndent(2);
             const result = `for (${variableExpression} = ${startExpression}; ${comparisonStatement}; ${variableExpression} += ${stepExpression}) {`;
             return result;
         },
+        ForNextBlock: loopBlock,
         Frame(_frameLit) {
             semanticsHelper.addInstr("frame");
             return `await frame()`;
@@ -576,13 +598,9 @@ function getSemanticsActionDict(semanticsHelper) {
         },
         Move: drawMovePlot,
         Mover: drawMovePlot,
-        Next(_nextLit, variables) {
-            const argumentList = evalChildren(variables.asIteration().children);
-            if (!argumentList.length) {
-                argumentList.push("_any");
-            }
-            semanticsHelper.addIndent(-2 * argumentList.length);
-            return '} '.repeat(argumentList.length).slice(0, -1);
+        Next(_nextLit, _variable) {
+            semanticsHelper.addIndent(-2);
+            return "}";
         },
         On(_onLit, e1, _gosubLit, args) {
             const index = e1.eval();
@@ -768,9 +786,10 @@ function getSemanticsActionDict(semanticsHelper) {
         },
         While(_whileLit, e) {
             const cond = e.eval();
-            semanticsHelper.nextIndentAdd(2);
+            semanticsHelper.addIndent(2);
             return `while (${cond}) {`;
         },
+        WhileWendBlock: loopBlock,
         Xpos(_xposLit) {
             semanticsHelper.addInstr("xpos");
             return `xpos()`;
@@ -926,7 +945,7 @@ export class Semantics {
     constructor() {
         this.lineIndex = 0;
         this.indent = 0;
-        this.indentAdd = 0;
+        //private indentAdd = 0;
         this.variables = {};
         this.definedLabels = [];
         this.usedLabels = {};
@@ -944,9 +963,11 @@ export class Semantics {
         this.isDeg = isDeg;
     }
     addIndent(num) {
+        /*
         if (num < 0) {
             this.applyNextIndent();
         }
+        */
         this.indent += num;
         return this.indent;
     }
@@ -963,13 +984,12 @@ export class Semantics {
         }
         return " ".repeat(this.indent);
     }
-    applyNextIndent() {
+    /*
+    public applyNextIndent(): void {
         this.indent += this.indentAdd;
         this.indentAdd = 0;
     }
-    nextIndentAdd(num) {
-        this.indentAdd += num;
-    }
+    */
     addDataIndex(count) {
         return this.dataIndex += count;
     }
@@ -1044,7 +1064,7 @@ export class Semantics {
     resetParser() {
         this.lineIndex = 0;
         this.indent = 0;
-        this.indentAdd = 0;
+        //this.indentAdd = 0;
         Semantics.deleteAllItems(this.variables);
         this.definedLabels.length = 0;
         Semantics.deleteAllItems(this.usedLabels);

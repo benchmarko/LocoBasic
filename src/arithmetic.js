@@ -29,7 +29,7 @@ export const arithmetic = {
       | Erase
       | Error
       | Every
-      | For
+      | ForNextBlock
       | Frame
       | Gosub
       | GraphicsPen
@@ -40,7 +40,6 @@ export const arithmetic = {
       | Mode
       | Move
       | Mover
-      | Next
       | On
       | Origin
       | Paper
@@ -57,14 +56,20 @@ export const arithmetic = {
       | Stop
       | Tag
       | Tagoff
-      | While
-      | Wend
+      | WhileWendBlock
       | ArrayAssign
       | Assign
 
     ArrayAssign
       = ArrayIdent "=" NumExp
       | StrArrayIdent "=" StrExp
+
+    LoopBlockContent
+      = LoopBlockSeparator Statements
+
+    LoopBlockSeparator
+      = ":" -- colon
+      | Comment? eol Label? -- newline
 
     Abs
       = abs "(" NumExp ")"
@@ -152,6 +157,9 @@ export const arithmetic = {
     For
       = for variable "=" NumExp to NumExp (step NumExp)?
 
+    ForNextBlock
+      = For LoopBlockContent* LoopBlockSeparator Next
+
     Frame
       = frame
 
@@ -220,7 +228,7 @@ export const arithmetic = {
       = pi
 
     Next
-      = next ListOf<variable, ",">
+      = next variable?
 
     On
       = on NumExp gosub NonemptyListOf<label, ",">
@@ -332,6 +340,9 @@ export const arithmetic = {
 
     While
       = while NumExp
+
+    WhileWendBlock
+      = While LoopBlockContent* LoopBlockSeparator Wend
 
     Xpos
       = xpos

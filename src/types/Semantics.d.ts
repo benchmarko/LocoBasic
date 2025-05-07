@@ -3,7 +3,6 @@ import type { DefinedLabelEntryType, UsedLabelEntryType, ISemanticsHelper } from
 export declare class Semantics implements ISemanticsHelper {
     private lineIndex;
     private indent;
-    private indentAdd;
     private readonly variables;
     private readonly definedLabels;
     private readonly usedLabels;
@@ -20,8 +19,6 @@ export declare class Semantics implements ISemanticsHelper {
     setIndent(indent: number): void;
     getIndent(): number;
     getIndentStr(): string;
-    applyNextIndent(): void;
-    nextIndentAdd(num: number): void;
     addDataIndex(count: number): number;
     getDataIndex(): number;
     addDefinedLabel(label: string, line: number): void;

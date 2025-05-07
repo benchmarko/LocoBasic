@@ -10,7 +10,7 @@ REM 16.11.1988
 '
 DIM z(5,27): '6 languages with 28 data points: 26 letters + vowels/consonants
 'Reading the frequency of letters
-FOR j=0 TO 5:FOR i=0 TO 27:READ z(j,i):NEXT i,j
+FOR j=0 TO 5:FOR i=0 TO 27:READ z(j,i):NEXT i:NEXT j
 MODE 2
 PRINT "Cryptanalysis - Cryptology - Letter frequency (%)"
 padlen=12
