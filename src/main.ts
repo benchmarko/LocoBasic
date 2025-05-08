@@ -22,7 +22,7 @@ const core: ICore = new Core({
     action: "compile,run",
     autoCompile: true,
     autoExecute: true,
-    databaseDirs: "examples,https://benchmarko.github.io/CPCBasicApps/rosetta", // example base directories (comma separated)
+    databaseDirs: "examples", // example base directories (comma separated)
 	database: "examples", // examples, apps, saved
     debounceCompile: 800,
     debounceExecute: 400,

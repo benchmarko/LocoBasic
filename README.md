@@ -12,11 +12,16 @@ LocoBasic Links:
 
 ## Getting Started
 
+LocoBasic can be run in a Browser or as Node.js application.
+
 ### Running in a Browser
 
 1. Open [LocoBasic](https://benchmarko.github.io/LocoBasic/) in any modern web browser.
 2. Select an example with the select box or input your own BASIC code.
-   The code is automatically compiled to JavaScript and executed unless you switch off the "auto" checkbox.
+   The code is automatically compiled to JavaScript and executed unless you switch off the *Auto compile* or *Auto execute* checkbox.
+
+- When you change the UI (e.g. select an example or show/hide text editors), the URL is modified to reflect the new state.
+  This allows to reload the page to start the app with the modifed state.
 
 ### Running with Node.js
 
@@ -35,7 +40,8 @@ LocoBasic Links:
    node dist/locobasic.js example=euler
    node dist/locobasic.js input='PRINT "Hello!"'
    node dist/locobasic.js input="?3 + 5 * (2 - 8)"
-   node dist/locobasic.js grammar=strict...  [strict mode: keywords must be uppercase, variables must start with a lowercase character]
+   node dist/locobasic.js example=binary database=rosetta databaseDirs=examples,https://benchmarko.github.io/CPCBasicApps/rosetta
+   node dist/locobasic.js grammar=strict ...  (strict mode: see below)
 
    npx ts-node dist/locobasic.js input='PRINT "Hello!"' action='compile' > hello1.js
    node hello1.js
@@ -43,35 +49,42 @@ LocoBasic Links:
 
 ## LocoBasic Language Description
 
-Keywords should be all uppercase, but all lowercase is also accepted (not-strict mode).
+- Keywords (control structures, commands and functons) should be all uppercase, but all lowercase is also accepted.
 
 ### Control Structures
 
 - **Supported:**
-  - `IF...ELSE`
-  - Loops: `FOR` and `WHILE`
+  - `IF...THEN...ELSE`
+  - Loops: `FOR`...`NEXT` and `WHILE`...`WEND`
 - These structures are directly converted to JavaScript for execution.
 
 ### Subroutines
 
-- Use `GOSUB` and `ON GOSUB`
-  - `GOTO` and `ON GOTO` are **not supported**
+- Use `GOSUB` and `ON <i> GOSUB` to call a subroutine.
+  - `GOTO` and `ON <i> GOTO` are **not supported**.
 
-- **Subroutine Style:**
+- **Subroutine Style**
   - A line starting with `GOSUB <line>` marks the beginning of a subroutine.
   - Subroutines must end with a single `RETURN` on its own line.
-  - **Important:** Subroutines cannot be nested.
+  - Nested Subroutines are **not supported**.
 
-### Variable Types
+### Numbers
 
-- Case does not matter (strict mode: must start with lower case).
-- Usually number.
-- Use `$` to denote a string variable.
-  - Variable markers like `!` and `%` are **not supported**.
-- **No automatic rounding:**
+- Usually decimal
+- Also hexadecimal `&<hexValue>` and binary `&x<BinaryValue>`
+
+### Variables and Types
+
+- It should start with a lowr case character (but uppercase is also supported it not in strict mode).
+- Usually it stores a number.
+  - Computations follow JavaScript precision.
+  - Operator arity and precedence match those of Locomotive BASIC.
   - Integer parameters are not automatically rounded.
-- Computations follow JavaScript precision.
-- Operator arity and precedence match those of Locomotive BASIC.
+- Append `$` to denote a string variable.
+  - Variable markers like `!` and `%` are **not supported**.
+- Append `(n[,n2,...])` for an array variable with indices.
+  - Array varibles with the same name as normal variables are **not supported**.
+  - Do not use space between variable name and parenthesis.
 
 ### Special Notes
 
@@ -79,23 +92,23 @@ Keywords should be all uppercase, but all lowercase is also accepted (not-strict
   - Not trapped automatically. Restarting the browser window may be required to recover.
 - **STOP and END**
   - These stop execution, but only at the top level. Within subroutines, they simply return.
-  - During *FRAME* or *INKEY$*, the "Stop" button gets active. It allows to terminate the running program. It is not possible to continue a terminated program.
+  - During *FRAME*, *INKEY$* or *INPUT*, the "Stop" button gets active. It allows to terminate the running program. It is not possible to continue a terminated program.
 - **PEN and PAPER**
   - When using node.js in a terminal, ANSI colors are used.
-- **GRAPHICS PEN, DRAW, DRAWR, MOVE, MOVER, PLOT, PLOTR, TAG (and PRINT), |CIRCLE, |RECT**
+- **GRAPHICS PEN, DRAW, DRAWR, MOVE, MOVER, PLOT, PLOTR, TAG (and PRINT), |ARC, |CIRCLE, |ELLIPSE, |RECT**
   - These can be used to create [Scalable Vector Graphics](https://developer.mozilla.org/en-US/docs/Web/SVG) (SVG), which can be exported with the "SVG" button. Graphics is separate from text.
 - **FRAME**
-  - Text and graphics output is buffered until it is flushed with *FRAME* or at the end of the progam.
+  - Text and graphics output is buffered until it is flushed with *FRAME* (or *INKEY$*, *INPUT*) or at the end of the progam.
   - To start a new graphical output after *FRAME*, use *CLS* or *MODE*.
 
-### Operators
+### Operators and Expressions
 
 - `AND`, `NOT`, `OR`, `XOR`
 - `number MOD number` Compute the modulus.
-- Comparisons: =, <>, <, <=, >, >=
-- +, -, *, /, \ (integer div), (...)
-- &hexValue, &xBinaryValue
-- String concatenation: +
+- Comparisons: `=`, `<>`, `<`, `<=`, `>`, `>=`
+- `+`, `-`, `*`, `/`, `\` (integer division),
+- Parentheses to goup: `(`...`)`
+- String concatenation: `+`
 
 ### Supported Commands and Functions
 
@@ -129,7 +142,7 @@ Keywords should be all uppercase, but all lowercase is also accepted (not-strict
   - Can be multi-dimensional.
   - Elements will be initialized with 0 or "" depending on the variable type.
   - **Note:** In LocoBasic, array variables cannot have the same name as normal variables.
-    So it is not possible to have variable "a" and "a[]" at the same time.
+    So it is not possible to have variable "a" and "a()" at the same time.
 - `DRAW x,y`: Draw a line to position x,y.
 - `DRAWR x,y`: Draw a line relative with offset x,y.
 - `END` Ends execution.
@@ -164,12 +177,14 @@ Keywords should be all uppercase, but all lowercase is also accepted (not-strict
 - `LOWER$(string)` Returns the string in lowercase.
 - `MAX(number [,number,...])` Returns the maximum of the given numbers.
 - `MID$(string, first [, length])` Returns a substring starting at position *first* with *length*.
+- `a$="abcde": MID$(a$,posiition,length)="w"` When assiging a string to *MID$*, it modifies the string variable at the given position.  
 - `MIN(number [,number,...])` Returns the minimum of the given numbers.
 - `MODE number` Sets the screen mode (0..3).
   - Nearly the same as *CLS*. For graphical output, it sets the stroke width.
 - `MOVE x,y`: Move the graphical cursor to position x,y.
 - `MOVER x,y`: Move the graphical cursor relative with offset x,y.
-- `NEXT [variable]` Closes a *FOR* loop.
+- `NEXT [variable]` Closes a *FOR* loop. The optional variable is ignored.
+  - Multiple variables are **not supported**. This allows to find matching *FOR* and *NEXT* already during the syntax check.
 - `ON index GOSUB line1 [,line2...]` Calls subroutine at position *index* (1-based) in the list.
   - Check `GOSUB` for how to define a subroutine.
   - If no subroutine matches the index, do nothing.
@@ -209,8 +224,8 @@ Keywords should be all uppercase, but all lowercase is also accepted (not-strict
 - `STR$(number)` Converts a number to its string representation.
   - A positive number is prefixed with a space.
 - `STRING$(number, character | ASCIInumber)` Returns *character* (or `CHR$(ASCIInumber)`) repeated *number* times.
-- `TAG` Activates text at graphics mode. PRINT uses graphics cursor position and graphics color.
-- `TAGOFF` Deactivates text at graphics mode. Uses text at text positons with text pen again.
+- `TAG` Activates text at graphics mode. *PRINT* uses graphics cursor position and graphics color.
+- `TAGOFF` Deactivates text at graphics mode. *PRINT* uses text at text positons with text pen again.
 - `TAN(number)` Returns the tangent of the given *number*.
   - *number* should be in radians (when *RAD* is active) or in degrees (when *DEG* is active).
 - `TIME` Returns the current system time in 1/300 sec.
@@ -223,25 +238,53 @@ Keywords should be all uppercase, but all lowercase is also accepted (not-strict
 - `YPOS` Returns the y-pos of the current graphical cursor position
 - `number XOR number` In expressions: exclusive-OR.
 
+Notes:
+
+- Do not use space between function name and parenthesis.
+- Other command and functions or extensions known from Locomotive Basic are not supported and produce a syntax error.
+
 ### Resident System Extensions (RSX)
+
+- These are extensions to LocoBasic but could also be implemented on a real CPC with Z80 code.
 
 - `|ARC,x,y,rx,ry,angle,large-arc-flag,sweep-flag,x,y[,fillPen]` Draws an arc curve, creating shape [SVG Elliptical arc curve](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/d#elliptical_arc_curve).
 - `|CIRCLE.cx,cy,r[,fillPen]` Draws a circle, creating shape [SVG circle](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/circle).
-- `d$=SPACE$(11): |DATE,@d$` Returns a date string in the format "ww DD MM YY" (ww=day of week) from the Real Time Clock (RTC).
+- `d$=SPACE$(11): |DATE,@d$` Returns a date string in the format "ww DD MM YY" (ww=day of week) from the Real Time Clock (RTC). Use the address operator `@` to denote that the result of the RSX command should be written in the variable.
   See also: [Dobbertin Smart Watch](https://www.cpcwiki.eu/index.php/Dobbertin_Smart_Watch)
-- `|ELLIPSE.cx,cy,rx,ry[,fillPen]` Draws a circle, creating shape [SVG ellipse](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/ellipse).
+- `|ELLIPSE.cx,cy,rx,ry[,fillPen]` Draws an ellipse, creating shape [SVG ellipse](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/ellipse).
 - `|PITCH,n` Sets the speech synthesis pitch (1-20; default: 10)
 - `|RECT,x,y,x2,y2[,fillPen]` Draws a rectangle, creating shape [SVG rect](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/rect). See also: *|CIRCLE*.
 - `|SAY,"Hello"` Says "Hello" using speech synthesis. See also: *|PITCH*.
 - `t$=SPACE$(8): |TIME,@t$` Returns a time string in the format "HH MM SS" from the Real Time Clock (RTC).
   See also: [Dobbertin Smart Watch](https://www.cpcwiki.eu/index.php/Dobbertin_Smart_Watch), *|DATE*.
 
-### TODO
+### Miscellaneous
 
-- Do we want keywords all uppercase? And variables all lowercase?
-  And maybe new features with capital letter? E.g. If...Then...Else...Endif on multiple lines?
+- Other databases
+  - Use the parameter *databaseDirs* to set the list of databases, e.g. to add the Rosetta database:
+  `databaseDirs=examples,https://benchmarko.github.io/CPCBasicApps/rosetta`
+- Strict mode (strict grammar)
+  - Activate: Use the parameter grammar=strict.
+  - Keywords and also RSX names must be all uppercase.
+  - Variables must start with a lowercase character.
 
-### Done
+### Not implemented
+
+- The following keywords are not implemented:
+
+ auto border break call cat chain clear clg closein closeout cont copychr$
+ creal cursor defint defreal defstr delete derr di edit ei eof erl err fill fre
+ goto graphicsPaper himem inkey inp joy key let line list load locate mask memory merge new
+ on openin openout out peek poke pos randomize release renum resume run
+ save sound spc speed sq swap symbol tab test testr troff tron unt vpos wait width window write zone
+
+- *GOTO*, *ON...GOTO* are not supported.
+- *LOCATE* is not supported.
+- Text windows (*WINDOW*) are not supported.
+- Streams with '#' (*PRINT*, *CLS*, *INPUT*) are not supported.
+- *AFTER*, *EVERY* support only timer 0 and do not expect a timer parameter.
+
+### History / Done
 
 - numbers with exponential notation
 - *DIM* and other more complex commands are included on-demand in the compiled JavaScript
@@ -260,14 +303,6 @@ Keywords should be all uppercase, but all lowercase is also accepted (not-strict
 - `MID$` as assign? `a$="abcde": MID$(a$,3,2)="w": ?a$`
 - command line tool should output a stand alone running JS file for node
 - Create syntax highlighting for BASIC with CodeMirror, maybe similar to the [amstradbasic-vscode](https://github.com/dfreniche/amstradbasic-vscode/blob/master/syntaxes/amstradbasic.tmLanguage.json) or [CPCReady](https://marketplace.visualstudio.com/items?itemName=CPCReady.basic-language-extension) extension
-
-### Not implemented
-
- auto border break call cat chain clear clg closein closeout cont copychr$
- creal cursor defint defreal defstr delete derr di edit ei eof erl err fill fre
- goto graphicsPaper himem inkey inp joy key let line list load locate mask memory merge new
- on openin openout out peek poke pos randomize release renum resume run
- save sound spc speed sq swap symbol tab test testr troff tron unt vpos wait width window write zone
 
 ### Resources
 
