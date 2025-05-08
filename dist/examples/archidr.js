@@ -31,8 +31,8 @@ WHILE g0<gcnt
     READ x,y
     IF art=0 THEN mv=1
     IF art=1 THEN PLOT x,y:mv=0
-    IF art=2 THEN if mv=1 THEN MOVE x0,y0:DRAW x,y:mv=0 ELSE DRAW x,y:mv=0
-    IF art=3 THEN if mv=1 THEN MOVE x0,y0:DRAW x,y:x=x0:y=y0:mv=1 else DRAW x,y:x=x0:y=y0:mv=1:'draw but keep pos
+    IF art=2 THEN IF mv=1 THEN MOVE x0,y0:DRAW x,y:mv=0 ELSE DRAW x,y:mv=0
+    IF art=3 THEN IF mv=1 THEN MOVE x0,y0:DRAW x,y:x=x0:y=y0:mv=1 ELSE DRAW x,y:x=x0:y=y0:mv=1:'draw but keep pos
     IF art=4 THEN |RECT,x0,y0,x,y:mv=1: 'rectangle
     IF art=5 THEN |CIRCLE,x0,y0,x:x=x0:y=y0:mv=1:'circle
     x0=x:y0=y

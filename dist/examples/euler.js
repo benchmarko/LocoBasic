@@ -49,7 +49,7 @@ FOR i = 1 TO maxnum
   digit$ = RIGHT$(digit$, LEN(digit$) - 1)
   digit$ = RIGHT$("0000" + digit$, dpnum)
   PRINT digit$;
-  IF i MOD 13<>0 then PRINT " "; ELSE PRINT
+  IF i MOD 13<>0 THEN PRINT " "; ELSE PRINT
   ' Check
   IF c>LEN(c$) THEN READ c$:c=1
   IF digit$<>MID$(c$,c,dpnum) THEN PRINT "Error at pos";i*dpnum+(c-1);":";digit$;"<>";MID$(c$,c,dpnum):STOP
