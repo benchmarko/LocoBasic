@@ -21,10 +21,10 @@ REM +++LANDEN EN STEDEN+++
 5020 PRINT "OVERZICHT LANDEN":PRINT 
 RESTORE :FOR i=1 TO n
 READ l$,h$,po$,li$,hi$
-a=38-LEN (l$+h$)
+a=38-LEN(l$+h$)
 w$=LEFT$("......................................",a)
 PRINT l$;w$;h$;" - ";po$;" km2"
-a=48-LEN (li$+hi$)
+a=48-LEN(li$+hi$)
 w$=LEFT$("......................................",a)
 PRINT " 19";li$;w$;" - 19";hi$
 NEXT i

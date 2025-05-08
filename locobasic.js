@@ -142,29 +142,29 @@
       | Comment? eol Label? -- newline
 
     Abs
-      = abs "(" NumExp ")"
+      = abs #"(" NumExp ")"
     
     After
       = after NumExp ("," NumExp)? gosub label
 
     Asc
-      = asc "(" StrExp ")"
+      = asc #"(" StrExp ")"
 
     Atn
-      = atn "(" NumExp ")"
+      = atn #"(" NumExp ")"
 
     Assign
       = ident "=" NumExp
       | strIdent "=" StrExp
 
     BinS
-      = binS "(" NumExp ("," NumExp)? ")"
+      = binS #"(" NumExp ("," NumExp)? ")"
 
     ChrS
-      = chrS "(" NumExp ")"
+      = chrS #"(" NumExp ")"
 
     Cint
-      = cint "(" NumExp ")"
+      = cint #"(" NumExp ")"
 
     Cls
       = cls
@@ -173,7 +173,7 @@
       = "\\'" partToEol
 
     Cos
-      = cos "(" NumExp ")"
+      = cos #"(" NumExp ")"
 
     DataItem
       = string | number | signedDecimal
@@ -182,13 +182,13 @@
       = data NonemptyListOf<DataItem, ",">
 
     DecS
-      = decS "(" NumExp "," StrExp ")"
+      = decS #"(" NumExp "," StrExp ")"
 
     Def
       = def fn DefAssign
     
     DefArgs
-      = "(" ListOf<SimpleIdent, ","> ")"
+      = #"(" ListOf<SimpleIdent, ","> ")"
 
     DefAssign
       = ident DefArgs? "=" NumExp
@@ -219,10 +219,10 @@
       = every NumExp ("," NumExp)? gosub label
 
     Exp
-      = exp "(" NumExp ")"
+      = exp #"(" NumExp ")"
 
     Fix
-      = fix "(" NumExp ")"
+      = fix #"(" NumExp ")"
 
     For
       = for variable "=" NumExp to NumExp (step NumExp)?
@@ -240,7 +240,7 @@
       = graphics pen NumExp
 
     HexS
-      = hexS "(" NumExp ("," NumExp)? ")"
+      = hexS #"(" NumExp ("," NumExp)? ")"
 
     Ink
       = ink NumExp "," NumExp ("," NumExp)?
@@ -252,38 +252,38 @@
       = input (string (";" | ","))? AnyIdent  // or NonemptyListOf?
 
     Instr
-      = instr "(" StrExp "," StrExp ")" -- noLen
-      | instr "(" NumExp "," StrExp "," StrExp ")" -- len
+      = instr #"(" StrExp "," StrExp ")" -- noLen
+      | instr #"(" NumExp "," StrExp "," StrExp ")" -- len
 
     Int
-      = int "(" NumExp ")"
+      = int #"(" NumExp ")"
 
     LeftS
-      = leftS "(" StrExp "," NumExp ")"
+      = leftS #"(" StrExp "," NumExp ")"
 
     Len
-      = len "(" StrExp ")"
+      = len #"(" StrExp ")"
 
     Log
-      = log "(" NumExp ")"
+      = log #"(" NumExp ")"
 
     Log10
-      = log10 "(" NumExp ")"
+      = log10 #"(" NumExp ")"
 
     LowerS
-      = lowerS "(" StrExp ")"
+      = lowerS #"(" StrExp ")"
 
     Max
-      = max "(" NonemptyListOf<NumExp, ","> ")"
+      = max #"(" NonemptyListOf<NumExp, ","> ")"
 
     MidS
-      = midS "(" StrExp "," NumExp ("," NumExp)? ")"
+      = midS #"(" StrExp "," NumExp ("," NumExp)? ")"
 
     MidSAssign
-      = midS "(" strIdent "," NumExp ("," NumExp)? ")" "=" StrExp
+      = midS #"(" strIdent "," NumExp ("," NumExp)? ")" "=" StrExp
 
     Min
-      = min "(" NonemptyListOf<NumExp, ","> ")"
+      = min #"(" NonemptyListOf<NumExp, ","> ")"
 
     Mode
       = mode NumExp
@@ -337,7 +337,7 @@
       = rem partToEol
 
     Remain
-      = remain "(" NumExp ")"
+      = remain #"(" NumExp ")"
 
     Restore
       = restore label?
@@ -349,13 +349,13 @@
       = rightS "(" StrExp "," NumExp ")"
 
     Rnd
-      = rnd ("(" NumExp ")")?
+      = rnd (#"(" NumExp ")")?
     
     Round
-      = round "(" NumExp ("," NumExp)? ")"
+      = round #"(" NumExp ("," NumExp)? ")"
 
     Rsx
-      = "|" identName RsxArgs?
+      = "|" #rsxIdentName RsxArgs?
 
     RsxAddressOfIdent
       = "@" AnyIdent
@@ -366,26 +366,26 @@
       = "," NonemptyListOf<RsxArg, ",">
 
     Sgn
-      = sgn "(" NumExp ")"
+      = sgn #"(" NumExp ")"
 
     Sin
-      = sin "(" NumExp ")"
+      = sin #"(" NumExp ")"
 
     SpaceS
-      = spaceS "(" NumExp ")"
+      = spaceS #"(" NumExp ")"
 
     Sqr
-      = sqr "(" NumExp ")"
+      = sqr #"(" NumExp ")"
 
     Stop
       = stop
 
     StrS
-      = strS "(" NumExp ")"
+      = strS #"(" NumExp ")"
 
     StringS
-      = stringS "(" NumExp "," StrExp ")" -- str
-      | stringS "(" NumExp "," NumExp ")" -- num
+      = stringS #"(" NumExp "," StrExp ")" -- str
+      | stringS #"(" NumExp "," NumExp ")" -- num
 
     Tag
       = tag
@@ -394,16 +394,16 @@
       = tagoff
       
     Tan
-      = tan "(" NumExp ")"
+      = tan #"(" NumExp ")"
 
     Time
       = time
 
     UpperS
-      = upperS "(" StrExp ")"
+      = upperS #"(" StrExp ")"
 
     Val
-      = val "(" StrExp ")"
+      = val #"(" StrExp ")"
 
     Wend
       = wend
@@ -549,17 +549,17 @@
       = NonemptyListOf<NumExp, ",">
 
     ArrayIdent
-      = ident "(" ArrayArgs ")"
+      = ident #"(" ArrayArgs ")"
 
     StrArrayIdent
-      = strIdent "(" ArrayArgs ")"
+      = strIdent #"(" ArrayArgs ")"
 
     DimArrayArgs
       = NonemptyListOf<NumExp, ",">
 
     DimArrayIdent
-      = ident "(" DimArrayArgs ")"
-      | strIdent "(" DimArrayArgs ")"
+      = ident #"(" DimArrayArgs ")"
+      | strIdent #"(" DimArrayArgs ")"
 
     SimpleIdent
       = strIdent
@@ -582,7 +582,7 @@
       | NumExp
 
     AnyFnArgs
-      = "(" ListOf<AnyFnArg, ","> ")"
+      = #"(" ListOf<AnyFnArg, ","> ")"
 
 
     keyword
@@ -933,11 +933,13 @@
     fnIdent
       = fn ~keyword identName
 
+    rsxIdentName = letter alnum*
+
     identName = identStart identPart*
 
     identStart = letter
 
-    identPart = letter | digit
+    identPart = alnum
 
     variable = ident
 
@@ -1313,6 +1315,8 @@
       := "ZONE" ~identPart
 
     identStart := lower
+
+    rsxIdentName := upper (upper | digit)*
 }
   `
     };
@@ -3326,6 +3330,7 @@ node dist/locobasic.js input='PRINT "Hello!"'
 npx ts-node dist/locobasic.js input='PRINT "Hello!"'
 node dist/locobasic.js input='?3 + 5 * (2 - 8)' example=''
 node dist/locobasic.js example=euler
+node dist/locobasic.js example=binary database=rosetta databaseDirs=examples,https://benchmarko.github.io/CPCBasicApps/rosetta
 node dist/locobasic.js fileName=dist/examples/example.bas
 node dist/locobasic.js grammar='strict' input='a$="Bob":PRINT "Hello ";a$;"!"'
 
@@ -3409,7 +3414,7 @@ node hello1.js
         action: "compile,run",
         autoCompile: true,
         autoExecute: true,
-        databaseDirs: "examples,https://benchmarko.github.io/CPCBasicApps/rosetta", // example base directories (comma separated)
+        databaseDirs: "examples", // example base directories (comma separated)
         database: "examples", // examples, apps, saved
         debounceCompile: 800,
         debounceExecute: 400,

@@ -72,29 +72,29 @@ export const arithmetic = {
       | Comment? eol Label? -- newline
 
     Abs
-      = abs "(" NumExp ")"
+      = abs #"(" NumExp ")"
     
     After
       = after NumExp ("," NumExp)? gosub label
 
     Asc
-      = asc "(" StrExp ")"
+      = asc #"(" StrExp ")"
 
     Atn
-      = atn "(" NumExp ")"
+      = atn #"(" NumExp ")"
 
     Assign
       = ident "=" NumExp
       | strIdent "=" StrExp
 
     BinS
-      = binS "(" NumExp ("," NumExp)? ")"
+      = binS #"(" NumExp ("," NumExp)? ")"
 
     ChrS
-      = chrS "(" NumExp ")"
+      = chrS #"(" NumExp ")"
 
     Cint
-      = cint "(" NumExp ")"
+      = cint #"(" NumExp ")"
 
     Cls
       = cls
@@ -103,7 +103,7 @@ export const arithmetic = {
       = "\\'" partToEol
 
     Cos
-      = cos "(" NumExp ")"
+      = cos #"(" NumExp ")"
 
     DataItem
       = string | number | signedDecimal
@@ -112,13 +112,13 @@ export const arithmetic = {
       = data NonemptyListOf<DataItem, ",">
 
     DecS
-      = decS "(" NumExp "," StrExp ")"
+      = decS #"(" NumExp "," StrExp ")"
 
     Def
       = def fn DefAssign
     
     DefArgs
-      = "(" ListOf<SimpleIdent, ","> ")"
+      = #"(" ListOf<SimpleIdent, ","> ")"
 
     DefAssign
       = ident DefArgs? "=" NumExp
@@ -149,10 +149,10 @@ export const arithmetic = {
       = every NumExp ("," NumExp)? gosub label
 
     Exp
-      = exp "(" NumExp ")"
+      = exp #"(" NumExp ")"
 
     Fix
-      = fix "(" NumExp ")"
+      = fix #"(" NumExp ")"
 
     For
       = for variable "=" NumExp to NumExp (step NumExp)?
@@ -170,7 +170,7 @@ export const arithmetic = {
       = graphics pen NumExp
 
     HexS
-      = hexS "(" NumExp ("," NumExp)? ")"
+      = hexS #"(" NumExp ("," NumExp)? ")"
 
     Ink
       = ink NumExp "," NumExp ("," NumExp)?
@@ -182,38 +182,38 @@ export const arithmetic = {
       = input (string (";" | ","))? AnyIdent  // or NonemptyListOf?
 
     Instr
-      = instr "(" StrExp "," StrExp ")" -- noLen
-      | instr "(" NumExp "," StrExp "," StrExp ")" -- len
+      = instr #"(" StrExp "," StrExp ")" -- noLen
+      | instr #"(" NumExp "," StrExp "," StrExp ")" -- len
 
     Int
-      = int "(" NumExp ")"
+      = int #"(" NumExp ")"
 
     LeftS
-      = leftS "(" StrExp "," NumExp ")"
+      = leftS #"(" StrExp "," NumExp ")"
 
     Len
-      = len "(" StrExp ")"
+      = len #"(" StrExp ")"
 
     Log
-      = log "(" NumExp ")"
+      = log #"(" NumExp ")"
 
     Log10
-      = log10 "(" NumExp ")"
+      = log10 #"(" NumExp ")"
 
     LowerS
-      = lowerS "(" StrExp ")"
+      = lowerS #"(" StrExp ")"
 
     Max
-      = max "(" NonemptyListOf<NumExp, ","> ")"
+      = max #"(" NonemptyListOf<NumExp, ","> ")"
 
     MidS
-      = midS "(" StrExp "," NumExp ("," NumExp)? ")"
+      = midS #"(" StrExp "," NumExp ("," NumExp)? ")"
 
     MidSAssign
-      = midS "(" strIdent "," NumExp ("," NumExp)? ")" "=" StrExp
+      = midS #"(" strIdent "," NumExp ("," NumExp)? ")" "=" StrExp
 
     Min
-      = min "(" NonemptyListOf<NumExp, ","> ")"
+      = min #"(" NonemptyListOf<NumExp, ","> ")"
 
     Mode
       = mode NumExp
@@ -267,7 +267,7 @@ export const arithmetic = {
       = rem partToEol
 
     Remain
-      = remain "(" NumExp ")"
+      = remain #"(" NumExp ")"
 
     Restore
       = restore label?
@@ -279,13 +279,13 @@ export const arithmetic = {
       = rightS "(" StrExp "," NumExp ")"
 
     Rnd
-      = rnd ("(" NumExp ")")?
+      = rnd (#"(" NumExp ")")?
     
     Round
-      = round "(" NumExp ("," NumExp)? ")"
+      = round #"(" NumExp ("," NumExp)? ")"
 
     Rsx
-      = "|" identName RsxArgs?
+      = "|" #rsxIdentName RsxArgs?
 
     RsxAddressOfIdent
       = "@" AnyIdent
@@ -296,26 +296,26 @@ export const arithmetic = {
       = "," NonemptyListOf<RsxArg, ",">
 
     Sgn
-      = sgn "(" NumExp ")"
+      = sgn #"(" NumExp ")"
 
     Sin
-      = sin "(" NumExp ")"
+      = sin #"(" NumExp ")"
 
     SpaceS
-      = spaceS "(" NumExp ")"
+      = spaceS #"(" NumExp ")"
 
     Sqr
-      = sqr "(" NumExp ")"
+      = sqr #"(" NumExp ")"
 
     Stop
       = stop
 
     StrS
-      = strS "(" NumExp ")"
+      = strS #"(" NumExp ")"
 
     StringS
-      = stringS "(" NumExp "," StrExp ")" -- str
-      | stringS "(" NumExp "," NumExp ")" -- num
+      = stringS #"(" NumExp "," StrExp ")" -- str
+      | stringS #"(" NumExp "," NumExp ")" -- num
 
     Tag
       = tag
@@ -324,16 +324,16 @@ export const arithmetic = {
       = tagoff
       
     Tan
-      = tan "(" NumExp ")"
+      = tan #"(" NumExp ")"
 
     Time
       = time
 
     UpperS
-      = upperS "(" StrExp ")"
+      = upperS #"(" StrExp ")"
 
     Val
-      = val "(" StrExp ")"
+      = val #"(" StrExp ")"
 
     Wend
       = wend
@@ -479,17 +479,17 @@ export const arithmetic = {
       = NonemptyListOf<NumExp, ",">
 
     ArrayIdent
-      = ident "(" ArrayArgs ")"
+      = ident #"(" ArrayArgs ")"
 
     StrArrayIdent
-      = strIdent "(" ArrayArgs ")"
+      = strIdent #"(" ArrayArgs ")"
 
     DimArrayArgs
       = NonemptyListOf<NumExp, ",">
 
     DimArrayIdent
-      = ident "(" DimArrayArgs ")"
-      | strIdent "(" DimArrayArgs ")"
+      = ident #"(" DimArrayArgs ")"
+      | strIdent #"(" DimArrayArgs ")"
 
     SimpleIdent
       = strIdent
@@ -512,7 +512,7 @@ export const arithmetic = {
       | NumExp
 
     AnyFnArgs
-      = "(" ListOf<AnyFnArg, ","> ")"
+      = #"(" ListOf<AnyFnArg, ","> ")"
 
 
     keyword
@@ -863,11 +863,13 @@ export const arithmetic = {
     fnIdent
       = fn ~keyword identName
 
+    rsxIdentName = letter alnum*
+
     identName = identStart identPart*
 
     identStart = letter
 
-    identPart = letter | digit
+    identPart = alnum
 
     variable = ident
 
@@ -1243,6 +1245,8 @@ export const arithmetic = {
       := "ZONE" ~identPart
 
     identStart := lower
+
+    rsxIdentName := upper (upper | digit)*
 }
   `
 };
