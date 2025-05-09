@@ -16,7 +16,7 @@ export class Core implements ICore {
 
     constructor(defaultConfig: ConfigType) {
         this.defaultConfig = defaultConfig;
-        this.config = {...defaultConfig};
+        this.config = { ...defaultConfig };
     }
 
     private onCheckSyntax = async (_s: string) => ""; // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -38,10 +38,10 @@ export class Core implements ICore {
 
             this.databaseMap[key] = {
                 key,
-				source,
+                source,
                 exampleMap: undefined
-			};
-		}
+            };
+        }
         return this.databaseMap;
     }
 
@@ -135,7 +135,7 @@ export class Core implements ICore {
         for (const timer in timerMap) {
             if (timerMap[timer] !== undefined) {
                 const timerMap = vm.getTimerMap();
-			    const value = timerMap[timer];
+                const value = timerMap[timer];
                 clearTimeout(value);
                 clearInterval(value);
                 timerMap[timer] = undefined;
@@ -144,15 +144,15 @@ export class Core implements ICore {
         return output;
     }
 
-    public getSemanticsHelper() {
+    public getSemantics() {
         return this.semantics;
     }
 
     public addIndex = (dir: string, input: Record<string, ExampleType[]> | (() => void)): void => { // need property function because we need bound "this"
-		if (typeof input === "function") {
-			input = {
-				[dir]: JSON.parse(fnHereDoc(input).trim())
-			};
+        if (typeof input === "function") {
+            input = {
+                [dir]: JSON.parse(fnHereDoc(input).trim())
+            };
         }
 
         const exampleMap: ExampleMapType = {};
@@ -164,7 +164,7 @@ export class Core implements ICore {
             }
         }
         this.setExampleMap(exampleMap);
-	};
+    };
 
     public addItem = (key: string, input: string | (() => void)): void => { // need property function because we need bound "this"
         let inputString = typeof input !== "string" ? fnHereDoc(input) : input;

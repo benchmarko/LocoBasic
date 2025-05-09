@@ -469,8 +469,8 @@ export class UI implements IUI {
         const input = this.basicCm!.getValue();
 
         const core = this.getCore();
-        const semanticsHelper = core.getSemanticsHelper();
-        const usedLabels = semanticsHelper.getUsedLabels();
+        const semantics = core.getSemantics();
+        const usedLabels = semantics.getUsedLabels();
        
         const allUsedLabels: Record<string, boolean> = {};
         for (const type of Object.keys(usedLabels)) {

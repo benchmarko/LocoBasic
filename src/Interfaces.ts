@@ -1,18 +1,18 @@
 export type ConfigEntryType = string | number | boolean;
 
 export interface ExampleType {
-	key: string
-	title: string
-	meta: string // D=data
-	script?: string
+    key: string
+    title: string
+    meta: string // D=data
+    script?: string
 }
 
 export type ExampleMapType = Record<string, ExampleType>;
 
 export interface DatabaseType {
-	key: string
+    key: string
     source: string,
-	exampleMap?: ExampleMapType
+    exampleMap?: ExampleMapType
 }
 
 export type DatabaseMapType = Record<string, DatabaseType>;
@@ -22,7 +22,7 @@ export type ConfigType = {
     autoCompile: boolean;
     autoExecute: boolean;
     databaseDirs: string, // example base directories (comma separated)
-	database: string, // examples, apps, saved
+    database: string, // examples, apps, saved
     debounceCompile: number;
     debounceExecute: number;
     debug: number;
@@ -76,28 +76,8 @@ export type UsedLabelEntryType = {
     count: number
 }
 
-export interface ISemanticsHelper {
-    addDataIndex(count: number): void;
-    addDefinedLabel(label: string, line: number): void;
-    addUsedLabel(label: string, type: string): void;
-    addIndent(num: number): number;
-    addInstr(name: string): number;
-    addRestoreLabel(label: string): void;
-    getDataIndex(): number;
-    getDataList(): (string | number)[];
-    getDefinedLabels(): DefinedLabelEntryType[];
+export interface ISemantics {
     getUsedLabels(): Record<string, Record<string, UsedLabelEntryType>>;
-    getIndent(): number;
-    getIndentStr(): string;
-    getInstrMap(): Record<string, number>;
-    getRestoreMap(): Record<string, number>;
-    getVariable(name: string): string;
-    getVariables(): string[];
-    incrementLineIndex(): number;
-    setIndent(indent: number): void;
-    setDeg(isDeg: boolean): void;
-    getDeg(): boolean;
-    setDefContext(isDef: boolean): void;
 }
 
 export interface ICore {
@@ -109,7 +89,7 @@ export interface ICore {
     getExampleMap(): ExampleMapType;
     setExampleMap(exampleMap: ExampleMapType): void;
     getExample(name: string): ExampleType;
-    getSemanticsHelper(): ISemanticsHelper;
+    getSemantics(): ISemantics;
     compileScript(script: string): string;
     executeScript(compiledScript: string, vm: IVmAdmin): Promise<string>;
     setOnCheckSyntax(fn: (s: string) => Promise<string>): void;
@@ -124,7 +104,7 @@ export interface INodeParts {
 }
 
 export interface IUI {
-    getCurrentDataKey() : string;
+    getCurrentDataKey(): string;
     onWindowLoadContinue(core: ICore, vm: IVmAdmin): void;
     getEscape(): boolean;
     addOutputText(value: string): void;
