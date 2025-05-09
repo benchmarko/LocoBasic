@@ -14,9 +14,6 @@ export class BasicVmBrowser implements IVmAdmin {
         this.vmCore.setOnSpeak(this.fnOnSpeak.bind(this));
     }
 
-    /**
-     * Clears the output text.
-     */
     public cls(): void {
         this.vmCore.cls();
         this.ui.setOutputText("");
@@ -26,32 +23,19 @@ export class BasicVmBrowser implements IVmAdmin {
         this.vmCore.drawMovePlot(type, x, y);
     }
 
-    /**
-     * Adds a message to the output text.
-     * @param msg - The message to print.
-     */
     public fnOnPrint(msg: string): void {
         this.ui.addOutputText(msg);
     }
 
-    private flushText(): void {
-        const output = this.vmCore.getOutput();
-        if (output) {
-            this.fnOnPrint(output);
-            this.vmCore.setOutput("");
-        }
-    }
-
-    private flushGraphics(): void {
-        const output = this.vmCore.getFlushedGraphics();
-        if (output) {
-            this.fnOnPrint(output);
-        }
-    }
-
     public flush(): void {
-        this.flushText();
-        this.flushGraphics();
+        const textOutput = this.vmCore.flushText();
+        if (textOutput) {
+            this.fnOnPrint(textOutput);
+        }
+        const graphicsOutput = this.vmCore.flushGraphics();
+        if (graphicsOutput) {
+            this.fnOnPrint(graphicsOutput);
+        }
     }
 
     public graphicsPen(num: number): void {

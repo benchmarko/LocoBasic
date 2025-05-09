@@ -95,7 +95,6 @@ export class BasicVmCore {
         this.currGraphicsPen = -1;
         this.graphicsX = 0;
         this.graphicsY = 0;
-        //this.fnOnCls();
     }
 
     public drawMovePlot(type: string, x: number, y: number): void {
@@ -137,34 +136,24 @@ export class BasicVmCore {
         }
     }
 
-    public getFlushedGraphics(): string {
+    public flushGraphics(): string {
         this.flushGraphicsPath();
-        let output = "";
         if (this.graphicsBuffer.length) {
-            // separate print for svg graphics (we are checking for output starting with svg to enable export SVG button)ays 0
+            // separate print for svg graphics
+            // in another module, we check if output starts with "<svg" to enable export SVG button
             const backgroundColorStr = this.backgroundColor !== "" ? ` style="background-color:${this.backgroundColor}"` : '';
             const graphicsBufferStr = this.graphicsBuffer.join("\n");
             this.graphicsBuffer.length = 0;
-            output = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" shape-rendering="optimizeSpeed" stroke="currentColor"${backgroundColorStr}>\n${graphicsBufferStr}"\n</svg>\n`;
+            return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" shape-rendering="optimizeSpeed" stroke="currentColor"${backgroundColorStr}>\n${graphicsBufferStr}"\n</svg>\n`;
         }
-        return output;
+        return "";
     }
 
-    /*
-    public flush(): void {
-        this.flushGraphicsPath();
-        if (this.output) {
-            fnOnPrint(this.output);
-            this.output = "";
-        }
-        if (this.graphicsBuffer.length) {
-            // separate print for svg graphics (we are checking for output starting with svg to enable export SVG button)ays 0
-            const backgroundColorStr = this.backgroundColor !== "" ? ` style="background-color:${this.backgroundColor}"` : '';
-            fnOnPrint(`<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" shape-rendering="optimizeSpeed" stroke="currentColor"${backgroundColorStr}>\n${this.graphicsBuffer.join("\n")}"\n</svg>\n`);
-            this.graphicsBuffer.length = 0;
-        }
+    public flushText(): string {
+        const output = this.output;
+        this.output = "";
+        return output;
     }
-    */
 
     public graphicsPen(num: number): void {
         if (num === this.currGraphicsPen) {
@@ -199,19 +188,6 @@ export class BasicVmCore {
             this.backgroundColor = BasicVmCore.cpcColors[this.colorsForPens[0]];
         }
     }
-
-    /*
-    public inkey$(): Promise<string> {
-        return Promise.resolve("");
-    }
-    */
-
-    /*
-    public input(msg: string): Promise<string | null> {
-        this.flush();
-        return this.fnOnInput(msg);
-    }
-    */
 
     public mode(num: number): void {
         this.currMode = num;
@@ -278,13 +254,10 @@ export class BasicVmCore {
     private rsxArc = (args: (number | string)[]) => { // bound this
         const [x, y, rx, ry, rotx, long, sweep, endx, endy, fill] = args.map((p) => Math.round(p as number));
 
-        //if (!this.graphicsPathBuffer.length) { // path must start with an absolute move
-        //this.graphicsPathBuffer.push(`M${x} ${399 - y}`);
-        //}
         this.flushGraphicsPath(); // maybe a path is open
         const strokeAndFillStr = this.getStrokeAndFillStr(fill);
         const svgPathCmd = `M${x} ${399 - y} A${rx} ${ry} ${rotx} ${long} ${sweep} ${endx} ${399 - endy}`;
-        this.graphicsBuffer.push(`<path${strokeAndFillStr} d="${svgPathCmd}" />`);
+        this.graphicsBuffer.push(`<path d="${svgPathCmd}"${strokeAndFillStr} />`);
     }
 
     private rsxCircle = (args: (number | string)[]) => { // bound this
@@ -309,23 +282,23 @@ export class BasicVmCore {
         args[0] = dateStr;
         return Promise.resolve(args);
     }
-    
+
     private rsxEllipse = (args: (number | string)[]) => { // bound this
         const [cx, cy, rx, ry, fill] = args.map((p) => Math.round(p as number));
 
         const strokeAndFillStr = this.getStrokeAndFillStr(fill);
         this.flushGraphicsPath();
-        this.graphicsBuffer.push(`<ellipse cx="${cx}" cy="${399 - cy}" rx="${rx}"ry="${ry}"${strokeAndFillStr} />`);
+        this.graphicsBuffer.push(`<ellipse cx="${cx}" cy="${399 - cy}" rx="${rx}" ry="${ry}"${strokeAndFillStr} />`);
     }
 
     private rsxRect = (args: (number | string)[]) => { // bound this
         const [x1, y1, x2, y2, fill] = args.map((p) => Math.round(p as number));
-    
+
         const x = Math.min(x1, x2);
         const y = Math.max(y1, y2); // y is inverted
         const width = Math.abs(x2 - x1);
         const height = Math.abs(y2 - y1);
-    
+
         const strokeAndFillStr = this.getStrokeAndFillStr(fill);
         this.flushGraphicsPath();
         this.graphicsBuffer.push(`<rect x="${x}" y="${399 - y}" width="${width}" height="${height}"${strokeAndFillStr} />`);
@@ -431,17 +404,14 @@ export class BasicVmCore {
         return this.graphicsY;
     }
 
-    public getEscape(): boolean {
-        return false;
-    }
-
     public getTimerMap(): TimerMapType {
         return this.timerMap;
     }
 
     public getOutput(): string {
+        const output = this.output;
         this.reset();
-        return this.output;
+        return output;
     }
     public setOutput(str: string): void {
         this.output = str;

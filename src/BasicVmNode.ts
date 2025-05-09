@@ -65,24 +65,15 @@ export class BasicVmNode implements IVmAdmin {
         console.log(msg.replace(/\n$/, ""));
     }
 
-    private flushText(): void {
-        const output = this.vmCore.getOutput();
-        if (output) {
-            BasicVmNode.fnOnPrint(output);
-            this.vmCore.setOutput("");
-        }
-    }
-
-    private flushGraphics(): void {
-        const output = this.vmCore.getFlushedGraphics();
-        if (output) {
-            BasicVmNode.fnOnPrint(output);
-        }
-    }
-
     public flush(): void {
-        this.flushText();
-        this.flushGraphics();
+        const textOutput = this.vmCore.flushText();
+        if (textOutput) {
+            BasicVmNode.fnOnPrint(textOutput);
+        }
+        const graphicsOutput = this.vmCore.flushGraphics();
+        if (graphicsOutput) {
+            BasicVmNode.fnOnPrint(graphicsOutput);
+        }
     }
 
     public graphicsPen(num: number): void {

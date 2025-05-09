@@ -37,4 +37,32 @@ describe('Semantics Class', () => {
         const instrMap = semantics.getInstrMap();
         expect(instrMap['testInstr']).toBe(1);
     });
+
+    it('should correctly prefix reserved keywords with an underscore', () => {
+        const semantics = new Semantics();
+        const reservedKeyword = 'class';
+        const prefixedKeyword = semantics.getVariable(reservedKeyword);
+        expect(prefixedKeyword).toBe('_class');
+    });
+
+    it('should not modify non-reserved keywords', () => {
+        const semantics = new Semantics();
+        const nonReservedKeyword = 'customVar';
+        const result = semantics.getVariable(nonReservedKeyword);
+        expect(result).toBe('customvar');
+    });
+
+    it('should handle mixed-case reserved keywords correctly', () => {
+        const semantics = new Semantics();
+        const mixedCaseKeyword = 'Class';
+        const prefixedKeyword = semantics.getVariable(mixedCaseKeyword);
+        expect(prefixedKeyword).toBe('_class');
+    });
+
+    it('should handle mixed-case non-reserved keywords correctly', () => {
+        const semantics = new Semantics();
+        const mixedCaseKeyword = 'CustomVar';
+        const result = semantics.getVariable(mixedCaseKeyword);
+        expect(result).toBe('customvar');
+    });
 });

@@ -1139,7 +1139,6 @@ export class Semantics implements ISemanticsHelper {
 	private lineIndex = 0;
 
 	private indent = 0;
-	//private indentAdd = 0;
 
 	private readonly variables: Record<string, number> = {};
 
@@ -1166,11 +1165,6 @@ export class Semantics implements ISemanticsHelper {
 	}
 
 	public addIndent(num: number): number {
-		/*
-		if (num < 0) {
-			this.applyNextIndent();
-		}
-		*/
 		this.indent += num;
 		return this.indent;
 	}
@@ -1190,13 +1184,6 @@ export class Semantics implements ISemanticsHelper {
 		}
 		return " ".repeat(this.indent);
 	}
-
-	/*
-	public applyNextIndent(): void {
-		this.indent += this.indentAdd;
-		this.indentAdd = 0;
-	}
-	*/
 
 	public addDataIndex(count: number): number {
 		return this.dataIndex += count;
