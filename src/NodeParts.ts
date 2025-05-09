@@ -159,12 +159,13 @@ export class NodeParts {
     private putScriptInFrame(script: string): string {
         const dummyFunctions = Object.values(dummyVm).filter((value) => value).map((value) => `${value}`).join(",\n  ");
         const result =
-            `(function(_o) {
-                ${script}
-            })({
-                _output: "",
-                ${dummyFunctions}
-            });`
+`(function(_o) {
+    ${script}
+    _o.flush();
+})({
+    _output: "",
+    ${dummyFunctions}
+});`
         return result;
     }
 
