@@ -102,11 +102,12 @@ export class NodeParts {
     putScriptInFrame(script) {
         const dummyFunctions = Object.values(dummyVm).filter((value) => value).map((value) => `${value}`).join(",\n  ");
         const result = `(function(_o) {
-                ${script}
-            })({
-                _output: "",
-                ${dummyFunctions}
-            });`;
+    ${script}
+    _o.flush();
+})({
+    _output: "",
+    ${dummyFunctions}
+});`;
         return result;
     }
     nodeCheckSyntax(script) {
