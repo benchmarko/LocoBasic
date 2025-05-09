@@ -1,4 +1,4 @@
-import type { IVmAdmin, TimerMapType } from "./Interfaces";
+import type { TimerMapType } from "./Interfaces";
 
 type RsxMapType = Record<string, {
     argTypes: string[];
@@ -7,7 +7,9 @@ type RsxMapType = Record<string, {
 
 const strokeWidthForMode: number[] = [4, 2, 1, 1];
 
-export class BasicVmCore implements IVmAdmin {
+export class BasicVmCore {
+    private readonly penColors: string[];
+    private readonly paperColors: string[];
     private output: string = "";
     private currPaper: number = -1;
     private currPen: number = -1;
@@ -18,14 +20,15 @@ export class BasicVmCore implements IVmAdmin {
     private originX: number = 0;
     private originY: number = 0;
     private graphicsX: number = 0;
-    private graphicsY: number = 399;
-    protected colorsForPens: number[] = [];
+    private graphicsY: number = 0;
+    private readonly colorsForPens: number[] = [];
     private backgroundColor = "";
     private isTag: boolean = false; // text at graphics
     private timerMap: TimerMapType = {};
     private pitch: number = 1;
+    private fnOnSpeak: (text: string, pitch: number) => Promise<void> = () => Promise.resolve();
 
-    protected readonly cpcColors = [
+    private static readonly cpcColors = [
         "#000000", //  0 Black
         "#000080", //  1 Blue
         "#0000FF", //  2 Bright Blue
@@ -60,44 +63,22 @@ export class BasicVmCore implements IVmAdmin {
         "#00FF80" //  31 Sea Green (same as 19)
     ];
 
-    protected readonly defaultColorsForPens: number[] = [
+    private readonly defaultColorsForPens: number[] = [
         1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
     ];
 
-    public constructor() {
+    public constructor(penColors: string[], paperColors: string[]) {
+        this.penColors = penColors;
+        this.paperColors = paperColors;
         this.reset();
     }
 
-    protected fnOnCls(): void {
-        // override
-    }
-
-    protected async fnOnInput(_msg: string): Promise<string | null> { // eslint-disable-line @typescript-eslint/no-unused-vars
-        // override
-        return "";
-    }
-
-    protected fnOnPrint(_msg: string): void { // eslint-disable-line @typescript-eslint/no-unused-vars
-        // override
-    }
-
-    protected fnGetPenColor(_num: number): string { // eslint-disable-line @typescript-eslint/no-unused-vars
-        // override
-        return "";
-    }
-
-    protected fnGetPaperColor(_num: number): string { // eslint-disable-line @typescript-eslint/no-unused-vars
-        // override
-        return "";
-    }
-
-    protected fnOnSpeak(_text: string, _pitch: number): Promise<void> {  // eslint-disable-line @typescript-eslint/no-unused-vars
-        // override
-        return Promise.resolve();
+    public static getCpcColors() {
+        return BasicVmCore.cpcColors;
     }
 
     private reset(): void {
-        this.colorsForPens = [...this.defaultColorsForPens];
+        this.colorsForPens.splice(0, this.colorsForPens.length, ...this.defaultColorsForPens);
         this.backgroundColor = "";
         this.originX = 0;
         this.originY = 0;
@@ -114,7 +95,7 @@ export class BasicVmCore implements IVmAdmin {
         this.currGraphicsPen = -1;
         this.graphicsX = 0;
         this.graphicsY = 0;
-        this.fnOnCls();
+        //this.fnOnCls();
     }
 
     public drawMovePlot(type: string, x: number, y: number): void {
@@ -148,7 +129,7 @@ export class BasicVmCore implements IVmAdmin {
         if (this.graphicsPathBuffer.length) {
             let strokeStr = "";
             if (this.currGraphicsPen >= 0) {
-                const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
+                const color = BasicVmCore.cpcColors[this.colorsForPens[this.currGraphicsPen]];
                 strokeStr = `stroke="${color}" `;
             }
             this.graphicsBuffer.push(`<path ${strokeStr}d="${this.graphicsPathBuffer.join("")}" />`);
@@ -156,19 +137,34 @@ export class BasicVmCore implements IVmAdmin {
         }
     }
 
+    public getFlushedGraphics(): string {
+        this.flushGraphicsPath();
+        let output = "";
+        if (this.graphicsBuffer.length) {
+            // separate print for svg graphics (we are checking for output starting with svg to enable export SVG button)ays 0
+            const backgroundColorStr = this.backgroundColor !== "" ? ` style="background-color:${this.backgroundColor}"` : '';
+            const graphicsBufferStr = this.graphicsBuffer.join("\n");
+            this.graphicsBuffer.length = 0;
+            output = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" shape-rendering="optimizeSpeed" stroke="currentColor"${backgroundColorStr}>\n${graphicsBufferStr}"\n</svg>\n`;
+        }
+        return output;
+    }
+
+    /*
     public flush(): void {
         this.flushGraphicsPath();
         if (this.output) {
-            this.fnOnPrint(this.output);
+            fnOnPrint(this.output);
             this.output = "";
         }
         if (this.graphicsBuffer.length) {
             // separate print for svg graphics (we are checking for output starting with svg to enable export SVG button)ays 0
             const backgroundColorStr = this.backgroundColor !== "" ? ` style="background-color:${this.backgroundColor}"` : '';
-            this.fnOnPrint(`<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" shape-rendering="optimizeSpeed" stroke="currentColor"${backgroundColorStr}>\n${this.graphicsBuffer.join("\n")}"\n</svg>\n`);
+            fnOnPrint(`<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" shape-rendering="optimizeSpeed" stroke="currentColor"${backgroundColorStr}>\n${this.graphicsBuffer.join("\n")}"\n</svg>\n`);
             this.graphicsBuffer.length = 0;
         }
     }
+    */
 
     public graphicsPen(num: number): void {
         if (num === this.currGraphicsPen) {
@@ -200,18 +196,22 @@ export class BasicVmCore implements IVmAdmin {
         }
 
         if (num === 0) {
-            this.backgroundColor = this.cpcColors[this.colorsForPens[0]];
+            this.backgroundColor = BasicVmCore.cpcColors[this.colorsForPens[0]];
         }
     }
 
+    /*
     public inkey$(): Promise<string> {
         return Promise.resolve("");
     }
+    */
 
+    /*
     public input(msg: string): Promise<string | null> {
         this.flush();
         return this.fnOnInput(msg);
     }
+    */
 
     public mode(num: number): void {
         this.currMode = num;
@@ -226,14 +226,20 @@ export class BasicVmCore implements IVmAdmin {
 
     public paper(n: number): void {
         if (n !== this.currPaper) {
-            this.output += this.fnGetPaperColor(this.colorsForPens[n]);
+            if (n < 0 || n >= this.paperColors.length) {
+                throw new Error("Invalid paper color index");
+            }
+            this.output += this.paperColors[this.colorsForPens[n]];
             this.currPaper = n;
         }
     }
 
     public pen(n: number): void {
         if (n !== this.currPen) {
-            this.output += this.fnGetPenColor(this.colorsForPens[n]);
+            if (n < 0 || n >= this.penColors.length) {
+                throw new Error("Invalid pen color index");
+            }
+            this.output += this.penColors[this.colorsForPens[n]];
             this.currPen = n;
         }
     }
@@ -242,7 +248,7 @@ export class BasicVmCore implements IVmAdmin {
         const yOffset = 16;
         let styleStr = "";
         if (this.currGraphicsPen >= 0) {
-            const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
+            const color = BasicVmCore.cpcColors[this.colorsForPens[this.currGraphicsPen]];
             styleStr = ` style="color: ${color}"`;
         }
         this.flushGraphicsPath(); // maybe a path is open
@@ -258,9 +264,14 @@ export class BasicVmCore implements IVmAdmin {
         }
     }
 
+    public setOnSpeak(fnOnSpeak: (text: string, pitch: number) => Promise<void>) {
+        this.fnOnSpeak = fnOnSpeak;
+    }
+
     private getStrokeAndFillStr(fill: number): string {
-        const strokeStr = this.currGraphicsPen >= 0 ? ` stroke="${this.cpcColors[this.colorsForPens[this.currGraphicsPen]]}"` : "";
-        const fillStr = fill >= 0 ? ` fill="${this.cpcColors[this.colorsForPens[fill]]}"` : "";
+        const cpcColors = BasicVmCore.cpcColors;
+        const strokeStr = this.currGraphicsPen >= 0 ? ` stroke="${cpcColors[this.colorsForPens[this.currGraphicsPen]]}"` : "";
+        const fillStr = fill >= 0 ? ` fill="${cpcColors[this.colorsForPens[fill]]}"` : "";
         return `${strokeStr}${fillStr}`;
     }
 

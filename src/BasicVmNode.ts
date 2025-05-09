@@ -1,4 +1,4 @@
-import { INodeParts } from "./Interfaces";
+import { INodeParts, IVmAdmin, TimerMapType } from "./Interfaces";
 import { BasicVmCore } from "./BasicVmCore";
 
 function getAnsiColors(background: boolean): string[] {
@@ -41,49 +41,121 @@ function getAnsiColors(background: boolean): string[] {
     return colorCodes.map((code: number) => `\x1b[${code + add}m`); // e.g. Navy: pen: "\x1b[34m" or paper: "\x1b[44m"
 }
 
-export class BasicVmNode extends BasicVmCore {
-    private readonly penColors: string[] = getAnsiColors(false);
-    private readonly paperColors: string[] = getAnsiColors(true);
+export class BasicVmNode implements IVmAdmin {
+    private readonly vmCore: BasicVmCore;
     private readonly nodeParts: INodeParts;
 
     constructor(nodeParts: INodeParts) {
-        super();
         this.nodeParts = nodeParts;
+        const penColors = getAnsiColors(false);
+        const paperColors = getAnsiColors(true);
+        this.vmCore = new BasicVmCore(penColors, paperColors);
     }
 
-    public fnOnCls(): void {
+    public cls(): void {
+        this.vmCore.cls();
         console.clear();
     }
 
-    public fnOnPrint(msg: string): void {
+    public drawMovePlot(type: string, x: number, y: number): void {
+        this.vmCore.drawMovePlot(type, x, y);
+    }
+
+    private static fnOnPrint(msg: string): void {
         console.log(msg.replace(/\n$/, ""));
     }
 
-    public async fnOnInput(msg: string): Promise<string> {
-        console.log(msg);
-        return Promise.resolve("");
-    }
-
-    public fnGetPenColor(num: number): string {
-        if (num < 0 || num >= this.penColors.length) {
-            throw new Error("Invalid pen color index");
+    private flushText(): void {
+        const output = this.vmCore.getOutput();
+        if (output) {
+            BasicVmNode.fnOnPrint(output);
+            this.vmCore.setOutput("");
         }
-        return this.penColors[num];
     }
 
-    public fnGetPaperColor(num: number): string {
-        if (num < 0 || num >= this.paperColors.length) {
-            throw new Error("Invalid paper color index");
+    private flushGraphics(): void {
+        const output = this.vmCore.getFlushedGraphics();
+        if (output) {
+            BasicVmNode.fnOnPrint(output);
         }
-        return this.paperColors[num];
     }
 
+    public flush(): void {
+        this.flushText();
+        this.flushGraphics();
+    }
+
+    public graphicsPen(num: number): void {
+        this.vmCore.graphicsPen(num);
+    }
+
+    public ink(num: number, col: number) {
+        this.vmCore.ink(num, col);
+    }
+    
     public inkey$(): Promise<string> {
         const key = this.nodeParts.getKeyFromBuffer();
         return Promise.resolve(key);
     }
 
+    private async fnOnInput(msg: string): Promise<string> {
+        console.log(msg);
+        return Promise.resolve("");
+    }
+
+    public input(msg: string): Promise<string | null> {
+        this.flush();
+        return this.fnOnInput(msg);
+    }
+
+    public mode(num: number): void {
+        this.vmCore.mode(num);
+    }
+
+    public origin(x: number, y: number): void {
+        this.vmCore.origin(x, y);
+    }
+
+    public paper(n: number): void {
+        this.vmCore.paper(n);
+    }
+
+    public pen(n: number): void {
+        this.vmCore.pen(n);
+    }
+
+    public print(...args: string[]): void {
+        this.vmCore.print(...args);
+    }
+
+    public async rsx(cmd: string, args: (number | string)[]): Promise<(number | string)[]> {
+        return this.vmCore.rsx(cmd, args);
+    }
+
+    public tag(active: boolean): void {
+        this.vmCore.tag(active);
+    }
+
+    public xpos(): number {
+        return this.vmCore.xpos();
+    }
+
+    public ypos(): number {
+        return this.vmCore.ypos();
+    }
+
     public getEscape(): boolean {
         return this.nodeParts.getEscape();
+    }
+
+    public getTimerMap(): TimerMapType {
+        return this.vmCore.getTimerMap();
+    }
+
+    public getOutput(): string {
+        return this.vmCore.getOutput();
+    }
+    public setOutput(str: string): void {
+        this.vmCore.setOutput(str);
     }
 }

@@ -1,33 +1,29 @@
-import { IUI } from "./Interfaces";
+import { IUI, IVmAdmin, TimerMapType } from "./Interfaces";
 import { BasicVmCore } from "./BasicVmCore";
 
-export class BasicVmBrowser extends BasicVmCore {
+export class BasicVmBrowser implements IVmAdmin {
     private readonly ui: IUI;
-    private readonly penColors: string[] = [];
-    private readonly paperColors: string[] = [];
+    private readonly vmCore: BasicVmCore;
 
     constructor(ui: IUI) {
-        super();
         this.ui = ui;
-        this.penColors = this.cpcColors.map((color) => ui.getColor(color, false));
-        this.paperColors = this.cpcColors.map((color) => ui.getColor(color, true));
+        const cpcColors = BasicVmCore.getCpcColors();
+        const penColors = cpcColors.map((color) => ui.getColor(color, false));
+        const paperColors = cpcColors.map((color) => ui.getColor(color, true));
+        this.vmCore = new BasicVmCore(penColors, paperColors);
+        this.vmCore.setOnSpeak(this.fnOnSpeak.bind(this));
     }
 
     /**
      * Clears the output text.
      */
-    public fnOnCls(): void {
+    public cls(): void {
+        this.vmCore.cls();
         this.ui.setOutputText("");
     }
 
-    /**
-     * Prompts the user with a message and returns the input.
-     * @param msg - The message to prompt.
-     * @returns A promise that resolves to the user input or null if canceled.
-     */
-    public async fnOnInput(msg: string): Promise<string | null> {
-        const input = this.ui.prompt(msg);
-        return Promise.resolve(input);
+    public drawMovePlot(type: string, x: number, y: number): void {
+        this.vmCore.drawMovePlot(type, x, y);
     }
 
     /**
@@ -38,42 +34,106 @@ export class BasicVmBrowser extends BasicVmCore {
         this.ui.addOutputText(msg);
     }
 
-    public async fnOnSpeak(text: string, pitch: number): Promise<void> {
-        return this.ui.speak(text, pitch);
-    }
-
-    /**
-     * Gets the pen color by index.
-     * @param num - The index of the pen color.
-     * @returns The pen color.
-     * @throws Will throw an error if the index is out of bounds.
-     */
-    public fnGetPenColor(num: number): string {
-        if (num < 0 || num >= this.penColors.length) {
-            throw new Error("Pen color index out of bounds");
+    private flushText(): void {
+        const output = this.vmCore.getOutput();
+        if (output) {
+            this.fnOnPrint(output);
+            this.vmCore.setOutput("");
         }
-        return this.penColors[num];
     }
 
-    /**
-     * Gets the paper color by index.
-     * @param num - The index of the paper color.
-     * @returns The paper color.
-     * @throws Will throw an error if the index is out of bounds.
-     */
-    public fnGetPaperColor(num: number): string {
-        if (num < 0 || num >= this.paperColors.length) {
-            throw new Error("Paper color index out of bounds");
+    private flushGraphics(): void {
+        const output = this.vmCore.getFlushedGraphics();
+        if (output) {
+            this.fnOnPrint(output);
         }
-        return this.paperColors[num];
     }
 
+    public flush(): void {
+        this.flushText();
+        this.flushGraphics();
+    }
+
+    public graphicsPen(num: number): void {
+        this.vmCore.graphicsPen(num);
+    }
+
+    public ink(num: number, col: number) {
+        this.vmCore.ink(num, col);
+    }
+    
     public inkey$(): Promise<string> {
         const key = this.ui.getKeyFromBuffer();
         return Promise.resolve(key);
     }
 
+    /**
+     * Prompts the user with a message and returns the input.
+     * @param msg - The message to prompt.
+     * @returns A promise that resolves to the user input or null if canceled.
+     */
+    private async fnOnInput(msg: string): Promise<string | null> {
+        const input = this.ui.prompt(msg);
+        return Promise.resolve(input);
+    }
+
+    public input(msg: string): Promise<string | null> {
+        this.flush();
+        return this.fnOnInput(msg);
+    }
+
+    public mode(num: number): void {
+        this.vmCore.mode(num);
+    }
+
+    public origin(x: number, y: number): void {
+        this.vmCore.origin(x, y);
+    }
+
+    public paper(n: number): void {
+        this.vmCore.paper(n);
+    }
+
+    public pen(n: number): void {
+        this.vmCore.pen(n);
+    }
+
+    public print(...args: string[]): void {
+        this.vmCore.print(...args);
+    }
+
+    private async fnOnSpeak(text: string, pitch: number): Promise<void> {
+        return this.ui.speak(text, pitch);
+    }
+
+    public async rsx(cmd: string, args: (number | string)[]): Promise<(number | string)[]> {
+        return this.vmCore.rsx(cmd, args);
+    }
+
+    public tag(active: boolean): void {
+        this.vmCore.tag(active);
+    }
+
+    public xpos(): number {
+        return this.vmCore.xpos();
+    }
+
+    public ypos(): number {
+        return this.vmCore.ypos();
+    }
+
     public getEscape(): boolean {
         return this.ui.getEscape();
+    }
+
+    public getTimerMap(): TimerMapType {
+        return this.vmCore.getTimerMap();
+    }
+
+    public getOutput(): string {
+        return this.vmCore.getOutput();
+    }
+    public setOutput(str: string): void {
+        this.vmCore.setOutput(str);
     }
 }
