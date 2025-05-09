@@ -37,41 +37,96 @@ function getAnsiColors(background) {
     const add = background ? 10 : 0;
     return colorCodes.map((code) => `\x1b[${code + add}m`); // e.g. Navy: pen: "\x1b[34m" or paper: "\x1b[44m"
 }
-export class BasicVmNode extends BasicVmCore {
+export class BasicVmNode {
     constructor(nodeParts) {
-        super();
-        this.penColors = getAnsiColors(false);
-        this.paperColors = getAnsiColors(true);
         this.nodeParts = nodeParts;
+        const penColors = getAnsiColors(false);
+        const paperColors = getAnsiColors(true);
+        this.vmCore = new BasicVmCore(penColors, paperColors);
     }
-    fnOnCls() {
+    cls() {
+        this.vmCore.cls();
         console.clear();
     }
-    fnOnPrint(msg) {
+    drawMovePlot(type, x, y) {
+        this.vmCore.drawMovePlot(type, x, y);
+    }
+    static fnOnPrint(msg) {
         console.log(msg.replace(/\n$/, ""));
     }
-    async fnOnInput(msg) {
-        console.log(msg);
-        return Promise.resolve("");
-    }
-    fnGetPenColor(num) {
-        if (num < 0 || num >= this.penColors.length) {
-            throw new Error("Invalid pen color index");
+    flushText() {
+        const output = this.vmCore.getOutput();
+        if (output) {
+            BasicVmNode.fnOnPrint(output);
+            this.vmCore.setOutput("");
         }
-        return this.penColors[num];
     }
-    fnGetPaperColor(num) {
-        if (num < 0 || num >= this.paperColors.length) {
-            throw new Error("Invalid paper color index");
+    flushGraphics() {
+        const output = this.vmCore.getFlushedGraphics();
+        if (output) {
+            BasicVmNode.fnOnPrint(output);
         }
-        return this.paperColors[num];
+    }
+    flush() {
+        this.flushText();
+        this.flushGraphics();
+    }
+    graphicsPen(num) {
+        this.vmCore.graphicsPen(num);
+    }
+    ink(num, col) {
+        this.vmCore.ink(num, col);
     }
     inkey$() {
         const key = this.nodeParts.getKeyFromBuffer();
         return Promise.resolve(key);
     }
+    async fnOnInput(msg) {
+        console.log(msg);
+        return Promise.resolve("");
+    }
+    input(msg) {
+        this.flush();
+        return this.fnOnInput(msg);
+    }
+    mode(num) {
+        this.vmCore.mode(num);
+    }
+    origin(x, y) {
+        this.vmCore.origin(x, y);
+    }
+    paper(n) {
+        this.vmCore.paper(n);
+    }
+    pen(n) {
+        this.vmCore.pen(n);
+    }
+    print(...args) {
+        this.vmCore.print(...args);
+    }
+    async rsx(cmd, args) {
+        return this.vmCore.rsx(cmd, args);
+    }
+    tag(active) {
+        this.vmCore.tag(active);
+    }
+    xpos() {
+        return this.vmCore.xpos();
+    }
+    ypos() {
+        return this.vmCore.ypos();
+    }
     getEscape() {
         return this.nodeParts.getEscape();
+    }
+    getTimerMap() {
+        return this.vmCore.getTimerMap();
+    }
+    getOutput() {
+        return this.vmCore.getOutput();
+    }
+    setOutput(str) {
+        this.vmCore.setOutput(str);
     }
 }
 //# sourceMappingURL=BasicVmNode.js.map

@@ -1,18 +1,56 @@
 import { BasicVmCore } from "./BasicVmCore";
-export class BasicVmBrowser extends BasicVmCore {
+export class BasicVmBrowser {
     constructor(ui) {
-        super();
-        this.penColors = [];
-        this.paperColors = [];
         this.ui = ui;
-        this.penColors = this.cpcColors.map((color) => ui.getColor(color, false));
-        this.paperColors = this.cpcColors.map((color) => ui.getColor(color, true));
+        const cpcColors = BasicVmCore.getCpcColors();
+        const penColors = cpcColors.map((color) => ui.getColor(color, false));
+        const paperColors = cpcColors.map((color) => ui.getColor(color, true));
+        this.vmCore = new BasicVmCore(penColors, paperColors);
+        this.vmCore.setOnSpeak(this.fnOnSpeak.bind(this));
     }
     /**
      * Clears the output text.
      */
-    fnOnCls() {
+    cls() {
+        this.vmCore.cls();
         this.ui.setOutputText("");
+    }
+    drawMovePlot(type, x, y) {
+        this.vmCore.drawMovePlot(type, x, y);
+    }
+    /**
+     * Adds a message to the output text.
+     * @param msg - The message to print.
+     */
+    fnOnPrint(msg) {
+        this.ui.addOutputText(msg);
+    }
+    flushText() {
+        const output = this.vmCore.getOutput();
+        if (output) {
+            this.fnOnPrint(output);
+            this.vmCore.setOutput("");
+        }
+    }
+    flushGraphics() {
+        const output = this.vmCore.getFlushedGraphics();
+        if (output) {
+            this.fnOnPrint(output);
+        }
+    }
+    flush() {
+        this.flushText();
+        this.flushGraphics();
+    }
+    graphicsPen(num) {
+        this.vmCore.graphicsPen(num);
+    }
+    ink(num, col) {
+        this.vmCore.ink(num, col);
+    }
+    inkey$() {
+        const key = this.ui.getKeyFromBuffer();
+        return Promise.resolve(key);
     }
     /**
      * Prompts the user with a message and returns the input.
@@ -23,46 +61,51 @@ export class BasicVmBrowser extends BasicVmCore {
         const input = this.ui.prompt(msg);
         return Promise.resolve(input);
     }
-    /**
-     * Adds a message to the output text.
-     * @param msg - The message to print.
-     */
-    fnOnPrint(msg) {
-        this.ui.addOutputText(msg);
+    input(msg) {
+        this.flush();
+        return this.fnOnInput(msg);
+    }
+    mode(num) {
+        this.vmCore.mode(num);
+    }
+    origin(x, y) {
+        this.vmCore.origin(x, y);
+    }
+    paper(n) {
+        this.vmCore.paper(n);
+    }
+    pen(n) {
+        this.vmCore.pen(n);
+    }
+    print(...args) {
+        this.vmCore.print(...args);
     }
     async fnOnSpeak(text, pitch) {
         return this.ui.speak(text, pitch);
     }
-    /**
-     * Gets the pen color by index.
-     * @param num - The index of the pen color.
-     * @returns The pen color.
-     * @throws Will throw an error if the index is out of bounds.
-     */
-    fnGetPenColor(num) {
-        if (num < 0 || num >= this.penColors.length) {
-            throw new Error("Pen color index out of bounds");
-        }
-        return this.penColors[num];
+    async rsx(cmd, args) {
+        return this.vmCore.rsx(cmd, args);
     }
-    /**
-     * Gets the paper color by index.
-     * @param num - The index of the paper color.
-     * @returns The paper color.
-     * @throws Will throw an error if the index is out of bounds.
-     */
-    fnGetPaperColor(num) {
-        if (num < 0 || num >= this.paperColors.length) {
-            throw new Error("Paper color index out of bounds");
-        }
-        return this.paperColors[num];
+    tag(active) {
+        this.vmCore.tag(active);
     }
-    inkey$() {
-        const key = this.ui.getKeyFromBuffer();
-        return Promise.resolve(key);
+    xpos() {
+        return this.vmCore.xpos();
+    }
+    ypos() {
+        return this.vmCore.ypos();
     }
     getEscape() {
         return this.ui.getEscape();
+    }
+    getTimerMap() {
+        return this.vmCore.getTimerMap();
+    }
+    getOutput() {
+        return this.vmCore.getOutput();
+    }
+    setOutput(str) {
+        this.vmCore.setOutput(str);
     }
 }
 //# sourceMappingURL=BasicVmBrowser.js.map

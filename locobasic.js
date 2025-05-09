@@ -2572,7 +2572,7 @@
 
     const strokeWidthForMode = [4, 2, 1, 1];
     class BasicVmCore {
-        constructor() {
+        constructor(penColors, paperColors) {
             this.output = "";
             this.currPaper = -1;
             this.currPen = -1;
@@ -2583,46 +2583,13 @@
             this.originX = 0;
             this.originY = 0;
             this.graphicsX = 0;
-            this.graphicsY = 399;
+            this.graphicsY = 0;
             this.colorsForPens = [];
             this.backgroundColor = "";
             this.isTag = false; // text at graphics
             this.timerMap = {};
             this.pitch = 1;
-            this.cpcColors = [
-                "#000000", //  0 Black
-                "#000080", //  1 Blue
-                "#0000FF", //  2 Bright Blue
-                "#800000", //  3 Red
-                "#800080", //  4 Magenta
-                "#8000FF", //  5 Mauve
-                "#FF0000", //  6 Bright Red
-                "#FF0080", //  7 Purple
-                "#FF00FF", //  8 Bright Magenta
-                "#008000", //  9 Green
-                "#008080", // 10 Cyan
-                "#0080FF", // 11 Sky Blue
-                "#808000", // 12 Yellow
-                "#808080", // 13 White
-                "#8080FF", // 14 Pastel Blue
-                "#FF8000", // 15 Orange
-                "#FF8080", // 16 Pink
-                "#FF80FF", // 17 Pastel Magenta
-                "#00FF00", // 18 Bright Green
-                "#00FF80", // 19 Sea Green
-                "#00FFFF", // 20 Bright Cyan
-                "#80FF00", // 21 Lime
-                "#80FF80", // 22 Pastel Green
-                "#80FFFF", // 23 Pastel Cyan
-                "#FFFF00", // 24 Bright Yellow
-                "#FFFF80", // 25 Pastel Yellow
-                "#FFFFFF", // 26 Bright White
-                "#808080", // 27 White (same as 13)
-                "#FF00FF", // 28 Bright Magenta (same as 8)
-                "#FFFF80", // 29 Pastel Yellow (same as 25)
-                "#000080", // 30 Blue (same as 1)
-                "#00FF80" //  31 Sea Green (same as 19)
-            ];
+            this.fnOnSpeak = () => Promise.resolve();
             this.defaultColorsForPens = [
                 1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
             ];
@@ -2724,32 +2691,15 @@
                     fn: this.rsxTime
                 }
             };
+            this.penColors = penColors;
+            this.paperColors = paperColors;
             this.reset();
         }
-        fnOnCls() {
-            // override
-        }
-        async fnOnInput(_msg) {
-            // override
-            return "";
-        }
-        fnOnPrint(_msg) {
-            // override
-        }
-        fnGetPenColor(_num) {
-            // override
-            return "";
-        }
-        fnGetPaperColor(_num) {
-            // override
-            return "";
-        }
-        fnOnSpeak(_text, _pitch) {
-            // override
-            return Promise.resolve();
+        static getCpcColors() {
+            return BasicVmCore.cpcColors;
         }
         reset() {
-            this.colorsForPens = [...this.defaultColorsForPens];
+            this.colorsForPens.splice(0, this.colorsForPens.length, ...this.defaultColorsForPens);
             this.backgroundColor = "";
             this.originX = 0;
             this.originY = 0;
@@ -2765,7 +2715,7 @@
             this.currGraphicsPen = -1;
             this.graphicsX = 0;
             this.graphicsY = 0;
-            this.fnOnCls();
+            //this.fnOnCls();
         }
         drawMovePlot(type, x, y) {
             x = Math.round(x);
@@ -2794,26 +2744,40 @@
             if (this.graphicsPathBuffer.length) {
                 let strokeStr = "";
                 if (this.currGraphicsPen >= 0) {
-                    const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
+                    const color = BasicVmCore.cpcColors[this.colorsForPens[this.currGraphicsPen]];
                     strokeStr = `stroke="${color}" `;
                 }
                 this.graphicsBuffer.push(`<path ${strokeStr}d="${this.graphicsPathBuffer.join("")}" />`);
                 this.graphicsPathBuffer.length = 0;
             }
         }
-        flush() {
+        getFlushedGraphics() {
+            this.flushGraphicsPath();
+            let output = "";
+            if (this.graphicsBuffer.length) {
+                // separate print for svg graphics (we are checking for output starting with svg to enable export SVG button)ays 0
+                const backgroundColorStr = this.backgroundColor !== "" ? ` style="background-color:${this.backgroundColor}"` : '';
+                const graphicsBufferStr = this.graphicsBuffer.join("\n");
+                this.graphicsBuffer.length = 0;
+                output = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" shape-rendering="optimizeSpeed" stroke="currentColor"${backgroundColorStr}>\n${graphicsBufferStr}"\n</svg>\n`;
+            }
+            return output;
+        }
+        /*
+        public flush(): void {
             this.flushGraphicsPath();
             if (this.output) {
-                this.fnOnPrint(this.output);
+                fnOnPrint(this.output);
                 this.output = "";
             }
             if (this.graphicsBuffer.length) {
                 // separate print for svg graphics (we are checking for output starting with svg to enable export SVG button)ays 0
                 const backgroundColorStr = this.backgroundColor !== "" ? ` style="background-color:${this.backgroundColor}"` : '';
-                this.fnOnPrint(`<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" shape-rendering="optimizeSpeed" stroke="currentColor"${backgroundColorStr}>\n${this.graphicsBuffer.join("\n")}"\n</svg>\n`);
+                fnOnPrint(`<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" shape-rendering="optimizeSpeed" stroke="currentColor"${backgroundColorStr}>\n${this.graphicsBuffer.join("\n")}"\n</svg>\n`);
                 this.graphicsBuffer.length = 0;
             }
         }
+        */
         graphicsPen(num) {
             if (num === this.currGraphicsPen) {
                 return;
@@ -2842,16 +2806,20 @@
                 this.paper(num);
             }
             if (num === 0) {
-                this.backgroundColor = this.cpcColors[this.colorsForPens[0]];
+                this.backgroundColor = BasicVmCore.cpcColors[this.colorsForPens[0]];
             }
         }
-        inkey$() {
+        /*
+        public inkey$(): Promise<string> {
             return Promise.resolve("");
         }
-        input(msg) {
+        */
+        /*
+        public input(msg: string): Promise<string | null> {
             this.flush();
             return this.fnOnInput(msg);
         }
+        */
         mode(num) {
             this.currMode = num;
             this.cls();
@@ -2863,13 +2831,19 @@
         }
         paper(n) {
             if (n !== this.currPaper) {
-                this.output += this.fnGetPaperColor(this.colorsForPens[n]);
+                if (n < 0 || n >= this.paperColors.length) {
+                    throw new Error("Invalid paper color index");
+                }
+                this.output += this.paperColors[this.colorsForPens[n]];
                 this.currPaper = n;
             }
         }
         pen(n) {
             if (n !== this.currPen) {
-                this.output += this.fnGetPenColor(this.colorsForPens[n]);
+                if (n < 0 || n >= this.penColors.length) {
+                    throw new Error("Invalid pen color index");
+                }
+                this.output += this.penColors[this.colorsForPens[n]];
                 this.currPen = n;
             }
         }
@@ -2877,7 +2851,7 @@
             const yOffset = 16;
             let styleStr = "";
             if (this.currGraphicsPen >= 0) {
-                const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
+                const color = BasicVmCore.cpcColors[this.colorsForPens[this.currGraphicsPen]];
                 styleStr = ` style="color: ${color}"`;
             }
             this.flushGraphicsPath(); // maybe a path is open
@@ -2892,9 +2866,13 @@
                 this.output += text;
             }
         }
+        setOnSpeak(fnOnSpeak) {
+            this.fnOnSpeak = fnOnSpeak;
+        }
         getStrokeAndFillStr(fill) {
-            const strokeStr = this.currGraphicsPen >= 0 ? ` stroke="${this.cpcColors[this.colorsForPens[this.currGraphicsPen]]}"` : "";
-            const fillStr = fill >= 0 ? ` fill="${this.cpcColors[this.colorsForPens[fill]]}"` : "";
+            const cpcColors = BasicVmCore.cpcColors;
+            const strokeStr = this.currGraphicsPen >= 0 ? ` stroke="${cpcColors[this.colorsForPens[this.currGraphicsPen]]}"` : "";
+            const fillStr = fill >= 0 ? ` fill="${cpcColors[this.colorsForPens[fill]]}"` : "";
             return `${strokeStr}${fillStr}`;
         }
         async rsx(cmd, args) {
@@ -2948,6 +2926,40 @@
             this.output = str;
         }
     }
+    BasicVmCore.cpcColors = [
+        "#000000", //  0 Black
+        "#000080", //  1 Blue
+        "#0000FF", //  2 Bright Blue
+        "#800000", //  3 Red
+        "#800080", //  4 Magenta
+        "#8000FF", //  5 Mauve
+        "#FF0000", //  6 Bright Red
+        "#FF0080", //  7 Purple
+        "#FF00FF", //  8 Bright Magenta
+        "#008000", //  9 Green
+        "#008080", // 10 Cyan
+        "#0080FF", // 11 Sky Blue
+        "#808000", // 12 Yellow
+        "#808080", // 13 White
+        "#8080FF", // 14 Pastel Blue
+        "#FF8000", // 15 Orange
+        "#FF8080", // 16 Pink
+        "#FF80FF", // 17 Pastel Magenta
+        "#00FF00", // 18 Bright Green
+        "#00FF80", // 19 Sea Green
+        "#00FFFF", // 20 Bright Cyan
+        "#80FF00", // 21 Lime
+        "#80FF80", // 22 Pastel Green
+        "#80FFFF", // 23 Pastel Cyan
+        "#FFFF00", // 24 Bright Yellow
+        "#FFFF80", // 25 Pastel Yellow
+        "#FFFFFF", // 26 Bright White
+        "#808080", // 27 White (same as 13)
+        "#FF00FF", // 28 Bright Magenta (same as 8)
+        "#FFFF80", // 29 Pastel Yellow (same as 25)
+        "#000080", // 30 Blue (same as 1)
+        "#00FF80" //  31 Sea Green (same as 19)
+    ];
 
     function getAnsiColors(background) {
         const colorCodes = [
@@ -2987,41 +2999,96 @@
         const add = background ? 10 : 0;
         return colorCodes.map((code) => `\x1b[${code + add}m`); // e.g. Navy: pen: "\x1b[34m" or paper: "\x1b[44m"
     }
-    class BasicVmNode extends BasicVmCore {
+    class BasicVmNode {
         constructor(nodeParts) {
-            super();
-            this.penColors = getAnsiColors(false);
-            this.paperColors = getAnsiColors(true);
             this.nodeParts = nodeParts;
+            const penColors = getAnsiColors(false);
+            const paperColors = getAnsiColors(true);
+            this.vmCore = new BasicVmCore(penColors, paperColors);
         }
-        fnOnCls() {
+        cls() {
+            this.vmCore.cls();
             console.clear();
         }
-        fnOnPrint(msg) {
+        drawMovePlot(type, x, y) {
+            this.vmCore.drawMovePlot(type, x, y);
+        }
+        static fnOnPrint(msg) {
             console.log(msg.replace(/\n$/, ""));
         }
-        async fnOnInput(msg) {
-            console.log(msg);
-            return Promise.resolve("");
-        }
-        fnGetPenColor(num) {
-            if (num < 0 || num >= this.penColors.length) {
-                throw new Error("Invalid pen color index");
+        flushText() {
+            const output = this.vmCore.getOutput();
+            if (output) {
+                BasicVmNode.fnOnPrint(output);
+                this.vmCore.setOutput("");
             }
-            return this.penColors[num];
         }
-        fnGetPaperColor(num) {
-            if (num < 0 || num >= this.paperColors.length) {
-                throw new Error("Invalid paper color index");
+        flushGraphics() {
+            const output = this.vmCore.getFlushedGraphics();
+            if (output) {
+                BasicVmNode.fnOnPrint(output);
             }
-            return this.paperColors[num];
+        }
+        flush() {
+            this.flushText();
+            this.flushGraphics();
+        }
+        graphicsPen(num) {
+            this.vmCore.graphicsPen(num);
+        }
+        ink(num, col) {
+            this.vmCore.ink(num, col);
         }
         inkey$() {
             const key = this.nodeParts.getKeyFromBuffer();
             return Promise.resolve(key);
         }
+        async fnOnInput(msg) {
+            console.log(msg);
+            return Promise.resolve("");
+        }
+        input(msg) {
+            this.flush();
+            return this.fnOnInput(msg);
+        }
+        mode(num) {
+            this.vmCore.mode(num);
+        }
+        origin(x, y) {
+            this.vmCore.origin(x, y);
+        }
+        paper(n) {
+            this.vmCore.paper(n);
+        }
+        pen(n) {
+            this.vmCore.pen(n);
+        }
+        print(...args) {
+            this.vmCore.print(...args);
+        }
+        async rsx(cmd, args) {
+            return this.vmCore.rsx(cmd, args);
+        }
+        tag(active) {
+            this.vmCore.tag(active);
+        }
+        xpos() {
+            return this.vmCore.xpos();
+        }
+        ypos() {
+            return this.vmCore.ypos();
+        }
         getEscape() {
             return this.nodeParts.getEscape();
+        }
+        getTimerMap() {
+            return this.vmCore.getTimerMap();
+        }
+        getOutput() {
+            return this.vmCore.getOutput();
+        }
+        setOutput(str) {
+            this.vmCore.setOutput(str);
         }
     }
 
@@ -3343,20 +3410,58 @@ node hello1.js
         }
     }
 
-    class BasicVmBrowser extends BasicVmCore {
+    class BasicVmBrowser {
         constructor(ui) {
-            super();
-            this.penColors = [];
-            this.paperColors = [];
             this.ui = ui;
-            this.penColors = this.cpcColors.map((color) => ui.getColor(color, false));
-            this.paperColors = this.cpcColors.map((color) => ui.getColor(color, true));
+            const cpcColors = BasicVmCore.getCpcColors();
+            const penColors = cpcColors.map((color) => ui.getColor(color, false));
+            const paperColors = cpcColors.map((color) => ui.getColor(color, true));
+            this.vmCore = new BasicVmCore(penColors, paperColors);
+            this.vmCore.setOnSpeak(this.fnOnSpeak.bind(this));
         }
         /**
          * Clears the output text.
          */
-        fnOnCls() {
+        cls() {
+            this.vmCore.cls();
             this.ui.setOutputText("");
+        }
+        drawMovePlot(type, x, y) {
+            this.vmCore.drawMovePlot(type, x, y);
+        }
+        /**
+         * Adds a message to the output text.
+         * @param msg - The message to print.
+         */
+        fnOnPrint(msg) {
+            this.ui.addOutputText(msg);
+        }
+        flushText() {
+            const output = this.vmCore.getOutput();
+            if (output) {
+                this.fnOnPrint(output);
+                this.vmCore.setOutput("");
+            }
+        }
+        flushGraphics() {
+            const output = this.vmCore.getFlushedGraphics();
+            if (output) {
+                this.fnOnPrint(output);
+            }
+        }
+        flush() {
+            this.flushText();
+            this.flushGraphics();
+        }
+        graphicsPen(num) {
+            this.vmCore.graphicsPen(num);
+        }
+        ink(num, col) {
+            this.vmCore.ink(num, col);
+        }
+        inkey$() {
+            const key = this.ui.getKeyFromBuffer();
+            return Promise.resolve(key);
         }
         /**
          * Prompts the user with a message and returns the input.
@@ -3367,46 +3472,51 @@ node hello1.js
             const input = this.ui.prompt(msg);
             return Promise.resolve(input);
         }
-        /**
-         * Adds a message to the output text.
-         * @param msg - The message to print.
-         */
-        fnOnPrint(msg) {
-            this.ui.addOutputText(msg);
+        input(msg) {
+            this.flush();
+            return this.fnOnInput(msg);
+        }
+        mode(num) {
+            this.vmCore.mode(num);
+        }
+        origin(x, y) {
+            this.vmCore.origin(x, y);
+        }
+        paper(n) {
+            this.vmCore.paper(n);
+        }
+        pen(n) {
+            this.vmCore.pen(n);
+        }
+        print(...args) {
+            this.vmCore.print(...args);
         }
         async fnOnSpeak(text, pitch) {
             return this.ui.speak(text, pitch);
         }
-        /**
-         * Gets the pen color by index.
-         * @param num - The index of the pen color.
-         * @returns The pen color.
-         * @throws Will throw an error if the index is out of bounds.
-         */
-        fnGetPenColor(num) {
-            if (num < 0 || num >= this.penColors.length) {
-                throw new Error("Pen color index out of bounds");
-            }
-            return this.penColors[num];
+        async rsx(cmd, args) {
+            return this.vmCore.rsx(cmd, args);
         }
-        /**
-         * Gets the paper color by index.
-         * @param num - The index of the paper color.
-         * @returns The paper color.
-         * @throws Will throw an error if the index is out of bounds.
-         */
-        fnGetPaperColor(num) {
-            if (num < 0 || num >= this.paperColors.length) {
-                throw new Error("Paper color index out of bounds");
-            }
-            return this.paperColors[num];
+        tag(active) {
+            this.vmCore.tag(active);
         }
-        inkey$() {
-            const key = this.ui.getKeyFromBuffer();
-            return Promise.resolve(key);
+        xpos() {
+            return this.vmCore.xpos();
+        }
+        ypos() {
+            return this.vmCore.ypos();
         }
         getEscape() {
             return this.ui.getEscape();
+        }
+        getTimerMap() {
+            return this.vmCore.getTimerMap();
+        }
+        getOutput() {
+            return this.vmCore.getOutput();
+        }
+        setOutput(str) {
+            this.vmCore.setOutput(str);
         }
     }
 

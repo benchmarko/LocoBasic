@@ -1,41 +1,44 @@
-import { IUI } from "./Interfaces";
-import { BasicVmCore } from "./BasicVmCore";
-export declare class BasicVmBrowser extends BasicVmCore {
+import { IUI, IVmAdmin, TimerMapType } from "./Interfaces";
+export declare class BasicVmBrowser implements IVmAdmin {
     private readonly ui;
-    private readonly penColors;
-    private readonly paperColors;
+    private readonly vmCore;
     constructor(ui: IUI);
     /**
      * Clears the output text.
      */
-    fnOnCls(): void;
-    /**
-     * Prompts the user with a message and returns the input.
-     * @param msg - The message to prompt.
-     * @returns A promise that resolves to the user input or null if canceled.
-     */
-    fnOnInput(msg: string): Promise<string | null>;
+    cls(): void;
+    drawMovePlot(type: string, x: number, y: number): void;
     /**
      * Adds a message to the output text.
      * @param msg - The message to print.
      */
     fnOnPrint(msg: string): void;
-    fnOnSpeak(text: string, pitch: number): Promise<void>;
-    /**
-     * Gets the pen color by index.
-     * @param num - The index of the pen color.
-     * @returns The pen color.
-     * @throws Will throw an error if the index is out of bounds.
-     */
-    fnGetPenColor(num: number): string;
-    /**
-     * Gets the paper color by index.
-     * @param num - The index of the paper color.
-     * @returns The paper color.
-     * @throws Will throw an error if the index is out of bounds.
-     */
-    fnGetPaperColor(num: number): string;
+    private flushText;
+    private flushGraphics;
+    flush(): void;
+    graphicsPen(num: number): void;
+    ink(num: number, col: number): void;
     inkey$(): Promise<string>;
+    /**
+     * Prompts the user with a message and returns the input.
+     * @param msg - The message to prompt.
+     * @returns A promise that resolves to the user input or null if canceled.
+     */
+    private fnOnInput;
+    input(msg: string): Promise<string | null>;
+    mode(num: number): void;
+    origin(x: number, y: number): void;
+    paper(n: number): void;
+    pen(n: number): void;
+    print(...args: string[]): void;
+    private fnOnSpeak;
+    rsx(cmd: string, args: (number | string)[]): Promise<(number | string)[]>;
+    tag(active: boolean): void;
+    xpos(): number;
+    ypos(): number;
     getEscape(): boolean;
+    getTimerMap(): TimerMapType;
+    getOutput(): string;
+    setOutput(str: string): void;
 }
 //# sourceMappingURL=BasicVmBrowser.d.ts.map

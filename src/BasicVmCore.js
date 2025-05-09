@@ -1,6 +1,6 @@
 const strokeWidthForMode = [4, 2, 1, 1];
 export class BasicVmCore {
-    constructor() {
+    constructor(penColors, paperColors) {
         this.output = "";
         this.currPaper = -1;
         this.currPen = -1;
@@ -11,46 +11,13 @@ export class BasicVmCore {
         this.originX = 0;
         this.originY = 0;
         this.graphicsX = 0;
-        this.graphicsY = 399;
+        this.graphicsY = 0;
         this.colorsForPens = [];
         this.backgroundColor = "";
         this.isTag = false; // text at graphics
         this.timerMap = {};
         this.pitch = 1;
-        this.cpcColors = [
-            "#000000", //  0 Black
-            "#000080", //  1 Blue
-            "#0000FF", //  2 Bright Blue
-            "#800000", //  3 Red
-            "#800080", //  4 Magenta
-            "#8000FF", //  5 Mauve
-            "#FF0000", //  6 Bright Red
-            "#FF0080", //  7 Purple
-            "#FF00FF", //  8 Bright Magenta
-            "#008000", //  9 Green
-            "#008080", // 10 Cyan
-            "#0080FF", // 11 Sky Blue
-            "#808000", // 12 Yellow
-            "#808080", // 13 White
-            "#8080FF", // 14 Pastel Blue
-            "#FF8000", // 15 Orange
-            "#FF8080", // 16 Pink
-            "#FF80FF", // 17 Pastel Magenta
-            "#00FF00", // 18 Bright Green
-            "#00FF80", // 19 Sea Green
-            "#00FFFF", // 20 Bright Cyan
-            "#80FF00", // 21 Lime
-            "#80FF80", // 22 Pastel Green
-            "#80FFFF", // 23 Pastel Cyan
-            "#FFFF00", // 24 Bright Yellow
-            "#FFFF80", // 25 Pastel Yellow
-            "#FFFFFF", // 26 Bright White
-            "#808080", // 27 White (same as 13)
-            "#FF00FF", // 28 Bright Magenta (same as 8)
-            "#FFFF80", // 29 Pastel Yellow (same as 25)
-            "#000080", // 30 Blue (same as 1)
-            "#00FF80" //  31 Sea Green (same as 19)
-        ];
+        this.fnOnSpeak = () => Promise.resolve();
         this.defaultColorsForPens = [
             1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
         ];
@@ -152,32 +119,15 @@ export class BasicVmCore {
                 fn: this.rsxTime
             }
         };
+        this.penColors = penColors;
+        this.paperColors = paperColors;
         this.reset();
     }
-    fnOnCls() {
-        // override
-    }
-    async fnOnInput(_msg) {
-        // override
-        return "";
-    }
-    fnOnPrint(_msg) {
-        // override
-    }
-    fnGetPenColor(_num) {
-        // override
-        return "";
-    }
-    fnGetPaperColor(_num) {
-        // override
-        return "";
-    }
-    fnOnSpeak(_text, _pitch) {
-        // override
-        return Promise.resolve();
+    static getCpcColors() {
+        return BasicVmCore.cpcColors;
     }
     reset() {
-        this.colorsForPens = [...this.defaultColorsForPens];
+        this.colorsForPens.splice(0, this.colorsForPens.length, ...this.defaultColorsForPens);
         this.backgroundColor = "";
         this.originX = 0;
         this.originY = 0;
@@ -193,7 +143,7 @@ export class BasicVmCore {
         this.currGraphicsPen = -1;
         this.graphicsX = 0;
         this.graphicsY = 0;
-        this.fnOnCls();
+        //this.fnOnCls();
     }
     drawMovePlot(type, x, y) {
         x = Math.round(x);
@@ -222,26 +172,40 @@ export class BasicVmCore {
         if (this.graphicsPathBuffer.length) {
             let strokeStr = "";
             if (this.currGraphicsPen >= 0) {
-                const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
+                const color = BasicVmCore.cpcColors[this.colorsForPens[this.currGraphicsPen]];
                 strokeStr = `stroke="${color}" `;
             }
             this.graphicsBuffer.push(`<path ${strokeStr}d="${this.graphicsPathBuffer.join("")}" />`);
             this.graphicsPathBuffer.length = 0;
         }
     }
-    flush() {
+    getFlushedGraphics() {
+        this.flushGraphicsPath();
+        let output = "";
+        if (this.graphicsBuffer.length) {
+            // separate print for svg graphics (we are checking for output starting with svg to enable export SVG button)ays 0
+            const backgroundColorStr = this.backgroundColor !== "" ? ` style="background-color:${this.backgroundColor}"` : '';
+            const graphicsBufferStr = this.graphicsBuffer.join("\n");
+            this.graphicsBuffer.length = 0;
+            output = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" shape-rendering="optimizeSpeed" stroke="currentColor"${backgroundColorStr}>\n${graphicsBufferStr}"\n</svg>\n`;
+        }
+        return output;
+    }
+    /*
+    public flush(): void {
         this.flushGraphicsPath();
         if (this.output) {
-            this.fnOnPrint(this.output);
+            fnOnPrint(this.output);
             this.output = "";
         }
         if (this.graphicsBuffer.length) {
             // separate print for svg graphics (we are checking for output starting with svg to enable export SVG button)ays 0
             const backgroundColorStr = this.backgroundColor !== "" ? ` style="background-color:${this.backgroundColor}"` : '';
-            this.fnOnPrint(`<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" shape-rendering="optimizeSpeed" stroke="currentColor"${backgroundColorStr}>\n${this.graphicsBuffer.join("\n")}"\n</svg>\n`);
+            fnOnPrint(`<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" shape-rendering="optimizeSpeed" stroke="currentColor"${backgroundColorStr}>\n${this.graphicsBuffer.join("\n")}"\n</svg>\n`);
             this.graphicsBuffer.length = 0;
         }
     }
+    */
     graphicsPen(num) {
         if (num === this.currGraphicsPen) {
             return;
@@ -270,16 +234,20 @@ export class BasicVmCore {
             this.paper(num);
         }
         if (num === 0) {
-            this.backgroundColor = this.cpcColors[this.colorsForPens[0]];
+            this.backgroundColor = BasicVmCore.cpcColors[this.colorsForPens[0]];
         }
     }
-    inkey$() {
+    /*
+    public inkey$(): Promise<string> {
         return Promise.resolve("");
     }
-    input(msg) {
+    */
+    /*
+    public input(msg: string): Promise<string | null> {
         this.flush();
         return this.fnOnInput(msg);
     }
+    */
     mode(num) {
         this.currMode = num;
         this.cls();
@@ -291,13 +259,19 @@ export class BasicVmCore {
     }
     paper(n) {
         if (n !== this.currPaper) {
-            this.output += this.fnGetPaperColor(this.colorsForPens[n]);
+            if (n < 0 || n >= this.paperColors.length) {
+                throw new Error("Invalid paper color index");
+            }
+            this.output += this.paperColors[this.colorsForPens[n]];
             this.currPaper = n;
         }
     }
     pen(n) {
         if (n !== this.currPen) {
-            this.output += this.fnGetPenColor(this.colorsForPens[n]);
+            if (n < 0 || n >= this.penColors.length) {
+                throw new Error("Invalid pen color index");
+            }
+            this.output += this.penColors[this.colorsForPens[n]];
             this.currPen = n;
         }
     }
@@ -305,7 +279,7 @@ export class BasicVmCore {
         const yOffset = 16;
         let styleStr = "";
         if (this.currGraphicsPen >= 0) {
-            const color = this.cpcColors[this.colorsForPens[this.currGraphicsPen]];
+            const color = BasicVmCore.cpcColors[this.colorsForPens[this.currGraphicsPen]];
             styleStr = ` style="color: ${color}"`;
         }
         this.flushGraphicsPath(); // maybe a path is open
@@ -320,9 +294,13 @@ export class BasicVmCore {
             this.output += text;
         }
     }
+    setOnSpeak(fnOnSpeak) {
+        this.fnOnSpeak = fnOnSpeak;
+    }
     getStrokeAndFillStr(fill) {
-        const strokeStr = this.currGraphicsPen >= 0 ? ` stroke="${this.cpcColors[this.colorsForPens[this.currGraphicsPen]]}"` : "";
-        const fillStr = fill >= 0 ? ` fill="${this.cpcColors[this.colorsForPens[fill]]}"` : "";
+        const cpcColors = BasicVmCore.cpcColors;
+        const strokeStr = this.currGraphicsPen >= 0 ? ` stroke="${cpcColors[this.colorsForPens[this.currGraphicsPen]]}"` : "";
+        const fillStr = fill >= 0 ? ` fill="${cpcColors[this.colorsForPens[fill]]}"` : "";
         return `${strokeStr}${fillStr}`;
     }
     async rsx(cmd, args) {
@@ -376,4 +354,38 @@ export class BasicVmCore {
         this.output = str;
     }
 }
+BasicVmCore.cpcColors = [
+    "#000000", //  0 Black
+    "#000080", //  1 Blue
+    "#0000FF", //  2 Bright Blue
+    "#800000", //  3 Red
+    "#800080", //  4 Magenta
+    "#8000FF", //  5 Mauve
+    "#FF0000", //  6 Bright Red
+    "#FF0080", //  7 Purple
+    "#FF00FF", //  8 Bright Magenta
+    "#008000", //  9 Green
+    "#008080", // 10 Cyan
+    "#0080FF", // 11 Sky Blue
+    "#808000", // 12 Yellow
+    "#808080", // 13 White
+    "#8080FF", // 14 Pastel Blue
+    "#FF8000", // 15 Orange
+    "#FF8080", // 16 Pink
+    "#FF80FF", // 17 Pastel Magenta
+    "#00FF00", // 18 Bright Green
+    "#00FF80", // 19 Sea Green
+    "#00FFFF", // 20 Bright Cyan
+    "#80FF00", // 21 Lime
+    "#80FF80", // 22 Pastel Green
+    "#80FFFF", // 23 Pastel Cyan
+    "#FFFF00", // 24 Bright Yellow
+    "#FFFF80", // 25 Pastel Yellow
+    "#FFFFFF", // 26 Bright White
+    "#808080", // 27 White (same as 13)
+    "#FF00FF", // 28 Bright Magenta (same as 8)
+    "#FFFF80", // 29 Pastel Yellow (same as 25)
+    "#000080", // 30 Blue (same as 1)
+    "#00FF80" //  31 Sea Green (same as 19)
+];
 //# sourceMappingURL=BasicVmCore.js.map
