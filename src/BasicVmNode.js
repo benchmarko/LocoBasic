@@ -54,22 +54,15 @@ export class BasicVmNode {
     static fnOnPrint(msg) {
         console.log(msg.replace(/\n$/, ""));
     }
-    flushText() {
-        const output = this.vmCore.getOutput();
-        if (output) {
-            BasicVmNode.fnOnPrint(output);
-            this.vmCore.setOutput("");
-        }
-    }
-    flushGraphics() {
-        const output = this.vmCore.getFlushedGraphics();
-        if (output) {
-            BasicVmNode.fnOnPrint(output);
-        }
-    }
     flush() {
-        this.flushText();
-        this.flushGraphics();
+        const textOutput = this.vmCore.flushText();
+        if (textOutput) {
+            BasicVmNode.fnOnPrint(textOutput);
+        }
+        const graphicsOutput = this.vmCore.flushGraphics();
+        if (graphicsOutput) {
+            BasicVmNode.fnOnPrint(graphicsOutput);
+        }
     }
     graphicsPen(num) {
         this.vmCore.graphicsPen(num);

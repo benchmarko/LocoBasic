@@ -8,9 +8,6 @@ export class BasicVmBrowser {
         this.vmCore = new BasicVmCore(penColors, paperColors);
         this.vmCore.setOnSpeak(this.fnOnSpeak.bind(this));
     }
-    /**
-     * Clears the output text.
-     */
     cls() {
         this.vmCore.cls();
         this.ui.setOutputText("");
@@ -18,29 +15,18 @@ export class BasicVmBrowser {
     drawMovePlot(type, x, y) {
         this.vmCore.drawMovePlot(type, x, y);
     }
-    /**
-     * Adds a message to the output text.
-     * @param msg - The message to print.
-     */
     fnOnPrint(msg) {
         this.ui.addOutputText(msg);
     }
-    flushText() {
-        const output = this.vmCore.getOutput();
-        if (output) {
-            this.fnOnPrint(output);
-            this.vmCore.setOutput("");
-        }
-    }
-    flushGraphics() {
-        const output = this.vmCore.getFlushedGraphics();
-        if (output) {
-            this.fnOnPrint(output);
-        }
-    }
     flush() {
-        this.flushText();
-        this.flushGraphics();
+        const textOutput = this.vmCore.flushText();
+        if (textOutput) {
+            this.fnOnPrint(textOutput);
+        }
+        const graphicsOutput = this.vmCore.flushGraphics();
+        if (graphicsOutput) {
+            this.fnOnPrint(graphicsOutput);
+        }
     }
     graphicsPen(num) {
         this.vmCore.graphicsPen(num);

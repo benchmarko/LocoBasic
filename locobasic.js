@@ -1321,6 +1321,130 @@
   `
     };
 
+    class SemanticsHelper {
+        constructor() {
+            this.lineIndex = 0;
+            this.indent = 0;
+            this.variables = {};
+            this.definedLabels = [];
+            this.usedLabels = {};
+            this.dataList = [];
+            this.dataIndex = 0;
+            this.restoreMap = {};
+            this.instrMap = {};
+            this.isDeg = false;
+            this.isDefContext = false;
+        }
+        getDeg() {
+            return this.isDeg;
+        }
+        setDeg(isDeg) {
+            this.isDeg = isDeg;
+        }
+        addIndent(num) {
+            this.indent += num;
+            return this.indent;
+        }
+        setIndent(indent) {
+            this.indent = indent;
+        }
+        getIndent() {
+            return this.indent;
+        }
+        getIndentStr() {
+            if (this.indent < 0) {
+                console.error("getIndentStr: lineIndex=", this.lineIndex, ", indent=", this.indent);
+                return "";
+            }
+            return " ".repeat(this.indent);
+        }
+        addDataIndex(count) {
+            return this.dataIndex += count;
+        }
+        getDataIndex() {
+            return this.dataIndex;
+        }
+        addDefinedLabel(label, line) {
+            this.definedLabels.push({
+                label,
+                first: line,
+                last: -1,
+                dataIndex: -1
+            });
+        }
+        getDefinedLabels() {
+            return this.definedLabels;
+        }
+        addUsedLabel(label, type) {
+            if (!this.usedLabels[type]) {
+                this.usedLabels[type] = {};
+            }
+            const usedLabelsForType = this.usedLabels[type];
+            usedLabelsForType[label] = usedLabelsForType[label] || {
+                count: 0
+            };
+            usedLabelsForType[label].count = (usedLabelsForType[label].count || 0) + 1;
+        }
+        getUsedLabels() {
+            return this.usedLabels;
+        }
+        getInstrMap() {
+            return this.instrMap;
+        }
+        addInstr(name) {
+            this.instrMap[name] = (this.instrMap[name] || 0) + 1;
+            return this.instrMap[name];
+        }
+        getVariables() {
+            return Object.keys(this.variables);
+        }
+        getVariable(name) {
+            name = name.toLowerCase();
+            if (SemanticsHelper.reJsKeyword.test(name)) {
+                name = `_${name}`;
+            }
+            if (!this.isDefContext) {
+                this.variables[name] = (this.variables[name] || 0) + 1;
+            }
+            return name;
+        }
+        setDefContext(isDef) {
+            this.isDefContext = isDef;
+        }
+        static deleteAllItems(items) {
+            for (const name in items) {
+                delete items[name];
+            }
+        }
+        incrementLineIndex() {
+            this.lineIndex += 1;
+            return this.lineIndex;
+        }
+        getRestoreMap() {
+            return this.restoreMap;
+        }
+        addRestoreLabel(label) {
+            this.restoreMap[label] = -1;
+        }
+        getDataList() {
+            return this.dataList;
+        }
+        resetParser() {
+            this.lineIndex = 0;
+            this.indent = 0;
+            SemanticsHelper.deleteAllItems(this.variables);
+            this.definedLabels.length = 0;
+            SemanticsHelper.deleteAllItems(this.usedLabels);
+            this.dataList.length = 0;
+            this.dataIndex = 0;
+            SemanticsHelper.deleteAllItems(this.restoreMap);
+            SemanticsHelper.deleteAllItems(this.instrMap);
+            this.isDeg = false;
+            this.isDefContext = false;
+        }
+    }
+    SemanticsHelper.reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;
+
     function getCodeSnippets() {
         const _o = {};
         const _data = [];
@@ -1533,7 +1657,6 @@
             }
             return `${startStr}${contentStr}${separatorStr}${endStr}`;
         };
-        // Semantics to evaluate an arithmetic expression
         const semantics = {
             Program(lines) {
                 const lineList = evalChildren(lines.children);
@@ -2206,7 +2329,6 @@
                 return `(${e.eval()})`;
             },
             ArrayArgs(args) {
-                //return args.asIteration().children.map(c => String(c.eval())).join("][");
                 return evalChildren(args.asIteration().children).join("][");
             },
             ArrayIdent(ident, _open, e, _close) {
@@ -2266,143 +2388,21 @@
     }
     class Semantics {
         constructor() {
-            this.lineIndex = 0;
-            this.indent = 0;
-            //private indentAdd = 0;
-            this.variables = {};
-            this.definedLabels = [];
-            this.usedLabels = {};
-            this.dataList = [];
-            this.dataIndex = 0;
-            this.restoreMap = {};
-            this.instrMap = {};
-            this.isDeg = false;
-            this.isDefContext = false;
-        }
-        getDeg() {
-            return this.isDeg;
-        }
-        setDeg(isDeg) {
-            this.isDeg = isDeg;
-        }
-        addIndent(num) {
-            /*
-            if (num < 0) {
-                this.applyNextIndent();
-            }
-            */
-            this.indent += num;
-            return this.indent;
-        }
-        setIndent(indent) {
-            this.indent = indent;
-        }
-        getIndent() {
-            return this.indent;
-        }
-        getIndentStr() {
-            if (this.indent < 0) {
-                console.error("getIndentStr: lineIndex=", this.lineIndex, ", indent=", this.indent);
-                return "";
-            }
-            return " ".repeat(this.indent);
-        }
-        /*
-        public applyNextIndent(): void {
-            this.indent += this.indentAdd;
-            this.indentAdd = 0;
-        }
-        */
-        addDataIndex(count) {
-            return this.dataIndex += count;
-        }
-        getDataIndex() {
-            return this.dataIndex;
-        }
-        addDefinedLabel(label, line) {
-            this.definedLabels.push({
-                label,
-                first: line,
-                last: -1,
-                dataIndex: -1
-            });
-        }
-        getDefinedLabels() {
-            return this.definedLabels;
-        }
-        addUsedLabel(label, type) {
-            if (!this.usedLabels[type]) {
-                this.usedLabels[type] = {};
-            }
-            const usedLabelsForType = this.usedLabels[type];
-            usedLabelsForType[label] = usedLabelsForType[label] || {
-                count: 0
-            };
-            usedLabelsForType[label].count = (usedLabelsForType[label].count || 0) + 1;
-        }
-        getUsedLabels() {
-            return this.usedLabels;
-        }
-        getInstrMap() {
-            return this.instrMap;
-        }
-        addInstr(name) {
-            this.instrMap[name] = (this.instrMap[name] || 0) + 1;
-            return this.instrMap[name];
-        }
-        getVariables() {
-            return Object.keys(this.variables);
-        }
-        getVariable(name) {
-            name = name.toLowerCase();
-            if (Semantics.reJsKeyword.test(name)) {
-                name = `_${name}`;
-            }
-            if (!this.isDefContext) {
-                this.variables[name] = (this.variables[name] || 0) + 1;
-            }
-            return name;
-        }
-        setDefContext(isDef) {
-            this.isDefContext = isDef;
-        }
-        static deleteAllItems(items) {
-            for (const name in items) {
-                delete items[name];
-            }
-        }
-        incrementLineIndex() {
-            this.lineIndex += 1;
-            return this.lineIndex;
-        }
-        getRestoreMap() {
-            return this.restoreMap;
-        }
-        addRestoreLabel(label) {
-            this.restoreMap[label] = -1;
-        }
-        getDataList() {
-            return this.dataList;
+            this.helper = new SemanticsHelper();
         }
         resetParser() {
-            this.lineIndex = 0;
-            this.indent = 0;
-            //this.indentAdd = 0;
-            Semantics.deleteAllItems(this.variables);
-            this.definedLabels.length = 0;
-            Semantics.deleteAllItems(this.usedLabels);
-            this.dataList.length = 0;
-            this.dataIndex = 0;
-            Semantics.deleteAllItems(this.restoreMap);
-            Semantics.deleteAllItems(this.instrMap);
-            this.isDeg = false;
-            this.isDefContext = false;
+            this.helper.resetParser();
+        }
+        getUsedLabels() {
+            return this.helper.getUsedLabels();
         }
         getSemanticsActionDict() {
-            return getSemanticsActionDict(this);
+            return getSemanticsActionDict(this.helper);
+        }
+        getHelper() {
+            return this.helper;
         }
     }
-    Semantics.reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;
 
     function fnHereDoc(fn) {
         return String(fn).replace(/^[^/]+\/\*\S*/, "").replace(/\*\/[^/]+$/, "");
@@ -2548,7 +2548,7 @@
             }
             return output;
         }
-        getSemanticsHelper() {
+        getSemantics() {
             return this.semantics;
         }
         parseArgs(args, config) {
@@ -2595,13 +2595,10 @@
             ];
             this.rsxArc = (args) => {
                 const [x, y, rx, ry, rotx, long, sweep, endx, endy, fill] = args.map((p) => Math.round(p));
-                //if (!this.graphicsPathBuffer.length) { // path must start with an absolute move
-                //this.graphicsPathBuffer.push(`M${x} ${399 - y}`);
-                //}
                 this.flushGraphicsPath(); // maybe a path is open
                 const strokeAndFillStr = this.getStrokeAndFillStr(fill);
                 const svgPathCmd = `M${x} ${399 - y} A${rx} ${ry} ${rotx} ${long} ${sweep} ${endx} ${399 - endy}`;
-                this.graphicsBuffer.push(`<path${strokeAndFillStr} d="${svgPathCmd}" />`);
+                this.graphicsBuffer.push(`<path d="${svgPathCmd}"${strokeAndFillStr} />`);
             };
             this.rsxCircle = (args) => {
                 const [cx, cy, r, fill] = args.map((p) => Math.round(p));
@@ -2627,7 +2624,7 @@
                 const [cx, cy, rx, ry, fill] = args.map((p) => Math.round(p));
                 const strokeAndFillStr = this.getStrokeAndFillStr(fill);
                 this.flushGraphicsPath();
-                this.graphicsBuffer.push(`<ellipse cx="${cx}" cy="${399 - cy}" rx="${rx}"ry="${ry}"${strokeAndFillStr} />`);
+                this.graphicsBuffer.push(`<ellipse cx="${cx}" cy="${399 - cy}" rx="${rx}" ry="${ry}"${strokeAndFillStr} />`);
             };
             this.rsxRect = (args) => {
                 const [x1, y1, x2, y2, fill] = args.map((p) => Math.round(p));
@@ -2715,7 +2712,6 @@
             this.currGraphicsPen = -1;
             this.graphicsX = 0;
             this.graphicsY = 0;
-            //this.fnOnCls();
         }
         drawMovePlot(type, x, y) {
             x = Math.round(x);
@@ -2751,33 +2747,23 @@
                 this.graphicsPathBuffer.length = 0;
             }
         }
-        getFlushedGraphics() {
+        flushGraphics() {
             this.flushGraphicsPath();
-            let output = "";
             if (this.graphicsBuffer.length) {
-                // separate print for svg graphics (we are checking for output starting with svg to enable export SVG button)ays 0
+                // separate print for svg graphics
+                // in another module, we check if output starts with "<svg" to enable export SVG button
                 const backgroundColorStr = this.backgroundColor !== "" ? ` style="background-color:${this.backgroundColor}"` : '';
                 const graphicsBufferStr = this.graphicsBuffer.join("\n");
                 this.graphicsBuffer.length = 0;
-                output = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" shape-rendering="optimizeSpeed" stroke="currentColor"${backgroundColorStr}>\n${graphicsBufferStr}"\n</svg>\n`;
+                return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" shape-rendering="optimizeSpeed" stroke="currentColor"${backgroundColorStr}>\n${graphicsBufferStr}"\n</svg>\n`;
             }
+            return "";
+        }
+        flushText() {
+            const output = this.output;
+            this.output = "";
             return output;
         }
-        /*
-        public flush(): void {
-            this.flushGraphicsPath();
-            if (this.output) {
-                fnOnPrint(this.output);
-                this.output = "";
-            }
-            if (this.graphicsBuffer.length) {
-                // separate print for svg graphics (we are checking for output starting with svg to enable export SVG button)ays 0
-                const backgroundColorStr = this.backgroundColor !== "" ? ` style="background-color:${this.backgroundColor}"` : '';
-                fnOnPrint(`<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" shape-rendering="optimizeSpeed" stroke="currentColor"${backgroundColorStr}>\n${this.graphicsBuffer.join("\n")}"\n</svg>\n`);
-                this.graphicsBuffer.length = 0;
-            }
-        }
-        */
         graphicsPen(num) {
             if (num === this.currGraphicsPen) {
                 return;
@@ -2809,17 +2795,6 @@
                 this.backgroundColor = BasicVmCore.cpcColors[this.colorsForPens[0]];
             }
         }
-        /*
-        public inkey$(): Promise<string> {
-            return Promise.resolve("");
-        }
-        */
-        /*
-        public input(msg: string): Promise<string | null> {
-            this.flush();
-            return this.fnOnInput(msg);
-        }
-        */
         mode(num) {
             this.currMode = num;
             this.cls();
@@ -2912,15 +2887,13 @@
         ypos() {
             return this.graphicsY;
         }
-        getEscape() {
-            return false;
-        }
         getTimerMap() {
             return this.timerMap;
         }
         getOutput() {
+            const output = this.output;
             this.reset();
-            return this.output;
+            return output;
         }
         setOutput(str) {
             this.output = str;
@@ -3016,22 +2989,15 @@
         static fnOnPrint(msg) {
             console.log(msg.replace(/\n$/, ""));
         }
-        flushText() {
-            const output = this.vmCore.getOutput();
-            if (output) {
-                BasicVmNode.fnOnPrint(output);
-                this.vmCore.setOutput("");
-            }
-        }
-        flushGraphics() {
-            const output = this.vmCore.getFlushedGraphics();
-            if (output) {
-                BasicVmNode.fnOnPrint(output);
-            }
-        }
         flush() {
-            this.flushText();
-            this.flushGraphics();
+            const textOutput = this.vmCore.flushText();
+            if (textOutput) {
+                BasicVmNode.fnOnPrint(textOutput);
+            }
+            const graphicsOutput = this.vmCore.flushGraphics();
+            if (graphicsOutput) {
+                BasicVmNode.fnOnPrint(graphicsOutput);
+            }
         }
         graphicsPen(num) {
             this.vmCore.graphicsPen(num);
@@ -3419,9 +3385,6 @@ node hello1.js
             this.vmCore = new BasicVmCore(penColors, paperColors);
             this.vmCore.setOnSpeak(this.fnOnSpeak.bind(this));
         }
-        /**
-         * Clears the output text.
-         */
         cls() {
             this.vmCore.cls();
             this.ui.setOutputText("");
@@ -3429,29 +3392,18 @@ node hello1.js
         drawMovePlot(type, x, y) {
             this.vmCore.drawMovePlot(type, x, y);
         }
-        /**
-         * Adds a message to the output text.
-         * @param msg - The message to print.
-         */
         fnOnPrint(msg) {
             this.ui.addOutputText(msg);
         }
-        flushText() {
-            const output = this.vmCore.getOutput();
-            if (output) {
-                this.fnOnPrint(output);
-                this.vmCore.setOutput("");
-            }
-        }
-        flushGraphics() {
-            const output = this.vmCore.getFlushedGraphics();
-            if (output) {
-                this.fnOnPrint(output);
-            }
-        }
         flush() {
-            this.flushText();
-            this.flushGraphics();
+            const textOutput = this.vmCore.flushText();
+            if (textOutput) {
+                this.fnOnPrint(textOutput);
+            }
+            const graphicsOutput = this.vmCore.flushGraphics();
+            if (graphicsOutput) {
+                this.fnOnPrint(graphicsOutput);
+            }
         }
         graphicsPen(num) {
             this.vmCore.graphicsPen(num);

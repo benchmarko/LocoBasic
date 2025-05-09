@@ -1,3 +1,4 @@
+import { SemanticsHelper } from "./SemanticsHelper";
 function getCodeSnippets() {
     const _o = {};
     const _data = [];
@@ -210,7 +211,6 @@ function getSemanticsActionDict(semanticsHelper) {
         }
         return `${startStr}${contentStr}${separatorStr}${endStr}`;
     };
-    // Semantics to evaluate an arithmetic expression
     const semantics = {
         Program(lines) {
             const lineList = evalChildren(lines.children);
@@ -883,7 +883,6 @@ function getSemanticsActionDict(semanticsHelper) {
             return `(${e.eval()})`;
         },
         ArrayArgs(args) {
-            //return args.asIteration().children.map(c => String(c.eval())).join("][");
             return evalChildren(args.asIteration().children).join("][");
         },
         ArrayIdent(ident, _open, e, _close) {
@@ -943,141 +942,19 @@ function getSemanticsActionDict(semanticsHelper) {
 }
 export class Semantics {
     constructor() {
-        this.lineIndex = 0;
-        this.indent = 0;
-        //private indentAdd = 0;
-        this.variables = {};
-        this.definedLabels = [];
-        this.usedLabels = {};
-        this.dataList = [];
-        this.dataIndex = 0;
-        this.restoreMap = {};
-        this.instrMap = {};
-        this.isDeg = false;
-        this.isDefContext = false;
-    }
-    getDeg() {
-        return this.isDeg;
-    }
-    setDeg(isDeg) {
-        this.isDeg = isDeg;
-    }
-    addIndent(num) {
-        /*
-        if (num < 0) {
-            this.applyNextIndent();
-        }
-        */
-        this.indent += num;
-        return this.indent;
-    }
-    setIndent(indent) {
-        this.indent = indent;
-    }
-    getIndent() {
-        return this.indent;
-    }
-    getIndentStr() {
-        if (this.indent < 0) {
-            console.error("getIndentStr: lineIndex=", this.lineIndex, ", indent=", this.indent);
-            return "";
-        }
-        return " ".repeat(this.indent);
-    }
-    /*
-    public applyNextIndent(): void {
-        this.indent += this.indentAdd;
-        this.indentAdd = 0;
-    }
-    */
-    addDataIndex(count) {
-        return this.dataIndex += count;
-    }
-    getDataIndex() {
-        return this.dataIndex;
-    }
-    addDefinedLabel(label, line) {
-        this.definedLabels.push({
-            label,
-            first: line,
-            last: -1,
-            dataIndex: -1
-        });
-    }
-    getDefinedLabels() {
-        return this.definedLabels;
-    }
-    addUsedLabel(label, type) {
-        if (!this.usedLabels[type]) {
-            this.usedLabels[type] = {};
-        }
-        const usedLabelsForType = this.usedLabels[type];
-        usedLabelsForType[label] = usedLabelsForType[label] || {
-            count: 0
-        };
-        usedLabelsForType[label].count = (usedLabelsForType[label].count || 0) + 1;
-    }
-    getUsedLabels() {
-        return this.usedLabels;
-    }
-    getInstrMap() {
-        return this.instrMap;
-    }
-    addInstr(name) {
-        this.instrMap[name] = (this.instrMap[name] || 0) + 1;
-        return this.instrMap[name];
-    }
-    getVariables() {
-        return Object.keys(this.variables);
-    }
-    getVariable(name) {
-        name = name.toLowerCase();
-        if (Semantics.reJsKeyword.test(name)) {
-            name = `_${name}`;
-        }
-        if (!this.isDefContext) {
-            this.variables[name] = (this.variables[name] || 0) + 1;
-        }
-        return name;
-    }
-    setDefContext(isDef) {
-        this.isDefContext = isDef;
-    }
-    static deleteAllItems(items) {
-        for (const name in items) {
-            delete items[name];
-        }
-    }
-    incrementLineIndex() {
-        this.lineIndex += 1;
-        return this.lineIndex;
-    }
-    getRestoreMap() {
-        return this.restoreMap;
-    }
-    addRestoreLabel(label) {
-        this.restoreMap[label] = -1;
-    }
-    getDataList() {
-        return this.dataList;
+        this.helper = new SemanticsHelper();
     }
     resetParser() {
-        this.lineIndex = 0;
-        this.indent = 0;
-        //this.indentAdd = 0;
-        Semantics.deleteAllItems(this.variables);
-        this.definedLabels.length = 0;
-        Semantics.deleteAllItems(this.usedLabels);
-        this.dataList.length = 0;
-        this.dataIndex = 0;
-        Semantics.deleteAllItems(this.restoreMap);
-        Semantics.deleteAllItems(this.instrMap);
-        this.isDeg = false;
-        this.isDefContext = false;
+        this.helper.resetParser();
+    }
+    getUsedLabels() {
+        return this.helper.getUsedLabels();
     }
     getSemanticsActionDict() {
-        return getSemanticsActionDict(this);
+        return getSemanticsActionDict(this.helper);
+    }
+    getHelper() {
+        return this.helper;
     }
 }
-Semantics.reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;
 //# sourceMappingURL=Semantics.js.map

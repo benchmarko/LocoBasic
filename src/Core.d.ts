@@ -19,7 +19,7 @@ export declare class Core implements ICore {
     setOnCheckSyntax(fn: (s: string) => Promise<string>): void;
     compileScript(script: string): string;
     executeScript(compiledScript: string, vm: IVmAdmin): Promise<string>;
-    getSemanticsHelper(): Semantics;
+    getSemantics(): Semantics;
     addIndex: (dir: string, input: Record<string, ExampleType[]> | (() => void)) => void;
     addItem: (key: string, input: string | (() => void)) => void;
     parseArgs(args: string[], config: Record<string, ConfigEntryType>): Record<string, ConfigEntryType>;

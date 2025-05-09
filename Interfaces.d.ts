@@ -63,28 +63,8 @@ export type DefinedLabelEntryType = {
 export type UsedLabelEntryType = {
     count: number;
 };
-export interface ISemanticsHelper {
-    addDataIndex(count: number): void;
-    addDefinedLabel(label: string, line: number): void;
-    addUsedLabel(label: string, type: string): void;
-    addIndent(num: number): number;
-    addInstr(name: string): number;
-    addRestoreLabel(label: string): void;
-    getDataIndex(): number;
-    getDataList(): (string | number)[];
-    getDefinedLabels(): DefinedLabelEntryType[];
+export interface ISemantics {
     getUsedLabels(): Record<string, Record<string, UsedLabelEntryType>>;
-    getIndent(): number;
-    getIndentStr(): string;
-    getInstrMap(): Record<string, number>;
-    getRestoreMap(): Record<string, number>;
-    getVariable(name: string): string;
-    getVariables(): string[];
-    incrementLineIndex(): number;
-    setIndent(indent: number): void;
-    setDeg(isDeg: boolean): void;
-    getDeg(): boolean;
-    setDefContext(isDef: boolean): void;
 }
 export interface ICore {
     getDefaultConfigMap(): ConfigType;
@@ -95,7 +75,7 @@ export interface ICore {
     getExampleMap(): ExampleMapType;
     setExampleMap(exampleMap: ExampleMapType): void;
     getExample(name: string): ExampleType;
-    getSemanticsHelper(): ISemanticsHelper;
+    getSemantics(): ISemantics;
     compileScript(script: string): string;
     executeScript(compiledScript: string, vm: IVmAdmin): Promise<string>;
     setOnCheckSyntax(fn: (s: string) => Promise<string>): void;

@@ -1,41 +1,12 @@
 import type { ActionDict } from "ohm-js";
-import type { DefinedLabelEntryType, UsedLabelEntryType, ISemanticsHelper } from "./Interfaces";
-export declare class Semantics implements ISemanticsHelper {
-    private lineIndex;
-    private indent;
-    private readonly variables;
-    private readonly definedLabels;
-    private readonly usedLabels;
-    private readonly dataList;
-    private dataIndex;
-    private readonly restoreMap;
-    private static readonly reJsKeyword;
-    private readonly instrMap;
-    private isDeg;
-    private isDefContext;
-    getDeg(): boolean;
-    setDeg(isDeg: boolean): void;
-    addIndent(num: number): number;
-    setIndent(indent: number): void;
-    getIndent(): number;
-    getIndentStr(): string;
-    addDataIndex(count: number): number;
-    getDataIndex(): number;
-    addDefinedLabel(label: string, line: number): void;
-    getDefinedLabels(): DefinedLabelEntryType[];
-    addUsedLabel(label: string, type: string): void;
-    getUsedLabels(): Record<string, Record<string, UsedLabelEntryType>>;
-    getInstrMap(): Record<string, number>;
-    addInstr(name: string): number;
-    getVariables(): string[];
-    getVariable(name: string): string;
-    setDefContext(isDef: boolean): void;
-    private static deleteAllItems;
-    incrementLineIndex(): number;
-    getRestoreMap(): Record<string, number>;
-    addRestoreLabel(label: string): void;
-    getDataList(): (string | number)[];
+import type { ISemantics, UsedLabelEntryType } from "./Interfaces";
+import { SemanticsHelper } from "./SemanticsHelper";
+export declare class Semantics implements ISemantics {
+    private readonly helper;
+    constructor();
     resetParser(): void;
+    getUsedLabels(): Record<string, Record<string, UsedLabelEntryType>>;
     getSemanticsActionDict(): ActionDict<string>;
+    getHelper(): SemanticsHelper;
 }
 //# sourceMappingURL=Semantics.d.ts.map

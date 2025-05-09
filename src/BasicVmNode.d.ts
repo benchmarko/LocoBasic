@@ -6,8 +6,6 @@ export declare class BasicVmNode implements IVmAdmin {
     cls(): void;
     drawMovePlot(type: string, x: number, y: number): void;
     private static fnOnPrint;
-    private flushText;
-    private flushGraphics;
     flush(): void;
     graphicsPen(num: number): void;
     ink(num: number, col: number): void;

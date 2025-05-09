@@ -27,7 +27,8 @@ export declare class BasicVmCore {
     cls(): void;
     drawMovePlot(type: string, x: number, y: number): void;
     private flushGraphicsPath;
-    getFlushedGraphics(): string;
+    flushGraphics(): string;
+    flushText(): string;
     graphicsPen(num: number): void;
     ink(num: number, col: number): void;
     mode(num: number): void;
@@ -51,7 +52,6 @@ export declare class BasicVmCore {
     tag(active: boolean): void;
     xpos(): number;
     ypos(): number;
-    getEscape(): boolean;
     getTimerMap(): TimerMapType;
     getOutput(): string;
     setOutput(str: string): void;

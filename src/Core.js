@@ -145,7 +145,7 @@ export class Core {
         }
         return output;
     }
-    getSemanticsHelper() {
+    getSemantics() {
         return this.semantics;
     }
     parseArgs(args, config) {

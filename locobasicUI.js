@@ -239,8 +239,8 @@
             this.onLabelRemoveButtonClick = (_event) => {
                 const input = this.basicCm.getValue();
                 const core = this.getCore();
-                const semanticsHelper = core.getSemanticsHelper();
-                const usedLabels = semanticsHelper.getUsedLabels();
+                const semantics = core.getSemantics();
+                const usedLabels = semantics.getUsedLabels();
                 const allUsedLabels = {};
                 for (const type of Object.keys(usedLabels)) {
                     for (const label of Object.keys(usedLabels[type])) {

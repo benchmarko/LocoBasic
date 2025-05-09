@@ -3,18 +3,9 @@ export declare class BasicVmBrowser implements IVmAdmin {
     private readonly ui;
     private readonly vmCore;
     constructor(ui: IUI);
-    /**
-     * Clears the output text.
-     */
     cls(): void;
     drawMovePlot(type: string, x: number, y: number): void;
-    /**
-     * Adds a message to the output text.
-     * @param msg - The message to print.
-     */
     fnOnPrint(msg: string): void;
-    private flushText;
-    private flushGraphics;
     flush(): void;
     graphicsPen(num: number): void;
     ink(num: number, col: number): void;
