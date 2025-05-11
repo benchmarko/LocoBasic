@@ -40,12 +40,14 @@ declare function require(name: string): NodeFs | NodeHttps | NodeModule | NodePa
 
 interface DummyVm extends IVm {
     _output: string;
+    _timerMap: Record<string, number | NodeJS.Timeout | undefined>;
     debug(...args: (string | number | boolean)[]): void;
 }
 
 // The functions from dummyVm will be stringified in the putScriptInFrame function
 const dummyVm: DummyVm = {
     _output: "",
+    _timerMap: {},
     debug(..._args: (string | number)[]) { /* console.debug(...args); */ }, // eslint-disable-line @typescript-eslint/no-unused-vars
     cls() {},
     drawMovePlot(type: string, x: number, y: number) { this.debug("drawMovePlot:", type, x, y); },
@@ -64,7 +66,7 @@ const dummyVm: DummyVm = {
     xpos() { this.debug("xpos:"); return 0; },
     ypos() { this.debug("ypos:"); return 0; },
     getEscape() { return false; },
-    getTimerMap() { return {}; }
+    getTimerMap() { return this._timerMap; }
 };
 
 function isUrl(s: string) {
