@@ -10,5 +10,5 @@ WHILE 1
 t$="":WHILE t$="":t$=INKEY$:WEND
 PRINT t$;ASC(t$);
 WEND
-STOP
+END
 `);

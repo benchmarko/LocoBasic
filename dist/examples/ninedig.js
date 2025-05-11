@@ -46,7 +46,7 @@ FOR a=1 TO 9
   NEXT b
 NEXT a
 PRINT "No solution found!"
-STOP
+END
 '
 350 t=TIME-t
 PRINT "The solution (computed in";ROUND(t * 10 / 3, 3); "ms):"

@@ -16,7 +16,7 @@ FOR didx=1 TO dcnt
   FRAME
   t=TIME+delay*6*50:WHILE TIME<t AND INKEY$="":WEND
 NEXT
-STOP
+END
 '
 REM draw (without RSX)
 800 CLS

@@ -13,7 +13,7 @@ st=1
 MODE 1
 INK 0,13:INK 1,2:INK 2,6:INK 3,18
 GOSUB 1900
-STOP
+END
 '
 'draw circle plus 3,4 or 6 around it
 1900 cx1=cx(st):cy1=cy(st):lc(st)=0

@@ -286,7 +286,10 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 				lineList.push(`function _defineData() {\n  const _data = [\n${dataList.join(",\n")}\n  ];\n  const _restoreMap = ${JSON.stringify(restoreMap)};\n  return {_data, _restoreMap};\n}`);
 			}
 
-			lineList.push("// library");
+			if (!instrMap["end"]) {
+				lineList.push(`return _o.flush();`);
+			}
+			lineList.push("\n// library");
 
 			const codeSnippets = getCodeSnippets();
 

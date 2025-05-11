@@ -159,14 +159,20 @@ export class NodeParts {
     }
 
     private putScriptInFrame(script: string): string {
-        const dummyFunctions = Object.values(dummyVm).filter((value) => value).map((value) => `${value}`).join(",\n  ");
+        const dummyVmString = Object.entries(dummyVm).map(([key, value]) => {
+            if (typeof value === "function") {
+                return `${value}`;
+            } else if (typeof value === "object") {
+                return `${key}: ${JSON.stringify(value)}`;
+            } else {
+                return `${key}: "${value}"`;
+            }
+        }).join(",\n  ");
         const result =
 `(function(_o) {
     ${script}
-    _o.flush();
 })({
-    _output: "",
-    ${dummyFunctions}
+    ${dummyVmString}
 });`
         return result;
     }
