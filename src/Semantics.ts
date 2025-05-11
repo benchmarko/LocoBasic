@@ -258,7 +258,8 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 
 					const asyncStr = hasAwait ? "async " : "";
 					lineList[first] = `${indentStr}${asyncStr}function _${subroutineStart.label}() {${indentStr}\n` + lineList[first];
-					lineList[label.last] += `\n${indentStr}}`;
+					lineList[label.last] = lineList[label.last].replace(`${indentStr}  return;`, `${indentStr}}`); // end of subroutine: replace "return" by "}" (can also be on same line)
+
 					if (hasAwait) {
 						awaitLabels.push(subroutineStart.label);
 					}
