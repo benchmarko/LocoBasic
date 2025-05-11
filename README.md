@@ -94,7 +94,7 @@ LocoBasic can be run in a browser or as a Node.js application.
 - **Endless Loops**
   - Endless loops are not trapped automatically. You may need to reload the page or restart the browser window to recover."
 - **STOP and END**
-  - hese commands stop execution, but only at the top level. Within subroutines, they simply return.
+  - these commands stop execution, but only at the top level. Within subroutines, they simply return.
   - During *FRAME*, *INKEY$* or *INPUT*, the "Stop" button gets active. It allows you to terminate the running program. It is not possible to continue a terminated program.
 - **PEN and PAPER**
   - When using node.js in a terminal, ANSI colors are used.

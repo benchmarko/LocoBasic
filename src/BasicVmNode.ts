@@ -101,6 +101,7 @@ export class BasicVmNode implements IVmAdmin {
 
     public mode(num: number): void {
         this.vmCore.mode(num);
+        console.clear();
     }
 
     public origin(x: number, y: number): void {

@@ -68,6 +68,7 @@ export class BasicVmBrowser implements IVmAdmin {
 
     public mode(num: number): void {
         this.vmCore.mode(num);
+        this.ui.setOutputText("");
     }
 
     public origin(x: number, y: number): void {
