@@ -84,6 +84,7 @@ export class BasicVmNode {
     }
     mode(num) {
         this.vmCore.mode(num);
+        console.clear();
     }
     origin(x, y) {
         this.vmCore.origin(x, y);

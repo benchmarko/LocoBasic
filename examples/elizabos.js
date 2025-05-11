@@ -31,7 +31,7 @@ REM Konjugation
 GOSUB 4000
 REM Antwortsatz
 WEND
-STOP
+END
 '
 1000 REM Dialog Satzeingabe
 PRINT

@@ -20,7 +20,7 @@ IF cmd=2 THEN PLOT x,y,p
 'IF cmd>9 THEN cmd=cmd-10:INK 0,x:INK 1,y:INK 2,p:INK 3,cmd
 READ x,y,p,cmd
 WEND
-STOP
+END
 '
 DATA 26,0,18,25
 DATA 202,268,1,0

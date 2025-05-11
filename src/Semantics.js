@@ -241,7 +241,7 @@ function getSemanticsActionDict(semanticsHelper) {
                     }
                     const asyncStr = hasAwait ? "async " : "";
                     lineList[first] = `${indentStr}${asyncStr}function _${subroutineStart.label}() {${indentStr}\n` + lineList[first];
-                    lineList[label.last] += `\n${indentStr}}`;
+                    lineList[label.last] = lineList[label.last].replace(`${indentStr}  return;`, `${indentStr}}`); // end of subroutine: replace "return" by "}" (can also be on same line)
                     if (hasAwait) {
                         awaitLabels.push(subroutineStart.label);
                     }
@@ -264,7 +264,10 @@ function getSemanticsActionDict(semanticsHelper) {
                 lineList.unshift(`const {_data, _restoreMap} = _defineData();\nlet _dataPtr = 0;`);
                 lineList.push(`function _defineData() {\n  const _data = [\n${dataList.join(",\n")}\n  ];\n  const _restoreMap = ${JSON.stringify(restoreMap)};\n  return {_data, _restoreMap};\n}`);
             }
-            lineList.push("// library");
+            if (!instrMap["end"]) {
+                lineList.push(`return _o.flush();`);
+            }
+            lineList.push("\n// library");
             const codeSnippets = getCodeSnippets();
             let needsAsync = false;
             let needsStartTime = false;

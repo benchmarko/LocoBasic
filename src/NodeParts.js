@@ -2,6 +2,7 @@ import { BasicVmNode } from "./BasicVmNode";
 // The functions from dummyVm will be stringified in the putScriptInFrame function
 const dummyVm = {
     _output: "",
+    _timerMap: {},
     debug(..._args) { }, // eslint-disable-line @typescript-eslint/no-unused-vars
     cls() { },
     drawMovePlot(type, x, y) { this.debug("drawMovePlot:", type, x, y); },
@@ -23,7 +24,7 @@ const dummyVm = {
     xpos() { this.debug("xpos:"); return 0; },
     ypos() { this.debug("ypos:"); return 0; },
     getEscape() { return false; },
-    getTimerMap() { return {}; }
+    getTimerMap() { return this._timerMap; }
 };
 function isUrl(s) {
     return s.startsWith("http"); // http or https
@@ -100,13 +101,21 @@ export class NodeParts {
         })();
     }
     putScriptInFrame(script) {
-        const dummyFunctions = Object.values(dummyVm).filter((value) => value).map((value) => `${value}`).join(",\n  ");
+        const dummyVmString = Object.entries(dummyVm).map(([key, value]) => {
+            if (typeof value === "function") {
+                return `${value}`;
+            }
+            else if (typeof value === "object") {
+                return `${key}: ${JSON.stringify(value)}`;
+            }
+            else {
+                return `${key}: "${value}"`;
+            }
+        }).join(",\n  ");
         const result = `(function(_o) {
     ${script}
-    _o.flush();
 })({
-    _output: "",
-    ${dummyFunctions}
+    ${dummyVmString}
 });`;
         return result;
     }

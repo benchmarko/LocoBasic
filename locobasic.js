@@ -1687,7 +1687,7 @@
                         }
                         const asyncStr = hasAwait ? "async " : "";
                         lineList[first] = `${indentStr}${asyncStr}function _${subroutineStart.label}() {${indentStr}\n` + lineList[first];
-                        lineList[label.last] += `\n${indentStr}}`;
+                        lineList[label.last] = lineList[label.last].replace(`${indentStr}  return;`, `${indentStr}}`); // end of subroutine: replace "return" by "}" (can also be on same line)
                         if (hasAwait) {
                             awaitLabels.push(subroutineStart.label);
                         }
@@ -1710,7 +1710,10 @@
                     lineList.unshift(`const {_data, _restoreMap} = _defineData();\nlet _dataPtr = 0;`);
                     lineList.push(`function _defineData() {\n  const _data = [\n${dataList.join(",\n")}\n  ];\n  const _restoreMap = ${JSON.stringify(restoreMap)};\n  return {_data, _restoreMap};\n}`);
                 }
-                lineList.push("// library");
+                if (!instrMap["end"]) {
+                    lineList.push(`return _o.flush();`);
+                }
+                lineList.push("\n// library");
                 const codeSnippets = getCodeSnippets();
                 let needsAsync = false;
                 let needsStartTime = false;
@@ -3019,6 +3022,7 @@
         }
         mode(num) {
             this.vmCore.mode(num);
+            console.clear();
         }
         origin(x, y) {
             this.vmCore.origin(x, y);
@@ -3061,6 +3065,7 @@
     // The functions from dummyVm will be stringified in the putScriptInFrame function
     const dummyVm = {
         _output: "",
+        _timerMap: {},
         debug(..._args) { }, // eslint-disable-line @typescript-eslint/no-unused-vars
         cls() { },
         drawMovePlot(type, x, y) { this.debug("drawMovePlot:", type, x, y); },
@@ -3082,7 +3087,7 @@
         xpos() { this.debug("xpos:"); return 0; },
         ypos() { this.debug("ypos:"); return 0; },
         getEscape() { return false; },
-        getTimerMap() { return {}; }
+        getTimerMap() { return this._timerMap; }
     };
     function isUrl(s) {
         return s.startsWith("http"); // http or https
@@ -3159,13 +3164,21 @@
             })();
         }
         putScriptInFrame(script) {
-            const dummyFunctions = Object.values(dummyVm).filter((value) => value).map((value) => `${value}`).join(",\n  ");
+            const dummyVmString = Object.entries(dummyVm).map(([key, value]) => {
+                if (typeof value === "function") {
+                    return `${value}`;
+                }
+                else if (typeof value === "object") {
+                    return `${key}: ${JSON.stringify(value)}`;
+                }
+                else {
+                    return `${key}: "${value}"`;
+                }
+            }).join(",\n  ");
             const result = `(function(_o) {
     ${script}
-    _o.flush();
 })({
-    _output: "",
-    ${dummyFunctions}
+    ${dummyVmString}
 });`;
             return result;
         }
@@ -3431,6 +3444,7 @@ node hello1.js
         }
         mode(num) {
             this.vmCore.mode(num);
+            this.ui.setOutputText("");
         }
         origin(x, y) {
             this.vmCore.origin(x, y);

@@ -53,6 +53,7 @@ export class BasicVmBrowser {
     }
     mode(num) {
         this.vmCore.mode(num);
+        this.ui.setOutputText("");
     }
     origin(x, y) {
         this.vmCore.origin(x, y);

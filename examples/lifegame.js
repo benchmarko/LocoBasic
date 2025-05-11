@@ -27,7 +27,7 @@ WEND
 PRINT
 PRINT "Stop after";lp;"generations"
 IF changed=0 THEN PRINT " No change any more"
-STOP
+END
 '
 REM output
 300 FOR r=1 TO rows-1
@@ -78,7 +78,6 @@ FOR r=1 TO n
   IF (c1+LEN(pat$))>smc(r1+r) THEN smc(r1+r)=c1+LEN(pat$)
 NEXT r
 RETURN
-'
 '
 ' https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life#Examples_of_patterns
 '

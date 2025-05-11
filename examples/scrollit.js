@@ -19,6 +19,7 @@ FOR i=1 TO steps
   PRINT "|";MID$(a$,(i MOD a)+1,width1);"|"
   PRINT frame1$
   WHILE TIME<t:FRAME:WEND
+  IF INKEY$<>"" THEN STOP
 NEXT i
 END
 `);
