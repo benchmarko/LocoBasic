@@ -3,6 +3,7 @@ import type { DefinedLabelEntryType, UsedLabelEntryType } from "./Interfaces";
 export class SemanticsHelper {
     private lineIndex = 0;
     private indent = 0;
+    private readonly compileMessages: string[] = [];
     private readonly variables: Record<string, number> = {};
     private readonly definedLabels: DefinedLabelEntryType[] = [];
     private readonly usedLabels: Record<string, Record<string, UsedLabelEntryType>> = {};
@@ -13,6 +14,14 @@ export class SemanticsHelper {
     private readonly instrMap: Record<string, number> = {};
     private isDeg = false;
     private isDefContext = false;
+
+    public addCompileMessage(message: string): void {
+        this.compileMessages.push(message);
+    }
+
+    public getCompileMessages(): string[] {
+        return this.compileMessages;
+    }
 
     public getDeg(): boolean {
         return this.isDeg;
@@ -134,6 +143,7 @@ export class SemanticsHelper {
     public resetParser(): void {
         this.lineIndex = 0;
         this.indent = 0;
+        this.compileMessages.length = 0;
         SemanticsHelper.deleteAllItems(this.variables);
         this.definedLabels.length = 0;
         SemanticsHelper.deleteAllItems(this.usedLabels);

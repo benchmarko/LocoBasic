@@ -193,7 +193,7 @@ function createComparisonExpression(a: Node, op: string, b: Node): string {
 }
 
 function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<string> {
-	const drawMovePlot = (lit: Node, x: Node, _comma1: Node, y: Node, _comma2: Node, e3: Node) => {
+	const drawMovePlot = (lit: Node, x: Node, _comma1: Node, y: Node, _comma2: Node, e3: Node, _comma3: Node, e4: Node) => {
 		const command = lit.sourceString.toLowerCase();
 		semanticsHelper.addInstr(command);
 		const pen = e3.child(0)?.eval();
@@ -202,7 +202,8 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			semanticsHelper.addInstr("graphicsPen");
 			penStr = `graphicsPen(${pen}); `;
 		}
-		return penStr + `${command}(${x.eval()}, ${y.eval()})`;
+		const modeStr = e4.child(0) ? notSupported(e4.child(0)) : "";
+		return penStr + `${command}(${x.eval()}, ${y.eval()}${modeStr})`;
 	};
 
 	const cosSinTan = (lit: Node, _open: Node, e: Node, _close: Node) => { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -220,6 +221,32 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			separatorStr = ";" + separatorStr;
 		}
 		return `${startStr}${contentStr}${separatorStr}${endStr}`;
+	}
+
+	const evalAnyFn = (arg: Node): string => {
+		if (arg.isIteration()) {
+			return arg.children.map(evalAnyFn).join(",");
+		} else if (arg.isLexical() || arg.isTerminal()) {
+			return arg.sourceString;
+		}
+		const argStr = arg.eval() as string;
+		const regExpNotSupp = new RegExp("^/\\* not supported: (.*) \\*/$");
+		if (regExpNotSupp.test(argStr)) {
+			return argStr.replace(regExpNotSupp, "$1");
+		}
+		return argStr;
+	}
+
+	const notSupported = (lit: Node, ...args: Node[]) => {
+		const name = lit.sourceString.toLowerCase();
+
+		const argList = args.map(evalAnyFn);
+		const argStr = argList.length ? ` ${argList.join(" ")}` : "";
+
+		const message = lit.source.getLineAndColumnMessage();
+		semanticsHelper.addCompileMessage(`WARNING: Not supported: ${message}`);
+
+		return `/* not supported: ${name}${argStr} */`;
 	}
 
 	const semantics: ActionDict<string> = {
@@ -334,6 +361,16 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			return lineStr;
 		},
 
+
+		LabelRange(start: Node, minus: Node, end: Node) {
+			return [start, minus, end].map((node) => evalAnyFn(node)).join("");
+		},
+
+		LetterRange(start: Node, minus: Node, end: Node) {
+			//return `${start.sourceString}${minus.sourceString}${end.sourceString})`;
+			return [start, minus, end].map((node) => evalAnyFn(node)).join("");
+		},
+
 		Line(label: Node, stmts: Node, comment: Node, _eol: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			const labelString = label.sourceString;
 
@@ -417,29 +454,76 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			return semanticsHelper.getDeg() ? `(Math.atan(${e.eval()}) * 180 / Math.PI)` : `Math.atan(${e.eval()})`;
 		},
 
+		Auto(lit: Node, label: Node, comma: Node, step: Node) {
+			return notSupported(lit, label, comma, step);
+		},
+
 		BinS(_binLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.addInstr("bin$");
 			const pad = n.child(0)?.eval();
 			return pad !== undefined ? `bin$(${e.eval()}, ${pad})` : `bin$(${e.eval()})`
 		},
 
+		Border(lit: Node, num: Node, comma: Node, num2: Node) {
+			return notSupported(lit, num, comma, num2);
+		},
+
+		Call(lit: Node, args: Node) {
+			return notSupported(lit, args.asIteration());
+		},
+
+		Cat: notSupported,
+
+		Chain(lit: Node, merge: Node, file: Node, comma: Node, num: Node, comma2: Node, del: Node, num2: Node) {
+			return notSupported(lit, merge, file, comma, num, comma2, del, num2);
+		},
+
 		ChrS(_chrLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `String.fromCharCode(${e.eval()})`;
+		},
+
+		Cint(_cintLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `Math.round(${e.eval()})`;
+		},
+
+		Clear: notSupported,
+
+		Clear_input(lit: Node, inputLit: Node) {
+			return notSupported(lit, inputLit);
+		},
+
+		Clg(lit: Node, num: Node) {
+			return notSupported(lit, num);
+		},
+
+		Closein: notSupported,
+
+		Closeout: notSupported,
+
+		Cls(_clsLit: Node, stream: Node) {
+			semanticsHelper.addInstr("cls");
+			const streamStr = stream.child(0)?.eval() || "";
+			return `cls(${streamStr})`;
 		},
 
 		Comment(_commentLit: Node, remain: Node) {
 			return `//${remain.sourceString}`;
 		},
 
-		Cos: cosSinTan,
+		Cont: notSupported,
 
-		Cint(_cintLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.round(${e.eval()})`;
+		CopychrS(lit: Node, open: Node, stream: Node, close: Node) {
+			return notSupported(lit, open, stream, close) + '" "';
 		},
 
-		Cls(_clsLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			semanticsHelper.addInstr("cls");
-			return `cls()`;
+		Cos: cosSinTan,
+
+		Creal(_lit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `${num.eval()}`;
+		},
+
+		Cursor(lit: Node, num: Node, comma: Node, num2: Node) {
+			return notSupported(lit, num, comma, num2);
 		},
 
 		Data(_datalit: Node, args: Node) {
@@ -488,10 +572,32 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			return `${fnIdent} = ${argStr} => ${defBody}`;
 		},
 
+		Defint(lit: Node, letterRange: Node) {
+			return notSupported(lit, letterRange);
+		},
+
+		Defreal(lit: Node, letterRange: Node) {
+			return notSupported(lit, letterRange);
+		},
+
+		Defstr(lit: Node, letterRange: Node) {
+			return notSupported(lit, letterRange);
+		},
+
 		Deg(_degLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.setDeg(true);
 			return `/* deg active */`;
 		},
+
+		Delete(lit: Node, labelRange: Node) {
+			return notSupported(lit, labelRange);
+		},
+
+		Derr(lit: Node) {
+			return notSupported(lit) + "0";
+		},
+
+		Di: notSupported,
 
 		Dim(_dimLit: Node, dimArgs: Node) {
 			const argumentList: string[] = evalChildren(dimArgs.asIteration().children);
@@ -502,9 +608,23 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 
 		Drawr: drawMovePlot,
 
+		Edit(lit: Node, label: Node) {
+			return notSupported(lit, label);
+		},
+
+		Ei: notSupported,
+
 		End(_endLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.addInstr("end");
 			return `return end()`;
+		},
+
+		Ent(lit: Node, nums: Node) { // TODO: separator
+			return notSupported(lit, nums.asIteration());
+		},
+
+		Env(lit: Node, nums: Node) { // TODO: separator
+			return notSupported(lit, nums.asIteration());
 		},
 
 		Erase(_eraseLit: Node, arrayIdents: Node) { // erase not really needed
@@ -517,6 +637,14 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			}
 
 			return results.join("; ");
+		},
+
+		Erl(lit: Node) {
+			return notSupported(lit) + "0";
+		},
+
+		Err(lit: Node) {
+			return notSupported(lit) + "0";
 		},
 
 		Error(_errorLit: Node, e: Node) {
@@ -534,6 +662,10 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 
 		Exp(_expLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `Math.exp(${e.eval()})`;
+		},
+
+		Fill(lit: Node, num: Node) {
+			return notSupported(lit, num);
 		},
 
 		Fix(_fixLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -591,6 +723,14 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			return `_${labelString}()`;
 		},
 
+		Goto(lit: Node, label: Node) {
+			return notSupported(lit, label);
+		},
+
+		GraphicsPaper(lit: Node, paperLit: Node, num: Node) {
+			return notSupported(lit, paperLit, num); // TODO
+		},
+
 		GraphicsPen(_graphicsLit: Node, _penLit: Node, e: Node) {
 			semanticsHelper.addInstr("graphicsPen");
 			return `graphicsPen(${e.eval()})`;
@@ -600,6 +740,14 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			semanticsHelper.addInstr("hex$");
 			const pad = n.child(0)?.eval();
 			return pad !== undefined ? `hex$(${e.eval()}, ${pad})` : `hex$(${e.eval()})`
+		},
+
+		Himem(lit: Node) {
+			return notSupported(lit) + "0";
+		},
+
+		IfExp_label(label: Node) {
+			return notSupported(label);
 		},
 
 		If(_iflit: Node, condExp: Node, _thenLit: Node, thenStat: Node, elseLit: Node, elseStat: Node) {
@@ -620,9 +768,14 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			return result;
 		},
 
-		Ink(_inkLit: Node, num: Node, _comma: Node, col: Node, _comma2: Node, _col2: Node,) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		Ink(_inkLit: Node, num: Node, _comma: Node, col: Node, _comma2: Node, col2: Node) {
 			semanticsHelper.addInstr("ink");
-			return `ink(${num.eval()}, ${col.eval()})`;
+			const col2Str =  col2.child(0) ? notSupported(col2.child(0)) : "";
+			return `ink(${num.eval()}, ${col.eval()}${col2Str})`;
+		},
+
+		Inkey(lit: Node, open: Node, num: Node, close: Node) {
+			return notSupported(lit, open, num, close) + "0";
 		},
 
 		InkeyS(_inkeySLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -631,15 +784,20 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			return `await inkey$()`;
 		},
 
-		Input(_inputLit: Node, message: Node, _semi: Node, e: Node) {
+		Inp(lit: Node, open: Node, num: Node, close: Node) {
+			return notSupported(lit, open, num, close) + "0";
+		},
+
+		Input(_inputLit: Node, stream: Node, _comma: Node, message: Node, _semi: Node, e: Node) {
 			semanticsHelper.addInstr("input");
 			semanticsHelper.addInstr("frame");
+			const streamStr = stream.child(0)?.eval() || "";
 
 			const messageString = message.sourceString.replace(/\s*[;,]$/, "");
 			const identifier = e.eval();
 			const isNumberString = identifier.includes("$") ? "" : ", true";
 
-			return `${identifier} = await input(${messageString}${isNumberString})`;
+			return `${identifier} = await input(${streamStr}${messageString}${isNumberString})`;
 		},
 
 		Instr_noLen(_instrLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -654,12 +812,41 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			return `Math.floor(${e.eval()})`;
 		},
 
+		Joy(lit: Node, open: Node, num: Node, close: Node) {
+			return notSupported(lit, open, num, close) + "0";
+		},
+
+		Key(lit: Node) { // TODO
+			return notSupported(lit);
+		},
+
 		LeftS(_leftLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `(${e1.eval()}).slice(0, ${e2.eval()})`;
 		},
 
 		Len(_lenLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `(${e.eval()}).length`;
+		},
+
+		Let(_letLit: Node, assign: Node) {
+			const assignStr = assign.eval();
+			return `${assignStr}`;
+		},
+
+		LineInput(lit: Node, inputLit: Node, stream: Node, comma: Node, message: Node, semi: Node, e: Node) {
+			return notSupported(lit, inputLit, stream, comma, message, semi, e);
+		},
+
+		List(lit: Node, labelRange: Node, comma: Node, stream: Node) {
+			return notSupported(lit, labelRange, comma, stream);
+		},
+
+		Load(lit: Node, file: Node, comma: Node, address: Node) {
+			return notSupported(lit, file, comma, address);
+		},
+
+		Locate(lit: Node, stream: Node, comma: Node, x: Node, comma2: Node, y: Node) {
+			return notSupported(lit, stream, comma, x, comma2, y);
 		},
 
 		Log(_logLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -674,9 +861,21 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			return `(${e.eval()}).toLowerCase()`;
 		},
 
+		Mask(lit: Node, num: Node, comma: Node, num2: Node, comma2: Node, num3: Node) {
+			return notSupported(lit, num, comma, num2, comma2, num3);
+		},
+
 		Max(_maxLit: Node, _open: Node, args: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			const argumentList = evalChildren(args.asIteration().children);
 			return `Math.max(${argumentList})`;
+		},
+
+		Memory(lit: Node, num: Node) {
+			return notSupported(lit, num);
+		},
+
+		Merge(lit: Node, file: Node) {
+			return notSupported(lit, file);
 		},
 
 		MidS(_midLit: Node, _open: Node, e1: Node, _comma1: Node, e2: Node, _comma2: Node, e3: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -711,12 +910,14 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 
 		Mover: drawMovePlot,
 
+		New: notSupported,
+
 		Next(_nextLit: Node, _variable: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.addIndent(-2);
 			return "}";
 		},
 
-		On(_onLit: Node, e1: Node, _gosubLit: Node, args: Node) {
+		On_numGosub(_onLit: Node, e1: Node, _gosubLit: Node, args: Node) {
 			const index = e1.eval();
 			const argumentList = args.asIteration().children.map(child => child.sourceString);
 
@@ -728,19 +929,58 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			return `([${argumentList.map((label) => `_${label}`).join(",")}]?.[${index} - 1] || (() => undefined))()`; // 1-based index
 		},
 
+		On_numGoto(lit: Node, num: Node, gotoLit: Node, labels: Node) {
+			return notSupported(lit, num, gotoLit, labels.asIteration());
+		},
+
+		On_breakCont(lit: Node, breakLit: Node, contLit: Node) {
+			return notSupported(lit, breakLit, contLit);
+		},
+
+		On_breakGosub(lit: Node, breakLit: Node, gosubLit: Node, label: Node) {
+			return notSupported(lit, breakLit, gosubLit, label);
+		},
+
+		On_breakStop(lit: Node, breakLit: Node, stopLit: Node) {
+			return notSupported(lit, breakLit, stopLit);
+		},
+
+		On_errorGoto(lit: Node, errorLit: Node, gotoLit: Node, label: Node) {
+			return notSupported(lit, errorLit, gotoLit, label);
+		},
+
+		Openin(lit: Node, file: Node) {
+			return notSupported(lit, file);
+		},
+
+		Openout(lit: Node, file: Node) {
+			return notSupported(lit, file);
+		},
+
 		Origin(_originLit: Node, x: Node, _comma1: Node, y: Node) {
 			semanticsHelper.addInstr("origin");
 			return `origin(${x.eval()}, ${y.eval()})`;
 		},
 
-		Paper(_paperLit: Node, e: Node) {
-			semanticsHelper.addInstr("paper");
-			return `paper(${e.eval()})`;
+		Out(lit: Node, num: Node, comma: Node, num2: Node) {
+			return notSupported(lit, num, comma, num2);
 		},
 
-		Pen(_penLit: Node, e: Node) {
+		Paper(_paperLit: Node, stream: Node, _comma: Node, e: Node) {
+			semanticsHelper.addInstr("paper");
+			const streamStr = stream.child(0)?.eval() || "";
+			return `paper(${streamStr}${e.eval()})`;
+		},
+
+		Peek(lit: Node, open: Node, num: Node, close: Node) {
+			return notSupported(lit, open, num, close) + "0";
+		},
+
+		Pen(_penLit: Node, stream: Node, _comma: Node, e: Node, _comma2: Node, e2: Node) {
 			semanticsHelper.addInstr("pen");
-			return `pen(${e.eval()})`;
+			const streamStr = stream.child(0)?.eval() || "";
+			const modeStr = e2.child(0) ? notSupported(e2.child(0)) : "";
+			return `pen(${streamStr}${e.eval()}${modeStr})`;
 		},
 
 		Pi(_piLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -750,6 +990,14 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 		Plot: drawMovePlot,
 
 		Plotr: drawMovePlot,
+
+		Poke(lit: Node, num: Node, comma: Node, num2: Node) {
+			return notSupported(lit, num, comma, num2);
+		},
+
+		Pos(lit: Node, open: Node, streamLit: Node, num: Node, close: Node) {
+			return notSupported(lit, open, streamLit, num, close) + "0";
+		},
 
 		PrintArg_strCmp(_cmp: Node, args: Node) {
 			const parameterString = args.children[0].eval();
@@ -764,8 +1012,13 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			return parameterString;
 		},
 
-		Print(_printLit: Node, args: Node, semi: Node) {
+		StreamArg(streamLit: Node, stream: Node) {
+			return notSupported(streamLit, stream) + "";
+		},
+
+		Print(_printLit: Node, stream: Node, _comma: Node, args: Node, semi: Node) {
 			semanticsHelper.addInstr("print");
+			const streamStr = stream.child(0)?.eval() || "";
 			const argumentList = evalChildren(args.asIteration().children);
 			const parameterString = argumentList.join(', ') || "";
 
@@ -773,7 +1026,7 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			if (!semi.sourceString) {
 				newlineString = parameterString ? `, "\\n"` : `"\\n"`;
 			}
-			return `print(${parameterString}${newlineString})`;
+			return `print(${streamStr}${parameterString}${newlineString})`;
 		},
 
 		Rad(_radLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -781,11 +1034,19 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			return `/* rad active */`;
 		},
 
+		Randomize(lit: Node, num: Node) {
+			return notSupported(lit, num);
+		},
+
 		Read(_readlit: Node, args: Node) {
 			semanticsHelper.addInstr("read");
 			const argumentList = evalChildren(args.asIteration().children);
 			const results = argumentList.map(identifier => `${identifier} = read()`);
 			return results.join("; ");
+		},
+
+		Release(lit: Node, num: Node) {
+			return notSupported(lit, num);
 		},
 
 		Rem(_remLit: Node, remain: Node) {
@@ -797,6 +1058,10 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			return `remain(${e.eval()})`;
 		},
 
+		Renum(lit: Node, num: Node, comma: Node, num2: Node, comma2: Node, num3: Node) {
+			return notSupported(lit, num, comma, num2, comma2, num3);
+		},
+
 		Restore(_restoreLit: Node, e: Node) {
 			const labelString = e.sourceString || "0";
 			semanticsHelper.addRestoreLabel(labelString);
@@ -804,6 +1069,10 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 
 			semanticsHelper.addInstr("restore");
 			return `restore(${labelString})`;
+		},
+
+		Resume(lit: Node, labelOrNext: Node) {
+			return notSupported(lit, labelOrNext);
 		},
 
 		Return(_returnLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -871,14 +1140,46 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			return result;
 		},
 
+		Run(lit: Node, labelOrFileOrNoting: Node) {
+			return notSupported(lit, labelOrFileOrNoting);
+		},
+
+		Save(lit: Node, file: Node, comma: Node, type: Node, comma2: Node, num: Node, comma3: Node, num2: Node, comma4: Node, num3: Node) {
+			return notSupported(lit, file, comma, type, comma2, num, comma3, num2, comma4, num3);
+		},
+
 		Sgn(_sgnLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `Math.sign(${e.eval()})`;
 		},
 
 		Sin: cosSinTan,
 
+		Sound(lit: Node, args: Node) {
+			return notSupported(lit, args.asIteration());
+		},
+
 		SpaceS(_stringLit: Node, _open: Node, len: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `" ".repeat(${len.eval()})`;
+		},
+
+		Spc(_lit: Node, _open: Node, len: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `" ".repeat(${len.eval()})`;
+		},
+
+		Speed_ink(lit: Node, inkLit: Node, num: Node, comma: Node, num2: Node) {
+			return notSupported(lit, inkLit, num, comma, num2);
+		},
+
+		Speed_key(lit: Node, keyLit: Node, num: Node, comma: Node, num2: Node) {
+			return notSupported(lit, keyLit, num, comma, num2);
+		},
+
+		Speed_write(lit: Node, writeLit: Node, num: Node) {
+			return notSupported(lit, writeLit, num);
+		},
+
+		Sq(lit: Node, open: Node, num: Node, close: Node) {
+			return notSupported(lit, open, num, close) + "0";
 		},
 
 		Sqr(_sqrLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -910,21 +1211,51 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			return `String.fromCharCode(${num.eval()}).repeat(${len.eval()})`;
 		},
 
-		Tag(_tagLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			semanticsHelper.addInstr("tag");
-			return `tag(true)`;
+		Symbol_def(lit: Node, args: Node) {
+			return notSupported(lit, args.asIteration());
 		},
 
-		Tagoff(_tagoffLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		Symbol_after(lit: Node, afterLit: Node, num: Node) {
+			return notSupported(lit, afterLit, num);
+		},
+
+		Tab(lit: Node, open: Node, len: Node, close: Node) {
+			return notSupported(lit, open, len, close) + '""';
+		},
+
+		Tag(_tagLit: Node, stream: Node) {
 			semanticsHelper.addInstr("tag");
-			return `tag(false)`;
+			const streamStr = stream.child(0)?.eval() || "";
+			return `tag(true${streamStr})`;
+		},
+
+		Tagoff(_tagoffLit: Node, stream: Node) {
+			semanticsHelper.addInstr("tag");
+			const streamStr = stream.child(0)?.eval() || "";
+			return `tag(false${streamStr})`;
 		},
 
 		Tan: cosSinTan,
 
+		Test(lit: Node, open: Node, num: Node, comma: Node, num2: Node, close: Node) {
+			return notSupported(lit, open, num, comma, num2, close) + "0";
+		},
+
+		Testr(lit: Node, open: Node, num: Node, comma: Node, num2: Node, close: Node) {
+			return notSupported(lit, open, num, comma, num2, close) + "0";
+		},
+
 		Time(_timeLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.addInstr("time");
 			return `time()`;
+		},
+
+		Troff: notSupported,
+
+		Tron: notSupported,
+
+		Unt(_lit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `${num.eval()}`; //TTT
 		},
 
 		UpperS(_upperLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -942,6 +1273,14 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			return `val(${numStr})`;
 		},
 
+		Vpos(lit: Node, open: Node, streamLit: Node, num: Node, close: Node) {
+			return notSupported(lit, open, streamLit, num, close) + "0";
+		},
+
+		Wait(lit: Node, num: Node, comma: Node, num2: Node, comma2: Node, num3: Node) {
+			return notSupported(lit, num, comma, num2, comma2, num3);
+		},
+
 		Wend(_wendLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.addIndent(-2);
 			return '}';
@@ -955,6 +1294,36 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 
 		WhileWendBlock: loopBlock,
 
+		Width(lit: Node, num: Node,) {
+			return notSupported(lit, num);
+		},
+
+		Window_def(lit: Node, stream: Node, comma0: Node, num: Node, comma: Node, num2: Node, comma2: Node, num3: Node, comma3: Node, num4: Node) {
+			return notSupported(lit, stream, comma0, num, comma, num2, comma2, num3, comma3, num4);
+		},
+
+		Window_swap(lit: Node, swapLit: Node, num: Node, comma: Node, num2: Node) {
+			return notSupported(lit, swapLit, num, comma, num2);
+		},
+
+		WriteArg(e: Node) {
+			const result = e.eval();
+
+			if (typeof result === "string") {
+				return `${result}`;
+			}
+			return result;
+		},
+
+		Write(_printLit: Node, stream: Node, _comma: Node, args: Node) {
+			semanticsHelper.addInstr("print"); // we use print for output
+			const streamStr = stream.child(0)?.eval() || "";
+			const argumentList = evalChildren(args.asIteration().children);
+			const parameterString = argumentList.join(', ') || "";
+
+			return `print(${streamStr}'${parameterString}')`;
+		},
+
 		Xpos(_xposLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.addInstr("xpos");
 			return `xpos()`;
@@ -963,6 +1332,10 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 		Ypos(_xposLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.addInstr("ypos");
 			return `ypos()`;
+		},
+
+		Zone(lit: Node, num: Node) {
+			return notSupported(lit, num);
 		},
 
 		XorExp_xor(a: Node, _op: Node, b: Node) {
@@ -1111,7 +1484,8 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 		},
 
 		string(_quote1: Node, e: Node, _quote2: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `"${e.sourceString}"`;
+			const str = e.sourceString.replace(/\\/g, "\\\\"); // escape backslashes
+			return `"${str}"`;
 		},
 
 		ident(ident: Node) {
@@ -1156,7 +1530,7 @@ export class Semantics implements ISemantics {
 		return getSemanticsActionDict(this.helper);
 	}
 
-	public getHelper(): SemanticsHelper { // only for testing
+	public getHelper(): SemanticsHelper {
 		return this.helper;
 	}
 }

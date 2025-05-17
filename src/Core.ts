@@ -103,6 +103,7 @@ export class Core implements ICore {
         }
 
         let output = "";
+
         try {
             const fnScript = new Function("_o", compiledScript);
             const result = await fnScript(vm as IVm);
@@ -141,6 +142,10 @@ export class Core implements ICore {
                 timerMap[timer] = undefined;
             }
         }
+
+        const compileMessages = this.semantics.getHelper().getCompileMessages();
+        output += compileMessages.join("\n"); //TTT
+
         return output;
     }
 
