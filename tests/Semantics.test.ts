@@ -24,6 +24,14 @@ describe('Semantics Class', () => {
         });
     };
 
+    const getChildNode = (node: Node | undefined): Node => {
+        return getMockOhmNode({
+            child(_n: number): Node { // eslint-disable-line @typescript-eslint/no-unused-vars
+                return node as Node; //TTT
+            }
+        });
+    };
+
     const getChildEvalNode = (value: string | undefined): Node => {
         return getMockOhmNode({
             child(_n: number): Node { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -86,12 +94,13 @@ describe('Semantics Class', () => {
         const xNode = getEvalNode('100');
         const yNode = getEvalNode('200');
         const penNode = getChildEvalNode(undefined);
-        const result = actionDict.Draw(litNode, xNode, null, yNode, null, penNode);
+        const modeNode = getChildNode(undefined);
+        const result = actionDict.Draw(litNode, xNode, null, yNode, null, penNode, null, modeNode);
         expect(result).toContain('draw(100, 200)');
         expect(semantics.getHelper().getInstrMap()['draw']).toBe(1);
 
         const penNode2 = getChildEvalNode('2');
-        const result2 = actionDict.Draw(litNode, xNode, null, yNode, null, penNode2);
+        const result2 = actionDict.Draw(litNode, xNode, null, yNode, null, penNode2, null, modeNode);
         expect(result2).toContain('graphicsPen(2); draw(100, 200)');
         expect(semantics.getHelper().getInstrMap()['graphicsPen']).toBe(1);
     });
