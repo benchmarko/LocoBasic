@@ -143,6 +143,8 @@ export class Core {
                 timerMap[timer] = undefined;
             }
         }
+        const compileMessages = this.semantics.getHelper().getCompileMessages();
+        output += compileMessages.join("\n"); //TTT
         return output;
     }
     getSemantics() {

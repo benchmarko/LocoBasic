@@ -18,45 +18,98 @@ export const arithmetic = {
     Statement
       = Comment
       | After
+      | Auto
+      | Border
+      | Call
+      | Cat
+      | Chain
+      | Clear
+      | Clg
+      | Closein
+      | Closeout
       | Cls
+      | Cont
+      | Cursor
       | Data
       | Def
+      | Defint
+      | Defreal
+      | Defstr
       | Deg
+      | Delete
+      | Di
       | Dim
       | Draw
       | Drawr
+      | Edit
+      | Ei
       | End
+      | Ent
+      | Env
       | Erase
       | Error
       | Every
+      | Fill
       | ForNextBlock
       | Frame
       | Gosub
+      | Goto
+      | GraphicsPaper
       | GraphicsPen
       | If
       | Ink
       | Input
+      | Key
+      | Let
+      | LineInput
+      | List
+      | Load
+      | Locate
+      | Mask
+      | Memory
+      | Merge
       | MidSAssign
       | Mode
       | Move
       | Mover
+      | New
       | On
+      | Openin
+      | Openout
       | Origin
+      | Out
       | Paper
       | Pen
       | Plot
       | Plotr
+      | Poke
       | Print
       | Rad
+      | Randomize
       | Read
+      | Release
       | Rem
+      | Renum
       | Restore
+      | Resume
       | Return
       | Rsx
+      | Run
+      | Save
+      | Sound
+      | Speed
       | Stop
+      | Symbol
       | Tag
       | Tagoff
+      | Troff
+      | Tron
+      | Wait
       | WhileWendBlock
+      | Width
+      | Window
+      | Write
+      | Zone
       | ArrayAssign
       | Assign
 
@@ -73,7 +126,7 @@ export const arithmetic = {
 
     Abs
       = abs #"(" NumExp ")"
-    
+
     After
       = after NumExp ("," NumExp)? gosub label
 
@@ -87,8 +140,23 @@ export const arithmetic = {
       = ident "=" NumExp
       | strIdent "=" StrExp
 
+    Auto
+      = auto label? ("," digit+)?
+
     BinS
       = binS #"(" NumExp ("," NumExp)? ")"
+
+    Border
+      = border NumExp ("," NumExp)?
+
+    Call
+      = call NonemptyListOf<NumExp, ",">
+
+    Cat
+      = cat
+
+    Chain
+      = chain merge? StrExp ("," NumExp)? ("," delete label)? // delete simplified
 
     ChrS
       = chrS #"(" NumExp ")"
@@ -96,14 +164,39 @@ export const arithmetic = {
     Cint
       = cint #"(" NumExp ")"
 
+    Clear
+      = clear input -- input
+      | clear
+
+    Clg
+      = clg NumExp?
+
+    Closein
+      = closein
+
+    Closeout
+      = closeout
+
     Cls
-      = cls
+      = cls StreamArg?
 
     Comment
       = "\\'" partToEol
 
+    Cont
+      = cont
+
+		CopychrS
+      = copychrS "(" StreamArg ")"
+
     Cos
       = cos #"(" NumExp ")"
+
+    Creal
+      = creal #"(" NumExp ")"
+
+    Cursor
+      = cursor NumExp ("," NumExp)?
 
     DataItem
       = string | number | signedDecimal
@@ -116,7 +209,7 @@ export const arithmetic = {
 
     Def
       = def fn DefAssign
-    
+
     DefArgs
       = #"(" ListOf<SimpleIdent, ","> ")"
 
@@ -124,23 +217,68 @@ export const arithmetic = {
       = ident DefArgs? "=" NumExp
       | strIdent DefArgs? "=" StrExp
 
+    LabelRange
+      = label ("-" label)?
+
+    LetterRange
+      = letter ("-" letter)?
+
+    Defint
+      = defint LetterRange
+
+    Defreal
+      = defreal LetterRange
+
+    Defstr
+      = defstr LetterRange
+
     Deg
       = deg
+
+    Delete
+      = delete LabelRange?
+
+    Derr
+      = derr
+
+    Di
+      = di
 
     Dim
       = dim NonemptyListOf<DimArrayIdent, ",">
 
     Draw
-      = draw NumExp "," NumExp ("," NumExp)?
+      = draw NumExp "," NumExp ("," NumExp)? ("," NumExp)?
 
     Drawr
-      = drawr NumExp "," NumExp ("," NumExp)?
+      = drawr NumExp "," NumExp ("," NumExp)? ("," NumExp)?
+
+    Edit
+      = edit label
+
+    Ei
+      = ei
+
+    Else
+      = else
 
     End
       = endLit
 
+    Ent
+      = ent ListOf<NumExp, ",">
+
+    Env
+      = env ListOf<NumExp, ",">
+
     Erase
       = erase NonemptyListOf<SimpleIdent, ",">
+
+    Erl
+      = erl
+
+    Err
+      = err
 
     Error
       = error NumExp
@@ -150,6 +288,9 @@ export const arithmetic = {
 
     Exp
       = exp #"(" NumExp ")"
+
+    Fill
+      = fill NumExp
 
     Fix
       = fix #"(" NumExp ")"
@@ -166,20 +307,35 @@ export const arithmetic = {
     Gosub
       = gosub label
 
+    Goto
+      = goto label
+
+    GraphicsPaper
+      = graphics paper NumExp
+
     GraphicsPen
       = graphics pen NumExp
 
     HexS
       = hexS #"(" NumExp ("," NumExp)? ")"
 
+    Himem
+      = himem
+
     Ink
       = ink NumExp "," NumExp ("," NumExp)?
+
+    Inkey
+      = inkey "(" NumExp ")"
 
     InkeyS
       = inkeyS
 
+    Inp
+      = inp "(" NumExp ")"
+
     Input
-      = input (string (";" | ","))? AnyIdent  // or NonemptyListOf?
+      = input (StreamArg ",")? (string (";" | ","))? AnyIdent  // or NonemptyListOf?
 
     Instr
       = instr #"(" StrExp "," StrExp ")" -- noLen
@@ -188,11 +344,32 @@ export const arithmetic = {
     Int
       = int #"(" NumExp ")"
 
+    Joy
+      = joy "(" NumExp ")"
+
+    Key // TODO
+      = key
+
     LeftS
       = leftS #"(" StrExp "," NumExp ")"
 
     Len
       = len #"(" StrExp ")"
+
+    Let
+      = let (ArrayAssign | Assign)
+
+    LineInput
+      = line input (StreamArg ",")? (string (";" | ","))? AnyIdent
+
+    List
+      = list LabelRange? ("," StreamArg)?
+
+    Load
+      = load StrExp ("," NumExp)?
+
+    Locate
+      = locate (StreamArg ",")? NumExp ("," NumExp)?
 
     Log
       = log #"(" NumExp ")"
@@ -203,8 +380,17 @@ export const arithmetic = {
     LowerS
       = lowerS #"(" StrExp ")"
 
+    Mask
+      = mask NumExp ("," NumExp)? ("," NumExp)?
+
     Max
       = max #"(" NonemptyListOf<NumExp, ","> ")"
+
+    Memory
+      = memory NumExp
+
+    Merge
+      = merge StrExp
 
     MidS
       = midS #"(" StrExp "," NumExp ("," NumExp)? ")"
@@ -219,58 +405,101 @@ export const arithmetic = {
       = mode NumExp
 
     Move
-      = move NumExp "," NumExp ("," NumExp)?
-    
-    Mover
-      = mover NumExp "," NumExp ("," NumExp)?
+      = move NumExp "," NumExp ("," NumExp)? ("," NumExp)?
 
-    Pi
-      = pi
+    Mover
+      = mover NumExp "," NumExp ("," NumExp)? ("," NumExp)?
+
+    New
+      = new
 
     Next
       = next variable?
 
     On
-      = on NumExp gosub NonemptyListOf<label, ",">
+      = on NumExp gosub NonemptyListOf<label, ","> -- numGosub
+      | on NumExp goto NonemptyListOf<label, ","> -- numGoto
+      | on break cont -- breakCont
+      | on break gosub label -- breakGosub
+      | on break stop -- breakStop
+      | on error goto label -- errorGoto
+
+    Openin
+      = openin StrExp
+
+    Openout
+      = openout StrExp
 
     Origin
       = origin NumExp "," NumExp
 
+    Out
+      = out NumExp "," NumExp
+
     Paper
-      = paper NumExp
+      = paper (StreamArg ",")? NumExp
+
+    Peek
+      = peek "(" NumExp ")"
 
     Pen
-      = pen NumExp
+      = pen (StreamArg ",")? NumExp ("," NumExp)?
+
+    Pi
+      = pi
 
     Plot
-      = plot NumExp "," NumExp ("," NumExp)?
+      = plot NumExp "," NumExp ("," NumExp)? ("," NumExp)?
 
     Plotr
-      = plotr NumExp "," NumExp ("," NumExp)?
+      = plotr NumExp "," NumExp ("," NumExp)? ("," NumExp)?
+
+    Poke
+      = poke NumExp "," NumExp
+
+    Pos
+      = pos "(" "#" NumExp ")"
 
     PrintArg
       = &StrCmpExp NumExp -- strCmp
       | StrExp
       | NumExp
       | using StrExp ";" NonemptyListOf<NumExp, ";"> -- usingNum
+      | Spc
+      | Tab
+
+    StreamArg
+      = "#" NumExp
 
     Print
-      = (print | "?") ListOf<PrintArg, ";"> (";")?
+      = (print | "?") (StreamArg ",")? ListOf<PrintArg, ";"> (";")?
 
     Rad
       = rad
 
+    Randomize
+      = randomize NumExp?
+
     Read
       = read NonemptyListOf<AnyIdent, ",">
 
+    Release
+      = release NumExp
+
     Rem
       = rem partToEol
+
+    Renum
+      = renum label? ("," label)? ("," number)?
 
     Remain
       = remain #"(" NumExp ")"
 
     Restore
       = restore label?
+
+    Resume
+      = resume (label | next)
 
     Return
       = return
@@ -280,7 +509,7 @@ export const arithmetic = {
 
     Rnd
       = rnd (#"(" NumExp ")")?
-    
+
     Round
       = round #"(" NumExp ("," NumExp)? ")"
 
@@ -295,14 +524,34 @@ export const arithmetic = {
     RsxArgs
       = "," NonemptyListOf<RsxArg, ",">
 
+    Run
+      = run (StrExp | label)?
+
+    Save
+      = save StrExp ("," letter)? ("," NumExp)? ("," NumExp)? ("," NumExp)?
+
     Sgn
       = sgn #"(" NumExp ")"
 
     Sin
       = sin #"(" NumExp ")"
 
+    Sound
+      = sound NonemptyListOf<NumExp, ","> // simplified
+
     SpaceS
       = spaceS #"(" NumExp ")"
+
+    Spc
+      = spc "(" NumExp ")"
+
+    Speed
+      = speed ink NumExp "," NumExp -- ink
+      | speed key NumExp "," NumExp -- key
+      | speed write NumExp -- write
+
+    Sq
+      = sq "(" NumExp ")"
 
     Sqr
       = sqr #"(" NumExp ")"
@@ -317,23 +566,51 @@ export const arithmetic = {
       = stringS #"(" NumExp "," StrExp ")" -- str
       | stringS #"(" NumExp "," NumExp ")" -- num
 
+    Symbol
+      = symbol NonemptyListOf<NumExp, ","> -- def // simplified
+      | symbol after NumExp -- after
+
+    Tab
+       = tab "(" NumExp ")"
+
     Tag
-      = tag
+      = tag StreamArg?
 
     Tagoff
-      = tagoff
-      
+      = tagoff StreamArg?
+
     Tan
       = tan #"(" NumExp ")"
 
+    Test
+      = test "(" NumExp "," NumExp ")"
+
+    Testr
+      = testr "(" NumExp "," NumExp ")"
+
     Time
       = time
+
+    Troff
+      = troff
+
+    Tron
+      = tron
+
+    Unt
+      = unt "(" NumExp ")"
 
     UpperS
       = upperS #"(" StrExp ")"
 
     Val
       = val #"(" StrExp ")"
+
+    Vpos
+      = vpos "(" "#" NumExp ")"
+
+    Wait
+      = wait NumExp "," NumExp ("," NumExp)?
 
     Wend
       = wend
@@ -344,14 +621,35 @@ export const arithmetic = {
     WhileWendBlock
       = While LoopBlockContent* LoopBlockSeparator Wend
 
+    Width
+      = width NumExp
+
+    Window
+      = window (StreamArg ",")? NumExp "," NumExp "," NumExp "," NumExp -- def
+      | window swap NumExp ("," NumExp)? -- swap
+
+    WriteArg
+      = StrExp
+      | NumExp
+
+    Write
+      = write (StreamArg ",")? ListOf<WriteArg, ";">
+
     Xpos
       = xpos
 
     Ypos
       = ypos
 
+    Zone
+      = zone NumExp
+
+    IfExp
+      = Statements
+      | label -- label
+
     If
-      = if NumExp then Statements (else Statements)?
+      = if NumExp then IfExp (else IfExp)?
 
     StrExp
       = StrAddExp
@@ -364,6 +662,7 @@ export const arithmetic = {
       = "(" StrExp ")"  -- paren
       | BinS
       | ChrS
+      | CopychrS
       | DecS
       | HexS
       | InkeyS
@@ -379,7 +678,6 @@ export const arithmetic = {
       | StrArrayIdent
       | strIdent
       | string
-
 
     NumExp
       = XorExp
@@ -453,25 +751,40 @@ export const arithmetic = {
       | Atn
       | Cint
       | Cos
+      | Creal
+      | Derr
       | Exp
+      | Erl
+      | Err
       | Fix
+      | Himem
+      | Inkey
+      | Inp
       | Instr
       | Int
+      | Joy
       | Len
       | Log
       | Log10
       | Max
       | Min
+      | Peek
       | Pi
+      | Pos
       | Remain
       | Rnd
       | Round
       | Sgn
       | Sin
+      | Sq
       | Sqr
       | Tan
+      | Test
+      | Testr
       | Time
+      | Unt
       | Val
+      | Vpos
       | Xpos
       | Ypos
 
@@ -904,7 +1217,8 @@ export const arithmetic = {
     partToEol
       = (~eol any)*
 
-    string = "\\"" ("\\\\\\"" | (~"\\"" any))* "\\""
+    stringDelimiter = "\\""
+    string = stringDelimiter (~stringDelimiter any)* stringDelimiter
 
     label = digit+
 

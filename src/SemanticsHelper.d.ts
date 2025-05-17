@@ -2,6 +2,7 @@ import type { DefinedLabelEntryType, UsedLabelEntryType } from "./Interfaces";
 export declare class SemanticsHelper {
     private lineIndex;
     private indent;
+    private readonly compileMessages;
     private readonly variables;
     private readonly definedLabels;
     private readonly usedLabels;
@@ -12,6 +13,8 @@ export declare class SemanticsHelper {
     private readonly instrMap;
     private isDeg;
     private isDefContext;
+    addCompileMessage(message: string): void;
+    getCompileMessages(): string[];
     getDeg(): boolean;
     setDeg(isDeg: boolean): void;
     addIndent(num: number): number;

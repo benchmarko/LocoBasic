@@ -185,7 +185,7 @@ function createComparisonExpression(a, op, b) {
     return `-(${a.eval()} ${op} ${b.eval()})`;
 }
 function getSemanticsActionDict(semanticsHelper) {
-    const drawMovePlot = (lit, x, _comma1, y, _comma2, e3) => {
+    const drawMovePlot = (lit, x, _comma1, y, _comma2, e3, _comma3, e4) => {
         var _a;
         const command = lit.sourceString.toLowerCase();
         semanticsHelper.addInstr(command);
@@ -195,7 +195,8 @@ function getSemanticsActionDict(semanticsHelper) {
             semanticsHelper.addInstr("graphicsPen");
             penStr = `graphicsPen(${pen}); `;
         }
-        return penStr + `${command}(${x.eval()}, ${y.eval()})`;
+        const modeStr = e4.child(0) ? notSupported(e4.child(0)) : "";
+        return penStr + `${command}(${x.eval()}, ${y.eval()}${modeStr})`;
     };
     const cosSinTan = (lit, _open, e, _close) => {
         const func = lit.sourceString.toLowerCase();
@@ -210,6 +211,28 @@ function getSemanticsActionDict(semanticsHelper) {
             separatorStr = ";" + separatorStr;
         }
         return `${startStr}${contentStr}${separatorStr}${endStr}`;
+    };
+    const evalAnyFn = (arg) => {
+        if (arg.isIteration()) {
+            return arg.children.map(evalAnyFn).join(",");
+        }
+        else if (arg.isLexical() || arg.isTerminal()) {
+            return arg.sourceString;
+        }
+        const argStr = arg.eval();
+        const regExpNotSupp = new RegExp("^/\\* not supported: (.*) \\*/$");
+        if (regExpNotSupp.test(argStr)) {
+            return argStr.replace(regExpNotSupp, "$1");
+        }
+        return argStr;
+    };
+    const notSupported = (lit, ...args) => {
+        const name = lit.sourceString.toLowerCase();
+        const argList = args.map(evalAnyFn);
+        const argStr = argList.length ? ` ${argList.join(" ")}` : "";
+        const message = lit.source.getLineAndColumnMessage();
+        semanticsHelper.addCompileMessage(`WARNING: Not supported: ${message}`);
+        return `/* not supported: ${name}${argStr} */`;
     };
     const semantics = {
         Program(lines) {
@@ -304,6 +327,13 @@ function getSemanticsActionDict(semanticsHelper) {
             }
             return lineStr;
         },
+        LabelRange(start, minus, end) {
+            return [start, minus, end].map((node) => evalAnyFn(node)).join("");
+        },
+        LetterRange(start, minus, end) {
+            //return `${start.sourceString}${minus.sourceString}${end.sourceString})`;
+            return [start, minus, end].map((node) => evalAnyFn(node)).join("");
+        },
         Line(label, stmts, comment, _eol) {
             const labelString = label.sourceString;
             const currentLineIndex = semanticsHelper.incrementLineIndex() - 1;
@@ -369,25 +399,59 @@ function getSemanticsActionDict(semanticsHelper) {
         Atn(_atnLit, _open, e, _close) {
             return semanticsHelper.getDeg() ? `(Math.atan(${e.eval()}) * 180 / Math.PI)` : `Math.atan(${e.eval()})`;
         },
+        Auto(lit, label, comma, step) {
+            return notSupported(lit, label, comma, step);
+        },
         BinS(_binLit, _open, e, _comma, n, _close) {
             var _a;
             semanticsHelper.addInstr("bin$");
             const pad = (_a = n.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
             return pad !== undefined ? `bin$(${e.eval()}, ${pad})` : `bin$(${e.eval()})`;
         },
+        Border(lit, num, comma, num2) {
+            return notSupported(lit, num, comma, num2);
+        },
+        Call(lit, args) {
+            return notSupported(lit, args.asIteration());
+        },
+        Cat: notSupported,
+        Chain(lit, merge, file, comma, num, comma2, del, num2) {
+            return notSupported(lit, merge, file, comma, num, comma2, del, num2);
+        },
         ChrS(_chrLit, _open, e, _close) {
             return `String.fromCharCode(${e.eval()})`;
+        },
+        Cint(_cintLit, _open, e, _close) {
+            return `Math.round(${e.eval()})`;
+        },
+        Clear: notSupported,
+        Clear_input(lit, inputLit) {
+            return notSupported(lit, inputLit);
+        },
+        Clg(lit, num) {
+            return notSupported(lit, num);
+        },
+        Closein: notSupported,
+        Closeout: notSupported,
+        Cls(_clsLit, stream) {
+            var _a;
+            semanticsHelper.addInstr("cls");
+            const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+            return `cls(${streamStr})`;
         },
         Comment(_commentLit, remain) {
             return `//${remain.sourceString}`;
         },
-        Cos: cosSinTan,
-        Cint(_cintLit, _open, e, _close) {
-            return `Math.round(${e.eval()})`;
+        Cont: notSupported,
+        CopychrS(lit, open, stream, close) {
+            return notSupported(lit, open, stream, close) + '" "';
         },
-        Cls(_clsLit) {
-            semanticsHelper.addInstr("cls");
-            return `cls()`;
+        Cos: cosSinTan,
+        Creal(_lit, _open, num, _close) {
+            return `${num.eval()}`;
+        },
+        Cursor(lit, num, comma, num2) {
+            return notSupported(lit, num, comma, num2);
         },
         Data(_datalit, args) {
             const argList = evalChildren(args.asIteration().children);
@@ -423,19 +487,45 @@ function getSemanticsActionDict(semanticsHelper) {
             semanticsHelper.setDefContext(false);
             return `${fnIdent} = ${argStr} => ${defBody}`;
         },
+        Defint(lit, letterRange) {
+            return notSupported(lit, letterRange);
+        },
+        Defreal(lit, letterRange) {
+            return notSupported(lit, letterRange);
+        },
+        Defstr(lit, letterRange) {
+            return notSupported(lit, letterRange);
+        },
         Deg(_degLit) {
             semanticsHelper.setDeg(true);
             return `/* deg active */`;
         },
+        Delete(lit, labelRange) {
+            return notSupported(lit, labelRange);
+        },
+        Derr(lit) {
+            return notSupported(lit) + "0";
+        },
+        Di: notSupported,
         Dim(_dimLit, dimArgs) {
             const argumentList = evalChildren(dimArgs.asIteration().children);
             return argumentList.join("; ");
         },
         Draw: drawMovePlot,
         Drawr: drawMovePlot,
+        Edit(lit, label) {
+            return notSupported(lit, label);
+        },
+        Ei: notSupported,
         End(_endLit) {
             semanticsHelper.addInstr("end");
             return `return end()`;
+        },
+        Ent(lit, nums) {
+            return notSupported(lit, nums.asIteration());
+        },
+        Env(lit, nums) {
+            return notSupported(lit, nums.asIteration());
         },
         Erase(_eraseLit, arrayIdents) {
             const arrayIdentifiers = evalChildren(arrayIdents.asIteration().children);
@@ -445,6 +535,12 @@ function getSemanticsActionDict(semanticsHelper) {
                 results.push(`${ident} = ${initValStr}`);
             }
             return results.join("; ");
+        },
+        Erl(lit) {
+            return notSupported(lit) + "0";
+        },
+        Err(lit) {
+            return notSupported(lit) + "0";
         },
         Error(_errorLit, e) {
             return `throw new Error(${e.eval()})`;
@@ -460,6 +556,9 @@ function getSemanticsActionDict(semanticsHelper) {
         },
         Exp(_expLit, _open, e, _close) {
             return `Math.exp(${e.eval()})`;
+        },
+        Fill(lit, num) {
+            return notSupported(lit, num);
         },
         Fix(_fixLit, _open, e, _close) {
             return `Math.trunc(${e.eval()})`;
@@ -506,6 +605,12 @@ function getSemanticsActionDict(semanticsHelper) {
             semanticsHelper.addUsedLabel(labelString, "gosub");
             return `_${labelString}()`;
         },
+        Goto(lit, label) {
+            return notSupported(lit, label);
+        },
+        GraphicsPaper(lit, paperLit, num) {
+            return notSupported(lit, paperLit, num); // TODO
+        },
         GraphicsPen(_graphicsLit, _penLit, e) {
             semanticsHelper.addInstr("graphicsPen");
             return `graphicsPen(${e.eval()})`;
@@ -515,6 +620,12 @@ function getSemanticsActionDict(semanticsHelper) {
             semanticsHelper.addInstr("hex$");
             const pad = (_a = n.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
             return pad !== undefined ? `hex$(${e.eval()}, ${pad})` : `hex$(${e.eval()})`;
+        },
+        Himem(lit) {
+            return notSupported(lit) + "0";
+        },
+        IfExp_label(label) {
+            return notSupported(label);
         },
         If(_iflit, condExp, _thenLit, thenStat, elseLit, elseStat) {
             const initialIndent = semanticsHelper.getIndentStr();
@@ -530,22 +641,31 @@ function getSemanticsActionDict(semanticsHelper) {
             semanticsHelper.addIndent(-2);
             return result;
         },
-        Ink(_inkLit, num, _comma, col, _comma2, _col2) {
+        Ink(_inkLit, num, _comma, col, _comma2, col2) {
             semanticsHelper.addInstr("ink");
-            return `ink(${num.eval()}, ${col.eval()})`;
+            const col2Str = col2.child(0) ? notSupported(col2.child(0)) : "";
+            return `ink(${num.eval()}, ${col.eval()}${col2Str})`;
+        },
+        Inkey(lit, open, num, close) {
+            return notSupported(lit, open, num, close) + "0";
         },
         InkeyS(_inkeySLit) {
             semanticsHelper.addInstr("inkey$");
             semanticsHelper.addInstr("frame");
             return `await inkey$()`;
         },
-        Input(_inputLit, message, _semi, e) {
+        Inp(lit, open, num, close) {
+            return notSupported(lit, open, num, close) + "0";
+        },
+        Input(_inputLit, stream, _comma, message, _semi, e) {
+            var _a;
             semanticsHelper.addInstr("input");
             semanticsHelper.addInstr("frame");
+            const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
             const messageString = message.sourceString.replace(/\s*[;,]$/, "");
             const identifier = e.eval();
             const isNumberString = identifier.includes("$") ? "" : ", true";
-            return `${identifier} = await input(${messageString}${isNumberString})`;
+            return `${identifier} = await input(${streamStr}${messageString}${isNumberString})`;
         },
         Instr_noLen(_instrLit, _open, e1, _comma, e2, _close) {
             return `((${e1.eval()}).indexOf(${e2.eval()}) + 1)`;
@@ -556,11 +676,33 @@ function getSemanticsActionDict(semanticsHelper) {
         Int(_intLit, _open, e, _close) {
             return `Math.floor(${e.eval()})`;
         },
+        Joy(lit, open, num, close) {
+            return notSupported(lit, open, num, close) + "0";
+        },
+        Key(lit) {
+            return notSupported(lit);
+        },
         LeftS(_leftLit, _open, e1, _comma, e2, _close) {
             return `(${e1.eval()}).slice(0, ${e2.eval()})`;
         },
         Len(_lenLit, _open, e, _close) {
             return `(${e.eval()}).length`;
+        },
+        Let(_letLit, assign) {
+            const assignStr = assign.eval();
+            return `${assignStr}`;
+        },
+        LineInput(lit, inputLit, stream, comma, message, semi, e) {
+            return notSupported(lit, inputLit, stream, comma, message, semi, e);
+        },
+        List(lit, labelRange, comma, stream) {
+            return notSupported(lit, labelRange, comma, stream);
+        },
+        Load(lit, file, comma, address) {
+            return notSupported(lit, file, comma, address);
+        },
+        Locate(lit, stream, comma, x, comma2, y) {
+            return notSupported(lit, stream, comma, x, comma2, y);
         },
         Log(_logLit, _open, e, _close) {
             return `Math.log(${e.eval()})`;
@@ -571,9 +713,18 @@ function getSemanticsActionDict(semanticsHelper) {
         LowerS(_lowerLit, _open, e, _close) {
             return `(${e.eval()}).toLowerCase()`;
         },
+        Mask(lit, num, comma, num2, comma2, num3) {
+            return notSupported(lit, num, comma, num2, comma2, num3);
+        },
         Max(_maxLit, _open, args, _close) {
             const argumentList = evalChildren(args.asIteration().children);
             return `Math.max(${argumentList})`;
+        },
+        Memory(lit, num) {
+            return notSupported(lit, num);
+        },
+        Merge(lit, file) {
+            return notSupported(lit, file);
         },
         MidS(_midLit, _open, e1, _comma1, e2, _comma2, e3, _close) {
             var _a;
@@ -601,11 +752,12 @@ function getSemanticsActionDict(semanticsHelper) {
         },
         Move: drawMovePlot,
         Mover: drawMovePlot,
+        New: notSupported,
         Next(_nextLit, _variable) {
             semanticsHelper.addIndent(-2);
             return "}";
         },
-        On(_onLit, e1, _gosubLit, args) {
+        On_numGosub(_onLit, e1, _gosubLit, args) {
             const index = e1.eval();
             const argumentList = args.asIteration().children.map(child => child.sourceString);
             for (let i = 0; i < argumentList.length; i += 1) {
@@ -614,23 +766,61 @@ function getSemanticsActionDict(semanticsHelper) {
             }
             return `([${argumentList.map((label) => `_${label}`).join(",")}]?.[${index} - 1] || (() => undefined))()`; // 1-based index
         },
+        On_numGoto(lit, num, gotoLit, labels) {
+            return notSupported(lit, num, gotoLit, labels.asIteration());
+        },
+        On_breakCont(lit, breakLit, contLit) {
+            return notSupported(lit, breakLit, contLit);
+        },
+        On_breakGosub(lit, breakLit, gosubLit, label) {
+            return notSupported(lit, breakLit, gosubLit, label);
+        },
+        On_breakStop(lit, breakLit, stopLit) {
+            return notSupported(lit, breakLit, stopLit);
+        },
+        On_errorGoto(lit, errorLit, gotoLit, label) {
+            return notSupported(lit, errorLit, gotoLit, label);
+        },
+        Openin(lit, file) {
+            return notSupported(lit, file);
+        },
+        Openout(lit, file) {
+            return notSupported(lit, file);
+        },
         Origin(_originLit, x, _comma1, y) {
             semanticsHelper.addInstr("origin");
             return `origin(${x.eval()}, ${y.eval()})`;
         },
-        Paper(_paperLit, e) {
-            semanticsHelper.addInstr("paper");
-            return `paper(${e.eval()})`;
+        Out(lit, num, comma, num2) {
+            return notSupported(lit, num, comma, num2);
         },
-        Pen(_penLit, e) {
+        Paper(_paperLit, stream, _comma, e) {
+            var _a;
+            semanticsHelper.addInstr("paper");
+            const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+            return `paper(${streamStr}${e.eval()})`;
+        },
+        Peek(lit, open, num, close) {
+            return notSupported(lit, open, num, close) + "0";
+        },
+        Pen(_penLit, stream, _comma, e, _comma2, e2) {
+            var _a;
             semanticsHelper.addInstr("pen");
-            return `pen(${e.eval()})`;
+            const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+            const modeStr = e2.child(0) ? notSupported(e2.child(0)) : "";
+            return `pen(${streamStr}${e.eval()}${modeStr})`;
         },
         Pi(_piLit) {
             return "Math.PI";
         },
         Plot: drawMovePlot,
         Plotr: drawMovePlot,
+        Poke(lit, num, comma, num2) {
+            return notSupported(lit, num, comma, num2);
+        },
+        Pos(lit, open, streamLit, num, close) {
+            return notSupported(lit, open, streamLit, num, close) + "0";
+        },
         PrintArg_strCmp(_cmp, args) {
             const parameterString = args.children[0].eval();
             return parameterString;
@@ -642,25 +832,36 @@ function getSemanticsActionDict(semanticsHelper) {
             const parameterString = argumentList.map((arg) => `dec$(${arg}, ${formatString})`).join(', ');
             return parameterString;
         },
-        Print(_printLit, args, semi) {
+        StreamArg(streamLit, stream) {
+            return notSupported(streamLit, stream) + "";
+        },
+        Print(_printLit, stream, _comma, args, semi) {
+            var _a;
             semanticsHelper.addInstr("print");
+            const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
             const argumentList = evalChildren(args.asIteration().children);
             const parameterString = argumentList.join(', ') || "";
             let newlineString = "";
             if (!semi.sourceString) {
                 newlineString = parameterString ? `, "\\n"` : `"\\n"`;
             }
-            return `print(${parameterString}${newlineString})`;
+            return `print(${streamStr}${parameterString}${newlineString})`;
         },
         Rad(_radLit) {
             semanticsHelper.setDeg(false);
             return `/* rad active */`;
+        },
+        Randomize(lit, num) {
+            return notSupported(lit, num);
         },
         Read(_readlit, args) {
             semanticsHelper.addInstr("read");
             const argumentList = evalChildren(args.asIteration().children);
             const results = argumentList.map(identifier => `${identifier} = read()`);
             return results.join("; ");
+        },
+        Release(lit, num) {
+            return notSupported(lit, num);
         },
         Rem(_remLit, remain) {
             return `// ${remain.sourceString}`;
@@ -669,12 +870,18 @@ function getSemanticsActionDict(semanticsHelper) {
             semanticsHelper.addInstr("remain");
             return `remain(${e.eval()})`;
         },
+        Renum(lit, num, comma, num2, comma2, num3) {
+            return notSupported(lit, num, comma, num2, comma2, num3);
+        },
         Restore(_restoreLit, e) {
             const labelString = e.sourceString || "0";
             semanticsHelper.addRestoreLabel(labelString);
             semanticsHelper.addUsedLabel(labelString, "restore");
             semanticsHelper.addInstr("restore");
             return `restore(${labelString})`;
+        },
+        Resume(lit, labelOrNext) {
+            return notSupported(lit, labelOrNext);
         },
         Return(_returnLit) {
             return "return";
@@ -728,12 +935,36 @@ function getSemanticsActionDict(semanticsHelper) {
             const result = `${assignments}<RSXFUNCTION>, ${argumentListNoAddr.join(", ")}`;
             return result;
         },
+        Run(lit, labelOrFileOrNoting) {
+            return notSupported(lit, labelOrFileOrNoting);
+        },
+        Save(lit, file, comma, type, comma2, num, comma3, num2, comma4, num3) {
+            return notSupported(lit, file, comma, type, comma2, num, comma3, num2, comma4, num3);
+        },
         Sgn(_sgnLit, _open, e, _close) {
             return `Math.sign(${e.eval()})`;
         },
         Sin: cosSinTan,
+        Sound(lit, args) {
+            return notSupported(lit, args.asIteration());
+        },
         SpaceS(_stringLit, _open, len, _close) {
             return `" ".repeat(${len.eval()})`;
+        },
+        Spc(_lit, _open, len, _close) {
+            return `" ".repeat(${len.eval()})`;
+        },
+        Speed_ink(lit, inkLit, num, comma, num2) {
+            return notSupported(lit, inkLit, num, comma, num2);
+        },
+        Speed_key(lit, keyLit, num, comma, num2) {
+            return notSupported(lit, keyLit, num, comma, num2);
+        },
+        Speed_write(lit, writeLit, num) {
+            return notSupported(lit, writeLit, num);
+        },
+        Sq(lit, open, num, close) {
+            return notSupported(lit, open, num, close) + "0";
         },
         Sqr(_sqrLit, _open, e, _close) {
             return `Math.sqrt(${e.eval()})`;
@@ -758,18 +989,42 @@ function getSemanticsActionDict(semanticsHelper) {
         StringS_num(_stringLit, _open, len, _commaLit, num, _close) {
             return `String.fromCharCode(${num.eval()}).repeat(${len.eval()})`;
         },
-        Tag(_tagLit) {
-            semanticsHelper.addInstr("tag");
-            return `tag(true)`;
+        Symbol_def(lit, args) {
+            return notSupported(lit, args.asIteration());
         },
-        Tagoff(_tagoffLit) {
+        Symbol_after(lit, afterLit, num) {
+            return notSupported(lit, afterLit, num);
+        },
+        Tab(lit, open, len, close) {
+            return notSupported(lit, open, len, close) + '""';
+        },
+        Tag(_tagLit, stream) {
+            var _a;
             semanticsHelper.addInstr("tag");
-            return `tag(false)`;
+            const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+            return `tag(true${streamStr})`;
+        },
+        Tagoff(_tagoffLit, stream) {
+            var _a;
+            semanticsHelper.addInstr("tag");
+            const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+            return `tag(false${streamStr})`;
         },
         Tan: cosSinTan,
+        Test(lit, open, num, comma, num2, close) {
+            return notSupported(lit, open, num, comma, num2, close) + "0";
+        },
+        Testr(lit, open, num, comma, num2, close) {
+            return notSupported(lit, open, num, comma, num2, close) + "0";
+        },
         Time(_timeLit) {
             semanticsHelper.addInstr("time");
             return `time()`;
+        },
+        Troff: notSupported,
+        Tron: notSupported,
+        Unt(_lit, _open, num, _close) {
+            return `${num.eval()}`; //TTT
         },
         UpperS(_upperLit, _open, e, _close) {
             return `(${e.eval()}).toUpperCase()`;
@@ -783,6 +1038,12 @@ function getSemanticsActionDict(semanticsHelper) {
             semanticsHelper.addInstr("val");
             return `val(${numStr})`;
         },
+        Vpos(lit, open, streamLit, num, close) {
+            return notSupported(lit, open, streamLit, num, close) + "0";
+        },
+        Wait(lit, num, comma, num2, comma2, num3) {
+            return notSupported(lit, num, comma, num2, comma2, num3);
+        },
         Wend(_wendLit) {
             semanticsHelper.addIndent(-2);
             return '}';
@@ -793,6 +1054,30 @@ function getSemanticsActionDict(semanticsHelper) {
             return `while (${cond}) {`;
         },
         WhileWendBlock: loopBlock,
+        Width(lit, num) {
+            return notSupported(lit, num);
+        },
+        Window_def(lit, stream, comma0, num, comma, num2, comma2, num3, comma3, num4) {
+            return notSupported(lit, stream, comma0, num, comma, num2, comma2, num3, comma3, num4);
+        },
+        Window_swap(lit, swapLit, num, comma, num2) {
+            return notSupported(lit, swapLit, num, comma, num2);
+        },
+        WriteArg(e) {
+            const result = e.eval();
+            if (typeof result === "string") {
+                return `${result}`;
+            }
+            return result;
+        },
+        Write(_printLit, stream, _comma, args) {
+            var _a;
+            semanticsHelper.addInstr("print"); // we use print for output
+            const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+            const argumentList = evalChildren(args.asIteration().children);
+            const parameterString = argumentList.join(', ') || "";
+            return `print(${streamStr}'${parameterString}')`;
+        },
         Xpos(_xposLit) {
             semanticsHelper.addInstr("xpos");
             return `xpos()`;
@@ -800,6 +1085,9 @@ function getSemanticsActionDict(semanticsHelper) {
         Ypos(_xposLit) {
             semanticsHelper.addInstr("ypos");
             return `ypos()`;
+        },
+        Zone(lit, num) {
+            return notSupported(lit, num);
         },
         XorExp_xor(a, _op, b) {
             return `${a.eval()} ^ ${b.eval()}`;
@@ -922,7 +1210,8 @@ function getSemanticsActionDict(semanticsHelper) {
             return `${sign.sourceString}${value.sourceString}`;
         },
         string(_quote1, e, _quote2) {
-            return `"${e.sourceString}"`;
+            const str = e.sourceString.replace(/\\/g, "\\\\"); // escape backslashes
+            return `"${str}"`;
         },
         ident(ident) {
             const name = ident.sourceString;

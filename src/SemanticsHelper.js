@@ -2,6 +2,7 @@ export class SemanticsHelper {
     constructor() {
         this.lineIndex = 0;
         this.indent = 0;
+        this.compileMessages = [];
         this.variables = {};
         this.definedLabels = [];
         this.usedLabels = {};
@@ -11,6 +12,12 @@ export class SemanticsHelper {
         this.instrMap = {};
         this.isDeg = false;
         this.isDefContext = false;
+    }
+    addCompileMessage(message) {
+        this.compileMessages.push(message);
+    }
+    getCompileMessages() {
+        return this.compileMessages;
     }
     getDeg() {
         return this.isDeg;
@@ -109,6 +116,7 @@ export class SemanticsHelper {
     resetParser() {
         this.lineIndex = 0;
         this.indent = 0;
+        this.compileMessages.length = 0;
         SemanticsHelper.deleteAllItems(this.variables);
         this.definedLabels.length = 0;
         SemanticsHelper.deleteAllItems(this.usedLabels);
