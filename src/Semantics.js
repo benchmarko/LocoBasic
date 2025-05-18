@@ -1,19 +1,16 @@
 import { SemanticsHelper } from "./SemanticsHelper";
 const codeSnippetsData = {
     _o: {},
-    _d: {
-        data: [],
-        dataPtr: 0,
-        restoreMap: {},
-        startTime: 0
-    },
+    _d: {},
     async frame() { }, // dummy
+    remain(timer) { return timer; } // dummy
 };
 function getCodeSnippets(snippetsData) {
-    const { _o, _d, frame } = snippetsData;
+    const { _o, _d, frame, remain } = snippetsData;
     const codeSnippets = {
         after: function after(timeout, timer, fn) {
-            _o.getTimerMap()[timer] = setTimeout(() => fn(), timeout * 20);
+            remain(timer);
+            _d.timerMap[timer] = setTimeout(() => fn(), timeout * 20);
         },
         bin$: function bin$(num, pad = 0) {
             return num.toString(2).toUpperCase().padStart(pad, "0");
@@ -58,7 +55,8 @@ function getCodeSnippets(snippetsData) {
             return "end";
         },
         every: function every(timeout, timer, fn) {
-            _o.getTimerMap()[timer] = setInterval(() => fn(), timeout * 20);
+            remain(timer);
+            _d.timerMap[timer] = setInterval(() => fn(), timeout * 20);
         },
         frame: async function frame() {
             _o.flush();
@@ -131,11 +129,12 @@ function getCodeSnippets(snippetsData) {
             return _d.data[_d.dataPtr++];
         },
         remain: function remain(timer) {
-            const timerMap = _o.getTimerMap();
-            const value = timerMap[timer];
-            clearTimeout(value);
-            clearInterval(value);
-            timerMap[timer] = undefined;
+            const value = _d.timerMap[timer];
+            if (value !== undefined) {
+                clearTimeout(value);
+                clearInterval(value);
+                delete _d.timerMap[timer];
+            }
             return value; // not really remain
         },
         restore: function restore(label) {
@@ -320,10 +319,14 @@ function _defineData() {
             if (variableDeclarations) {
                 lineList.unshift(variableDeclarations);
             }
+            const needsTimerMap = instrMap["after"] || instrMap["every"] || instrMap["remain"];
+            if (needsTimerMap) {
+                lineList.unshift(`_d.timerMap = {};`);
+            }
             if (needsStartTime) {
                 lineList.unshift(`_d.startTime = Date.now();`);
             }
-            lineList.unshift(`const _d = {};`);
+            lineList.unshift(`const _d = _o.getSnippetData();`);
             if (needsAsync) {
                 lineList.unshift(`return async function() {`);
                 lineList.push('}();');
@@ -397,6 +400,7 @@ function _defineData() {
         After(_afterLit, e1, _comma1, e2, _gosubLit, label) {
             var _a;
             semanticsHelper.addInstr("after");
+            semanticsHelper.addInstr("remain"); // we also call this
             const timeout = e1.eval();
             const timer = ((_a = e2.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || 0;
             const labelString = label.sourceString;
@@ -558,6 +562,7 @@ function _defineData() {
         Every(_everyLit, e1, _comma1, e2, _gosubLit, label) {
             var _a;
             semanticsHelper.addInstr("every");
+            semanticsHelper.addInstr("remain"); // we also call this
             const timeout = e1.eval();
             const timer = ((_a = e2.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || 0;
             const labelString = label.sourceString;

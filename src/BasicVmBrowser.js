@@ -18,17 +18,14 @@ export class BasicVmBrowser {
     drawMovePlot(type, x, y) {
         this.vmCore.drawMovePlot(type, x, y);
     }
-    fnOnPrint(msg) {
-        this.ui.addOutputText(msg);
-    }
     flush() {
         const textOutput = this.vmCore.flushText();
         if (textOutput) {
-            this.fnOnPrint(textOutput);
+            this.ui.addOutputText(textOutput);
         }
         const graphicsOutput = this.vmCore.flushGraphics();
         if (graphicsOutput) {
-            this.fnOnPrint(graphicsOutput);
+            this.ui.addOutputText(graphicsOutput);
         }
     }
     graphicsPen(num) {
@@ -88,8 +85,8 @@ export class BasicVmBrowser {
     getEscape() {
         return this.ui.getEscape();
     }
-    getTimerMap() {
-        return this.vmCore.getTimerMap();
+    getSnippetData() {
+        return this.vmCore.getSnippetData();
     }
     getOutput() {
         return this.vmCore.getOutput();

@@ -1,4 +1,4 @@
-import type { TimerMapType } from "./Interfaces";
+import type { SnippetDataType } from "./Interfaces";
 export declare class BasicVmCore {
     private readonly penColors;
     private readonly paperColors;
@@ -16,7 +16,7 @@ export declare class BasicVmCore {
     private readonly colorsForPens;
     private backgroundColor;
     private isTag;
-    private timerMap;
+    private snippetData;
     private pitch;
     private fnOnSpeak;
     private static readonly cpcColors;
@@ -29,6 +29,7 @@ export declare class BasicVmCore {
     mode(num: number): void;
     drawMovePlot(type: string, x: number, y: number): void;
     private flushGraphicsPath;
+    static getTagInSvg(content: string, strokeWidth: string, backgroundColor: string): string;
     flushGraphics(): string;
     flushText(): string;
     graphicsPen(num: number): void;
@@ -53,7 +54,7 @@ export declare class BasicVmCore {
     tag(active: boolean): void;
     xpos(): number;
     ypos(): number;
-    getTimerMap(): TimerMapType;
+    getSnippetData(): SnippetDataType;
     getOutput(): string;
     setOutput(str: string): void;
 }

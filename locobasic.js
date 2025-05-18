@@ -1769,19 +1769,16 @@
 
     const codeSnippetsData = {
         _o: {},
-        _d: {
-            data: [],
-            dataPtr: 0,
-            restoreMap: {},
-            startTime: 0
-        },
+        _d: {},
         async frame() { }, // dummy
+        remain(timer) { return timer; } // dummy
     };
     function getCodeSnippets(snippetsData) {
-        const { _o, _d, frame } = snippetsData;
+        const { _o, _d, frame, remain } = snippetsData;
         const codeSnippets = {
             after: function after(timeout, timer, fn) {
-                _o.getTimerMap()[timer] = setTimeout(() => fn(), timeout * 20);
+                remain(timer);
+                _d.timerMap[timer] = setTimeout(() => fn(), timeout * 20);
             },
             bin$: function bin$(num, pad = 0) {
                 return num.toString(2).toUpperCase().padStart(pad, "0");
@@ -1826,7 +1823,8 @@
                 return "end";
             },
             every: function every(timeout, timer, fn) {
-                _o.getTimerMap()[timer] = setInterval(() => fn(), timeout * 20);
+                remain(timer);
+                _d.timerMap[timer] = setInterval(() => fn(), timeout * 20);
             },
             frame: async function frame() {
                 _o.flush();
@@ -1899,11 +1897,12 @@
                 return _d.data[_d.dataPtr++];
             },
             remain: function remain(timer) {
-                const timerMap = _o.getTimerMap();
-                const value = timerMap[timer];
-                clearTimeout(value);
-                clearInterval(value);
-                timerMap[timer] = undefined;
+                const value = _d.timerMap[timer];
+                if (value !== undefined) {
+                    clearTimeout(value);
+                    clearInterval(value);
+                    delete _d.timerMap[timer];
+                }
                 return value; // not really remain
             },
             restore: function restore(label) {
@@ -2088,10 +2087,14 @@ function _defineData() {
                 if (variableDeclarations) {
                     lineList.unshift(variableDeclarations);
                 }
+                const needsTimerMap = instrMap["after"] || instrMap["every"] || instrMap["remain"];
+                if (needsTimerMap) {
+                    lineList.unshift(`_d.timerMap = {};`);
+                }
                 if (needsStartTime) {
                     lineList.unshift(`_d.startTime = Date.now();`);
                 }
-                lineList.unshift(`const _d = {};`);
+                lineList.unshift(`const _d = _o.getSnippetData();`);
                 if (needsAsync) {
                     lineList.unshift(`return async function() {`);
                     lineList.push('}();');
@@ -2165,6 +2168,7 @@ function _defineData() {
             After(_afterLit, e1, _comma1, e2, _gosubLit, label) {
                 var _a;
                 semanticsHelper.addInstr("after");
+                semanticsHelper.addInstr("remain"); // we also call this
                 const timeout = e1.eval();
                 const timer = ((_a = e2.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || 0;
                 const labelString = label.sourceString;
@@ -2326,6 +2330,7 @@ function _defineData() {
             Every(_everyLit, e1, _comma1, e2, _gosubLit, label) {
                 var _a;
                 semanticsHelper.addInstr("every");
+                semanticsHelper.addInstr("remain"); // we also call this
                 const timeout = e1.eval();
                 const timer = ((_a = e2.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || 0;
                 const labelString = label.sourceString;
@@ -3167,10 +3172,10 @@ function _defineData() {
                 }
             }
             // remain for all timers
-            const timerMap = vm.getTimerMap();
+            const snippetData = vm.getSnippetData();
+            const timerMap = snippetData.timerMap; //vm.getTimerMap();
             for (const timer in timerMap) {
                 if (timerMap[timer] !== undefined) {
-                    const timerMap = vm.getTimerMap();
                     const value = timerMap[timer];
                     clearTimeout(value);
                     clearInterval(value);
@@ -3220,7 +3225,7 @@ function _defineData() {
             this.colorsForPens = [];
             this.backgroundColor = "";
             this.isTag = false; // text at graphics
-            this.timerMap = {};
+            this.snippetData = {};
             this.pitch = 1;
             this.fnOnSpeak = () => Promise.resolve();
             this.defaultColorsForPens = [
@@ -3336,11 +3341,9 @@ function _defineData() {
         reset() {
             this.colorsForPens.splice(0, this.colorsForPens.length, ...this.defaultColorsForPens);
             this.backgroundColor = "";
-            //this.originX = 0;
-            //this.originY = 0;
             this.pitch = 1;
             this.mode(1);
-            BasicVmCore.deleteAllItems(this.timerMap);
+            BasicVmCore.deleteAllItems(this.snippetData);
         }
         cls() {
             this.output = "";
@@ -3358,6 +3361,7 @@ function _defineData() {
             this.cls();
             this.origin(0, 0);
         }
+        // type: M | m | P | p | L | l
         drawMovePlot(type, x, y) {
             x = Math.round(x);
             y = Math.round(y);
@@ -3392,15 +3396,21 @@ function _defineData() {
                 this.graphicsPathBuffer.length = 0;
             }
         }
+        static getTagInSvg(content, strokeWidth, backgroundColor) {
+            const backgroundColorStr = backgroundColor !== "" ? ` style="background-color:${backgroundColor}"` : '';
+            return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" shape-rendering="optimizeSpeed" stroke="currentColor" stroke-width="${strokeWidth}"${backgroundColorStr}>
+${content}
+</svg>
+`;
+        }
         flushGraphics() {
             this.flushGraphicsPath();
             if (this.graphicsBuffer.length) {
-                // separate print for svg graphics
-                // in another module, we check if output starts with "<svg" to enable export SVG button
-                const backgroundColorStr = this.backgroundColor !== "" ? ` style="background-color:${this.backgroundColor}"` : '';
+                // separate print for svg graphics (we check in another module, if output starts with "<svg" to enable export SVG button)
                 const graphicsBufferStr = this.graphicsBuffer.join("\n");
+                const strokeWith = strokeWidthForMode[this.currMode] + "px";
                 this.graphicsBuffer.length = 0;
-                return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" shape-rendering="optimizeSpeed" stroke="currentColor"${backgroundColorStr}>\n${graphicsBufferStr}"\n</svg>\n`;
+                return BasicVmCore.getTagInSvg(graphicsBufferStr, strokeWith, this.backgroundColor);
             }
             return "";
         }
@@ -3527,8 +3537,8 @@ function _defineData() {
         ypos() {
             return this.graphicsY;
         }
-        getTimerMap() {
-            return this.timerMap;
+        getSnippetData() {
+            return this.snippetData;
         }
         getOutput() {
             const output = this.output;
@@ -3623,22 +3633,19 @@ function _defineData() {
         }
         cls() {
             this.vmCore.cls();
-            console.clear();
+            this.nodeParts.consoleClear();
         }
         drawMovePlot(type, x, y) {
             this.vmCore.drawMovePlot(type, x, y);
         }
-        static fnOnPrint(msg) {
-            console.log(msg.replace(/\n$/, ""));
-        }
         flush() {
             const textOutput = this.vmCore.flushText();
             if (textOutput) {
-                BasicVmNode.fnOnPrint(textOutput);
+                this.nodeParts.consolePrint(textOutput.replace(/\n$/, ""));
             }
             const graphicsOutput = this.vmCore.flushGraphics();
             if (graphicsOutput) {
-                BasicVmNode.fnOnPrint(graphicsOutput);
+                this.nodeParts.consolePrint(graphicsOutput.replace(/\n$/, ""));
             }
         }
         graphicsPen(num) {
@@ -3661,7 +3668,8 @@ function _defineData() {
         }
         mode(num) {
             this.vmCore.mode(num);
-            console.clear();
+            this.nodeParts.consoleClear();
+            //console.clear();
         }
         origin(x, y) {
             this.vmCore.origin(x, y);
@@ -3690,8 +3698,8 @@ function _defineData() {
         getEscape() {
             return this.nodeParts.getEscape();
         }
-        getTimerMap() {
-            return this.vmCore.getTimerMap();
+        getSnippetData() {
+            return this.vmCore.getSnippetData();
         }
         getOutput() {
             return this.vmCore.getOutput();
@@ -3704,7 +3712,7 @@ function _defineData() {
     // The functions from dummyVm will be stringified in the putScriptInFrame function
     const dummyVm = {
         _output: "",
-        _timerMap: {},
+        _snippetData: {},
         debug(..._args) { }, // eslint-disable-line @typescript-eslint/no-unused-vars
         cls() { },
         drawMovePlot(type, x, y) { this.debug("drawMovePlot:", type, x, y); },
@@ -3726,7 +3734,7 @@ function _defineData() {
         xpos() { this.debug("xpos:"); return 0; },
         ypos() { this.debug("ypos:"); return 0; },
         getEscape() { return false; },
-        getTimerMap() { return this._timerMap; }
+        getSnippetData() { return this._snippetData; }
     };
     function isUrl(s) {
         return s.startsWith("http"); // http or https
@@ -3888,6 +3896,12 @@ function _defineData() {
         getEscape() {
             return this.escape;
         }
+        consoleClear() {
+            console.clear();
+        }
+        consolePrint(msg) {
+            console.log(msg);
+        }
         start(core, vm, input) {
             const actionConfig = core.getConfigMap().action;
             if (input !== "") {
@@ -4016,9 +4030,10 @@ node dist/locobasic.js input='PRINT "Hello!"'
 npx ts-node dist/locobasic.js input='PRINT "Hello!"'
 node dist/locobasic.js input='?3 + 5 * (2 - 8)' example=''
 node dist/locobasic.js example=euler
+node dist/locobasic.js example=archidr0 > test1.svg
 node dist/locobasic.js example=binary database=rosetta databaseDirs=examples,https://benchmarko.github.io/CPCBasicApps/rosetta
-node dist/locobasic.js fileName=dist/examples/example.bas
 node dist/locobasic.js grammar='strict' input='a$="Bob":PRINT "Hello ";a$;"!"'
+node dist/locobasic.js fileName=dist/examples/example.bas  (if you have an example.bas file)
 
 - Example for compile only:
 node dist/locobasic.js action='compile' input='PRINT "Hello!"' > hello1.js
@@ -4048,17 +4063,14 @@ node hello1.js
         drawMovePlot(type, x, y) {
             this.vmCore.drawMovePlot(type, x, y);
         }
-        fnOnPrint(msg) {
-            this.ui.addOutputText(msg);
-        }
         flush() {
             const textOutput = this.vmCore.flushText();
             if (textOutput) {
-                this.fnOnPrint(textOutput);
+                this.ui.addOutputText(textOutput);
             }
             const graphicsOutput = this.vmCore.flushGraphics();
             if (graphicsOutput) {
-                this.fnOnPrint(graphicsOutput);
+                this.ui.addOutputText(graphicsOutput);
             }
         }
         graphicsPen(num) {
@@ -4118,8 +4130,8 @@ node hello1.js
         getEscape() {
             return this.ui.getEscape();
         }
-        getTimerMap() {
-            return this.vmCore.getTimerMap();
+        getSnippetData() {
+            return this.vmCore.getSnippetData();
         }
         getOutput() {
             return this.vmCore.getOutput();

@@ -1,4 +1,4 @@
-import { INodeParts, IVmAdmin, TimerMapType } from "./Interfaces";
+import type { INodeParts, IVmAdmin, SnippetDataType } from "./Interfaces";
 export declare class BasicVmNode implements IVmAdmin {
     private readonly vmCore;
     private readonly nodeParts;
@@ -6,7 +6,6 @@ export declare class BasicVmNode implements IVmAdmin {
     reset(): void;
     cls(): void;
     drawMovePlot(type: string, x: number, y: number): void;
-    private static fnOnPrint;
     flush(): void;
     graphicsPen(num: number): void;
     ink(num: number, col: number): void;
@@ -23,7 +22,7 @@ export declare class BasicVmNode implements IVmAdmin {
     xpos(): number;
     ypos(): number;
     getEscape(): boolean;
-    getTimerMap(): TimerMapType;
+    getSnippetData(): SnippetDataType;
     getOutput(): string;
     setOutput(str: string): void;
 }

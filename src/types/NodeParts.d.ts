@@ -1,5 +1,5 @@
-import { ICore } from "./Interfaces";
-export declare class NodeParts {
+import type { ICore, INodeParts } from "./Interfaces";
+export declare class NodeParts implements INodeParts {
     private nodePath?;
     private nodeFs?;
     private nodeHttps?;
@@ -21,6 +21,8 @@ export declare class NodeParts {
     private initKeyboardInput;
     getKeyFromBuffer(): string;
     getEscape(): boolean;
+    consoleClear(): void;
+    consolePrint(msg: string): void;
     private start;
     private getExampleMap;
     private getExampleScript;

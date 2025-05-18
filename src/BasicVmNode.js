@@ -49,22 +49,19 @@ export class BasicVmNode {
     }
     cls() {
         this.vmCore.cls();
-        console.clear();
+        this.nodeParts.consoleClear();
     }
     drawMovePlot(type, x, y) {
         this.vmCore.drawMovePlot(type, x, y);
     }
-    static fnOnPrint(msg) {
-        console.log(msg.replace(/\n$/, ""));
-    }
     flush() {
         const textOutput = this.vmCore.flushText();
         if (textOutput) {
-            BasicVmNode.fnOnPrint(textOutput);
+            this.nodeParts.consolePrint(textOutput.replace(/\n$/, ""));
         }
         const graphicsOutput = this.vmCore.flushGraphics();
         if (graphicsOutput) {
-            BasicVmNode.fnOnPrint(graphicsOutput);
+            this.nodeParts.consolePrint(graphicsOutput.replace(/\n$/, ""));
         }
     }
     graphicsPen(num) {
@@ -87,7 +84,8 @@ export class BasicVmNode {
     }
     mode(num) {
         this.vmCore.mode(num);
-        console.clear();
+        this.nodeParts.consoleClear();
+        //console.clear();
     }
     origin(x, y) {
         this.vmCore.origin(x, y);
@@ -116,8 +114,8 @@ export class BasicVmNode {
     getEscape() {
         return this.nodeParts.getEscape();
     }
-    getTimerMap() {
-        return this.vmCore.getTimerMap();
+    getSnippetData() {
+        return this.vmCore.getSnippetData();
     }
     getOutput() {
         return this.vmCore.getOutput();

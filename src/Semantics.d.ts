@@ -1,16 +1,12 @@
 import type { ActionDict, Node } from "ohm-js";
-import type { IVm, ISemantics, UsedLabelEntryType } from "./Interfaces";
+import type { IVm, ISemantics, SnippetDataType, UsedLabelEntryType } from "./Interfaces";
 import { SemanticsHelper } from "./SemanticsHelper";
 type RecursiveArray<T> = T | RecursiveArray<T>[];
 declare const codeSnippetsData: {
     _o: IVm;
-    _d: {
-        data: (string | number)[];
-        dataPtr: number;
-        restoreMap: Record<string, number>;
-        startTime: number;
-    };
+    _d: SnippetDataType;
     frame(): Promise<void>;
+    remain(timer: number): number;
 };
 export declare class Semantics implements ISemantics {
     private readonly helper;

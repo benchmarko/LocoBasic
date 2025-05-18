@@ -134,10 +134,10 @@ export class Core {
             }
         }
         // remain for all timers
-        const timerMap = vm.getTimerMap();
+        const snippetData = vm.getSnippetData();
+        const timerMap = snippetData.timerMap; //vm.getTimerMap();
         for (const timer in timerMap) {
             if (timerMap[timer] !== undefined) {
-                const timerMap = vm.getTimerMap();
                 const value = timerMap[timer];
                 clearTimeout(value);
                 clearInterval(value);

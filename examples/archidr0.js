@@ -13,8 +13,7 @@ delay=2:'delay seconds between drawings
 READ dcnt
 FOR didx=1 TO dcnt
   GOSUB 800
-  FRAME
-  t=TIME+delay*6*50:WHILE TIME<t AND INKEY$="":WEND
+  IF didx<dcnt THEN FRAME:t=TIME+delay*6*50:WHILE TIME<t AND INKEY$="":WEND
 NEXT
 END
 '

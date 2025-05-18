@@ -29,7 +29,13 @@ export type ConfigType = {
     showCompiled: boolean;
     showOutput: boolean;
 };
-export type TimerMapType = Record<number, number | NodeJS.Timeout | undefined>;
+export type SnippetDataType = {
+    data: (string | number)[];
+    dataPtr: number;
+    restoreMap: Record<string, number>;
+    startTime: number;
+    timerMap: Record<number, number | NodeJS.Timeout | undefined>;
+};
 export interface IVm {
     cls(): void;
     drawMovePlot(type: string, x: number, y: number): void;
@@ -48,7 +54,7 @@ export interface IVm {
     xpos(): number;
     ypos(): number;
     getEscape(): boolean;
-    getTimerMap(): TimerMapType;
+    getSnippetData(): SnippetDataType;
 }
 export interface IVmAdmin extends IVm {
     reset(): void;
@@ -87,17 +93,19 @@ export interface ICore {
 export interface INodeParts {
     getEscape(): boolean;
     getKeyFromBuffer(): string;
+    consoleClear(): void;
+    consolePrint(msg: string): void;
 }
 export interface IUI {
-    getCurrentDataKey(): string;
-    onWindowLoadContinue(core: ICore, vm: IVmAdmin): void;
-    getEscape(): boolean;
     addOutputText(value: string): void;
-    setOutputText(value: string): void;
-    getColor(color: string, background: boolean): string;
     checkSyntax(str: string): Promise<string>;
+    getColor(color: string, background: boolean): string;
+    getCurrentDataKey(): string;
+    getEscape(): boolean;
+    getKeyFromBuffer(): string;
+    onWindowLoadContinue(core: ICore, vm: IVmAdmin): void;
+    setOutputText(value: string): void;
     prompt(msg: string): string | null;
     speak(text: string, pitch: number): Promise<void>;
-    getKeyFromBuffer(): string;
 }
 //# sourceMappingURL=Interfaces.d.ts.map

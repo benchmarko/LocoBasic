@@ -2,7 +2,7 @@ import { BasicVmNode } from "./BasicVmNode";
 // The functions from dummyVm will be stringified in the putScriptInFrame function
 const dummyVm = {
     _output: "",
-    _timerMap: {},
+    _snippetData: {},
     debug(..._args) { }, // eslint-disable-line @typescript-eslint/no-unused-vars
     cls() { },
     drawMovePlot(type, x, y) { this.debug("drawMovePlot:", type, x, y); },
@@ -24,7 +24,7 @@ const dummyVm = {
     xpos() { this.debug("xpos:"); return 0; },
     ypos() { this.debug("ypos:"); return 0; },
     getEscape() { return false; },
-    getTimerMap() { return this._timerMap; }
+    getSnippetData() { return this._snippetData; }
 };
 function isUrl(s) {
     return s.startsWith("http"); // http or https
@@ -186,6 +186,12 @@ export class NodeParts {
     getEscape() {
         return this.escape;
     }
+    consoleClear() {
+        console.clear();
+    }
+    consolePrint(msg) {
+        console.log(msg);
+    }
     start(core, vm, input) {
         const actionConfig = core.getConfigMap().action;
         if (input !== "") {
@@ -314,9 +320,10 @@ node dist/locobasic.js input='PRINT "Hello!"'
 npx ts-node dist/locobasic.js input='PRINT "Hello!"'
 node dist/locobasic.js input='?3 + 5 * (2 - 8)' example=''
 node dist/locobasic.js example=euler
+node dist/locobasic.js example=archidr0 > test1.svg
 node dist/locobasic.js example=binary database=rosetta databaseDirs=examples,https://benchmarko.github.io/CPCBasicApps/rosetta
-node dist/locobasic.js fileName=dist/examples/example.bas
 node dist/locobasic.js grammar='strict' input='a$="Bob":PRINT "Hello ";a$;"!"'
+node dist/locobasic.js fileName=dist/examples/example.bas  (if you have an example.bas file)
 
 - Example for compile only:
 node dist/locobasic.js action='compile' input='PRINT "Hello!"' > hello1.js

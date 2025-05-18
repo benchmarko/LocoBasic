@@ -1,4 +1,4 @@
-import { IUI, IVmAdmin, TimerMapType } from "./Interfaces";
+import type { IUI, IVmAdmin, SnippetDataType } from "./Interfaces";
 export declare class BasicVmBrowser implements IVmAdmin {
     private readonly ui;
     private readonly vmCore;
@@ -6,7 +6,6 @@ export declare class BasicVmBrowser implements IVmAdmin {
     reset(): void;
     cls(): void;
     drawMovePlot(type: string, x: number, y: number): void;
-    fnOnPrint(msg: string): void;
     flush(): void;
     graphicsPen(num: number): void;
     ink(num: number, col: number): void;
@@ -29,7 +28,7 @@ export declare class BasicVmBrowser implements IVmAdmin {
     xpos(): number;
     ypos(): number;
     getEscape(): boolean;
-    getTimerMap(): TimerMapType;
+    getSnippetData(): SnippetDataType;
     getOutput(): string;
     setOutput(str: string): void;
 }
