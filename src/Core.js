@@ -97,7 +97,8 @@ export class Core {
         return this.arithmeticParser.parseAndEval(script);
     }
     async executeScript(compiledScript, vm) {
-        vm.setOutput("");
+        vm.reset();
+        //vm.setOutput("");
         if (compiledScript.startsWith("ERROR:")) {
             return "ERROR";
         }

@@ -23,15 +23,16 @@ export declare class BasicVmCore {
     private readonly defaultColorsForPens;
     constructor(penColors: string[], paperColors: string[]);
     static getCpcColors(): string[];
-    private reset;
+    private static deleteAllItems;
+    reset(): void;
     cls(): void;
+    mode(num: number): void;
     drawMovePlot(type: string, x: number, y: number): void;
     private flushGraphicsPath;
     flushGraphics(): string;
     flushText(): string;
     graphicsPen(num: number): void;
     ink(num: number, col: number): void;
-    mode(num: number): void;
     origin(x: number, y: number): void;
     paper(n: number): void;
     pen(n: number): void;

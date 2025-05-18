@@ -51,6 +51,7 @@ export interface IVm {
     getTimerMap(): TimerMapType;
 }
 export interface IVmAdmin extends IVm {
+    reset(): void;
     getOutput(): string;
     setOutput(str: string): void;
 }

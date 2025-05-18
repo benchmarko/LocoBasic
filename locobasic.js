@@ -1767,13 +1767,18 @@
     }
     SemanticsHelper.reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;
 
-    function getCodeSnippets() {
-        const _o = {};
-        const _data = [];
-        let _dataPtr = 0;
-        const _restoreMap = {};
-        const _startTime = 0;
-        const frame = async () => { }; // dummy
+    const codeSnippetsData = {
+        _o: {},
+        _d: {
+            data: [],
+            dataPtr: 0,
+            restoreMap: {},
+            startTime: 0
+        },
+        async frame() { }, // dummy
+    };
+    function getCodeSnippets(snippetsData) {
+        const { _o, _d, frame } = snippetsData;
         const codeSnippets = {
             after: function after(timeout, timer, fn) {
                 _o.getTimerMap()[timer] = setTimeout(() => fn(), timeout * 20);
@@ -1891,7 +1896,7 @@
                 _o.print(output);
             },
             read: function read() {
-                return _data[_dataPtr++];
+                return _d.data[_d.dataPtr++];
             },
             remain: function remain(timer) {
                 const timerMap = _o.getTimerMap();
@@ -1902,7 +1907,7 @@
                 return value; // not really remain
             },
             restore: function restore(label) {
-                _dataPtr = _restoreMap[label];
+                _d.dataPtr = _d.restoreMap[label];
             },
             round: function round(num, dec) {
                 return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
@@ -1921,7 +1926,7 @@
                 _o.tag(active);
             },
             time: function time() {
-                return ((Date.now() - _startTime) * 3 / 10) | 0;
+                return ((Date.now() - _d.startTime) * 3 / 10) | 0;
             },
             val: function val(str) {
                 return Number(str.replace("&x", "0b").replace("&", "0x"));
@@ -1952,7 +1957,7 @@
     function createComparisonExpression(a, op, b) {
         return `-(${a.eval()} ${op} ${b.eval()})`;
     }
-    function getSemanticsActionDict(semanticsHelper) {
+    function getSemanticsActions(semanticsHelper) {
         const drawMovePlot = (lit, x, _comma1, y, _comma2, e3, _comma3, e4) => {
             var _a;
             const command = lit.sourceString.toLowerCase();
@@ -2052,14 +2057,19 @@
                             restoreMap[key] = index;
                         }
                     }
-                    lineList.unshift(`const {_data, _restoreMap} = _defineData();\nlet _dataPtr = 0;`);
-                    lineList.push(`function _defineData() {\n  const _data = [\n${dataList.join(",\n")}\n  ];\n  const _restoreMap = ${JSON.stringify(restoreMap)};\n  return {_data, _restoreMap};\n}`);
+                    lineList.unshift(`_defineData();`);
+                    lineList.push(`
+function _defineData() {
+  _d.data = [\n${dataList.join(",\n")}\n  ];
+  _d.restoreMap = ${JSON.stringify(restoreMap)};
+  _d.dataPtr = 0;
+}`);
                 }
                 if (!instrMap["end"]) {
                     lineList.push(`return _o.flush();`);
                 }
                 lineList.push("\n// library");
-                const codeSnippets = getCodeSnippets();
+                const codeSnippets = getCodeSnippets(codeSnippetsData);
                 let needsAsync = false;
                 let needsStartTime = false;
                 for (const key of Object.keys(codeSnippets)) {
@@ -2070,7 +2080,7 @@
                         if (adaptedCode.startsWith("async ")) {
                             needsAsync = true;
                         }
-                        if (adaptedCode.includes("_startTime")) {
+                        if (adaptedCode.includes("_d.startTime")) {
                             needsStartTime = true;
                         }
                     }
@@ -2079,8 +2089,9 @@
                     lineList.unshift(variableDeclarations);
                 }
                 if (needsStartTime) {
-                    lineList.unshift(`const _startTime = Date.now();`);
+                    lineList.unshift(`_d.startTime = Date.now();`);
                 }
+                lineList.unshift(`const _d = {};`);
                 if (needsAsync) {
                     lineList.unshift(`return async function() {`);
                     lineList.push('}();');
@@ -2099,7 +2110,6 @@
                 return [start, minus, end].map((node) => evalAnyFn(node)).join("");
             },
             LetterRange(start, minus, end) {
-                //return `${start.sourceString}${minus.sourceString}${end.sourceString})`;
                 return [start, minus, end].map((node) => evalAnyFn(node)).join("");
             },
             Line(label, stmts, comment, _eol) {
@@ -2857,56 +2867,59 @@
             Zone(lit, num) {
                 return notSupported(lit, num);
             },
-            XorExp_xor(a, _op, b) {
-                return `${a.eval()} ^ ${b.eval()}`;
-            },
-            OrExp_or(a, _op, b) {
-                return `${a.eval()} | ${b.eval()}`;
-            },
             AndExp_and(a, _op, b) {
                 return `${a.eval()} & ${b.eval()}`;
             },
             NotExp_not(_op, e) {
                 return `~(${e.eval()})`;
             },
-            CmpExp_eq(a, _op, b) {
-                return createComparisonExpression(a, "===", b);
+            OrExp_or(a, _op, b) {
+                return `${a.eval()} | ${b.eval()}`;
             },
-            CmpExp_ne(a, _op, b) {
-                return createComparisonExpression(a, "!==", b);
-            },
-            CmpExp_lt(a, _op, b) {
-                return createComparisonExpression(a, "<", b);
-            },
-            CmpExp_le(a, _op, b) {
-                return createComparisonExpression(a, "<=", b);
-            },
-            CmpExp_gt(a, _op, b) {
-                return createComparisonExpression(a, ">", b);
-            },
-            CmpExp_ge(a, _op, b) {
-                return createComparisonExpression(a, ">=", b);
-            },
-            AddExp_plus(a, _op, b) {
-                return `${a.eval()} + ${b.eval()}`;
+            XorExp_xor(a, _op, b) {
+                return `${a.eval()} ^ ${b.eval()}`;
             },
             AddExp_minus(a, _op, b) {
                 return `${a.eval()} - ${b.eval()}`;
             },
-            ModExp_mod(a, _op, b) {
-                return `${a.eval()} % ${b.eval()}`;
+            AddExp_plus(a, _op, b) {
+                return `${a.eval()} + ${b.eval()}`;
+            },
+            CmpExp_eq(a, _op, b) {
+                return createComparisonExpression(a, "===", b);
+            },
+            CmpExp_ge(a, _op, b) {
+                return createComparisonExpression(a, ">=", b);
+            },
+            CmpExp_gt(a, _op, b) {
+                return createComparisonExpression(a, ">", b);
+            },
+            CmpExp_le(a, _op, b) {
+                return createComparisonExpression(a, "<=", b);
+            },
+            CmpExp_lt(a, _op, b) {
+                return createComparisonExpression(a, "<", b);
+            },
+            CmpExp_ne(a, _op, b) {
+                return createComparisonExpression(a, "!==", b);
             },
             DivExp_div(a, _op, b) {
                 return `((${a.eval()} / ${b.eval()}) | 0)`;
             },
-            MulExp_times(a, _op, b) {
-                return `${a.eval()} * ${b.eval()}`;
+            ExpExp_power(a, _, b) {
+                return `Math.pow(${a.eval()}, ${b.eval()})`;
+            },
+            ModExp_mod(a, _op, b) {
+                return `${a.eval()} % ${b.eval()}`;
             },
             MulExp_divide(a, _op, b) {
                 return `${a.eval()} / ${b.eval()}`;
             },
-            ExpExp_power(a, _, b) {
-                return `Math.pow(${a.eval()}, ${b.eval()})`;
+            MulExp_times(a, _op, b) {
+                return `${a.eval()} * ${b.eval()}`;
+            },
+            PriExp_neg(_op, e) {
+                return `-${e.eval()}`;
             },
             PriExp_paren(_open, e, _close) {
                 return `(${e.eval()})`;
@@ -2914,29 +2927,26 @@
             PriExp_pos(_op, e) {
                 return `+${e.eval()}`;
             },
-            PriExp_neg(_op, e) {
-                return `-${e.eval()}`;
+            StrAddExp_plus(a, _op, b) {
+                return `${a.eval()} + ${b.eval()}`;
             },
             StrCmpExp_eq(a, _op, b) {
                 return `-(${a.eval()} === ${b.eval()})`;
             },
-            StrCmpExp_ne(a, _op, b) {
-                return `-(${a.eval()} !== ${b.eval()})`;
-            },
-            StrCmpExp_lt(a, _op, b) {
-                return `-(${a.eval()} < ${b.eval()})`;
-            },
-            StrCmpExp_le(a, _op, b) {
-                return `-(${a.eval()} <= ${b.eval()})`;
+            StrCmpExp_ge(a, _op, b) {
+                return `-(${a.eval()} >= ${b.eval()})`;
             },
             StrCmpExp_gt(a, _op, b) {
                 return `-(${a.eval()} > ${b.eval()})`;
             },
-            StrCmpExp_ge(a, _op, b) {
-                return `-(${a.eval()} >= ${b.eval()})`;
+            StrCmpExp_le(a, _op, b) {
+                return `-(${a.eval()} <= ${b.eval()})`;
             },
-            StrAddExp_plus(a, _op, b) {
-                return `${a.eval()} + ${b.eval()}`;
+            StrCmpExp_lt(a, _op, b) {
+                return `-(${a.eval()} < ${b.eval()})`;
+            },
+            StrCmpExp_ne(a, _op, b) {
+                return `-(${a.eval()} !== ${b.eval()})`;
             },
             StrPriExp_paren(_open, e, _close) {
                 return `(${e.eval()})`;
@@ -2945,9 +2955,6 @@
                 return evalChildren(args.asIteration().children).join("][");
             },
             ArrayIdent(ident, _open, e, _close) {
-                return `${ident.eval()}[${e.eval()}]`;
-            },
-            StrArrayIdent(ident, _open, e, _close) {
                 return `${ident.eval()}[${e.eval()}]`;
             },
             DimArrayArgs(args) {
@@ -2964,6 +2971,9 @@
                 }
                 semanticsHelper.addInstr("dim1");
                 return `${identStr} = dim1(${indicesStr}${valueStr})`;
+            },
+            StrArrayIdent(ident, _open, e, _close) {
+                return `${ident.eval()}[${e.eval()}]`;
             },
             decimalValue(value) {
                 return value.sourceString;
@@ -3010,11 +3020,17 @@
         getUsedLabels() {
             return this.helper.getUsedLabels();
         }
+        getSemanticsActions() {
+            return getSemanticsActions(this.helper);
+        }
         getSemanticsActionDict() {
-            return getSemanticsActionDict(this.helper);
+            return this.getSemanticsActions();
         }
         getHelper() {
             return this.helper;
+        }
+        getCodeSnippets4Test(data) {
+            return getCodeSnippets(data);
         }
     }
 
@@ -3114,7 +3130,8 @@
             return this.arithmeticParser.parseAndEval(script);
         }
         async executeScript(compiledScript, vm) {
-            vm.setOutput("");
+            vm.reset();
+            //vm.setOutput("");
             if (compiledScript.startsWith("ERROR:")) {
                 return "ERROR";
             }
@@ -3311,12 +3328,19 @@
         static getCpcColors() {
             return BasicVmCore.cpcColors;
         }
+        static deleteAllItems(items) {
+            for (const name in items) {
+                delete items[name];
+            }
+        }
         reset() {
             this.colorsForPens.splice(0, this.colorsForPens.length, ...this.defaultColorsForPens);
             this.backgroundColor = "";
-            this.originX = 0;
-            this.originY = 0;
+            //this.originX = 0;
+            //this.originY = 0;
             this.pitch = 1;
+            this.mode(1);
+            BasicVmCore.deleteAllItems(this.timerMap);
         }
         cls() {
             this.output = "";
@@ -3328,6 +3352,11 @@
             this.currGraphicsPen = -1;
             this.graphicsX = 0;
             this.graphicsY = 0;
+        }
+        mode(num) {
+            this.currMode = num;
+            this.cls();
+            this.origin(0, 0);
         }
         drawMovePlot(type, x, y) {
             x = Math.round(x);
@@ -3410,11 +3439,6 @@
             if (num === 0) {
                 this.backgroundColor = BasicVmCore.cpcColors[this.colorsForPens[0]];
             }
-        }
-        mode(num) {
-            this.currMode = num;
-            this.cls();
-            this.origin(0, 0);
         }
         origin(x, y) {
             this.originX = x;
@@ -3508,7 +3532,6 @@
         }
         getOutput() {
             const output = this.output;
-            this.reset();
             return output;
         }
         setOutput(str) {
@@ -3594,6 +3617,9 @@
             const penColors = getAnsiColors(false);
             const paperColors = getAnsiColors(true);
             this.vmCore = new BasicVmCore(penColors, paperColors);
+        }
+        reset() {
+            this.vmCore.reset();
         }
         cls() {
             this.vmCore.cls();
@@ -4011,6 +4037,9 @@ node hello1.js
             const paperColors = cpcColors.map((color) => ui.getColor(color, true));
             this.vmCore = new BasicVmCore(penColors, paperColors);
             this.vmCore.setOnSpeak(this.fnOnSpeak.bind(this));
+        }
+        reset() {
+            this.vmCore.reset();
         }
         cls() {
             this.vmCore.cls();

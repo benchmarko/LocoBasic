@@ -44,6 +44,9 @@ export class BasicVmNode {
         const paperColors = getAnsiColors(true);
         this.vmCore = new BasicVmCore(penColors, paperColors);
     }
+    reset() {
+        this.vmCore.reset();
+    }
     cls() {
         this.vmCore.cls();
         console.clear();

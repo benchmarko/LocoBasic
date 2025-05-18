@@ -123,12 +123,19 @@ export class BasicVmCore {
     static getCpcColors() {
         return BasicVmCore.cpcColors;
     }
+    static deleteAllItems(items) {
+        for (const name in items) {
+            delete items[name];
+        }
+    }
     reset() {
         this.colorsForPens.splice(0, this.colorsForPens.length, ...this.defaultColorsForPens);
         this.backgroundColor = "";
-        this.originX = 0;
-        this.originY = 0;
+        //this.originX = 0;
+        //this.originY = 0;
         this.pitch = 1;
+        this.mode(1);
+        BasicVmCore.deleteAllItems(this.timerMap);
     }
     cls() {
         this.output = "";
@@ -140,6 +147,11 @@ export class BasicVmCore {
         this.currGraphicsPen = -1;
         this.graphicsX = 0;
         this.graphicsY = 0;
+    }
+    mode(num) {
+        this.currMode = num;
+        this.cls();
+        this.origin(0, 0);
     }
     drawMovePlot(type, x, y) {
         x = Math.round(x);
@@ -222,11 +234,6 @@ export class BasicVmCore {
         if (num === 0) {
             this.backgroundColor = BasicVmCore.cpcColors[this.colorsForPens[0]];
         }
-    }
-    mode(num) {
-        this.currMode = num;
-        this.cls();
-        this.origin(0, 0);
     }
     origin(x, y) {
         this.originX = x;
@@ -320,7 +327,6 @@ export class BasicVmCore {
     }
     getOutput() {
         const output = this.output;
-        this.reset();
         return output;
     }
     setOutput(str) {

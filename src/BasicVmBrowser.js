@@ -8,6 +8,9 @@ export class BasicVmBrowser {
         this.vmCore = new BasicVmCore(penColors, paperColors);
         this.vmCore.setOnSpeak(this.fnOnSpeak.bind(this));
     }
+    reset() {
+        this.vmCore.reset();
+    }
     cls() {
         this.vmCore.cls();
         this.ui.setOutputText("");
