@@ -2,6 +2,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { BasicVmCore } from '../src/BasicVmCore';
 
 describe('BasicVmCore Module', () => {
+    const getInSvg = (content: string, strokeWidth = '2px') => {
+        return BasicVmCore.getTagInSvg(content, strokeWidth, "");
+    }
+
     const getMockColors = () => {
         return [...BasicVmCore.getCpcColors()];
     };
@@ -33,47 +37,56 @@ describe('BasicVmCore Module', () => {
     it('should handle graphicsPen changes', () => {
         const vm = new BasicVmCore([], []);
         vm.graphicsPen(1);
-        vm.drawMovePlot('M', 100, 200); // trigger output
-        expect(vm.flushGraphics()).toContain('<path stroke="#FFFF00"');
+        vm.drawMovePlot('M', 100, 200);
+        expect(vm.flushGraphics()).toBe(getInSvg('<path stroke="#FFFF00" d="M100 199" />'));
     });
 
-    it('should update origin correctly', () => {
+    it('should handle origin', () => {
         const vm = new BasicVmCore([], []);
         vm.origin(10, 20);
         expect(vm.xpos()).toBe(0);
         expect(vm.ypos()).toBe(0);
 
-        vm.drawMovePlot('M', 100, 200); // trigger output
-        expect(vm.flushGraphics()).toContain('<path d="M110 179" />');
+        vm.drawMovePlot('M', 200, 100);
+        expect(vm.flushGraphics()).toBe(getInSvg('<path d="M210 279" />'));
 
         vm.cls();
         vm.tag(true);
         vm.print("test");
-        expect(vm.flushGraphics()).toContain('<text x="10" y="395">');
+        expect(vm.flushGraphics()).toBe(getInSvg('<text x="10" y="395">test</text>'));
     });
 
     it('should handle mode changes', () => {
         const vm = new BasicVmCore([], []);
-        vm.mode(1);
-        vm.drawMovePlot('M', 100, 200); // trigger output
-        expect(vm.flushGraphics()).toContain('stroke-width="2px"');
 
         vm.mode(0);
-        vm.drawMovePlot('M', 100, 200); // trigger output
-        expect(vm.flushGraphics()).toContain('stroke-width="4px"');
+        vm.drawMovePlot('M', 200, 100);
+        expect(vm.flushGraphics()).toBe(getInSvg('<path d="M200 299" />', '4px'));
+
+        vm.mode(1);
+        vm.drawMovePlot('M', 200, 100);
+        expect(vm.flushGraphics()).toBe(getInSvg('<path d="M200 299" />'));
+
+        vm.mode(2);
+        vm.drawMovePlot('M', 200, 100);
+        expect(vm.flushGraphics()).toBe(getInSvg('<path d="M200 299" />', '1px'));
+
+        vm.mode(3);
+        vm.drawMovePlot('M', 200, 100);
+        expect(vm.flushGraphics()).toBe(getInSvg('<path d="M200 299" />', '1px'));
     });
 
     it('should handle ink changes', () => {
         const vm = new BasicVmCore(getMockColors(), getMockColors());
         vm.ink(1, 5);
-        vm.drawMovePlot('M', 100, 200); // trigger output
-        expect(vm.flushGraphics()).toContain('path stroke="#8000FF"');
+        vm.drawMovePlot('M', 200, 100);
+        expect(vm.flushGraphics()).toBe(getInSvg('<path stroke="#8000FF" d="M200 299" />'));
     });
 
     it('should handle paper changes', () => {
         const vm = new BasicVmCore([], getMockColors());
         vm.paper(2);
-        expect(vm.getOutput()).toContain('#00FFFF');
+        expect(vm.getOutput()).toBe('#00FFFF');
     });
 
     it('should handle rsx commands', async () => {
@@ -84,8 +97,36 @@ describe('BasicVmCore Module', () => {
 
     it('should handle drawMovePlot correctly', () => {
         const vm = new BasicVmCore([], []);
-        vm.drawMovePlot('M', 100, 200);
-        expect(vm.flushGraphics()).toContain('<path');
+
+        vm.drawMovePlot('M', 200, 100);
+        expect(vm.flushGraphics()).toBe(getInSvg('<path d="M200 299" />'));
+        expect(vm.xpos()).toBe(200);
+        expect(vm.ypos()).toBe(100);
+
+        vm.drawMovePlot('m', 200, 100);
+        expect(vm.flushGraphics()).toBe(getInSvg('<path d="M200 299m200 -100" />'));
+        expect(vm.xpos()).toBe(400);
+        expect(vm.ypos()).toBe(200);
+
+        vm.drawMovePlot('P', 200, 100);
+        expect(vm.flushGraphics()).toBe(getInSvg('<path d="M200 299h1v1h-1v-1" />'));
+        expect(vm.xpos()).toBe(200);
+        expect(vm.ypos()).toBe(100);
+
+        vm.drawMovePlot('p', 200, 100);
+        expect(vm.flushGraphics()).toBe(getInSvg('<path d="M200 299m200 -100h1v1h-1v-1" />'));
+        expect(vm.xpos()).toBe(400);
+        expect(vm.ypos()).toBe(200);
+
+        vm.drawMovePlot('L', 200, 100);
+        expect(vm.flushGraphics()).toBe(getInSvg('<path d="M400 199L200 299" />'));
+        expect(vm.xpos()).toBe(200);
+        expect(vm.ypos()).toBe(100);
+
+        vm.drawMovePlot('l', 200, 100);
+        expect(vm.flushGraphics()).toBe(getInSvg('<path d="M200 299l200 -100" />'));
+        expect(vm.xpos()).toBe(400);
+        expect(vm.ypos()).toBe(200);
     });
 
     it('should append text to output when isTag is false', () => {
@@ -106,9 +147,7 @@ describe('BasicVmCore Module', () => {
         const vm = new BasicVmCore([], []);
         vm.tag(true);
         vm.print('Graphics Text');
-        const graphicsOutput = vm.flushGraphics();
-        expect(graphicsOutput).toContain('<text');
-        expect(graphicsOutput).toContain('Graphics Text');
+        expect(vm.flushGraphics()).toBe(getInSvg('<text x="0" y="415">Graphics Text</text>'));
     });
 
     it('should reset output after flushText is called', () => {
@@ -129,8 +168,7 @@ describe('BasicVmCore Module', () => {
         vm.tag(true);
         vm.origin(10, 20);
         vm.print('Positioned Text');
-        const graphicsOutput = vm.flushGraphics();
-        expect(graphicsOutput).toContain('<text x="10" y="395">Positioned Text</text>');
+        expect(vm.flushGraphics()).toBe(getInSvg('<text x="10" y="395">Positioned Text</text>'));
     });
 
     it('should render text with correct color when graphicsPen is set', () => {
@@ -138,10 +176,7 @@ describe('BasicVmCore Module', () => {
         vm.tag(true);
         vm.graphicsPen(1);
         vm.print('Colored Text');
-        const graphicsOutput = vm.flushGraphics();
-        expect(graphicsOutput).toContain('<text');
-        expect(graphicsOutput).toContain('style="color: #FFFF00"');
-        expect(graphicsOutput).toContain('Colored Text');
+        expect(vm.flushGraphics()).toBe(getInSvg('<text x="0" y="415" style="color: #FFFF00">Colored Text</text>'));
     });
 
     it('should not append text to output when isTag is true', () => {
@@ -159,9 +194,7 @@ describe('BasicVmCore Module', () => {
         vm.tag(false);
         vm.print(' More Text');
         expect(vm.flushText()).toBe('Text Output More Text');
-        const graphicsOutput = vm.flushGraphics();
-        expect(graphicsOutput).toContain('<text');
-        expect(graphicsOutput).toContain('Graphics Output');
+        expect(vm.flushGraphics()).toBe(getInSvg('<text x="0" y="415">Graphics Output</text>'));
     });
 
     describe('BasicVmCore: RSX', () => {
@@ -169,64 +202,80 @@ describe('BasicVmCore Module', () => {
             const vm = new BasicVmCore([], []);
             const args = [100, 200, 50];
             await vm.rsx('circle', args);
-            const output = vm.flushGraphics();
-            expect(output).toContain('<circle cx="100" cy="199" r="50" />');
+            expect(vm.flushGraphics()).toBe(getInSvg('<circle cx="100" cy="199" r="50" />'));
         });
 
         it('should handle rsx filled circle command correctly', async () => {
             const vm = new BasicVmCore([], []);
             const args = [100, 200, 50, 1];
             await vm.rsx('circle', args);
-            const output = vm.flushGraphics();
-            expect(output).toContain('<circle cx="100" cy="199" r="50" fill="#FFFF00" />');
+            expect(vm.flushGraphics()).toBe(getInSvg('<circle cx="100" cy="199" r="50" fill="#FFFF00" />'));
+        });
+
+        it('should handle rsx circle with invalid argument types correctly', async () => {
+            const vm = new BasicVmCore([], []);
+            await expect(vm.rsx('circle', [100, 200, '50'])).rejects.toThrow('|CIRCLE: Wrong argument type (pos 2): string');
         });
 
         it('should handle rsx rect command correctly', async () => {
             const vm = new BasicVmCore([], []);
             const args = [50, 50, 150, 150];
             await vm.rsx('rect', args);
-            const output = vm.flushGraphics();
-            expect(output).toContain('<rect x="50" y="249" width="100" height="100" />');
+            expect(vm.flushGraphics()).toBe(getInSvg('<rect x="50" y="249" width="100" height="100" />'));
+
+            const args2 = [-50, -50, 150, 150];
+            await vm.rsx('rect', args2);
+            expect(vm.flushGraphics()).toBe(getInSvg('<rect x="-50" y="249" width="200" height="200" />'));
         });
 
         it('should handle rsx filled rect command correctly', async () => {
             const vm = new BasicVmCore([], []);
             const args = [50, 50, 150, 150, 2];
             await vm.rsx('rect', args);
-            const output = vm.flushGraphics();
-            expect(output).toContain('<rect x="50" y="249" width="100" height="100" fill="#00FFFF" />');
+            expect(vm.flushGraphics()).toBe(getInSvg('<rect x="50" y="249" width="100" height="100" fill="#00FFFF" />'));
+        });
+
+        it('should handle rsx rect with invalid number of arguments correctly', async () => {
+            const vm = new BasicVmCore([], []);
+            await expect(vm.rsx('rect', [50, 50])).rejects.toThrow('|RECT: Wrong number of arguments: 2 < 4');
         });
 
         it('should handle rsx ellipse command correctly', async () => {
             const vm = new BasicVmCore([], []);
             const args = [200, 100, 50, 30];
             await vm.rsx('ellipse', args);
-            const output = vm.flushGraphics();
-            expect(output).toContain('<ellipse cx="200" cy="299" rx="50" ry="30" />');
+            expect(vm.flushGraphics()).toBe(getInSvg('<ellipse cx="200" cy="299" rx="50" ry="30" />'));
         });
 
         it('should handle rsx filled ellipse command correctly', async () => {
             const vm = new BasicVmCore([], []);
             const args = [200, 100, 50, 30, 3];
             await vm.rsx('ellipse', args);
-            const output = vm.flushGraphics();
-            expect(output).toContain('<ellipse cx="200" cy="299" rx="50" ry="30" fill="#FF0000" />');
+            expect(vm.flushGraphics()).toBe(getInSvg('<ellipse cx="200" cy="299" rx="50" ry="30" fill="#FF0000" />'));
+        });
+
+        it('should handle rsx ellipse with invalid argument types correctly', async () => {
+            const vm = new BasicVmCore([], []);
+            await expect(vm.rsx('ellipse', ['200', 100, 50, 30])).rejects.toThrow('|ELLIPSE: Wrong argument type (pos 0): string');
         });
 
         it('should handle rsx arc command correctly', async () => {
             const vm = new BasicVmCore([], []);
             const args = [100, 100, 50, 50, 0, 1, 1, 150, 150];
             await vm.rsx('arc', args);
-            const output = vm.flushGraphics();
-            expect(output).toContain('<path d="M100 299 A50 50 0 1 1 150 249" />');
+            expect(vm.flushGraphics()).toBe(getInSvg('<path d="M100 299 A50 50 0 1 1 150 249" />'));
         });
 
         it('should handle rsx filled arc command correctly', async () => {
             const vm = new BasicVmCore([], []);
             const args = [100, 100, 50, 50, 0, 1, 1, 150, 150, 4];
             await vm.rsx('arc', args);
-            const output = vm.flushGraphics();
-            expect(output).toContain('<path d="M100 299 A50 50 0 1 1 150 249" fill="#FFFFFF" />');
+            expect(vm.flushGraphics()).toBe(getInSvg('<path d="M100 299 A50 50 0 1 1 150 249" fill="#FFFFFF" />'));
+        });
+
+        it('should handle rsx arc with invalid argument types correctly', async () => {
+            const vm = new BasicVmCore([], []);
+            await expect(vm.rsx('arc', [100, '100', 50, 50, 0, 1, 1, 150, 150])).rejects.toThrow('|ARC: Wrong argument type (pos 1): string');
         });
 
         it('should handle rsx time command correctly', async () => {
@@ -235,56 +284,29 @@ describe('BasicVmCore Module', () => {
             expect(result[0]).toMatch(/\d{2} \d{2} \d{2}/);
         });
 
+        it('should handle rsx time with invalid arguments correctly', async () => {
+            const vm = new BasicVmCore([], []);
+            await expect(vm.rsx('time', [123])).rejects.toThrow('|TIME: Wrong argument type (pos 0): number');
+        });
+
         it('should handle rsx date command correctly', async () => {
             const vm = new BasicVmCore([], []);
             const result = await vm.rsx('date', ['']);
             expect(result[0]).toMatch(/\d{2} \d{2} \d{2} \d{2}/);
         });
 
+        it('should handle rsx date with invalid arguments correctly', async () => {
+            const vm = new BasicVmCore([], []);
+            await expect(vm.rsx('date', [123])).rejects.toThrow('|DATE: Wrong argument type (pos 0): number');
+        });
+
         it('should handle rsx pitch command correctly', async () => {
-            const vm = new BasicVmCore([], []);
-            await vm.rsx('pitch', [10]);
-            expect(vm['pitch']).toBe(1);
-            await vm.rsx('pitch', [20]);
-            expect(vm['pitch']).toBe(2);
-        });
-
-        it('should handle rsx arc command with optional fill correctly', async () => {
-            const vm = new BasicVmCore([], []);
-            const args = [100, 100, 50, 50, 0, 1, 1, 150, 150];
-            await vm.rsx('arc', args);
-            const output = vm.flushGraphics();
-            expect(output).toContain('<path d="M100 299 A50 50 0 1 1 150 249" />');
-        });
-
-        it('should handle rsx rect command with negative coordinates correctly', async () => {
-            const vm = new BasicVmCore([], []);
-            const args = [-50, -50, 50, 50, 2];
-            await vm.rsx('rect', args);
-            const output = vm.flushGraphics();
-            expect(output).toContain('<rect x="-50" y="349" width="100" height="100" fill="#00FFFF" />');
-        });
-
-        it('should handle rsx ellipse with zero radius correctly', async () => {
-            const vm = new BasicVmCore([], []);
-            const args = [200, 100, 0, 30, 3];
-            await vm.rsx('ellipse', args);
-            const output = vm.flushGraphics();
-            expect(output).toContain('<ellipse cx="200" cy="299" rx="0" ry="30" fill="#FF0000" />');
-        });
-
-        it('should handle rsx circle with zero radius correctly', async () => {
-            const vm = new BasicVmCore([], []);
-            const args = [100, 200, 0, 1];
-            await vm.rsx('circle', args);
-            const output = vm.flushGraphics();
-            expect(output).toContain('<circle cx="100" cy="199" r="0" fill="#FFFF00" />');
-        });
-
-        it('should handle rsx pitch with boundary values correctly', async () => {
             const vm = new BasicVmCore([], []);
             await vm.rsx('pitch', [0]);
             expect(vm['pitch']).toBe(0);
+
+            await vm.rsx('pitch', [10]);
+            expect(vm['pitch']).toBe(1);
 
             await vm.rsx('pitch', [20]);
             expect(vm['pitch']).toBe(2);
@@ -296,36 +318,6 @@ describe('BasicVmCore Module', () => {
             vm.setOnSpeak(mockSpeak);
             await vm.rsx('say', ['']);
             expect(mockSpeak).toHaveBeenCalledWith('', 1);
-        });
-
-        it('should handle rsx time with invalid arguments correctly', async () => {
-            const vm = new BasicVmCore([], []);
-            await expect(vm.rsx('time', [123])).rejects.toThrow('|TIME: Wrong argument type (pos 0): number');
-        });
-
-        it('should handle rsx date with invalid arguments correctly', async () => {
-            const vm = new BasicVmCore([], []);
-            await expect(vm.rsx('date', [123])).rejects.toThrow('|DATE: Wrong argument type (pos 0): number');
-        });
-
-        it('should handle rsx rect with invalid number of arguments correctly', async () => {
-            const vm = new BasicVmCore([], []);
-            await expect(vm.rsx('rect', [50, 50])).rejects.toThrow('|RECT: Wrong number of arguments: 2 < 4');
-        });
-
-        it('should handle rsx ellipse with invalid argument types correctly', async () => {
-            const vm = new BasicVmCore([], []);
-            await expect(vm.rsx('ellipse', ['200', 100, 50, 30])).rejects.toThrow('|ELLIPSE: Wrong argument type (pos 0): string');
-        });
-
-        it('should handle rsx arc with invalid argument types correctly', async () => {
-            const vm = new BasicVmCore([], []);
-            await expect(vm.rsx('arc', [100, '100', 50, 50, 0, 1, 1, 150, 150])).rejects.toThrow('|ARC: Wrong argument type (pos 1): string');
-        });
-
-        it('should handle rsx circle with invalid argument types correctly', async () => {
-            const vm = new BasicVmCore([], []);
-            await expect(vm.rsx('circle', [100, 200, '50'])).rejects.toThrow('|CIRCLE: Wrong argument type (pos 2): string');
         });
     });
 })

@@ -1,26 +1,23 @@
 import type { ActionDict, Node } from "ohm-js";
-import type { IVm, DefinedLabelEntryType, ISemantics, UsedLabelEntryType } from "./Interfaces";
+import type { IVm, DefinedLabelEntryType, ISemantics, SnippetDataType, UsedLabelEntryType } from "./Interfaces";
 import { SemanticsHelper } from "./SemanticsHelper";
 
 type RecursiveArray<T> = T | RecursiveArray<T>[];
 
 const codeSnippetsData = {
 	_o: {} as IVm,
-	_d: {
-		data: [] as (string | number)[],
-		dataPtr: 0,
-		restoreMap: {} as Record<string, number>,
-		startTime: 0
-	},
+	_d: {} as SnippetDataType,
 	async frame() { }, // dummy
+	remain(timer: number) { return timer; } // dummy
 };
 
 function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
-	const { _o, _d, frame } = snippetsData;
+	const { _o, _d, frame, remain } = snippetsData;
 
 	const codeSnippets = {
 		after: function after(timeout: number, timer: number, fn: () => void) {
-			_o.getTimerMap()[timer] = setTimeout(() => fn(), timeout * 20);
+			remain(timer);
+			_d.timerMap[timer] = setTimeout(() => fn(), timeout * 20);
 		},
 		bin$: function bin$(num: number, pad: number = 0): string {
 			return num.toString(2).toUpperCase().padStart(pad, "0");
@@ -64,7 +61,8 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 			return "end";
 		},
 		every: function every(timeout: number, timer: number, fn: () => void) {
-			_o.getTimerMap()[timer] = setInterval(() => fn(), timeout * 20);
+			remain(timer);
+			_d.timerMap[timer] = setInterval(() => fn(), timeout * 20);
 		},
 		frame: async function frame() {
 			_o.flush();
@@ -135,11 +133,12 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 			return _d.data[_d.dataPtr++];
 		},
 		remain: function remain(timer: number) {
-			const timerMap = _o.getTimerMap();
-			const value = timerMap[timer];
-			clearTimeout(value);
-			clearInterval(value);
-			timerMap[timer] = undefined;
+			const value = _d.timerMap[timer];
+			if (value !== undefined) {
+				clearTimeout(value);
+				clearInterval(value);
+				delete _d.timerMap[timer];
+			}
 			return value; // not really remain
 		},
 		restore: function restore(label: string) {
@@ -351,11 +350,17 @@ function _defineData() {
 				lineList.unshift(variableDeclarations);
 			}
 
+			const needsTimerMap = instrMap["after"] || instrMap["every"] || instrMap["remain"];
+
+			if (needsTimerMap) {
+				lineList.unshift(`_d.timerMap = {};`);
+			}
+
 			if (needsStartTime) {
 				lineList.unshift(`_d.startTime = Date.now();`);
 			}
 
-			lineList.unshift(`const _d = {};`);
+			lineList.unshift(`const _d = _o.getSnippetData();`);
 
 			if (needsAsync) {
 				lineList.unshift(`return async function() {`);
@@ -451,6 +456,7 @@ function _defineData() {
 
 		After(_afterLit: Node, e1: Node, _comma1: Node, e2: Node, _gosubLit: Node, label: Node) {
 			semanticsHelper.addInstr("after");
+			semanticsHelper.addInstr("remain"); // we also call this
 			const timeout = e1.eval();
 			const timer = e2.child(0)?.eval() || 0;
 			const labelString = label.sourceString;
@@ -665,6 +671,7 @@ function _defineData() {
 
 		Every(_everyLit: Node, e1: Node, _comma1: Node, e2: Node, _gosubLit: Node, label: Node) {
 			semanticsHelper.addInstr("every");
+			semanticsHelper.addInstr("remain"); // we also call this
 			const timeout = e1.eval();
 			const timer = e2.child(0)?.eval() || 0;
 			const labelString = label.sourceString;

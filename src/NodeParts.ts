@@ -1,4 +1,4 @@
-import { DatabaseType, ExampleType, ICore, IVm, IVmAdmin } from "./Interfaces";
+import type { DatabaseType, ExampleType, ICore, INodeParts, IVm, IVmAdmin, SnippetDataType } from "./Interfaces";
 import { BasicVmNode } from "./BasicVmNode";
 
 interface NodePath {
@@ -12,7 +12,7 @@ interface NodeFs {
     };
 }
 
-type nodeIncomingMessage = { on: (type: string, fn: (s: string) => void) => void};
+type nodeIncomingMessage = { on: (type: string, fn: (s: string) => void) => void };
 
 interface NodeHttps {
     get: (url: string, fn: (res: nodeIncomingMessage) => void) => {
@@ -40,16 +40,16 @@ declare function require(name: string): NodeFs | NodeHttps | NodeModule | NodePa
 
 interface DummyVm extends IVm {
     _output: string;
-    _timerMap: Record<string, number | NodeJS.Timeout | undefined>;
+    _snippetData: SnippetDataType;
     debug(...args: (string | number | boolean)[]): void;
 }
 
 // The functions from dummyVm will be stringified in the putScriptInFrame function
 const dummyVm: DummyVm = {
     _output: "",
-    _timerMap: {},
+    _snippetData: {} as SnippetDataType,
     debug(..._args: (string | number)[]) { /* console.debug(...args); */ }, // eslint-disable-line @typescript-eslint/no-unused-vars
-    cls() {},
+    cls() { },
     drawMovePlot(type: string, x: number, y: number) { this.debug("drawMovePlot:", type, x, y); },
     flush() { if (this._output) { console.log(this._output); this._output = ""; } },
     graphicsPen(num: number) { this.debug("graphicsPen:", num); },
@@ -66,14 +66,14 @@ const dummyVm: DummyVm = {
     xpos() { this.debug("xpos:"); return 0; },
     ypos() { this.debug("ypos:"); return 0; },
     getEscape() { return false; },
-    getTimerMap() { return this._timerMap; }
+    getSnippetData() { return this._snippetData; }
 };
 
 function isUrl(s: string) {
     return s.startsWith("http"); // http or https
 }
 
-export class NodeParts {
+export class NodeParts implements INodeParts {
     private nodePath?: NodePath;
     private nodeFs?: NodeFs;
     private nodeHttps?: NodeHttps;
@@ -89,11 +89,11 @@ export class NodeParts {
             this.nodePath = require("path") as NodePath;
         }
         const path = this.nodePath;
-    
+
         // https://stackoverflow.com/questions/8817423/why-is-dirname-not-defined-in-node-repl
         const dirname = __dirname || path.dirname(__filename);
         const absolutePath = path.resolve(dirname, name);
-    
+
         return absolutePath;
     }
 
@@ -169,7 +169,7 @@ export class NodeParts {
             }
         }).join(",\n  ");
         const result =
-`(function(_o) {
+            `(function(_o) {
     ${script}
 })({
     ${dummyVmString}
@@ -207,15 +207,15 @@ export class NodeParts {
     }
 
     private putKeyInBuffer(key: string): void {
-		this.keyBuffer.push(key);
+        this.keyBuffer.push(key);
     }
 
     private fnOnKeypress(_chunk: string, key: NodeKeyPressType) {
         if (key) {
             const keySequenceCode = key.sequence.charCodeAt(0);
             if (key.name === 'c' && key.ctrl === true) {
-            // key: '<char>' { sequence: '\x03', name: 'c', ctrl: true, meta: false, shift: false }
-            process.exit();
+                // key: '<char>' { sequence: '\x03', name: 'c', ctrl: true, meta: false, shift: false }
+                process.exit();
             } else if (key.name === "escape") {
                 this.escape = true;
             } else if (keySequenceCode === 0x0d || (keySequenceCode >= 32 && keySequenceCode <= 128)) {
@@ -226,11 +226,11 @@ export class NodeParts {
 
     private initKeyboardInput(): void {
         this.nodeReadline = require('readline') as NodeReadline;
-    
+
         if (process.stdin.isTTY) {
             this.nodeReadline.emitKeypressEvents(process.stdin);
             process.stdin.setRawMode(true);
-    
+
             this.fnOnKeyPressHandler = this.fnOnKeypress.bind(this);
             process.stdin.on('keypress', this.fnOnKeyPressHandler);
         } else {
@@ -242,12 +242,20 @@ export class NodeParts {
         if (!this.nodeReadline) {
             this.initKeyboardInput();
         }
-		const key = this.keyBuffer.length ? this.keyBuffer.shift() as string : "";
-		return key;
-	}
+        const key = this.keyBuffer.length ? this.keyBuffer.shift() as string : "";
+        return key;
+    }
 
-    public getEscape() {
+    public getEscape(): boolean {
         return this.escape;
+    }
+
+    public consoleClear(): void {
+        console.clear();
+    }
+
+    public consolePrint(msg: string): void {
+        console.log(msg);
     }
 
     private start(core: ICore, vm: IVmAdmin, input: string): Promise<void> | undefined {
@@ -351,7 +359,7 @@ export class NodeParts {
                 console.error(`Error: Database ${database} not found in ${config.databaseDirs}`);
                 return;
             }
-        
+
             return this.keepRunning(async () => {
                 if (!isUrl(databaseItem.source)) {
                     databaseItem.source = this.nodeGetAbsolutePath(databaseItem.source);
@@ -367,7 +375,7 @@ export class NodeParts {
     }
 
     private static getHelpString(): string {
-return `
+        return `
 Usage:
 node dist/locobasic.js [<option=<value(s)>] [<option=<value(s)>]
 
@@ -388,9 +396,10 @@ node dist/locobasic.js input='PRINT "Hello!"'
 npx ts-node dist/locobasic.js input='PRINT "Hello!"'
 node dist/locobasic.js input='?3 + 5 * (2 - 8)' example=''
 node dist/locobasic.js example=euler
+node dist/locobasic.js example=archidr0 > test1.svg
 node dist/locobasic.js example=binary database=rosetta databaseDirs=examples,https://benchmarko.github.io/CPCBasicApps/rosetta
-node dist/locobasic.js fileName=dist/examples/example.bas
 node dist/locobasic.js grammar='strict' input='a$="Bob":PRINT "Hello ";a$;"!"'
+node dist/locobasic.js fileName=dist/examples/example.bas  (if you have an example.bas file)
 
 - Example for compile only:
 node dist/locobasic.js action='compile' input='PRINT "Hello!"' > hello1.js

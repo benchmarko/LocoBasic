@@ -1,4 +1,4 @@
-import type { TimerMapType } from "./Interfaces";
+import type { SnippetDataType } from "./Interfaces";
 
 type RsxMapType = Record<string, {
     argTypes: string[];
@@ -24,7 +24,7 @@ export class BasicVmCore {
     private readonly colorsForPens: number[] = [];
     private backgroundColor = "";
     private isTag: boolean = false; // text at graphics
-    private timerMap: TimerMapType = {};
+    private snippetData: SnippetDataType = {} as SnippetDataType;
     private pitch: number = 1;
     private fnOnSpeak: (text: string, pitch: number) => Promise<void> = () => Promise.resolve();
 
@@ -86,11 +86,9 @@ export class BasicVmCore {
     public reset(): void {
         this.colorsForPens.splice(0, this.colorsForPens.length, ...this.defaultColorsForPens);
         this.backgroundColor = "";
-        //this.originX = 0;
-        //this.originY = 0;
         this.pitch = 1;
         this.mode(1);
-        BasicVmCore.deleteAllItems(this.timerMap);
+        BasicVmCore.deleteAllItems(this.snippetData);
     }
 
     public cls(): void {
@@ -111,6 +109,7 @@ export class BasicVmCore {
         this.origin(0, 0);
     }
 
+    // type: M | m | P | p | L | l
     public drawMovePlot(type: string, x: number, y: number): void {
         x = Math.round(x);
         y = Math.round(y);
@@ -150,15 +149,22 @@ export class BasicVmCore {
         }
     }
 
+    public static getTagInSvg(content: string, strokeWidth: string, backgroundColor: string) {
+        const backgroundColorStr = backgroundColor !== "" ? ` style="background-color:${backgroundColor}"` : '';
+        return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" shape-rendering="optimizeSpeed" stroke="currentColor" stroke-width="${strokeWidth}"${backgroundColorStr}>
+${content}
+</svg>
+`;
+    }
+
     public flushGraphics(): string {
         this.flushGraphicsPath();
         if (this.graphicsBuffer.length) {
-            // separate print for svg graphics
-            // in another module, we check if output starts with "<svg" to enable export SVG button
-            const backgroundColorStr = this.backgroundColor !== "" ? ` style="background-color:${this.backgroundColor}"` : '';
+            // separate print for svg graphics (we check in another module, if output starts with "<svg" to enable export SVG button)
             const graphicsBufferStr = this.graphicsBuffer.join("\n");
+            const strokeWith = strokeWidthForMode[this.currMode] + "px";
             this.graphicsBuffer.length = 0;
-            return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" stroke-width="${strokeWidthForMode[this.currMode]}px" shape-rendering="optimizeSpeed" stroke="currentColor"${backgroundColorStr}>\n${graphicsBufferStr}"\n</svg>\n`;
+            return BasicVmCore.getTagInSvg(graphicsBufferStr, strokeWith, this.backgroundColor);
         }
         return "";
     }
@@ -412,8 +418,8 @@ export class BasicVmCore {
         return this.graphicsY;
     }
 
-    public getTimerMap(): TimerMapType {
-        return this.timerMap;
+    public getSnippetData(): SnippetDataType {
+        return this.snippetData;
     }
 
     public getOutput(): string {

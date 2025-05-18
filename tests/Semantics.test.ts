@@ -3,14 +3,12 @@ import type { Node } from "ohm-js";
 import { Semantics } from '../src/Semantics';
 
 describe('Semantics Class', () => {
-
     it('should initialize', () => {
         const semantics = new Semantics();
         expect(semantics).toBeDefined();
     });
 
     describe('getSemanticsActions', () => {
-
         const getMockOhmNode = (props: Partial<Node>): Node => {
             return {
                 ...props
@@ -583,13 +581,13 @@ describe('Semantics Class', () => {
         it('remain should clear timer and return value', () => {
             const fakeTimer = {};
             const snippets = getSnippets({
-                _o: {
-                    getTimerMap: () => ({ 1: fakeTimer })
+                _d: {
+                    timerMap: { 1: fakeTimer }
                 }
             });
             let cleared = false;
-            global.clearTimeout = (v: any) => { if (v === fakeTimer) { cleared = true; } };
-            global.clearInterval = (v: any) => { if (v === fakeTimer) { cleared = true; } };
+            global.clearTimeout = (v: unknown): void => { if (v === fakeTimer) { cleared = true; } };
+            global.clearInterval = (v: unknown) => { if (v === fakeTimer) { cleared = true; } };
             const result = snippets.remain(1);
             expect(result).toBe(fakeTimer);
             expect(cleared).toBe(true);

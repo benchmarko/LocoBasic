@@ -1,4 +1,4 @@
-import { INodeParts, IVmAdmin, TimerMapType } from "./Interfaces";
+import type { INodeParts, IVmAdmin, SnippetDataType } from "./Interfaces";
 import { BasicVmCore } from "./BasicVmCore";
 
 function getAnsiColors(background: boolean): string[] {
@@ -58,25 +58,21 @@ export class BasicVmNode implements IVmAdmin {
 
     public cls(): void {
         this.vmCore.cls();
-        console.clear();
+        this.nodeParts.consoleClear();
     }
 
     public drawMovePlot(type: string, x: number, y: number): void {
         this.vmCore.drawMovePlot(type, x, y);
     }
 
-    private static fnOnPrint(msg: string): void {
-        console.log(msg.replace(/\n$/, ""));
-    }
-
     public flush(): void {
         const textOutput = this.vmCore.flushText();
         if (textOutput) {
-            BasicVmNode.fnOnPrint(textOutput);
+            this.nodeParts.consolePrint(textOutput.replace(/\n$/, ""));
         }
         const graphicsOutput = this.vmCore.flushGraphics();
         if (graphicsOutput) {
-            BasicVmNode.fnOnPrint(graphicsOutput);
+            this.nodeParts.consolePrint(graphicsOutput.replace(/\n$/, ""));
         }
     }
 
@@ -87,7 +83,7 @@ export class BasicVmNode implements IVmAdmin {
     public ink(num: number, col: number) {
         this.vmCore.ink(num, col);
     }
-    
+
     public inkey$(): Promise<string> {
         const key = this.nodeParts.getKeyFromBuffer();
         return Promise.resolve(key);
@@ -105,7 +101,8 @@ export class BasicVmNode implements IVmAdmin {
 
     public mode(num: number): void {
         this.vmCore.mode(num);
-        console.clear();
+        this.nodeParts.consoleClear();
+        //console.clear();
     }
 
     public origin(x: number, y: number): void {
@@ -144,8 +141,8 @@ export class BasicVmNode implements IVmAdmin {
         return this.nodeParts.getEscape();
     }
 
-    public getTimerMap(): TimerMapType {
-        return this.vmCore.getTimerMap();
+    public getSnippetData(): SnippetDataType {
+        return this.vmCore.getSnippetData();
     }
 
     public getOutput(): string {

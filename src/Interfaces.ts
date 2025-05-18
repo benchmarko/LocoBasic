@@ -1,18 +1,18 @@
 export type ConfigEntryType = string | number | boolean;
 
 export interface ExampleType {
-    key: string
-    title: string
-    meta: string // D=data
-    script?: string
+    key: string;
+    title: string;
+    meta: string; // D=data
+    script?: string;
 }
 
 export type ExampleMapType = Record<string, ExampleType>;
 
 export interface DatabaseType {
-    key: string
-    source: string,
-    exampleMap?: ExampleMapType
+    key: string;
+    source: string;
+    exampleMap?: ExampleMapType;
 }
 
 export type DatabaseMapType = Record<string, DatabaseType>;
@@ -35,7 +35,15 @@ export type ConfigType = {
     showOutput: boolean;
 };
 
-export type TimerMapType = Record<number, number | NodeJS.Timeout | undefined>;
+//export type TimerMapType = Record<number, number | NodeJS.Timeout | undefined>;
+
+export type SnippetDataType = {
+    data: (string | number)[];
+    dataPtr: number;
+    restoreMap: Record<string, number>;
+    startTime: number;
+    timerMap: Record<number, number | NodeJS.Timeout | undefined>;
+}
 
 export interface IVm {
     cls(): void;
@@ -55,7 +63,7 @@ export interface IVm {
     xpos(): number;
     ypos(): number;
     getEscape(): boolean;
-    getTimerMap(): TimerMapType;
+    getSnippetData(): SnippetDataType;
 }
 
 export interface IVmAdmin extends IVm {
@@ -102,17 +110,19 @@ export interface ICore {
 export interface INodeParts {
     getEscape(): boolean;
     getKeyFromBuffer(): string;
+    consoleClear(): void;
+    consolePrint(msg: string): void;
 }
 
 export interface IUI {
-    getCurrentDataKey(): string;
-    onWindowLoadContinue(core: ICore, vm: IVmAdmin): void;
-    getEscape(): boolean;
     addOutputText(value: string): void;
-    setOutputText(value: string): void;
-    getColor(color: string, background: boolean): string;
     checkSyntax(str: string): Promise<string>;
+    getColor(color: string, background: boolean): string;
+    getCurrentDataKey(): string;
+    getEscape(): boolean;
+    getKeyFromBuffer(): string;
+    onWindowLoadContinue(core: ICore, vm: IVmAdmin): void;
+    setOutputText(value: string): void;
     prompt(msg: string): string | null;
     speak(text: string, pitch: number): Promise<void>;
-    getKeyFromBuffer(): string;
 }

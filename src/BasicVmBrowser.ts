@@ -1,4 +1,4 @@
-import { IUI, IVmAdmin, TimerMapType } from "./Interfaces";
+import type { IUI, IVmAdmin, SnippetDataType } from "./Interfaces";
 import { BasicVmCore } from "./BasicVmCore";
 
 export class BasicVmBrowser implements IVmAdmin {
@@ -27,18 +27,14 @@ export class BasicVmBrowser implements IVmAdmin {
         this.vmCore.drawMovePlot(type, x, y);
     }
 
-    public fnOnPrint(msg: string): void {
-        this.ui.addOutputText(msg);
-    }
-
     public flush(): void {
         const textOutput = this.vmCore.flushText();
         if (textOutput) {
-            this.fnOnPrint(textOutput);
+            this.ui.addOutputText(textOutput);
         }
         const graphicsOutput = this.vmCore.flushGraphics();
         if (graphicsOutput) {
-            this.fnOnPrint(graphicsOutput);
+            this.ui.addOutputText(graphicsOutput);
         }
     }
 
@@ -49,7 +45,7 @@ export class BasicVmBrowser implements IVmAdmin {
     public ink(num: number, col: number) {
         this.vmCore.ink(num, col);
     }
-    
+
     public inkey$(): Promise<string> {
         const key = this.ui.getKeyFromBuffer();
         return Promise.resolve(key);
@@ -115,8 +111,8 @@ export class BasicVmBrowser implements IVmAdmin {
         return this.ui.getEscape();
     }
 
-    public getTimerMap(): TimerMapType {
-        return this.vmCore.getTimerMap();
+    public getSnippetData(): SnippetDataType {
+        return this.vmCore.getSnippetData();
     }
 
     public getOutput(): string {
