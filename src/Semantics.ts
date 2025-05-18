@@ -4,13 +4,19 @@ import { SemanticsHelper } from "./SemanticsHelper";
 
 type RecursiveArray<T> = T | RecursiveArray<T>[];
 
-function getCodeSnippets() {
-	const _o = {} as IVm;
-	const _data: (string | number)[] = [];
-	let _dataPtr = 0;
-	const _restoreMap: Record<string, number> = {};
-	const _startTime = 0;
-	const frame = async () => { }; // dummy
+const codeSnippetsData = {
+	_o: {} as IVm,
+	_d: {
+		data: [] as (string | number)[],
+		dataPtr: 0,
+		restoreMap: {} as Record<string, number>,
+		startTime: 0
+	},
+	async frame() { }, // dummy
+};
+
+function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
+	const { _o, _d, frame } = snippetsData;
 
 	const codeSnippets = {
 		after: function after(timeout: number, timer: number, fn: () => void) {
@@ -126,7 +132,7 @@ function getCodeSnippets() {
 			_o.print(output);
 		},
 		read: function read() {
-			return _data[_dataPtr++];
+			return _d.data[_d.dataPtr++];
 		},
 		remain: function remain(timer: number) {
 			const timerMap = _o.getTimerMap();
@@ -137,7 +143,7 @@ function getCodeSnippets() {
 			return value; // not really remain
 		},
 		restore: function restore(label: string) {
-			_dataPtr = _restoreMap[label];
+			_d.dataPtr = _d.restoreMap[label];
 		},
 		round: function round(num: number, dec: number) {
 			return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
@@ -156,7 +162,7 @@ function getCodeSnippets() {
 			_o.tag(active);
 		},
 		time: function time() {
-			return ((Date.now() - _startTime) * 3 / 10) | 0;
+			return ((Date.now() - _d.startTime) * 3 / 10) | 0;
 		},
 		val: function val(str: string) {
 			return Number(str.replace("&x", "0b").replace("&", "0x"));
@@ -192,7 +198,7 @@ function createComparisonExpression(a: Node, op: string, b: Node): string {
 	return `-(${a.eval()} ${op} ${b.eval()})`;
 }
 
-function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<string> {
+function getSemanticsActions(semanticsHelper: SemanticsHelper) {
 	const drawMovePlot = (lit: Node, x: Node, _comma1: Node, y: Node, _comma2: Node, e3: Node, _comma3: Node, e4: Node) => {
 		const command = lit.sourceString.toLowerCase();
 		semanticsHelper.addInstr(command);
@@ -249,7 +255,7 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 		return `/* not supported: ${name}${argStr} */`;
 	}
 
-	const semantics: ActionDict<string> = {
+	const semantics = {
 		Program(lines: Node) {
 			const lineList = evalChildren(lines.children);
 
@@ -309,8 +315,13 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 						restoreMap[key] = index;
 					}
 				}
-				lineList.unshift(`const {_data, _restoreMap} = _defineData();\nlet _dataPtr = 0;`);
-				lineList.push(`function _defineData() {\n  const _data = [\n${dataList.join(",\n")}\n  ];\n  const _restoreMap = ${JSON.stringify(restoreMap)};\n  return {_data, _restoreMap};\n}`);
+				lineList.unshift(`_defineData();`);
+				lineList.push(`
+function _defineData() {
+  _d.data = [\n${dataList.join(",\n")}\n  ];
+  _d.restoreMap = ${JSON.stringify(restoreMap)};
+  _d.dataPtr = 0;
+}`);
 			}
 
 			if (!instrMap["end"]) {
@@ -318,7 +329,7 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			}
 			lineList.push("\n// library");
 
-			const codeSnippets = getCodeSnippets();
+			const codeSnippets = getCodeSnippets(codeSnippetsData);
 
 			let needsAsync = false;
 			let needsStartTime = false;
@@ -330,7 +341,7 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 					if (adaptedCode.startsWith("async ")) {
 						needsAsync = true;
 					}
-					if (adaptedCode.includes("_startTime")) {
+					if (adaptedCode.includes("_d.startTime")) {
 						needsStartTime = true;
 					}
 				}
@@ -341,8 +352,10 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			}
 
 			if (needsStartTime) {
-				lineList.unshift(`const _startTime = Date.now();`);
+				lineList.unshift(`_d.startTime = Date.now();`);
 			}
+
+			lineList.unshift(`const _d = {};`);
 
 			if (needsAsync) {
 				lineList.unshift(`return async function() {`);
@@ -367,7 +380,6 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 		},
 
 		LetterRange(start: Node, minus: Node, end: Node) {
-			//return `${start.sourceString}${minus.sourceString}${end.sourceString})`;
 			return [start, minus, end].map((node) => evalAnyFn(node)).join("");
 		},
 
@@ -770,7 +782,7 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 
 		Ink(_inkLit: Node, num: Node, _comma: Node, col: Node, _comma2: Node, col2: Node) {
 			semanticsHelper.addInstr("ink");
-			const col2Str =  col2.child(0) ? notSupported(col2.child(0)) : "";
+			const col2Str = col2.child(0) ? notSupported(col2.child(0)) : "";
 			return `ink(${num.eval()}, ${col.eval()}${col2Str})`;
 		},
 
@@ -1338,13 +1350,6 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			return notSupported(lit, num);
 		},
 
-		XorExp_xor(a: Node, _op: Node, b: Node) {
-			return `${a.eval()} ^ ${b.eval()}`;
-		},
-
-		OrExp_or(a: Node, _op: Node, b: Node) {
-			return `${a.eval()} | ${b.eval()}`;
-		},
 
 		AndExp_and(a: Node, _op: Node, b: Node) {
 			return `${a.eval()} & ${b.eval()}`;
@@ -1354,82 +1359,91 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 			return `~(${e.eval()})`;
 		},
 
+		OrExp_or(a: Node, _op: Node, b: Node) {
+			return `${a.eval()} | ${b.eval()}`;
+		},
+
+		XorExp_xor(a: Node, _op: Node, b: Node) {
+			return `${a.eval()} ^ ${b.eval()}`;
+		},
+
+
+		AddExp_minus(a: Node, _op: Node, b: Node) {
+			return `${a.eval()} - ${b.eval()}`;
+		},
+		AddExp_plus(a: Node, _op: Node, b: Node) {
+			return `${a.eval()} + ${b.eval()}`;
+		},
+
 		CmpExp_eq(a: Node, _op: Node, b: Node) {
 			return createComparisonExpression(a, "===", b);
-		},
-		CmpExp_ne(a: Node, _op: Node, b: Node) {
-			return createComparisonExpression(a, "!==", b);
-		},
-		CmpExp_lt(a: Node, _op: Node, b: Node) {
-			return createComparisonExpression(a, "<", b);
-		},
-		CmpExp_le(a: Node, _op: Node, b: Node) {
-			return createComparisonExpression(a, "<=", b);
-		},
-		CmpExp_gt(a: Node, _op: Node, b: Node) {
-			return createComparisonExpression(a, ">", b);
 		},
 		CmpExp_ge(a: Node, _op: Node, b: Node) {
 			return createComparisonExpression(a, ">=", b);
 		},
-
-		AddExp_plus(a: Node, _op: Node, b: Node) {
-			return `${a.eval()} + ${b.eval()}`;
+		CmpExp_gt(a: Node, _op: Node, b: Node) {
+			return createComparisonExpression(a, ">", b);
 		},
-		AddExp_minus(a: Node, _op: Node, b: Node) {
-			return `${a.eval()} - ${b.eval()}`;
+		CmpExp_le(a: Node, _op: Node, b: Node) {
+			return createComparisonExpression(a, "<=", b);
 		},
-
-		ModExp_mod(a: Node, _op: Node, b: Node) {
-			return `${a.eval()} % ${b.eval()}`;
+		CmpExp_lt(a: Node, _op: Node, b: Node) {
+			return createComparisonExpression(a, "<", b);
+		},
+		CmpExp_ne(a: Node, _op: Node, b: Node) {
+			return createComparisonExpression(a, "!==", b);
 		},
 
 		DivExp_div(a: Node, _op: Node, b: Node) {
 			return `((${a.eval()} / ${b.eval()}) | 0)`;
 		},
 
-		MulExp_times(a: Node, _op: Node, b: Node) {
-			return `${a.eval()} * ${b.eval()}`;
-		},
-		MulExp_divide(a: Node, _op: Node, b: Node) {
-			return `${a.eval()} / ${b.eval()}`;
-		},
-
 		ExpExp_power(a: Node, _: Node, b: Node) {
 			return `Math.pow(${a.eval()}, ${b.eval()})`;
 		},
 
+		ModExp_mod(a: Node, _op: Node, b: Node) {
+			return `${a.eval()} % ${b.eval()}`;
+		},
+
+		MulExp_divide(a: Node, _op: Node, b: Node) {
+			return `${a.eval()} / ${b.eval()}`;
+		},
+
+		MulExp_times(a: Node, _op: Node, b: Node) {
+			return `${a.eval()} * ${b.eval()}`;
+		},
+
+		PriExp_neg(_op: Node, e: Node) {
+			return `-${e.eval()}`;
+		},
 		PriExp_paren(_open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `(${e.eval()})`;
 		},
 		PriExp_pos(_op: Node, e: Node) {
 			return `+${e.eval()}`;
 		},
-		PriExp_neg(_op: Node, e: Node) {
-			return `-${e.eval()}`;
-		},
 
+		StrAddExp_plus(a: Node, _op: Node, b: Node) {
+			return `${a.eval()} + ${b.eval()}`;
+		},
 		StrCmpExp_eq(a: Node, _op: Node, b: Node) {
 			return `-(${a.eval()} === ${b.eval()})`;
-		},
-		StrCmpExp_ne(a: Node, _op: Node, b: Node) {
-			return `-(${a.eval()} !== ${b.eval()})`;
-		},
-		StrCmpExp_lt(a: Node, _op: Node, b: Node) {
-			return `-(${a.eval()} < ${b.eval()})`;
-		},
-		StrCmpExp_le(a: Node, _op: Node, b: Node) {
-			return `-(${a.eval()} <= ${b.eval()})`;
-		},
-		StrCmpExp_gt(a: Node, _op: Node, b: Node) {
-			return `-(${a.eval()} > ${b.eval()})`;
 		},
 		StrCmpExp_ge(a: Node, _op: Node, b: Node) {
 			return `-(${a.eval()} >= ${b.eval()})`;
 		},
-
-		StrAddExp_plus(a: Node, _op: Node, b: Node) {
-			return `${a.eval()} + ${b.eval()}`;
+		StrCmpExp_gt(a: Node, _op: Node, b: Node) {
+			return `-(${a.eval()} > ${b.eval()})`;
+		},
+		StrCmpExp_le(a: Node, _op: Node, b: Node) {
+			return `-(${a.eval()} <= ${b.eval()})`;
+		},
+		StrCmpExp_lt(a: Node, _op: Node, b: Node) {
+			return `-(${a.eval()} < ${b.eval()})`;
+		},
+		StrCmpExp_ne(a: Node, _op: Node, b: Node) {
+			return `-(${a.eval()} !== ${b.eval()})`;
 		},
 
 		StrPriExp_paren(_open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -1441,10 +1455,6 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 		},
 
 		ArrayIdent(ident: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `${ident.eval()}[${e.eval()}]`;
-		},
-
-		StrArrayIdent(ident: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `${ident.eval()}[${e.eval()}]`;
 		},
 
@@ -1465,6 +1475,10 @@ function getSemanticsActionDict(semanticsHelper: SemanticsHelper): ActionDict<st
 
 			semanticsHelper.addInstr("dim1");
 			return `${identStr} = dim1(${indicesStr}${valueStr})`;
+		},
+
+		StrArrayIdent(ident: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `${ident.eval()}[${e.eval()}]`;
 		},
 
 		decimalValue(value: Node) {
@@ -1526,11 +1540,19 @@ export class Semantics implements ISemantics {
 		return this.helper.getUsedLabels();
 	}
 
+	public getSemanticsActions() {
+		return getSemanticsActions(this.helper);
+	}
+
 	public getSemanticsActionDict(): ActionDict<string> {
-		return getSemanticsActionDict(this.helper);
+		return this.getSemanticsActions() as ActionDict<string>;
 	}
 
 	public getHelper(): SemanticsHelper {
 		return this.helper;
+	}
+
+	public getCodeSnippets4Test(data: Partial<typeof codeSnippetsData>) {
+		return getCodeSnippets(data as typeof codeSnippetsData);
 	}
 }

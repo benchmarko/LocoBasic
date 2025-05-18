@@ -77,12 +77,20 @@ export class BasicVmCore {
         return BasicVmCore.cpcColors;
     }
 
-    private reset(): void {
+    private static deleteAllItems(items: Record<string, unknown>): void {
+        for (const name in items) {
+            delete items[name];
+        }
+    }
+
+    public reset(): void {
         this.colorsForPens.splice(0, this.colorsForPens.length, ...this.defaultColorsForPens);
         this.backgroundColor = "";
-        this.originX = 0;
-        this.originY = 0;
+        //this.originX = 0;
+        //this.originY = 0;
         this.pitch = 1;
+        this.mode(1);
+        BasicVmCore.deleteAllItems(this.timerMap);
     }
 
     public cls(): void {
@@ -95,6 +103,12 @@ export class BasicVmCore {
         this.currGraphicsPen = -1;
         this.graphicsX = 0;
         this.graphicsY = 0;
+    }
+
+    public mode(num: number): void {
+        this.currMode = num;
+        this.cls();
+        this.origin(0, 0);
     }
 
     public drawMovePlot(type: string, x: number, y: number): void {
@@ -187,12 +201,6 @@ export class BasicVmCore {
         if (num === 0) {
             this.backgroundColor = BasicVmCore.cpcColors[this.colorsForPens[0]];
         }
-    }
-
-    public mode(num: number): void {
-        this.currMode = num;
-        this.cls();
-        this.origin(0, 0);
     }
 
     public origin(x: number, y: number): void {
@@ -410,7 +418,6 @@ export class BasicVmCore {
 
     public getOutput(): string {
         const output = this.output;
-        this.reset();
         return output;
     }
     public setOutput(str: string): void {

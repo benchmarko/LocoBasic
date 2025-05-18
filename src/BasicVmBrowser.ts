@@ -14,6 +14,10 @@ export class BasicVmBrowser implements IVmAdmin {
         this.vmCore.setOnSpeak(this.fnOnSpeak.bind(this));
     }
 
+    public reset(): void {
+        this.vmCore.reset();
+    }
+
     public cls(): void {
         this.vmCore.cls();
         this.ui.setOutputText("");

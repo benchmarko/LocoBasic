@@ -59,6 +59,7 @@ export interface IVm {
 }
 
 export interface IVmAdmin extends IVm {
+    reset(): void;
     getOutput(): string;
     setOutput(str: string): void;
 }

@@ -52,6 +52,10 @@ export class BasicVmNode implements IVmAdmin {
         this.vmCore = new BasicVmCore(penColors, paperColors);
     }
 
+    public reset(): void {
+        this.vmCore.reset();
+    }
+
     public cls(): void {
         this.vmCore.cls();
         console.clear();

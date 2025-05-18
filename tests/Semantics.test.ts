@@ -2,535 +2,637 @@ import { describe, it, expect } from 'vitest';
 import type { Node } from "ohm-js";
 import { Semantics } from '../src/Semantics';
 
-type FunctionMapType = Record<string, (...args: (Node | null)[]) => string>;
-
 describe('Semantics Class', () => {
-
-    const getMockOhmNode = (props: Partial<Node>): Node => {
-        return {
-            ...props
-        } as Node;
-    };
-
-    const getSourceNode = (sourceString: string): Node => {
-        return getMockOhmNode({
-            sourceString
-        });
-    };
-
-    const getEvalNode = (value: string | undefined): Node => {
-        return getMockOhmNode({
-            eval: () => value
-        });
-    };
-
-    const getChildNode = (node: Node | undefined): Node => {
-        return getMockOhmNode({
-            child(_n: number): Node { // eslint-disable-line @typescript-eslint/no-unused-vars
-                return node as Node; //TTT
-            }
-        });
-    };
-
-    const getChildEvalNode = (value: string | undefined): Node => {
-        return getMockOhmNode({
-            child(_n: number): Node { // eslint-disable-line @typescript-eslint/no-unused-vars
-                return getEvalNode(value);
-            }
-        });
-    };
-
-    const getChildrenEvalNode = (values: string[]): Node => {
-        return getMockOhmNode({
-            children: values.map((value) => getEvalNode(value))
-        });
-    };
 
     it('should initialize', () => {
         const semantics = new Semantics();
-        const semanticsActionDict = semantics.getSemanticsActionDict();
-        expect(semanticsActionDict).toBeDefined();
+        expect(semantics).toBeDefined();
     });
 
-    it('should return an ActionDict with defined semantics', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict();
+    describe('getSemanticsActions', () => {
 
-        expect(actionDict).toBeDefined();
-        expect(typeof actionDict).toBe('object');
-        expect(Object.keys(actionDict).length).toBeGreaterThan(0);
+        const getMockOhmNode = (props: Partial<Node>): Node => {
+            return {
+                ...props
+            } as Node;
+        };
+
+        const getDummyNode = () => {
+            return getMockOhmNode({});
+        };
+
+        const getSourceNode = (sourceString: string): Node => {
+            return getMockOhmNode({
+                sourceString
+            });
+        };
+
+        const getEvalNode = (value: string | undefined): Node => {
+            return getMockOhmNode({
+                eval: () => value
+            });
+        };
+
+        const getChildNode = (node: Node | undefined): Node => {
+            return getMockOhmNode({
+                child(_n: number): Node { // eslint-disable-line @typescript-eslint/no-unused-vars
+                    return node as Node; //TTT
+                }
+            });
+        };
+
+        const getChildEvalNode = (value: string | undefined): Node => {
+            return getMockOhmNode({
+                child(_n: number): Node { // eslint-disable-line @typescript-eslint/no-unused-vars
+                    return getEvalNode(value);
+                }
+            });
+        };
+
+        const getChildrenEvalNode = (values: string[]): Node => {
+            return getMockOhmNode({
+                children: values.map((value) => getEvalNode(value))
+            });
+        };
+
+        it('should return  SemanticsActions with defined semantics', () => {
+            const semantics = new Semantics();
+            const actions = semantics.getSemanticsActions();
+
+            expect(actions).toBeDefined();
+            expect(typeof actions).toBe('object');
+            expect(Object.keys(actions).length).toBeGreaterThan(0);
+        });
+
+        it('should include specific semantics actions', () => {
+            const semantics = new Semantics();
+            const actions = semantics.getSemanticsActions();
+
+            expect(actions.Cos).toBeDefined();
+            expect(actions.Draw).toBeDefined();
+            expect(actions.ForNextBlock).toBeDefined();
+            expect(actions.WhileWendBlock).toBeDefined();
+            expect(actions.decimalValue).toBeDefined();
+        });
+
+        it('should correctly evaluate the "Cos" action', () => {
+            const semantics = new Semantics();
+            const actions = semantics.getSemanticsActions();
+
+            const litNode = getSourceNode('cos');
+            const argNode = getEvalNode('45');
+            const dummy = getDummyNode();
+            const result = actions.Cos(litNode, dummy, argNode, dummy);
+            expect(result).toBe('Math.cos(45)');
+
+            semantics.getHelper().setDeg(true);
+            const result2 = actions.Cos(litNode, dummy, argNode, dummy);
+            expect(result2).toBe('Math.cos((45) * Math.PI / 180)');
+        });
+
+        it('should correctly evaluate the "Draw" action', () => {
+            const semantics = new Semantics();
+            const actions = semantics.getSemanticsActions();
+
+            const litNode = getSourceNode('draw');
+            const xNode = getEvalNode('100');
+            const yNode = getEvalNode('200');
+            const penNode = getChildEvalNode(undefined);
+            const modeNode = getChildNode(undefined);
+            const dummy = getDummyNode();
+            const result = actions.Draw(litNode, xNode, dummy, yNode, dummy, penNode, dummy, modeNode);
+            expect(result).toContain('draw(100, 200)');
+            expect(semantics.getHelper().getInstrMap()['draw']).toBe(1);
+
+            const penNode2 = getChildEvalNode('2');
+            const result2 = actions.Draw(litNode, xNode, dummy, yNode, dummy, penNode2, dummy, modeNode);
+            expect(result2).toContain('graphicsPen(2); draw(100, 200)');
+            expect(semantics.getHelper().getInstrMap()['graphicsPen']).toBe(1);
+        });
+
+        it('should correctly evaluate the "ForNextBlock" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const startNode = getEvalNode('for (i = 0; i < 10; i += 1) {');
+            const contentNode = getChildrenEvalNode(['a = 5', 'b = 10']);
+            const separatorNode = getEvalNode('');
+            const endNode = getEvalNode('}');
+            const result = actions.ForNextBlock(startNode, contentNode, separatorNode, endNode);
+            expect(result).toContain('for (i = 0; i < 10; i += 1) {a = 5;b = 10;}');
+        });
+
+        it('should correctly evaluate the "HexS" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const numNode = getEvalNode('255');
+            const padNode = getChildEvalNode('4');
+            const dummy = getDummyNode();
+            const result = actions.HexS(dummy, dummy, numNode, dummy, padNode, dummy);
+            expect(result).toBe('hex$(255, 4)');
+        });
+
+        it('should correctly evaluate the "MidS" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const strNode = getEvalNode('"Hello, World!"');
+            const startNode = getEvalNode('8');
+            const lengthNode = getChildEvalNode('5');
+            const dummy = getDummyNode();
+            const result = actions.MidS(dummy, dummy, strNode, dummy, startNode, dummy, lengthNode, dummy);
+            expect(result).toBe('("Hello, World!").substr(8 - 1, 5)');
+        });
+
+        it('should correctly evaluate the "Rnd" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const dummy = getDummyNode();
+            const result = actions.Rnd(dummy, dummy, dummy, dummy);
+            expect(result).toBe('Math.random()');
+        });
+
+        it('should correctly evaluate the "While" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const conditionNode = getEvalNode('i < 10');
+            const result = actions.While(getDummyNode(), conditionNode);
+            expect(result).toBe('while (i < 10) {');
+        });
+
+        it('should correctly evaluate the "WhileWendBlock" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const startNode = getEvalNode('while (i < 3) {');
+            const contentNode = getChildrenEvalNode(['i = i + 1']);
+            const separatorNode = getEvalNode('');
+            const endNode = getEvalNode('}');
+            const result = actions.WhileWendBlock(startNode, contentNode, separatorNode, endNode);
+            expect(result).toContain('while (i < 3) {i = i + 1;}');
+        });
+
+
+        it('should correctly evaluate the "AndExp_and" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('5');
+            const rightNode = getEvalNode('3');
+            const result = actions.AndExp_and(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('5 & 3');
+        });
+
+        it('should correctly evaluate the "NotExp_not" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const innerNode = getEvalNode('5');
+            const result = actions.NotExp_not(getDummyNode(), innerNode);
+            expect(result).toBe('~(5)');
+        });
+
+        it('should correctly evaluate the "OrExp_or" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('5');
+            const rightNode = getEvalNode('3');
+            const result = actions.OrExp_or(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('5 | 3');
+        });
+
+        it('should correctly evaluate the "XorExp_xor" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('5');
+            const rightNode = getEvalNode('3');
+            const result = actions.XorExp_xor(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('5 ^ 3');
+        });
+
+
+        it('should correctly evaluate the "AddExp_minus" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('10');
+            const rightNode = getEvalNode('5');
+            const result = actions.AddExp_minus(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('10 - 5');
+        });
+
+        it('should correctly evaluate the "AddExp_plus" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('5');
+            const rightNode = getEvalNode('3');
+            const result = actions.AddExp_plus(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('5 + 3');
+        });
+
+        it('should correctly evaluate the "CmpExp_eq" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('10');
+            const rightNode = getEvalNode('10');
+            const result = actions.CmpExp_eq(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('-(10 === 10)');
+        });
+
+        it('should correctly evaluate the "CmpExp_ge" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('10');
+            const rightNode = getEvalNode('5');
+            const result = actions.CmpExp_ge(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('-(10 >= 5)');
+        });
+
+        it('should correctly evaluate the "CmpExp_gt" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('15');
+            const rightNode = getEvalNode('10');
+            const result = actions.CmpExp_gt(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('-(15 > 10)');
+        });
+
+        it('should correctly evaluate the "CmpExp_le" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('5');
+            const rightNode = getEvalNode('10');
+            const result = actions.CmpExp_le(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('-(5 <= 10)');
+        });
+
+        it('should correctly evaluate the "CmpExp_lt" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('5');
+            const rightNode = getEvalNode('10');
+            const result = actions.CmpExp_lt(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('-(5 < 10)');
+        });
+
+        it('should correctly evaluate the "CmpExp_ne" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('10');
+            const rightNode = getEvalNode('20');
+            const result = actions.CmpExp_ne(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('-(10 !== 20)');
+        });
+
+        it('should correctly evaluate the "DivExp_div" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('10');
+            const rightNode = getEvalNode('3');
+            const result = actions.DivExp_div(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('((10 / 3) | 0)');
+        });
+
+        it('should correctly evaluate the "ExpExp_power" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const baseNode = getEvalNode('2');
+            const exponentNode = getEvalNode('3');
+            const result = actions.ExpExp_power(baseNode, getDummyNode(), exponentNode);
+            expect(result).toBe('Math.pow(2, 3)');
+        });
+
+        it('should correctly evaluate the "ModExp_mod" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('10');
+            const rightNode = getEvalNode('3');
+            const result = actions.ModExp_mod(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('10 % 3');
+        });
+
+        it('should correctly evaluate the "MulExp_divide" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('20');
+            const rightNode = getEvalNode('4');
+            const result = actions.MulExp_divide(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('20 / 4');
+        });
+
+        it('should correctly evaluate the "MulExp_times" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('4');
+            const rightNode = getEvalNode('2');
+            const result = actions.MulExp_times(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('4 * 2');
+        });
+
+        it('should correctly evaluate the "PriExp_neg" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const innerNode = getEvalNode('10');
+            const result = actions.PriExp_neg(getDummyNode(), innerNode);
+            expect(result).toBe('-10');
+        });
+
+        it('should correctly evaluate the "PriExp_paren" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const innerNode = getEvalNode('5 + 3');
+            const result = actions.PriExp_paren(getDummyNode(), innerNode, getDummyNode());
+            expect(result).toBe('(5 + 3)');
+        });
+
+        it('should correctly evaluate the "PriExp_pos" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const innerNode = getEvalNode('5');
+            const result = actions.PriExp_pos(getDummyNode(), innerNode);
+            expect(result).toBe('+5');
+        });
+
+        it('should correctly evaluate the "StrAddExp_plus" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('"Hello"');
+            const rightNode = getEvalNode('" World"');
+            const result = actions.StrAddExp_plus(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('"Hello" + " World"');
+        });
+
+        it('should correctly evaluate the "StrCmpExp_eq" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('"Hello"');
+            const rightNode = getEvalNode('"World"');
+            const result = actions.StrCmpExp_eq(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('-("Hello" === "World")');
+        });
+
+        it('should correctly evaluate the "StrCmpExp_ge" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('"Zebra"');
+            const rightNode = getEvalNode('"Apple"');
+            const result = actions.StrCmpExp_ge(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('-("Zebra" >= "Apple")');
+        });
+
+        it('should correctly evaluate the "StrCmpExp_gt" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('"Zebra"');
+            const rightNode = getEvalNode('"Apple"');
+            const result = actions.StrCmpExp_gt(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('-("Zebra" > "Apple")');
+        });
+
+        it('should correctly evaluate the "StrCmpExp_le" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('"Apple"');
+            const rightNode = getEvalNode('"Zebra"');
+            const result = actions.StrCmpExp_le(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('-("Apple" <= "Zebra")');
+        });
+
+        it('should correctly evaluate the "StrCmpExp_lt" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('"Apple"');
+            const rightNode = getEvalNode('"Banana"');
+            const result = actions.StrCmpExp_lt(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('-("Apple" < "Banana")');
+        });
+
+        it('should correctly evaluate the "StrCmpExp_ne" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const leftNode = getEvalNode('"Hello"');
+            const rightNode = getEvalNode('"World"');
+            const result = actions.StrCmpExp_ne(leftNode, getDummyNode(), rightNode);
+            expect(result).toBe('-("Hello" !== "World")');
+        });
+
+        it('should correctly evaluate the "StrPriExp_paren" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const innerNode = getEvalNode('"Hello" + " World"');
+            const result = actions.StrPriExp_paren(getDummyNode(), innerNode, getDummyNode());
+            expect(result).toBe('("Hello" + " World")');
+        });
+
+
+        it('should correctly evaluate the "ArrayIdent" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const identNode = getEvalNode('myArray');
+            const indexNode = getEvalNode('2');
+            const result = actions.ArrayIdent(identNode, getDummyNode(), indexNode, getDummyNode());
+            expect(result).toBe('myArray[2]');
+        });
+
+        it('should correctly evaluate the "DimArrayIdent" action for single dimension', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const identNode = getEvalNode('myArray');
+            const indicesNode = getEvalNode('10');
+            const result = actions.DimArrayIdent(identNode, getDummyNode(), indicesNode, getDummyNode());
+            expect(result).toBe('myArray = dim1(10)');
+        });
+
+        it('should correctly evaluate the "DimArrayIdent" action for multi-dimension', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const identNode = getEvalNode('myArray');
+            const indicesNode = getEvalNode('10, 20');
+            const result = actions.DimArrayIdent(identNode, getDummyNode(), indicesNode, getDummyNode());
+            expect(result).toBe('myArray = dim([10, 20])');
+        });
+
+
+        it('should correctly evaluate the "decimalValue" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const valueNode = getSourceNode('123');
+            const result = actions.decimalValue(valueNode);
+            expect(result).toBe('123');
+        });
+
+        it('should correctly evaluate the "hexValue" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const valueNode = getSourceNode('FF2');
+            const result = actions.hexValue(getDummyNode(), valueNode);
+            expect(result).toBe('0xFF2');
+        });
+
+        it('should correctly evaluate the "binaryValue" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const valueNode = getSourceNode('1010');
+            const result = actions.binaryValue(getDummyNode(), valueNode);
+            expect(result).toBe('0b1010');
+        });
+
+        it('should correctly evaluate the "string" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const valueNode = getSourceNode('Hello, World!');
+            const dummy = getDummyNode();
+            const result = actions.string(dummy, valueNode, dummy);
+            expect(result).toBe('"Hello, World!"');
+        });
+
+        it('should correctly evaluate the "ident" action', () => {
+            const actions = new Semantics().getSemanticsActions();
+
+            const valueNode = getSourceNode('myVariableName');
+            const result = actions.ident(valueNode);
+            expect(result).toBe('myvariablename');
+
+            const valueNode2 = getSourceNode('void');
+            const result2 = actions.ident(valueNode2);
+            expect(result2).toBe('_void');
+        });
     });
 
-    it('should include specific semantics actions', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict();
+    describe('getCodeSnippets', () => {
+        // Helper to get the code snippets object
+        const getSnippets = (data = {}) => {
+            const semantics = new Semantics();
+            return semantics.getCodeSnippets4Test(data);
+        };
 
-        expect(actionDict).toHaveProperty('Cos');
-        expect(actionDict).toHaveProperty('Draw');
-        expect(actionDict).toHaveProperty('ForNextBlock');
-        expect(actionDict).toHaveProperty('WhileWendBlock');
-        expect(actionDict).toHaveProperty('decimalValue');
+        it('bin$ should return binary string with padding', () => {
+            const snippets = getSnippets();
+            expect(snippets.bin$(5)).toBe('101');
+            expect(snippets.bin$(5, 8)).toBe('00000101');
+        });
+
+        it('dec$ should format decimal with padding', () => {
+            const snippets = getSnippets();
+            expect(snippets.dec$(12.345, "000.00")).toBe(' 12.35');
+            expect(snippets.dec$(1.2, "00.000")).toBe(' 1.200');
+        });
+
+        it('dim should create multi-dimensional arrays', () => {
+            const snippets = getSnippets();
+            const arr = snippets.dim([2, 1], 7);
+            expect(Array.isArray(arr)).toBe(true);
+            expect((arr as (number | string)[]).length).toBe(3); // 2+1
+            expect(Array.isArray(arr[0])).toBe(true);
+            expect(arr[0][0]).toBe(7);
+        });
+
+        it('dim1 should create single-dimensional array', () => {
+            const snippets = getSnippets();
+            const arr = snippets.dim1(3, 9);
+            expect(arr).toEqual([9, 9, 9, 9]);
+        });
+
+        it('mid$Assign should replace substring correctly', () => {
+            const snippets = getSnippets();
+            expect(snippets.mid$Assign("abcdef", 2, "ZZ", 2)).toBe("aZZdef");
+            expect(snippets.mid$Assign("abcdef", 2, "ZZ")).toBe("aZZdef");
+        });
+
+        it('hex$ should return hex string with padding', () => {
+            const snippets = getSnippets();
+            expect(snippets.hex$(255)).toBe('FF');
+            expect(snippets.hex$(255, 4)).toBe('00FF');
+        });
+
+        it('str$ should return string with leading space for positive', () => {
+            const snippets = getSnippets();
+            expect(snippets.str$(5)).toBe(' 5');
+            expect(snippets.str$(-3)).toBe('-3');
+        });
+
+        it('round should round to given decimals', () => {
+            const snippets = getSnippets();
+            expect(snippets.round(1.2345, 2)).toBeCloseTo(1.23, 2);
+            expect(snippets.round(1.2355, 2)).toBeCloseTo(1.24, 2);
+        });
+
+        it('val should parse decimal, hex, and binary', () => {
+            const snippets = getSnippets();
+            expect(snippets.val("123")).toBe(123);
+            expect(snippets.val("&x101")).toBe(5);
+            expect(snippets.val("&FF")).toBe(255);
+        });
+
+        it('print should format numbers and strings', () => {
+            let output = "";
+            const snippets = getSnippets({
+                _o: { print: (s: string) => { output = s; } }
+            });
+            snippets.print("A", 5, "B", -2);
+            expect(output).toBe("A 5 B-2 ");
+        });
+
+        it('read should increment pointer and return data', () => {
+            const snippetData = {
+                _d: {
+                    data: [1, 2, 3],
+                    dataPtr: 0
+                }
+            };
+            const snippets = getSnippets(snippetData);
+            expect(snippets.read()).toBe(1);
+            expect(snippets.read()).toBe(2);
+            expect(snippetData._d.dataPtr).toBe(2);
+        });
+
+        it('remain should clear timer and return value', () => {
+            const fakeTimer = {};
+            const snippets = getSnippets({
+                _o: {
+                    getTimerMap: () => ({ 1: fakeTimer })
+                }
+            });
+            let cleared = false;
+            global.clearTimeout = (v: any) => { if (v === fakeTimer) { cleared = true; } };
+            global.clearInterval = (v: any) => { if (v === fakeTimer) { cleared = true; } };
+            const result = snippets.remain(1);
+            expect(result).toBe(fakeTimer);
+            expect(cleared).toBe(true);
+        });
+
+        it('restore should set dataPtr from restoreMap', () => {
+            const snippetData = {
+                _d: {
+                    restoreMap: { foo: 42 },
+                    dataPtr: 0
+                }
+            };
+            const snippets = getSnippets(snippetData);
+            snippets.restore("foo");
+            expect(snippetData._d.dataPtr).toBe(42);
+        });
+
+        it('time should compute elapsed time', () => {
+            const snippets = getSnippets({
+                _d: {
+                    startTime: Date.now() - 1000
+                }
+            });
+            expect(typeof snippets.time()).toBe("number");
+        });
+
+        it('stop should flush and return "stop"', () => {
+            let flushed = false;
+            const snippets = getSnippets({
+                _o: { flush: () => { flushed = true; } }
+            });
+            expect(snippets.stop()).toBe("stop");
+            expect(flushed).toBe(true);
+        });
+
+        it('end should flush and return "end"', () => {
+            let flushed = false;
+            const snippets = getSnippets({
+                _o: { flush: () => { flushed = true; } }
+            });
+            expect(snippets.end()).toBe("end");
+            expect(flushed).toBe(true);
+        });
     });
-
-    it('should correctly evaluate the "Cos" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const mockLitNode = getSourceNode('cos');
-        const mockArgNode = getEvalNode('45');
-        const result = actionDict.Cos(mockLitNode, null, mockArgNode, null);
-        expect(result).toBe('Math.cos(45)');
-
-        semantics.getHelper().setDeg(true);
-        const result2 = actionDict.Cos(mockLitNode, null, mockArgNode, null);
-        expect(result2).toBe('Math.cos((45) * Math.PI / 180)');
-    });
-
-    it('should correctly evaluate the "Draw" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const litNode = getSourceNode('draw');
-        const xNode = getEvalNode('100');
-        const yNode = getEvalNode('200');
-        const penNode = getChildEvalNode(undefined);
-        const modeNode = getChildNode(undefined);
-        const result = actionDict.Draw(litNode, xNode, null, yNode, null, penNode, null, modeNode);
-        expect(result).toContain('draw(100, 200)');
-        expect(semantics.getHelper().getInstrMap()['draw']).toBe(1);
-
-        const penNode2 = getChildEvalNode('2');
-        const result2 = actionDict.Draw(litNode, xNode, null, yNode, null, penNode2, null, modeNode);
-        expect(result2).toContain('graphicsPen(2); draw(100, 200)');
-        expect(semantics.getHelper().getInstrMap()['graphicsPen']).toBe(1);
-    });
-
-    it('should correctly evaluate the "ForNextBlock" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const startNode = getEvalNode('for (i = 0; i < 10; i += 1) {');
-        const contentNode = getChildrenEvalNode(['a = 5', 'b = 10']);
-        const separatorNode = getEvalNode('');
-        const endNode = getEvalNode('}');
-        const result = actionDict.ForNextBlock(startNode, contentNode, separatorNode, endNode);
-        expect(result).toContain('for (i = 0; i < 10; i += 1) {a = 5;b = 10;}');
-    });
-
-    it('should correctly evaluate the "WhileWendBlock" action', () => {
-        const semantics = new Semantics();
-
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const startNode = getEvalNode('while (i < 3) {');
-        const contentNode = getChildrenEvalNode(['i = i + 1']);
-        const separatorNode = getEvalNode('');
-        const endNode = getEvalNode('}');
-        const result = actionDict.WhileWendBlock(startNode, contentNode, separatorNode, endNode);
-        expect(result).toContain('while (i < 3) {i = i + 1;}');
-    });
-
-    it('should correctly evaluate the "decimalValue" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const valueNode = getSourceNode('123');
-        const result = actionDict.decimalValue(valueNode);
-        expect(result).toBe('123');
-    });
-
-    it('should correctly evaluate the "hexValue" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const valueNode = getSourceNode('FF2');
-        const result = actionDict.hexValue(null, valueNode);
-        expect(result).toBe('0xFF2');
-    });
-
-    it('should correctly evaluate the "binaryValue" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const valueNode = getSourceNode('1010');
-        const result = actionDict.binaryValue(null, valueNode);
-        expect(result).toBe('0b1010');
-    });
-
-    it('should correctly evaluate the "string" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const valueNode = getSourceNode('Hello, World!');
-        const result = actionDict.string(null, valueNode, null);
-        expect(result).toBe('"Hello, World!"');
-    });
-
-    it('should correctly evaluate the "ident" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const valueNode = getSourceNode('myVariableName');
-        const result = actionDict.ident(valueNode);
-        expect(result).toBe('myvariablename');
-
-        const valueNode2 = getSourceNode('void');
-        const result2 = actionDict.ident(valueNode2);
-        expect(result2).toBe('_void');
-    });
-
-    it('should correctly evaluate the "AddExp_plus" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('5');
-        const rightNode = getEvalNode('3');
-        const result = actionDict.AddExp_plus(leftNode, null, rightNode);
-        expect(result).toBe('5 + 3');
-    });
-
-    it('should correctly evaluate the "CmpExp_eq" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('10');
-        const rightNode = getEvalNode('10');
-        const result = actionDict.CmpExp_eq(leftNode, null, rightNode);
-        expect(result).toBe('-(10 === 10)');
-    });
-
-    it('should correctly evaluate the "CmpExp_lt" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('5');
-        const rightNode = getEvalNode('10');
-        const result = actionDict.CmpExp_lt(leftNode, null, rightNode);
-        expect(result).toBe('-(5 < 10)');
-    });
-
-    it('should correctly evaluate the "MulExp_times" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('4');
-        const rightNode = getEvalNode('2');
-        const result = actionDict.MulExp_times(leftNode, null, rightNode);
-        expect(result).toBe('4 * 2');
-    });
-
-    it('should correctly evaluate the "DivExp_div" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('10');
-        const rightNode = getEvalNode('3');
-        const result = actionDict.DivExp_div(leftNode, null, rightNode);
-        expect(result).toBe('((10 / 3) | 0)');
-    });
-
-    it('should correctly evaluate the "StrAddExp_plus" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('"Hello"');
-        const rightNode = getEvalNode('" World"');
-        const result = actionDict.StrAddExp_plus(leftNode, null, rightNode);
-        expect(result).toBe('"Hello" + " World"');
-    });
-
-    it('should correctly evaluate the "While" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const conditionNode = getEvalNode('i < 10');
-        const result = actionDict.While(null, conditionNode);
-        expect(result).toBe('while (i < 10) {');
-    });
-
-    it('should correctly evaluate the "Rnd" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const result = actionDict.Rnd(null, null, null, null);
-        expect(result).toBe('Math.random()');
-    });
-
-    it('should correctly evaluate the "HexS" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const numNode = getEvalNode('255');
-        const padNode = getChildEvalNode('4');
-        const result = actionDict.HexS(null, null, numNode, null, padNode, null);
-        expect(result).toBe('hex$(255, 4)');
-    });
-
-    it('should correctly evaluate the "MidS" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const strNode = getEvalNode('"Hello, World!"');
-        const startNode = getEvalNode('8');
-        const lengthNode = getChildEvalNode('5');
-        const result = actionDict.MidS(null, null, strNode, null, startNode, null, lengthNode, null);
-        expect(result).toBe('("Hello, World!").substr(8 - 1, 5)');
-    });
-
-    it('should correctly evaluate the "CmpExp_ge" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('10');
-        const rightNode = getEvalNode('5');
-        const result = actionDict.CmpExp_ge(leftNode, null, rightNode);
-        expect(result).toBe('-(10 >= 5)');
-    });
-
-    it('should correctly evaluate the "CmpExp_ne" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('10');
-        const rightNode = getEvalNode('20');
-        const result = actionDict.CmpExp_ne(leftNode, null, rightNode);
-        expect(result).toBe('-(10 !== 20)');
-    });
-
-    it('should correctly evaluate the "ModExp_mod" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('10');
-        const rightNode = getEvalNode('3');
-        const result = actionDict.ModExp_mod(leftNode, null, rightNode);
-        expect(result).toBe('10 % 3');
-    });
-
-    it('should correctly evaluate the "ExpExp_power" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const baseNode = getEvalNode('2');
-        const exponentNode = getEvalNode('3');
-        const result = actionDict.ExpExp_power(baseNode, null, exponentNode);
-        expect(result).toBe('Math.pow(2, 3)');
-    });
-
-    it('should correctly evaluate the "PriExp_paren" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const innerNode = getEvalNode('5 + 3');
-        const result = actionDict.PriExp_paren(null, innerNode, null);
-        expect(result).toBe('(5 + 3)');
-    });
-
-    it('should correctly evaluate the "PriExp_neg" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const innerNode = getEvalNode('10');
-        const result = actionDict.PriExp_neg(null, innerNode);
-        expect(result).toBe('-10');
-    });
-
-    it('should correctly evaluate the "StrCmpExp_eq" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('"Hello"');
-        const rightNode = getEvalNode('"World"');
-        const result = actionDict.StrCmpExp_eq(leftNode, null, rightNode);
-        expect(result).toBe('-("Hello" === "World")');
-    });
-
-    it('should correctly evaluate the "StrCmpExp_lt" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('"Apple"');
-        const rightNode = getEvalNode('"Banana"');
-        const result = actionDict.StrCmpExp_lt(leftNode, null, rightNode);
-        expect(result).toBe('-("Apple" < "Banana")');
-    });
-
-    it('should correctly evaluate the "StrAddExp_plus" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('"Hello"');
-        const rightNode = getEvalNode('" World"');
-        const result = actionDict.StrAddExp_plus(leftNode, null, rightNode);
-        expect(result).toBe('"Hello" + " World"');
-    });
-
-    it('should correctly evaluate the "ArrayIdent" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const identNode = getEvalNode('myArray');
-        const indexNode = getEvalNode('2');
-        const result = actionDict.ArrayIdent(identNode, null, indexNode, null);
-        expect(result).toBe('myArray[2]');
-    });
-
-    it('should correctly evaluate the "DimArrayIdent" action for single dimension', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const identNode = getEvalNode('myArray');
-        const indicesNode = getEvalNode('10');
-        const result = actionDict.DimArrayIdent(identNode, null, indicesNode, null);
-        expect(result).toBe('myArray = dim1(10)');
-    });
-
-    it('should correctly evaluate the "DimArrayIdent" action for multi-dimension', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const identNode = getEvalNode('myArray');
-        const indicesNode = getEvalNode('10, 20');
-        const result = actionDict.DimArrayIdent(identNode, null, indicesNode, null);
-        expect(result).toBe('myArray = dim([10, 20])');
-    });
-
-    it('should correctly evaluate the "CmpExp_le" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('5');
-        const rightNode = getEvalNode('10');
-        const result = actionDict.CmpExp_le(leftNode, null, rightNode);
-        expect(result).toBe('-(5 <= 10)');
-    });
-
-    it('should correctly evaluate the "CmpExp_gt" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('15');
-        const rightNode = getEvalNode('10');
-        const result = actionDict.CmpExp_gt(leftNode, null, rightNode);
-        expect(result).toBe('-(15 > 10)');
-    });
-
-    it('should correctly evaluate the "AddExp_minus" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('10');
-        const rightNode = getEvalNode('5');
-        const result = actionDict.AddExp_minus(leftNode, null, rightNode);
-        expect(result).toBe('10 - 5');
-    });
-
-    it('should correctly evaluate the "MulExp_divide" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('20');
-        const rightNode = getEvalNode('4');
-        const result = actionDict.MulExp_divide(leftNode, null, rightNode);
-        expect(result).toBe('20 / 4');
-    });
-
-    it('should correctly evaluate the "StrCmpExp_ne" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('"Hello"');
-        const rightNode = getEvalNode('"World"');
-        const result = actionDict.StrCmpExp_ne(leftNode, null, rightNode);
-        expect(result).toBe('-("Hello" !== "World")');
-    });
-
-    it('should correctly evaluate the "StrCmpExp_ge" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('"Zebra"');
-        const rightNode = getEvalNode('"Apple"');
-        const result = actionDict.StrCmpExp_ge(leftNode, null, rightNode);
-        expect(result).toBe('-("Zebra" >= "Apple")');
-    });
-
-    it('should correctly evaluate the "StrPriExp_paren" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const innerNode = getEvalNode('"Hello" + " World"');
-        const result = actionDict.StrPriExp_paren(null, innerNode, null);
-        expect(result).toBe('("Hello" + " World")');
-    });
-
-    it('should correctly evaluate the "XorExp_xor" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('5');
-        const rightNode = getEvalNode('3');
-        const result = actionDict.XorExp_xor(leftNode, null, rightNode);
-        expect(result).toBe('5 ^ 3');
-    });
-
-    it('should correctly evaluate the "OrExp_or" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('5');
-        const rightNode = getEvalNode('3');
-        const result = actionDict.OrExp_or(leftNode, null, rightNode);
-        expect(result).toBe('5 | 3');
-    });
-
-    it('should correctly evaluate the "AndExp_and" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('5');
-        const rightNode = getEvalNode('3');
-        const result = actionDict.AndExp_and(leftNode, null, rightNode);
-        expect(result).toBe('5 & 3');
-    });
-
-    it('should correctly evaluate the "NotExp_not" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const innerNode = getEvalNode('5');
-        const result = actionDict.NotExp_not(null, innerNode);
-        expect(result).toBe('~(5)');
-    });
-
-    it('should correctly evaluate the "StrCmpExp_gt" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('"Zebra"');
-        const rightNode = getEvalNode('"Apple"');
-        const result = actionDict.StrCmpExp_gt(leftNode, null, rightNode);
-        expect(result).toBe('-("Zebra" > "Apple")');
-    });
-
-    it('should correctly evaluate the "StrCmpExp_le" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const leftNode = getEvalNode('"Apple"');
-        const rightNode = getEvalNode('"Zebra"');
-        const result = actionDict.StrCmpExp_le(leftNode, null, rightNode);
-        expect(result).toBe('-("Apple" <= "Zebra")');
-    });
-
-    it('should correctly evaluate the "PriExp_pos" action', () => {
-        const semantics = new Semantics();
-        const actionDict = semantics.getSemanticsActionDict() as FunctionMapType;
-
-        const innerNode = getEvalNode('5');
-        const result = actionDict.PriExp_pos(null, innerNode);
-        expect(result).toBe('+5');
-    });
-
 
 });
