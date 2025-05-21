@@ -1,5 +1,5 @@
-import type { SnippetDataType } from "./Interfaces";
-export declare class BasicVmCore {
+import type { IVmRsxApi, SnippetDataType } from "./Interfaces";
+export declare class BasicVmCore implements IVmRsxApi {
     private readonly penColors;
     private readonly paperColors;
     private output;
@@ -17,8 +17,7 @@ export declare class BasicVmCore {
     private backgroundColor;
     private isTag;
     private snippetData;
-    private pitch;
-    private fnOnSpeak;
+    private rsxHandler;
     private static readonly cpcColors;
     private readonly defaultColorsForPens;
     constructor(penColors: string[], paperColors: string[]);
@@ -28,7 +27,10 @@ export declare class BasicVmCore {
     cls(): void;
     mode(num: number): void;
     drawMovePlot(type: string, x: number, y: number): void;
+    getGraphicsPen(): number;
+    getRgbColorStringForPen(pen: number): string;
     private flushGraphicsPath;
+    addGraphicsElement(element: string): void;
     static getTagInSvg(content: string, strokeWidth: string, backgroundColor: string): string;
     flushGraphics(): string;
     flushText(): string;
@@ -40,16 +42,6 @@ export declare class BasicVmCore {
     private printGraphicsText;
     print(...args: string[]): void;
     setOnSpeak(fnOnSpeak: (text: string, pitch: number) => Promise<void>): void;
-    private getStrokeAndFillStr;
-    private rsxArc;
-    private rsxCircle;
-    private rsxDate;
-    private rsxEllipse;
-    private rsxRect;
-    private rsxPitch;
-    private rsxSay;
-    private rsxTime;
-    private rsxMap;
     rsx(cmd: string, args: (number | string)[]): Promise<(number | string)[]>;
     tag(active: boolean): void;
     xpos(): number;

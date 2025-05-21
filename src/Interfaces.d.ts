@@ -61,6 +61,11 @@ export interface IVmAdmin extends IVm {
     getOutput(): string;
     setOutput(str: string): void;
 }
+export interface IVmRsxApi {
+    addGraphicsElement(element: string): void;
+    getGraphicsPen(): number;
+    getRgbColorStringForPen(pen: number): string;
+}
 export type DefinedLabelEntryType = {
     label: string;
     first: number;
