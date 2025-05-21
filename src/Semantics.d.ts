@@ -279,7 +279,7 @@ export declare class Semantics implements ISemantics {
         remain: (timer: number) => number | NodeJS.Timeout | undefined;
         restore: (label: string) => void;
         round: (num: number, dec: number) => number;
-        rsx: (cmd: string, ...args: (string | number)[]) => Promise<(string | number)[]>;
+        rsxCall: (cmd: string, ...args: (string | number)[]) => Promise<(string | number)[]>;
         stop: () => string;
         str$: (num: number) => string;
         tag: (active: boolean) => void;

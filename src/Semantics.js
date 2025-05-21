@@ -143,7 +143,7 @@ function getCodeSnippets(snippetsData) {
         round: function round(num, dec) {
             return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
         },
-        rsx: async function rsx(cmd, ...args) {
+        rsxCall: async function rsxCall(cmd, ...args) {
             return _o.rsx(cmd, args);
         },
         stop: function stop() {
@@ -238,101 +238,106 @@ function getSemanticsActions(semanticsHelper) {
         semanticsHelper.addCompileMessage(`WARNING: Not supported: ${message}`);
         return `/* not supported: ${name}${argStr} */`;
     };
+    /*
+    const processCode = (strings: TemplateStringsArray, ...values: string[]) => {
+        // Simple dedent and join logic
+        const raw = strings.reduce((acc, str, i) => acc + str + (values[i] ?? ""), "");
+        // Remove leading indentation (optional: use a library like `dedent`)
+        const lines = raw.split("\n");
+        const minIndent = lines.filter(l => l.trim()).reduce((min, l) => {
+            const m = l.match(/^(\s*)/);
+            return m ? Math.min(min, m[1].length) : min;
+        }, Infinity);
+        return lines.map(l => l.slice(minIndent)).join("\n").trim();
+    };
+    */
+    function processSubroutines(lineList, definedLabels) {
+        const usedLabels = semanticsHelper.getUsedLabels();
+        const gosubLabels = usedLabels["gosub"] || {};
+        const awaitLabels = [];
+        let subroutineStart;
+        for (const label of definedLabels) {
+            if (gosubLabels[label.label]) {
+                subroutineStart = label;
+            }
+            if (subroutineStart && label.last >= 0) {
+                const first = subroutineStart.first;
+                const indent = lineList[first].search(/\S|$/);
+                const indentStr = " ".repeat(indent);
+                let hasAwait = false;
+                for (let i = first; i <= label.last; i += 1) {
+                    if (lineList[i].includes("await ")) {
+                        hasAwait = true; // quick check
+                    }
+                    lineList[i] = "  " + lineList[i]; // indent
+                    lineList[i] = lineList[i].replace(/\n/g, "\n  ");
+                }
+                const asyncStr = hasAwait ? "async " : "";
+                lineList[first] = `${indentStr}${asyncStr}function _${subroutineStart.label}() {${indentStr}\n` + lineList[first];
+                lineList[label.last] = lineList[label.last].replace(`${indentStr}  return;`, `${indentStr}}`); // end of subroutine: replace "return" by "}" (can also be on same line)
+                if (hasAwait) {
+                    awaitLabels.push(subroutineStart.label);
+                }
+                subroutineStart = undefined;
+            }
+        }
+        return awaitLabels;
+    }
     const semantics = {
         Program(lines) {
             const lineList = evalChildren(lines.children);
             const variableList = semanticsHelper.getVariables();
             const variableDeclarations = variableList.length ? "let " + variableList.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
-            // find subroutines
             const definedLabels = semanticsHelper.getDefinedLabels();
-            const usedLabels = semanticsHelper.getUsedLabels();
-            const gosubLabels = usedLabels["gosub"] || {};
-            const restoreMap = semanticsHelper.getRestoreMap();
-            const awaitLabels = [];
-            let subroutineStart;
-            for (const label of definedLabels) {
-                if (gosubLabels[label.label]) {
-                    subroutineStart = label;
-                }
-                if (subroutineStart && label.last >= 0) {
-                    const first = subroutineStart.first;
-                    const indent = lineList[first].search(/\S|$/);
-                    const indentStr = " ".repeat(indent);
-                    let hasAwait = false;
-                    for (let i = first; i <= label.last; i += 1) {
-                        if (lineList[i].includes("await ")) {
-                            hasAwait = true; // quick check
-                        }
-                        lineList[i] = "  " + lineList[i]; // indent
-                        lineList[i] = lineList[i].replace(/\n/g, "\n  ");
-                    }
-                    const asyncStr = hasAwait ? "async " : "";
-                    lineList[first] = `${indentStr}${asyncStr}function _${subroutineStart.label}() {${indentStr}\n` + lineList[first];
-                    lineList[label.last] = lineList[label.last].replace(`${indentStr}  return;`, `${indentStr}}`); // end of subroutine: replace "return" by "}" (can also be on same line)
-                    if (hasAwait) {
-                        awaitLabels.push(subroutineStart.label);
-                    }
-                    subroutineStart = undefined;
-                }
-                if (restoreMap[label.label] === -1) {
-                    restoreMap[label.label] = label.dataIndex;
-                }
-            }
+            const awaitLabels = processSubroutines(lineList, definedLabels);
             const instrMap = semanticsHelper.getInstrMap();
             const dataList = semanticsHelper.getDataList();
+            // Prepare data definition snippet if needed
+            let dataListSnippet = "";
             if (dataList.length) {
+                const restoreMap = semanticsHelper.getRestoreMap();
+                for (const label of definedLabels) {
+                    if (restoreMap[label.label] === -1) {
+                        restoreMap[label.label] = label.dataIndex;
+                    }
+                }
                 for (const key of Object.keys(restoreMap)) {
-                    let index = restoreMap[key];
-                    if (index < 0) {
-                        index = 0;
-                        restoreMap[key] = index;
+                    if (restoreMap[key] < 0) {
+                        restoreMap[key] = 0;
                     }
                 }
-                lineList.unshift(`_defineData();`);
-                lineList.push(`
+                dataListSnippet = `
 function _defineData() {
-  _d.data = [\n${dataList.join(",\n")}\n  ];
-  _d.restoreMap = ${JSON.stringify(restoreMap)};
-  _d.dataPtr = 0;
-}`);
+	_d.data = [
+${dataList.join(",\n")}
+	];
+	_d.restoreMap = ${JSON.stringify(restoreMap)};
+	_d.dataPtr = 0;
+}
+`;
             }
-            if (!instrMap["end"]) {
-                lineList.push(`return _o.flush();`);
-            }
-            lineList.push("\n// library");
             const codeSnippets = getCodeSnippets(codeSnippetsData);
-            let needsAsync = false;
-            let needsStartTime = false;
-            for (const key of Object.keys(codeSnippets)) {
-                if (instrMap[key]) {
-                    const code = String((codeSnippets[key]).toString());
-                    const adaptedCode = trimIndent(code);
-                    lineList.push(adaptedCode);
-                    if (adaptedCode.startsWith("async ")) {
-                        needsAsync = true;
-                    }
-                    if (adaptedCode.includes("_d.startTime")) {
-                        needsStartTime = true;
-                    }
-                }
-            }
-            if (variableDeclarations) {
-                lineList.unshift(variableDeclarations);
-            }
+            const needsAsync = Object.keys(codeSnippets).some(key => instrMap[key] && trimIndent(String(codeSnippets[key])).startsWith("async "));
             const needsTimerMap = instrMap["after"] || instrMap["every"] || instrMap["remain"];
-            if (needsTimerMap) {
-                lineList.unshift(`_d.timerMap = {};`);
-            }
-            if (needsStartTime) {
-                lineList.unshift(`_d.startTime = Date.now();`);
-            }
-            lineList.unshift(`const _d = _o.getSnippetData();`);
-            if (needsAsync) {
-                lineList.unshift(`return async function() {`);
-                lineList.push('}();');
-            }
-            lineList.unshift(`"use strict"`);
-            let lineStr = lineList.filter((line) => line.trimEnd() !== "").join('\n');
+            // Assemble code lines
+            const codeLines = [
+                needsAsync ? 'return async function() {' : '',
+                '"use strict";',
+                `const _d = _o.getSnippetData();${dataList.length ? ' _defineData();' : ''}`,
+                instrMap["time"] ? '_d.startTime = Date.now();' : '',
+                needsTimerMap ? '_d.timerMap = {};' : '',
+                variableDeclarations,
+                ...lineList.filter(line => line.trimEnd() !== ''),
+                !instrMap["end"] ? `return _o.flush();` : "",
+                dataListSnippet,
+                '// library',
+                Object.keys(codeSnippets)
+                    .filter(key => instrMap[key])
+                    .map(key => trimIndent(String(codeSnippets[key])))
+                    .join('\n'),
+                needsAsync ? '}();' : ''
+            ].filter(Boolean);
+            let lineStr = codeLines.join('\n');
             if (awaitLabels.length) {
                 for (const label of awaitLabels) {
                     const regEx = new RegExp(`_${label}\\(\\);`, "g");
@@ -922,14 +927,14 @@ function _defineData() {
         },
         Rsx(_rsxLit, cmd, e) {
             var _a;
-            semanticsHelper.addInstr("rsx");
+            semanticsHelper.addInstr("rsxCall");
             const cmdString = cmd.sourceString.toLowerCase();
             const rsxArgs = ((_a = e.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
             if (rsxArgs === "") {
-                return `await rsx("${cmdString}"${rsxArgs})`;
+                return `await rsxCall("${cmdString}"${rsxArgs})`;
             }
             // need assign, not so nice to use <RSXFUNCTION>" as separator
-            return rsxArgs.replace("<RSXFUNCTION>", `await rsx("${cmdString}"`) + ")";
+            return rsxArgs.replace("<RSXFUNCTION>", `await rsxCall("${cmdString}"`) + ")";
         },
         RsxAddressOfIdent(_adressOfLit, ident) {
             const identString = ident.sourceString.toLowerCase();
