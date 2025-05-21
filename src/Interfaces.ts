@@ -72,6 +72,12 @@ export interface IVmAdmin extends IVm {
     setOutput(str: string): void;
 }
 
+export interface IVmRsxApi {
+    addGraphicsElement(element: string): void;
+    getGraphicsPen(): number;
+    getRgbColorStringForPen(pen: number): string;
+}
+
 // Type definition for a defined label entry (line label)
 export type DefinedLabelEntryType = {
     label: string,
