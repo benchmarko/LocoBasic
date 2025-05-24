@@ -693,6 +693,10 @@ ${dataList.join(",\n")}
 			return `Math.trunc(${e.eval()})`;
 		},
 
+		Fre(lit: Node, open: Node, e: Node, close: Node) {
+			return notSupported(lit, open, e, close) + "0";
+		},
+
 		AnyFnArgs(_open: Node, args: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			const argumentList = evalChildren(args.asIteration().children);
 			return `(${argumentList.join(", ")})`;
@@ -809,16 +813,22 @@ ${dataList.join(",\n")}
 			return notSupported(lit, open, num, close) + "0";
 		},
 
-		Input(_inputLit: Node, stream: Node, _comma: Node, message: Node, _semi: Node, e: Node) {
+		Input(_inputLit: Node, stream: Node, _comma: Node, message: Node, _semi: Node, ids: Node) {
 			semanticsHelper.addInstr("input");
 			semanticsHelper.addInstr("frame");
 			const streamStr = stream.child(0)?.eval() || "";
 
 			const messageString = message.sourceString.replace(/\s*[;,]$/, "");
-			const identifier = e.eval();
-			const isNumberString = identifier.includes("$") ? "" : ", true";
+			const identifiers = evalChildren(ids.asIteration().children);
+			if (identifiers.length > 1) {
+				const identifierStr = `[${identifiers.join(", ")}]`;
+				// TODO TTT
+				const isNumberString = identifiers[0].includes("$") ? "" : ", true";
+				return `${identifierStr} = (await input(${streamStr}${messageString}${isNumberString})).split(",")`;
+			}
 
-			return `${identifier} = await input(${streamStr}${messageString}${isNumberString})`;
+			const isNumberString = identifiers[0].includes("$") ? "" : ", true";
+			return `${identifiers[0]} = await input(${streamStr}${messageString}${isNumberString})`;
 		},
 
 		Instr_noLen(_instrLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
