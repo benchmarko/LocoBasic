@@ -60,11 +60,11 @@ const dummyVm: DummyVm = {
     origin(x: number, y: number) { this.debug("origin:", x, y); },
     paper(num: number) { this.debug("paper:", num); },
     pen(num: number) { this.debug("pen:", num); },
-    pos() { this.debug("pos:"); return 0; },
+    pos() { this.debug("pos:"); return this._output.length - this._output.lastIndexOf("\n") - 1; },
     print(...args: string[]) { this._output += args.join(''); },
     rsx(cmd: string, args: (string | number)[]): Promise<(number | string)[]> { this._output += cmd + "," + args.join(''); return Promise.resolve([]); },
     tag(active: boolean) { this.debug("tag:", active); },
-    vpos() { this.debug("vpos:"); return 0; },
+    vpos() { this.debug("vpos:"); return (this._output.match(/\n/g) || []).length; },
     xpos() { this.debug("xpos:"); return 0; },
     ypos() { this.debug("ypos:"); return 0; },
     zone(num: number) { this.debug("zone:", num); },
@@ -371,8 +371,12 @@ export class NodeParts implements INodeParts {
                 await this.getExampleMap(databaseItem, core);
                 const exampleName = config.example;
                 const example = core.getExample(exampleName);
-                const script = await this.getExampleScript(example, core);
-                this.start(core, vm, script);
+                if (example) {
+                    const script = await this.getExampleScript(example, core);
+                    this.start(core, vm, script);
+                } else {
+                    console.error(`Error: Example not found: ${exampleName}`);
+                }
             }, 5000);
         }
     }

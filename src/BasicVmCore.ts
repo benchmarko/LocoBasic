@@ -11,7 +11,7 @@ export class BasicVmCore implements IVmRsxApi {
     private currPaper: number = -1;
     private currPen: number = -1;
     private hasPaperChanged: boolean = false;
-    private hasPenChanged:boolean = false;
+    private hasPenChanged: boolean = false;
     private currMode: number = 2;
     private currPos: number = 0;
     private currVpos: number = 0;
@@ -80,9 +80,7 @@ export class BasicVmCore implements IVmRsxApi {
     }
 
     private static deleteAllItems(items: Record<string, unknown>): void {
-        for (const name in items) {
-            delete items[name];
-        }
+        Object.keys(items).forEach(key => delete items[key]);
     }
 
     public reset(): void {
@@ -153,10 +151,7 @@ export class BasicVmCore implements IVmRsxApi {
 
     private flushGraphicsPath(): void {
         if (this.graphicsPathBuffer.length) {
-            let strokeStr = "";
-            if (this.currGraphicsPen >= 0) {
-                strokeStr = `stroke="${this.getRgbColorStringForPen(this.currGraphicsPen)}" `;
-            }
+            const strokeStr = this.currGraphicsPen >= 0 ? `stroke="${this.getRgbColorStringForPen(this.currGraphicsPen)}" ` : "";
             this.graphicsBuffer.push(`<path ${strokeStr}d="${this.graphicsPathBuffer.join("")}" />`);
             this.graphicsPathBuffer.length = 0;
         }
@@ -194,11 +189,10 @@ ${content}
     }
 
     public graphicsPen(num: number): void {
-        if (num === this.currGraphicsPen) {
-            return;
+        if (num !== this.currGraphicsPen) {
+            this.flushGraphicsPath();
+            this.currGraphicsPen = num;
         }
-        this.flushGraphicsPath();
-        this.currGraphicsPen = num;
     }
 
     public ink(num: number, col: number): void {
@@ -252,26 +246,22 @@ ${content}
         }
     }
 
+    public pos(): number {
+        return this.currPos;
+    }
+
     private printGraphicsText(text: string): void {
         const yOffset = 16;
-        let styleStr = "";
-        if (this.currGraphicsPen >= 0) {
-            styleStr = ` style="color: ${this.getRgbColorStringForPen(this.currGraphicsPen)}"`;
-        }
+        const styleStr = this.currGraphicsPen >= 0 ? ` style="color: ${this.getRgbColorStringForPen(this.currGraphicsPen)}"` : "";
         this.addGraphicsElement(`<text x="${this.graphicsX + this.originX}" y="${399 - this.graphicsY - this.originY + yOffset}"${styleStr}>${text}</text>`)
     }
 
     private printText(text: string): void {
         this.output += text;
-        if (text.includes("\n")) {
-            const lines = text.split("\n");
-            const vadd = lines.length - 1;
-            if (vadd) {
-                this.currVpos += vadd;
-                this.currPos = lines[lines.length - 1].length;
-            } else {
-                this.currPos += text.length;
-            }
+        const lines = text.split("\n");
+        if (lines.length > 1) {
+            this.currVpos += lines.length - 1;
+            this.currPos = lines[lines.length - 1].length;
         } else {
             this.currPos += text.length;
         }
@@ -311,16 +301,12 @@ ${content}
         return this.rsxHandler.rsx(cmd, args);
     }
 
-    public pos(): number {
-        return this.currPos;
+    public tag(active: boolean): void {
+        this.isTag = active;
     }
 
     public vpos(): number {
         return this.currVpos;
-    }
-
-    public tag(active: boolean): void {
-        this.isTag = active;
     }
 
     public xpos(): number {

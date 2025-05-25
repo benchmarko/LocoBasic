@@ -45,24 +45,52 @@ export class BasicVmNode implements IVmAdmin {
     private readonly vmCore: BasicVmCore;
     private readonly nodeParts: INodeParts;
 
+    public reset: () => void;
+    public drawMovePlot: (type: string, x: number, y: number) => void;
+    public graphicsPen: (num: number) => void;
+    public ink: (num: number, col: number) => void;
+    public origin: (x: number, y: number) => void;
+    public paper: (n: number) => void;
+    public pen: (n: number) => void;
+    public pos: () => number;
+    public print: (...args: string[]) => void;
+    public rsx: (cmd: string, args: (number | string)[]) => Promise<(number | string)[]>;
+    public tag: (active: boolean) => void;
+    public vpos: () => number;
+    public xpos: () => number;
+    public ypos: () => number;
+    public zone: (num: number) => void;
+    public getSnippetData: () => SnippetDataType;
+    public getOutput: () => string;
+
     constructor(nodeParts: INodeParts) {
         this.nodeParts = nodeParts;
         const penColors = getAnsiColors(false);
         const paperColors = getAnsiColors(true);
         this.vmCore = new BasicVmCore(penColors, paperColors);
-    }
 
-    public reset(): void {
-        this.vmCore.reset();
+        this.reset = this.vmCore.reset.bind(this.vmCore);
+        this.drawMovePlot = this.vmCore.drawMovePlot.bind(this.vmCore);
+        this.graphicsPen = this.vmCore.graphicsPen.bind(this.vmCore);
+        this.ink = this.vmCore.ink.bind(this.vmCore);
+        this.origin = this.vmCore.origin.bind(this.vmCore);
+        this.paper = this.vmCore.paper.bind(this.vmCore);
+        this.pen = this.vmCore.pen.bind(this.vmCore);
+        this.pos = this.vmCore.pos.bind(this.vmCore);
+        this.print = this.vmCore.print.bind(this.vmCore);
+        this.rsx = this.vmCore.rsx.bind(this.vmCore);
+        this.tag = this.vmCore.tag.bind(this.vmCore);
+        this.vpos = this.vmCore.vpos.bind(this.vmCore);
+        this.xpos = this.vmCore.xpos.bind(this.vmCore);
+        this.ypos = this.vmCore.ypos.bind(this.vmCore);
+        this.zone = this.vmCore.zone.bind(this.vmCore);
+        this.getSnippetData = this.vmCore.getSnippetData.bind(this.vmCore);
+        this.getOutput = this.vmCore.getOutput.bind(this.vmCore);
     }
 
     public cls(): void {
         this.vmCore.cls();
         this.nodeParts.consoleClear();
-    }
-
-    public drawMovePlot(type: string, x: number, y: number): void {
-        this.vmCore.drawMovePlot(type, x, y);
     }
 
     public flush(): void {
@@ -74,14 +102,6 @@ export class BasicVmNode implements IVmAdmin {
         if (graphicsOutput) {
             this.nodeParts.consolePrint(graphicsOutput.replace(/\n$/, ""));
         }
-    }
-
-    public graphicsPen(num: number): void {
-        this.vmCore.graphicsPen(num);
-    }
-
-    public ink(num: number, col: number) {
-        this.vmCore.ink(num, col);
     }
 
     public inkey$(): Promise<string> {
@@ -102,62 +122,9 @@ export class BasicVmNode implements IVmAdmin {
     public mode(num: number): void {
         this.vmCore.mode(num);
         this.nodeParts.consoleClear();
-        //console.clear();
-    }
-
-    public origin(x: number, y: number): void {
-        this.vmCore.origin(x, y);
-    }
-
-    public paper(n: number): void {
-        this.vmCore.paper(n);
-    }
-
-    public pen(n: number): void {
-        this.vmCore.pen(n);
-    }
-
-    public pos(): number {
-        return this.vmCore.pos();
-    }
-
-    public print(...args: string[]): void {
-        this.vmCore.print(...args);
-    }
-
-    public async rsx(cmd: string, args: (number | string)[]): Promise<(number | string)[]> {
-        return this.vmCore.rsx(cmd, args);
-    }
-
-    public tag(active: boolean): void {
-        this.vmCore.tag(active);
-    }
-
-    public vpos(): number {
-        return this.vmCore.vpos();
-    }
-
-    public xpos(): number {
-        return this.vmCore.xpos();
-    }
-
-    public ypos(): number {
-        return this.vmCore.ypos();
-    }
-
-    public zone(num: number): void {
-        this.vmCore.zone(num);
     }
 
     public getEscape(): boolean {
         return this.nodeParts.getEscape();
-    }
-
-    public getSnippetData(): SnippetDataType {
-        return this.vmCore.getSnippetData();
-    }
-
-    public getOutput(): string {
-        return this.vmCore.getOutput();
     }
 }
