@@ -35,9 +35,7 @@ export class BasicVmCore {
         return BasicVmCore.cpcColors;
     }
     static deleteAllItems(items) {
-        for (const name in items) {
-            delete items[name];
-        }
+        Object.keys(items).forEach(key => delete items[key]);
     }
     reset() {
         this.colorsForPens.splice(0, this.colorsForPens.length, ...this.defaultColorsForPens);
@@ -98,10 +96,7 @@ export class BasicVmCore {
     }
     flushGraphicsPath() {
         if (this.graphicsPathBuffer.length) {
-            let strokeStr = "";
-            if (this.currGraphicsPen >= 0) {
-                strokeStr = `stroke="${this.getRgbColorStringForPen(this.currGraphicsPen)}" `;
-            }
+            const strokeStr = this.currGraphicsPen >= 0 ? `stroke="${this.getRgbColorStringForPen(this.currGraphicsPen)}" ` : "";
             this.graphicsBuffer.push(`<path ${strokeStr}d="${this.graphicsPathBuffer.join("")}" />`);
             this.graphicsPathBuffer.length = 0;
         }
@@ -134,11 +129,10 @@ ${content}
         return output;
     }
     graphicsPen(num) {
-        if (num === this.currGraphicsPen) {
-            return;
+        if (num !== this.currGraphicsPen) {
+            this.flushGraphicsPath();
+            this.currGraphicsPen = num;
         }
-        this.flushGraphicsPath();
-        this.currGraphicsPen = num;
     }
     ink(num, col) {
         this.colorsForPens[num] = col;
@@ -186,26 +180,20 @@ ${content}
             this.hasPenChanged = true;
         }
     }
+    pos() {
+        return this.currPos;
+    }
     printGraphicsText(text) {
         const yOffset = 16;
-        let styleStr = "";
-        if (this.currGraphicsPen >= 0) {
-            styleStr = ` style="color: ${this.getRgbColorStringForPen(this.currGraphicsPen)}"`;
-        }
+        const styleStr = this.currGraphicsPen >= 0 ? ` style="color: ${this.getRgbColorStringForPen(this.currGraphicsPen)}"` : "";
         this.addGraphicsElement(`<text x="${this.graphicsX + this.originX}" y="${399 - this.graphicsY - this.originY + yOffset}"${styleStr}>${text}</text>`);
     }
     printText(text) {
         this.output += text;
-        if (text.includes("\n")) {
-            const lines = text.split("\n");
-            const vadd = lines.length - 1;
-            if (vadd) {
-                this.currVpos += vadd;
-                this.currPos = lines[lines.length - 1].length;
-            }
-            else {
-                this.currPos += text.length;
-            }
+        const lines = text.split("\n");
+        if (lines.length > 1) {
+            this.currVpos += lines.length - 1;
+            this.currPos = lines[lines.length - 1].length;
         }
         else {
             this.currPos += text.length;
@@ -241,14 +229,11 @@ ${content}
     async rsx(cmd, args) {
         return this.rsxHandler.rsx(cmd, args);
     }
-    pos() {
-        return this.currPos;
+    tag(active) {
+        this.isTag = active;
     }
     vpos() {
         return this.currVpos;
-    }
-    tag(active) {
-        this.isTag = active;
     }
     xpos() {
         return this.graphicsX;

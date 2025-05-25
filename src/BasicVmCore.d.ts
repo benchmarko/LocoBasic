@@ -44,14 +44,14 @@ export declare class BasicVmCore implements IVmRsxApi {
     origin(x: number, y: number): void;
     paper(n: number): void;
     pen(n: number): void;
+    pos(): number;
     private printGraphicsText;
     private printText;
     print(...args: string[]): void;
     setOnSpeak(fnOnSpeak: (text: string, pitch: number) => Promise<void>): void;
     rsx(cmd: string, args: (number | string)[]): Promise<(number | string)[]>;
-    pos(): number;
-    vpos(): number;
     tag(active: boolean): void;
+    vpos(): number;
     xpos(): number;
     ypos(): number;
     zone(num: number): void;

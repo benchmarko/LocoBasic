@@ -43,16 +43,27 @@ export class BasicVmNode {
         const penColors = getAnsiColors(false);
         const paperColors = getAnsiColors(true);
         this.vmCore = new BasicVmCore(penColors, paperColors);
-    }
-    reset() {
-        this.vmCore.reset();
+        this.reset = this.vmCore.reset.bind(this.vmCore);
+        this.drawMovePlot = this.vmCore.drawMovePlot.bind(this.vmCore);
+        this.graphicsPen = this.vmCore.graphicsPen.bind(this.vmCore);
+        this.ink = this.vmCore.ink.bind(this.vmCore);
+        this.origin = this.vmCore.origin.bind(this.vmCore);
+        this.paper = this.vmCore.paper.bind(this.vmCore);
+        this.pen = this.vmCore.pen.bind(this.vmCore);
+        this.pos = this.vmCore.pos.bind(this.vmCore);
+        this.print = this.vmCore.print.bind(this.vmCore);
+        this.rsx = this.vmCore.rsx.bind(this.vmCore);
+        this.tag = this.vmCore.tag.bind(this.vmCore);
+        this.vpos = this.vmCore.vpos.bind(this.vmCore);
+        this.xpos = this.vmCore.xpos.bind(this.vmCore);
+        this.ypos = this.vmCore.ypos.bind(this.vmCore);
+        this.zone = this.vmCore.zone.bind(this.vmCore);
+        this.getSnippetData = this.vmCore.getSnippetData.bind(this.vmCore);
+        this.getOutput = this.vmCore.getOutput.bind(this.vmCore);
     }
     cls() {
         this.vmCore.cls();
         this.nodeParts.consoleClear();
-    }
-    drawMovePlot(type, x, y) {
-        this.vmCore.drawMovePlot(type, x, y);
     }
     flush() {
         const textOutput = this.vmCore.flushText();
@@ -63,12 +74,6 @@ export class BasicVmNode {
         if (graphicsOutput) {
             this.nodeParts.consolePrint(graphicsOutput.replace(/\n$/, ""));
         }
-    }
-    graphicsPen(num) {
-        this.vmCore.graphicsPen(num);
-    }
-    ink(num, col) {
-        this.vmCore.ink(num, col);
     }
     inkey$() {
         const key = this.nodeParts.getKeyFromBuffer();
@@ -85,49 +90,9 @@ export class BasicVmNode {
     mode(num) {
         this.vmCore.mode(num);
         this.nodeParts.consoleClear();
-        //console.clear();
-    }
-    origin(x, y) {
-        this.vmCore.origin(x, y);
-    }
-    paper(n) {
-        this.vmCore.paper(n);
-    }
-    pen(n) {
-        this.vmCore.pen(n);
-    }
-    pos() {
-        return this.vmCore.pos();
-    }
-    print(...args) {
-        this.vmCore.print(...args);
-    }
-    async rsx(cmd, args) {
-        return this.vmCore.rsx(cmd, args);
-    }
-    tag(active) {
-        this.vmCore.tag(active);
-    }
-    vpos() {
-        return this.vmCore.vpos();
-    }
-    xpos() {
-        return this.vmCore.xpos();
-    }
-    ypos() {
-        return this.vmCore.ypos();
-    }
-    zone(num) {
-        this.vmCore.zone(num);
     }
     getEscape() {
         return this.nodeParts.getEscape();
-    }
-    getSnippetData() {
-        return this.vmCore.getSnippetData();
-    }
-    getOutput() {
-        return this.vmCore.getOutput();
     }
 }
 //# sourceMappingURL=BasicVmNode.js.map

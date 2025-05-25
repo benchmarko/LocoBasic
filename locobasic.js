@@ -3408,9 +3408,7 @@ ${dataList.join(",\n")}
             return BasicVmCore.cpcColors;
         }
         static deleteAllItems(items) {
-            for (const name in items) {
-                delete items[name];
-            }
+            Object.keys(items).forEach(key => delete items[key]);
         }
         reset() {
             this.colorsForPens.splice(0, this.colorsForPens.length, ...this.defaultColorsForPens);
@@ -3471,10 +3469,7 @@ ${dataList.join(",\n")}
         }
         flushGraphicsPath() {
             if (this.graphicsPathBuffer.length) {
-                let strokeStr = "";
-                if (this.currGraphicsPen >= 0) {
-                    strokeStr = `stroke="${this.getRgbColorStringForPen(this.currGraphicsPen)}" `;
-                }
+                const strokeStr = this.currGraphicsPen >= 0 ? `stroke="${this.getRgbColorStringForPen(this.currGraphicsPen)}" ` : "";
                 this.graphicsBuffer.push(`<path ${strokeStr}d="${this.graphicsPathBuffer.join("")}" />`);
                 this.graphicsPathBuffer.length = 0;
             }
@@ -3507,11 +3502,10 @@ ${content}
             return output;
         }
         graphicsPen(num) {
-            if (num === this.currGraphicsPen) {
-                return;
+            if (num !== this.currGraphicsPen) {
+                this.flushGraphicsPath();
+                this.currGraphicsPen = num;
             }
-            this.flushGraphicsPath();
-            this.currGraphicsPen = num;
         }
         ink(num, col) {
             this.colorsForPens[num] = col;
@@ -3559,26 +3553,20 @@ ${content}
                 this.hasPenChanged = true;
             }
         }
+        pos() {
+            return this.currPos;
+        }
         printGraphicsText(text) {
             const yOffset = 16;
-            let styleStr = "";
-            if (this.currGraphicsPen >= 0) {
-                styleStr = ` style="color: ${this.getRgbColorStringForPen(this.currGraphicsPen)}"`;
-            }
+            const styleStr = this.currGraphicsPen >= 0 ? ` style="color: ${this.getRgbColorStringForPen(this.currGraphicsPen)}"` : "";
             this.addGraphicsElement(`<text x="${this.graphicsX + this.originX}" y="${399 - this.graphicsY - this.originY + yOffset}"${styleStr}>${text}</text>`);
         }
         printText(text) {
             this.output += text;
-            if (text.includes("\n")) {
-                const lines = text.split("\n");
-                const vadd = lines.length - 1;
-                if (vadd) {
-                    this.currVpos += vadd;
-                    this.currPos = lines[lines.length - 1].length;
-                }
-                else {
-                    this.currPos += text.length;
-                }
+            const lines = text.split("\n");
+            if (lines.length > 1) {
+                this.currVpos += lines.length - 1;
+                this.currPos = lines[lines.length - 1].length;
             }
             else {
                 this.currPos += text.length;
@@ -3614,14 +3602,11 @@ ${content}
         async rsx(cmd, args) {
             return this.rsxHandler.rsx(cmd, args);
         }
-        pos() {
-            return this.currPos;
+        tag(active) {
+            this.isTag = active;
         }
         vpos() {
             return this.currVpos;
-        }
-        tag(active) {
-            this.isTag = active;
         }
         xpos() {
             return this.graphicsX;
@@ -3719,16 +3704,27 @@ ${content}
             const penColors = getAnsiColors(false);
             const paperColors = getAnsiColors(true);
             this.vmCore = new BasicVmCore(penColors, paperColors);
-        }
-        reset() {
-            this.vmCore.reset();
+            this.reset = this.vmCore.reset.bind(this.vmCore);
+            this.drawMovePlot = this.vmCore.drawMovePlot.bind(this.vmCore);
+            this.graphicsPen = this.vmCore.graphicsPen.bind(this.vmCore);
+            this.ink = this.vmCore.ink.bind(this.vmCore);
+            this.origin = this.vmCore.origin.bind(this.vmCore);
+            this.paper = this.vmCore.paper.bind(this.vmCore);
+            this.pen = this.vmCore.pen.bind(this.vmCore);
+            this.pos = this.vmCore.pos.bind(this.vmCore);
+            this.print = this.vmCore.print.bind(this.vmCore);
+            this.rsx = this.vmCore.rsx.bind(this.vmCore);
+            this.tag = this.vmCore.tag.bind(this.vmCore);
+            this.vpos = this.vmCore.vpos.bind(this.vmCore);
+            this.xpos = this.vmCore.xpos.bind(this.vmCore);
+            this.ypos = this.vmCore.ypos.bind(this.vmCore);
+            this.zone = this.vmCore.zone.bind(this.vmCore);
+            this.getSnippetData = this.vmCore.getSnippetData.bind(this.vmCore);
+            this.getOutput = this.vmCore.getOutput.bind(this.vmCore);
         }
         cls() {
             this.vmCore.cls();
             this.nodeParts.consoleClear();
-        }
-        drawMovePlot(type, x, y) {
-            this.vmCore.drawMovePlot(type, x, y);
         }
         flush() {
             const textOutput = this.vmCore.flushText();
@@ -3739,12 +3735,6 @@ ${content}
             if (graphicsOutput) {
                 this.nodeParts.consolePrint(graphicsOutput.replace(/\n$/, ""));
             }
-        }
-        graphicsPen(num) {
-            this.vmCore.graphicsPen(num);
-        }
-        ink(num, col) {
-            this.vmCore.ink(num, col);
         }
         inkey$() {
             const key = this.nodeParts.getKeyFromBuffer();
@@ -3761,49 +3751,9 @@ ${content}
         mode(num) {
             this.vmCore.mode(num);
             this.nodeParts.consoleClear();
-            //console.clear();
-        }
-        origin(x, y) {
-            this.vmCore.origin(x, y);
-        }
-        paper(n) {
-            this.vmCore.paper(n);
-        }
-        pen(n) {
-            this.vmCore.pen(n);
-        }
-        pos() {
-            return this.vmCore.pos();
-        }
-        print(...args) {
-            this.vmCore.print(...args);
-        }
-        async rsx(cmd, args) {
-            return this.vmCore.rsx(cmd, args);
-        }
-        tag(active) {
-            this.vmCore.tag(active);
-        }
-        vpos() {
-            return this.vmCore.vpos();
-        }
-        xpos() {
-            return this.vmCore.xpos();
-        }
-        ypos() {
-            return this.vmCore.ypos();
-        }
-        zone(num) {
-            this.vmCore.zone(num);
         }
         getEscape() {
             return this.nodeParts.getEscape();
-        }
-        getSnippetData() {
-            return this.vmCore.getSnippetData();
-        }
-        getOutput() {
-            return this.vmCore.getOutput();
         }
     }
 
@@ -3826,11 +3776,11 @@ ${content}
         origin(x, y) { this.debug("origin:", x, y); },
         paper(num) { this.debug("paper:", num); },
         pen(num) { this.debug("pen:", num); },
-        pos() { this.debug("pos:"); return 0; },
+        pos() { this.debug("pos:"); return this._output.length - this._output.lastIndexOf("\n") - 1; },
         print(...args) { this._output += args.join(''); },
         rsx(cmd, args) { this._output += cmd + "," + args.join(''); return Promise.resolve([]); },
         tag(active) { this.debug("tag:", active); },
-        vpos() { this.debug("vpos:"); return 0; },
+        vpos() { this.debug("vpos:"); return (this._output.match(/\n/g) || []).length; },
         xpos() { this.debug("xpos:"); return 0; },
         ypos() { this.debug("ypos:"); return 0; },
         zone(num) { this.debug("zone:", num); },
@@ -4104,8 +4054,13 @@ ${content}
                     await this.getExampleMap(databaseItem, core);
                     const exampleName = config.example;
                     const example = core.getExample(exampleName);
-                    const script = await this.getExampleScript(example, core);
-                    this.start(core, vm, script);
+                    if (example) {
+                        const script = await this.getExampleScript(example, core);
+                        this.start(core, vm, script);
+                    }
+                    else {
+                        console.error(`Error: Example not found: ${exampleName}`);
+                    }
                 }, 5000);
             }
         }
@@ -4153,16 +4108,27 @@ node hello1.js
             const paperColors = cpcColors.map((color) => ui.getColor(color, true));
             this.vmCore = new BasicVmCore(penColors, paperColors);
             this.vmCore.setOnSpeak(this.fnOnSpeak.bind(this));
-        }
-        reset() {
-            this.vmCore.reset();
+            this.reset = this.vmCore.reset.bind(this.vmCore);
+            this.drawMovePlot = this.vmCore.drawMovePlot.bind(this.vmCore);
+            this.graphicsPen = this.vmCore.graphicsPen.bind(this.vmCore);
+            this.ink = this.vmCore.ink.bind(this.vmCore);
+            this.origin = this.vmCore.origin.bind(this.vmCore);
+            this.paper = this.vmCore.paper.bind(this.vmCore);
+            this.pen = this.vmCore.pen.bind(this.vmCore);
+            this.pos = this.vmCore.pos.bind(this.vmCore);
+            this.print = this.vmCore.print.bind(this.vmCore);
+            this.rsx = this.vmCore.rsx.bind(this.vmCore);
+            this.tag = this.vmCore.tag.bind(this.vmCore);
+            this.vpos = this.vmCore.vpos.bind(this.vmCore);
+            this.xpos = this.vmCore.xpos.bind(this.vmCore);
+            this.ypos = this.vmCore.ypos.bind(this.vmCore);
+            this.zone = this.vmCore.zone.bind(this.vmCore);
+            this.getSnippetData = this.vmCore.getSnippetData.bind(this.vmCore);
+            this.getOutput = this.vmCore.getOutput.bind(this.vmCore);
         }
         cls() {
             this.vmCore.cls();
             this.ui.setOutputText("");
-        }
-        drawMovePlot(type, x, y) {
-            this.vmCore.drawMovePlot(type, x, y);
         }
         flush() {
             const textOutput = this.vmCore.flushText();
@@ -4173,12 +4139,6 @@ node hello1.js
             if (graphicsOutput) {
                 this.ui.addOutputText(graphicsOutput);
             }
-        }
-        graphicsPen(num) {
-            this.vmCore.graphicsPen(num);
-        }
-        ink(num, col) {
-            this.vmCore.ink(num, col);
         }
         inkey$() {
             const key = this.ui.getKeyFromBuffer();
@@ -4201,50 +4161,11 @@ node hello1.js
             this.vmCore.mode(num);
             this.ui.setOutputText("");
         }
-        origin(x, y) {
-            this.vmCore.origin(x, y);
-        }
-        paper(n) {
-            this.vmCore.paper(n);
-        }
-        pen(n) {
-            this.vmCore.pen(n);
-        }
-        pos() {
-            return this.vmCore.pos();
-        }
-        print(...args) {
-            this.vmCore.print(...args);
-        }
         async fnOnSpeak(text, pitch) {
             return this.ui.speak(text, pitch);
         }
-        async rsx(cmd, args) {
-            return this.vmCore.rsx(cmd, args);
-        }
-        tag(active) {
-            this.vmCore.tag(active);
-        }
-        vpos() {
-            return this.vmCore.vpos();
-        }
-        xpos() {
-            return this.vmCore.xpos();
-        }
-        ypos() {
-            return this.vmCore.ypos();
-        }
-        zone(num) {
-            this.vmCore.zone(num);
-        }
         getEscape() {
             return this.ui.getEscape();
-        }
-        getSnippetData() {
-            return this.vmCore.getSnippetData();
-        }
-        getOutput() {
-            return this.vmCore.getOutput();
         }
     }
 
