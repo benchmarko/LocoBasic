@@ -2,6 +2,8 @@ import type { ActionDict, Node } from "ohm-js";
 import type { IVm, ISemantics, SnippetDataType, UsedLabelEntryType } from "./Interfaces";
 import { SemanticsHelper } from "./SemanticsHelper";
 type RecursiveArray<T> = T | RecursiveArray<T>[];
+export declare const CommaOpChar = "\u2192";
+export declare const TabOpChar = "\u21D2";
 declare const codeSnippetsData: {
     _o: IVm;
     _d: SnippetDataType;
@@ -76,6 +78,7 @@ export declare class Semantics implements ISemantics {
         Exp(_expLit: Node, _open: Node, e: Node, _close: Node): string;
         Fill(lit: Node, num: Node): string;
         Fix(_fixLit: Node, _open: Node, e: Node, _close: Node): string;
+        Fre(lit: Node, open: Node, e: Node, close: Node): string;
         AnyFnArgs(_open: Node, args: Node, _close: Node): string;
         FnIdent(fnIdent: Node, args: Node): string;
         StrFnIdent(fnIdent: Node, args: Node): string;
@@ -94,7 +97,7 @@ export declare class Semantics implements ISemantics {
         Inkey(lit: Node, open: Node, num: Node, close: Node): string;
         InkeyS(_inkeySLit: Node): string;
         Inp(lit: Node, open: Node, num: Node, close: Node): string;
-        Input(_inputLit: Node, stream: Node, _comma: Node, message: Node, _semi: Node, e: Node): string;
+        Input(_inputLit: Node, stream: Node, _comma: Node, message: Node, _semi: Node, ids: Node): string;
         Instr_noLen(_instrLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node): string;
         Instr_len(_instrLit: Node, _open: Node, len: Node, _comma1: Node, e1: Node, _comma2: Node, e2: Node, _close: Node): string;
         Int(_intLit: Node, _open: Node, e: Node, _close: Node): string;
@@ -142,6 +145,7 @@ export declare class Semantics implements ISemantics {
         Pos(lit: Node, open: Node, streamLit: Node, num: Node, close: Node): string;
         PrintArg_strCmp(_cmp: Node, args: Node): any;
         PrintArg_usingNum(_printLit: Node, format: Node, _semi: Node, numArgs: Node): string;
+        PrintArg_commaOp(_comma: Node): string;
         StreamArg(streamLit: Node, stream: Node): string;
         Print(_printLit: Node, stream: Node, _comma: Node, args: Node, semi: Node): string;
         Rad(_radLit: Node): string;
@@ -178,7 +182,7 @@ export declare class Semantics implements ISemantics {
         StringS_num(_stringLit: Node, _open: Node, len: Node, _commaLit: Node, num: Node, _close: Node): string;
         Symbol_def(lit: Node, args: Node): string;
         Symbol_after(lit: Node, afterLit: Node, num: Node): string;
-        Tab(lit: Node, open: Node, len: Node, close: Node): string;
+        Tab(_lit: Node, _open: Node, num: Node, _close: Node): string;
         Tag(_tagLit: Node, stream: Node): string;
         Tagoff(_tagoffLit: Node, stream: Node): string;
         Tan: (lit: Node, _open: Node, e: Node, _close: Node) => string;
@@ -198,11 +202,10 @@ export declare class Semantics implements ISemantics {
         Width(lit: Node, num: Node): string;
         Window_def(lit: Node, stream: Node, comma0: Node, num: Node, comma: Node, num2: Node, comma2: Node, num3: Node, comma3: Node, num4: Node): string;
         Window_swap(lit: Node, swapLit: Node, num: Node, comma: Node, num2: Node): string;
-        WriteArg(e: Node): any;
         Write(_printLit: Node, stream: Node, _comma: Node, args: Node): string;
         Xpos(_xposLit: Node): string;
         Ypos(_xposLit: Node): string;
-        Zone(lit: Node, num: Node): string;
+        Zone(_lit: Node, num: Node): string;
         AndExp_and(a: Node, _op: Node, b: Node): string;
         NotExp_not(_op: Node, e: Node): string;
         OrExp_or(a: Node, _op: Node, b: Node): string;
@@ -274,6 +277,7 @@ export declare class Semantics implements ISemantics {
         pen: (n: number) => void;
         plot: (x: number, y: number) => void;
         plotr: (x: number, y: number) => void;
+        pos: () => number;
         print: (...args: (string | number)[]) => void;
         read: () => string | number;
         remain: (timer: number) => number | NodeJS.Timeout | undefined;
@@ -285,8 +289,11 @@ export declare class Semantics implements ISemantics {
         tag: (active: boolean) => void;
         time: () => number;
         val: (str: string) => number;
+        vpos: () => number;
+        write: (...args: (string | number)[]) => void;
         xpos: () => number;
         ypos: () => number;
+        zone: (num: number) => void;
     };
 }
 export {};

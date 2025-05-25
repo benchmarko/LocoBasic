@@ -21,15 +21,17 @@ export declare class BasicVmBrowser implements IVmAdmin {
     origin(x: number, y: number): void;
     paper(n: number): void;
     pen(n: number): void;
+    pos(): number;
     print(...args: string[]): void;
     private fnOnSpeak;
     rsx(cmd: string, args: (number | string)[]): Promise<(number | string)[]>;
     tag(active: boolean): void;
+    vpos(): number;
     xpos(): number;
     ypos(): number;
+    zone(num: number): void;
     getEscape(): boolean;
     getSnippetData(): SnippetDataType;
     getOutput(): string;
-    setOutput(str: string): void;
 }
 //# sourceMappingURL=BasicVmBrowser.d.ts.map

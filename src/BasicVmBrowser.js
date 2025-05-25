@@ -64,6 +64,9 @@ export class BasicVmBrowser {
     pen(n) {
         this.vmCore.pen(n);
     }
+    pos() {
+        return this.vmCore.pos();
+    }
     print(...args) {
         this.vmCore.print(...args);
     }
@@ -76,11 +79,17 @@ export class BasicVmBrowser {
     tag(active) {
         this.vmCore.tag(active);
     }
+    vpos() {
+        return this.vmCore.vpos();
+    }
     xpos() {
         return this.vmCore.xpos();
     }
     ypos() {
         return this.vmCore.ypos();
+    }
+    zone(num) {
+        this.vmCore.zone(num);
     }
     getEscape() {
         return this.ui.getEscape();
@@ -90,9 +99,6 @@ export class BasicVmBrowser {
     }
     getOutput() {
         return this.vmCore.getOutput();
-    }
-    setOutput(str) {
-        this.vmCore.setOutput(str);
     }
 }
 //# sourceMappingURL=BasicVmBrowser.js.map

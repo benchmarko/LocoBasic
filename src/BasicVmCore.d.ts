@@ -5,7 +5,12 @@ export declare class BasicVmCore implements IVmRsxApi {
     private output;
     private currPaper;
     private currPen;
+    private hasPaperChanged;
+    private hasPenChanged;
     private currMode;
+    private currPos;
+    private currVpos;
+    private currZone;
     private readonly graphicsBuffer;
     private readonly graphicsPathBuffer;
     private currGraphicsPen;
@@ -40,14 +45,17 @@ export declare class BasicVmCore implements IVmRsxApi {
     paper(n: number): void;
     pen(n: number): void;
     private printGraphicsText;
+    private printText;
     print(...args: string[]): void;
     setOnSpeak(fnOnSpeak: (text: string, pitch: number) => Promise<void>): void;
     rsx(cmd: string, args: (number | string)[]): Promise<(number | string)[]>;
+    pos(): number;
+    vpos(): number;
     tag(active: boolean): void;
     xpos(): number;
     ypos(): number;
+    zone(num: number): void;
     getSnippetData(): SnippetDataType;
     getOutput(): string;
-    setOutput(str: string): void;
 }
 //# sourceMappingURL=BasicVmCore.d.ts.map

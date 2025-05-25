@@ -195,16 +195,16 @@
       | Comment? eol Label? -- newline
 
     Abs
-      = abs #"(" NumExp ")"
+      = abs "(" NumExp ")"
 
     After
       = after NumExp ("," NumExp)? gosub label
 
     Asc
-      = asc #"(" StrExp ")"
+      = asc "(" StrExp ")"
 
     Atn
-      = atn #"(" NumExp ")"
+      = atn "(" NumExp ")"
 
     Assign
       = ident "=" NumExp
@@ -214,7 +214,7 @@
       = auto label? ("," digit+)?
 
     BinS
-      = binS #"(" NumExp ("," NumExp)? ")"
+      = binS "(" NumExp ("," NumExp)? ")"
 
     Border
       = border NumExp ("," NumExp)?
@@ -229,10 +229,10 @@
       = chain merge? StrExp ("," NumExp)? ("," delete label)? // delete simplified
 
     ChrS
-      = chrS #"(" NumExp ")"
+      = chrS "(" NumExp ")"
 
     Cint
-      = cint #"(" NumExp ")"
+      = cint "(" NumExp ")"
 
     Clear
       = clear input -- input
@@ -260,10 +260,10 @@
       = copychrS "(" StreamArg ")"
 
     Cos
-      = cos #"(" NumExp ")"
+      = cos "(" NumExp ")"
 
     Creal
-      = creal #"(" NumExp ")"
+      = creal "(" NumExp ")"
 
     Cursor
       = cursor NumExp ("," NumExp)?
@@ -275,13 +275,13 @@
       = data NonemptyListOf<DataItem, ",">
 
     DecS
-      = decS #"(" NumExp "," StrExp ")"
+      = decS "(" NumExp "," StrExp ")"
 
     Def
       = def fn DefAssign
 
     DefArgs
-      = #"(" ListOf<SimpleIdent, ","> ")"
+      = "(" ListOf<SimpleIdent, ","> ")"
 
     DefAssign
       = ident DefArgs? "=" NumExp
@@ -357,13 +357,13 @@
       = every NumExp ("," NumExp)? gosub label
 
     Exp
-      = exp #"(" NumExp ")"
+      = exp "(" NumExp ")"
 
     Fill
       = fill NumExp
 
     Fix
-      = fix #"(" NumExp ")"
+      = fix "(" NumExp ")"
 
     For
       = for variable "=" NumExp to NumExp (step NumExp)?
@@ -373,6 +373,9 @@
 
     Frame
       = frame
+
+    Fre
+      = fre "(" (StrExp | NumExp) ")"
 
     Gosub
       = gosub label
@@ -387,7 +390,7 @@
       = graphics pen NumExp
 
     HexS
-      = hexS #"(" NumExp ("," NumExp)? ")"
+      = hexS "(" NumExp ("," NumExp)? ")"
 
     Himem
       = himem
@@ -405,14 +408,14 @@
       = inp "(" NumExp ")"
 
     Input
-      = input (StreamArg ",")? (string (";" | ","))? AnyIdent  // or NonemptyListOf?
+      = input (StreamArg ",")? (string (";" | ","))? NonemptyListOf<AnyIdent, ",">
 
     Instr
-      = instr #"(" StrExp "," StrExp ")" -- noLen
-      | instr #"(" NumExp "," StrExp "," StrExp ")" -- len
+      = instr "(" StrExp "," StrExp ")" -- noLen
+      | instr "(" NumExp "," StrExp "," StrExp ")" -- len
 
     Int
-      = int #"(" NumExp ")"
+      = int "(" NumExp ")"
 
     Joy
       = joy "(" NumExp ")"
@@ -421,10 +424,10 @@
       = key
 
     LeftS
-      = leftS #"(" StrExp "," NumExp ")"
+      = leftS "(" StrExp "," NumExp ")"
 
     Len
-      = len #"(" StrExp ")"
+      = len "(" StrExp ")"
 
     Let
       = let (ArrayAssign | Assign)
@@ -442,19 +445,19 @@
       = locate (StreamArg ",")? NumExp ("," NumExp)?
 
     Log
-      = log #"(" NumExp ")"
+      = log "(" NumExp ")"
 
     Log10
-      = log10 #"(" NumExp ")"
+      = log10 "(" NumExp ")"
 
     LowerS
-      = lowerS #"(" StrExp ")"
+      = lowerS "(" StrExp ")"
 
     Mask
       = mask NumExp ("," NumExp)? ("," NumExp)?
 
     Max
-      = max #"(" NonemptyListOf<NumExp, ","> ")"
+      = max "(" NonemptyListOf<NumExp, ","> ")"
 
     Memory
       = memory NumExp
@@ -463,13 +466,13 @@
       = merge StrExp
 
     MidS
-      = midS #"(" StrExp "," NumExp ("," NumExp)? ")"
+      = midS "(" StrExp "," NumExp ("," NumExp)? ")"
 
     MidSAssign
-      = midS #"(" strIdent "," NumExp ("," NumExp)? ")" "=" StrExp
+      = midS "(" strIdent "," NumExp ("," NumExp)? ")" "=" StrExp
 
     Min
-      = min #"(" NonemptyListOf<NumExp, ","> ")"
+      = min "(" NonemptyListOf<NumExp, ","> ")"
 
     Mode
       = mode NumExp
@@ -530,6 +533,9 @@
     Pos
       = pos "(" "#" NumExp ")"
 
+    PrintCommaOp
+      = ","
+
     PrintArg
       = &StrCmpExp NumExp -- strCmp
       | StrExp
@@ -537,12 +543,16 @@
       | using StrExp ";" NonemptyListOf<NumExp, ";"> -- usingNum
       | Spc
       | Tab
+      | PrintCommaOp -- commaOp
 
     StreamArg
       = "#" NumExp
 
+    PrintSep
+      = ";" | ""
+
     Print
-      = (print | "?") (StreamArg ",")? ListOf<PrintArg, ";"> (";")?
+      = (print | "?") (StreamArg ",")? ListOf<PrintArg, PrintSep> (";")?
 
     Rad
       = rad
@@ -563,7 +573,7 @@
       = renum label? ("," label)? ("," number)?
 
     Remain
-      = remain #"(" NumExp ")"
+      = remain "(" NumExp ")"
 
     Restore
       = restore label?
@@ -578,10 +588,10 @@
       = rightS "(" StrExp "," NumExp ")"
 
     Rnd
-      = rnd (#"(" NumExp ")")?
+      = rnd ("(" NumExp ")")?
 
     Round
-      = round #"(" NumExp ("," NumExp)? ")"
+      = round "(" NumExp ("," NumExp)? ")"
 
     Rsx
       = "|" #rsxIdentName RsxArgs?
@@ -601,16 +611,16 @@
       = save StrExp ("," letter)? ("," NumExp)? ("," NumExp)? ("," NumExp)?
 
     Sgn
-      = sgn #"(" NumExp ")"
+      = sgn "(" NumExp ")"
 
     Sin
-      = sin #"(" NumExp ")"
+      = sin "(" NumExp ")"
 
     Sound
       = sound NonemptyListOf<NumExp, ","> // simplified
 
     SpaceS
-      = spaceS #"(" NumExp ")"
+      = spaceS "(" NumExp ")"
 
     Spc
       = spc "(" NumExp ")"
@@ -624,17 +634,17 @@
       = sq "(" NumExp ")"
 
     Sqr
-      = sqr #"(" NumExp ")"
+      = sqr "(" NumExp ")"
 
     Stop
       = stop
 
     StrS
-      = strS #"(" NumExp ")"
+      = strS "(" NumExp ")"
 
     StringS
-      = stringS #"(" NumExp "," StrExp ")" -- str
-      | stringS #"(" NumExp "," NumExp ")" -- num
+      = stringS "(" NumExp "," StrExp ")" -- str
+      | stringS "(" NumExp "," NumExp ")" -- num
 
     Symbol
       = symbol NonemptyListOf<NumExp, ","> -- def // simplified
@@ -650,7 +660,7 @@
       = tagoff StreamArg?
 
     Tan
-      = tan #"(" NumExp ")"
+      = tan "(" NumExp ")"
 
     Test
       = test "(" NumExp "," NumExp ")"
@@ -671,10 +681,10 @@
       = unt "(" NumExp ")"
 
     UpperS
-      = upperS #"(" StrExp ")"
+      = upperS "(" StrExp ")"
 
     Val
-      = val #"(" StrExp ")"
+      = val "(" StrExp ")"
 
     Vpos
       = vpos "(" "#" NumExp ")"
@@ -703,7 +713,7 @@
       | NumExp
 
     Write
-      = write (StreamArg ",")? ListOf<WriteArg, ";">
+      = write (StreamArg ",")? ListOf<WriteArg, (";" | ",")>
 
     Xpos
       = xpos
@@ -827,6 +837,7 @@
       | Erl
       | Err
       | Fix
+      | Fre
       | Himem
       | Inkey
       | Inp
@@ -862,17 +873,17 @@
       = NonemptyListOf<NumExp, ",">
 
     ArrayIdent
-      = ident #"(" ArrayArgs ")"
+      = ident "(" ArrayArgs ")"
 
     StrArrayIdent
-      = strIdent #"(" ArrayArgs ")"
+      = strIdent "(" ArrayArgs ")"
 
     DimArrayArgs
       = NonemptyListOf<NumExp, ",">
 
     DimArrayIdent
-      = ident #"(" DimArrayArgs ")"
-      | strIdent #"(" DimArrayArgs ")"
+      = ident "(" DimArrayArgs ")"
+      | strIdent "(" DimArrayArgs ")"
 
     SimpleIdent
       = strIdent
@@ -895,7 +906,7 @@
       | NumExp
 
     AnyFnArgs
-      = #"(" ListOf<AnyFnArg, ","> ")"
+      = "(" ListOf<AnyFnArg, ","> ")"
 
 
     keyword
@@ -1767,6 +1778,8 @@
     }
     SemanticsHelper.reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;
 
+    const CommaOpChar = "\u2192"; // Unicode arrow right
+    const TabOpChar = "\u21d2"; // Unicode double arrow right
     const codeSnippetsData = {
         _o: {},
         _d: {},
@@ -1888,10 +1901,13 @@
             plotr: function plotr(x, y) {
                 _o.drawMovePlot("p", x, y);
             },
+            pos: function pos() {
+                return _o.pos() + 1;
+            },
             print: function print(...args) {
                 const _printNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
-                const output = args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg).join("");
-                _o.print(output);
+                const output = args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg);
+                _o.print(...output);
             },
             read: function read() {
                 return _d.data[_d.dataPtr++];
@@ -1930,12 +1946,22 @@
             val: function val(str) {
                 return Number(str.replace("&x", "0b").replace("&", "0x"));
             },
+            vpos: function vpos() {
+                return _o.vpos() + 1;
+            },
+            write: function write(...args) {
+                const output = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
+                _o.print(output);
+            },
             xpos: function xpos() {
                 return _o.xpos();
             },
             ypos: function ypos() {
                 return _o.ypos();
-            }
+            },
+            zone: function zone(num) {
+                return _o.zone(num);
+            },
         };
         return codeSnippets;
     }
@@ -2006,19 +2032,6 @@
             semanticsHelper.addCompileMessage(`WARNING: Not supported: ${message}`);
             return `/* not supported: ${name}${argStr} */`;
         };
-        /*
-        const processCode = (strings: TemplateStringsArray, ...values: string[]) => {
-            // Simple dedent and join logic
-            const raw = strings.reduce((acc, str, i) => acc + str + (values[i] ?? ""), "");
-            // Remove leading indentation (optional: use a library like `dedent`)
-            const lines = raw.split("\n");
-            const minIndent = lines.filter(l => l.trim()).reduce((min, l) => {
-                const m = l.match(/^(\s*)/);
-                return m ? Math.min(min, m[1].length) : min;
-            }, Infinity);
-            return lines.map(l => l.slice(minIndent)).join("\n").trim();
-        };
-        */
         function processSubroutines(lineList, definedLabels) {
             const usedLabels = semanticsHelper.getUsedLabels();
             const gosubLabels = usedLabels["gosub"] || {};
@@ -2351,6 +2364,9 @@ ${dataList.join(",\n")}
             Fix(_fixLit, _open, e, _close) {
                 return `Math.trunc(${e.eval()})`;
             },
+            Fre(lit, open, e, close) {
+                return notSupported(lit, open, e, close) + "0";
+            },
             AnyFnArgs(_open, args, _close) {
                 const argumentList = evalChildren(args.asIteration().children);
                 return `(${argumentList.join(", ")})`;
@@ -2445,15 +2461,21 @@ ${dataList.join(",\n")}
             Inp(lit, open, num, close) {
                 return notSupported(lit, open, num, close) + "0";
             },
-            Input(_inputLit, stream, _comma, message, _semi, e) {
+            Input(_inputLit, stream, _comma, message, _semi, ids) {
                 var _a;
                 semanticsHelper.addInstr("input");
                 semanticsHelper.addInstr("frame");
                 const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
                 const messageString = message.sourceString.replace(/\s*[;,]$/, "");
-                const identifier = e.eval();
-                const isNumberString = identifier.includes("$") ? "" : ", true";
-                return `${identifier} = await input(${streamStr}${messageString}${isNumberString})`;
+                const identifiers = evalChildren(ids.asIteration().children);
+                if (identifiers.length > 1) {
+                    const identifierStr = `[${identifiers.join(", ")}]`;
+                    // TODO TTT
+                    const isNumberString = identifiers[0].includes("$") ? "" : ", true";
+                    return `${identifierStr} = (await input(${streamStr}${messageString}${isNumberString})).split(",")`;
+                }
+                const isNumberString = identifiers[0].includes("$") ? "" : ", true";
+                return `${identifiers[0]} = await input(${streamStr}${messageString}${isNumberString})`;
             },
             Instr_noLen(_instrLit, _open, e1, _comma, e2, _close) {
                 return `((${e1.eval()}).indexOf(${e2.eval()}) + 1)`;
@@ -2607,6 +2629,10 @@ ${dataList.join(",\n")}
                 return notSupported(lit, num, comma, num2);
             },
             Pos(lit, open, streamLit, num, close) {
+                if (num.eval() === "0") {
+                    semanticsHelper.addInstr("pos");
+                    return "pos()";
+                }
                 return notSupported(lit, open, streamLit, num, close) + "0";
             },
             PrintArg_strCmp(_cmp, args) {
@@ -2619,6 +2645,9 @@ ${dataList.join(",\n")}
                 const argumentList = evalChildren(numArgs.asIteration().children);
                 const parameterString = argumentList.map((arg) => `dec$(${arg}, ${formatString})`).join(', ');
                 return parameterString;
+            },
+            PrintArg_commaOp(_comma) {
+                return `"${CommaOpChar}"`; // Unicode arrow right
             },
             StreamArg(streamLit, stream) {
                 return notSupported(streamLit, stream) + "";
@@ -2783,8 +2812,8 @@ ${dataList.join(",\n")}
             Symbol_after(lit, afterLit, num) {
                 return notSupported(lit, afterLit, num);
             },
-            Tab(lit, open, len, close) {
-                return notSupported(lit, open, len, close) + '""';
+            Tab(_lit, _open, num, _close) {
+                return `"${TabOpChar}${num.eval()}"`; // Unicode double arrow right
             },
             Tag(_tagLit, stream) {
                 var _a;
@@ -2827,6 +2856,10 @@ ${dataList.join(",\n")}
                 return `val(${numStr})`;
             },
             Vpos(lit, open, streamLit, num, close) {
+                if (num.eval() === "0") {
+                    semanticsHelper.addInstr("vpos");
+                    return "vpos()";
+                }
                 return notSupported(lit, open, streamLit, num, close) + "0";
             },
             Wait(lit, num, comma, num2, comma2, num3) {
@@ -2851,20 +2884,13 @@ ${dataList.join(",\n")}
             Window_swap(lit, swapLit, num, comma, num2) {
                 return notSupported(lit, swapLit, num, comma, num2);
             },
-            WriteArg(e) {
-                const result = e.eval();
-                if (typeof result === "string") {
-                    return `${result}`;
-                }
-                return result;
-            },
             Write(_printLit, stream, _comma, args) {
                 var _a;
-                semanticsHelper.addInstr("print"); // we use print for output
+                semanticsHelper.addInstr("write");
                 const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
                 const argumentList = evalChildren(args.asIteration().children);
-                const parameterString = argumentList.join(', ') || "";
-                return `print(${streamStr}'${parameterString}')`;
+                const parameterString = argumentList.join(', ');
+                return `write(${streamStr}${parameterString})`;
             },
             Xpos(_xposLit) {
                 semanticsHelper.addInstr("xpos");
@@ -2874,8 +2900,9 @@ ${dataList.join(",\n")}
                 semanticsHelper.addInstr("ypos");
                 return `ypos()`;
             },
-            Zone(lit, num) {
-                return notSupported(lit, num);
+            Zone(_lit, num) {
+                semanticsHelper.addInstr("zone");
+                return `zone(${num.eval()})`;
             },
             AndExp_and(a, _op, b) {
                 return `${a.eval()} & ${b.eval()}`;
@@ -3352,7 +3379,12 @@ ${dataList.join(",\n")}
             this.output = "";
             this.currPaper = -1;
             this.currPen = -1;
+            this.hasPaperChanged = false;
+            this.hasPenChanged = false;
             this.currMode = 2;
+            this.currPos = 0;
+            this.currVpos = 0;
+            this.currZone = 13; // comma tab zone value
             this.graphicsBuffer = [];
             this.graphicsPathBuffer = [];
             this.currGraphicsPen = -1;
@@ -3388,9 +3420,14 @@ ${dataList.join(",\n")}
         }
         cls() {
             this.output = "";
+            this.currPos = 0;
+            this.currVpos = 0;
+            this.currZone = 13;
             this.isTag = false;
             this.currPaper = -1;
             this.currPen = -1;
+            this.hasPaperChanged = false;
+            this.hasPenChanged = false;
             this.graphicsBuffer.length = 0;
             this.graphicsPathBuffer.length = 0;
             this.currGraphicsPen = -1;
@@ -3509,8 +3546,8 @@ ${content}
                 if (n < 0 || n >= this.paperColors.length) {
                     throw new Error("Invalid paper color index");
                 }
-                this.output += this.paperColors[this.colorsForPens[n]];
                 this.currPaper = n;
+                this.hasPaperChanged = true;
             }
         }
         pen(n) {
@@ -3518,8 +3555,8 @@ ${content}
                 if (n < 0 || n >= this.penColors.length) {
                     throw new Error("Invalid pen color index");
                 }
-                this.output += this.penColors[this.colorsForPens[n]];
                 this.currPen = n;
+                this.hasPenChanged = true;
             }
         }
         printGraphicsText(text) {
@@ -3530,13 +3567,45 @@ ${content}
             }
             this.addGraphicsElement(`<text x="${this.graphicsX + this.originX}" y="${399 - this.graphicsY - this.originY + yOffset}"${styleStr}>${text}</text>`);
         }
-        print(...args) {
-            const text = args.join('');
-            if (this.isTag) {
-                this.printGraphicsText(text);
+        printText(text) {
+            this.output += text;
+            if (text.includes("\n")) {
+                const lines = text.split("\n");
+                const vadd = lines.length - 1;
+                if (vadd) {
+                    this.currVpos += vadd;
+                    this.currPos = lines[lines.length - 1].length;
+                }
+                else {
+                    this.currPos += text.length;
+                }
             }
             else {
-                this.output += text;
+                this.currPos += text.length;
+            }
+        }
+        print(...args) {
+            if (this.isTag) {
+                return this.printGraphicsText(args.join(''));
+            }
+            if (this.hasPaperChanged) {
+                this.hasPaperChanged = false;
+                this.output += this.paperColors[this.colorsForPens[this.currPaper]];
+            }
+            if (this.hasPenChanged) {
+                this.hasPenChanged = false;
+                this.output += this.penColors[this.colorsForPens[this.currPen]];
+            }
+            for (const text of args) {
+                if (text === CommaOpChar) {
+                    this.printText(" ".repeat(this.currZone - (this.currPos % this.currZone)));
+                }
+                else if (text.charAt(0) === TabOpChar) {
+                    this.printText(" ".repeat(Number(text.substring(1)) - 1 - this.currPos));
+                }
+                else {
+                    this.printText(text);
+                }
             }
         }
         setOnSpeak(fnOnSpeak) {
@@ -3544,6 +3613,12 @@ ${content}
         }
         async rsx(cmd, args) {
             return this.rsxHandler.rsx(cmd, args);
+        }
+        pos() {
+            return this.currPos;
+        }
+        vpos() {
+            return this.currVpos;
         }
         tag(active) {
             this.isTag = active;
@@ -3554,15 +3629,15 @@ ${content}
         ypos() {
             return this.graphicsY;
         }
+        zone(num) {
+            this.currZone = num;
+        }
         getSnippetData() {
             return this.snippetData;
         }
         getOutput() {
             const output = this.output;
             return output;
-        }
-        setOutput(str) {
-            this.output = str;
         }
     }
     BasicVmCore.cpcColors = [
@@ -3697,6 +3772,9 @@ ${content}
         pen(n) {
             this.vmCore.pen(n);
         }
+        pos() {
+            return this.vmCore.pos();
+        }
         print(...args) {
             this.vmCore.print(...args);
         }
@@ -3706,11 +3784,17 @@ ${content}
         tag(active) {
             this.vmCore.tag(active);
         }
+        vpos() {
+            return this.vmCore.vpos();
+        }
         xpos() {
             return this.vmCore.xpos();
         }
         ypos() {
             return this.vmCore.ypos();
+        }
+        zone(num) {
+            this.vmCore.zone(num);
         }
         getEscape() {
             return this.nodeParts.getEscape();
@@ -3720,9 +3804,6 @@ ${content}
         }
         getOutput() {
             return this.vmCore.getOutput();
-        }
-        setOutput(str) {
-            this.vmCore.setOutput(str);
         }
     }
 
@@ -3745,11 +3826,14 @@ ${content}
         origin(x, y) { this.debug("origin:", x, y); },
         paper(num) { this.debug("paper:", num); },
         pen(num) { this.debug("pen:", num); },
+        pos() { this.debug("pos:"); return 0; },
         print(...args) { this._output += args.join(''); },
         rsx(cmd, args) { this._output += cmd + "," + args.join(''); return Promise.resolve([]); },
         tag(active) { this.debug("tag:", active); },
+        vpos() { this.debug("vpos:"); return 0; },
         xpos() { this.debug("xpos:"); return 0; },
         ypos() { this.debug("ypos:"); return 0; },
+        zone(num) { this.debug("zone:", num); },
         getEscape() { return false; },
         getSnippetData() { return this._snippetData; }
     };
@@ -4126,6 +4210,9 @@ node hello1.js
         pen(n) {
             this.vmCore.pen(n);
         }
+        pos() {
+            return this.vmCore.pos();
+        }
         print(...args) {
             this.vmCore.print(...args);
         }
@@ -4138,11 +4225,17 @@ node hello1.js
         tag(active) {
             this.vmCore.tag(active);
         }
+        vpos() {
+            return this.vmCore.vpos();
+        }
         xpos() {
             return this.vmCore.xpos();
         }
         ypos() {
             return this.vmCore.ypos();
+        }
+        zone(num) {
+            this.vmCore.zone(num);
         }
         getEscape() {
             return this.ui.getEscape();
@@ -4152,9 +4245,6 @@ node hello1.js
         }
         getOutput() {
             return this.vmCore.getOutput();
-        }
-        setOutput(str) {
-            this.vmCore.setOutput(str);
         }
     }
 

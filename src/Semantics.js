@@ -1,4 +1,6 @@
 import { SemanticsHelper } from "./SemanticsHelper";
+export const CommaOpChar = "\u2192"; // Unicode arrow right
+export const TabOpChar = "\u21d2"; // Unicode double arrow right
 const codeSnippetsData = {
     _o: {},
     _d: {},
@@ -120,10 +122,13 @@ function getCodeSnippets(snippetsData) {
         plotr: function plotr(x, y) {
             _o.drawMovePlot("p", x, y);
         },
+        pos: function pos() {
+            return _o.pos() + 1;
+        },
         print: function print(...args) {
             const _printNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
-            const output = args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg).join("");
-            _o.print(output);
+            const output = args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg);
+            _o.print(...output);
         },
         read: function read() {
             return _d.data[_d.dataPtr++];
@@ -162,12 +167,22 @@ function getCodeSnippets(snippetsData) {
         val: function val(str) {
             return Number(str.replace("&x", "0b").replace("&", "0x"));
         },
+        vpos: function vpos() {
+            return _o.vpos() + 1;
+        },
+        write: function write(...args) {
+            const output = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
+            _o.print(output);
+        },
         xpos: function xpos() {
             return _o.xpos();
         },
         ypos: function ypos() {
             return _o.ypos();
-        }
+        },
+        zone: function zone(num) {
+            return _o.zone(num);
+        },
     };
     return codeSnippets;
 }
@@ -238,19 +253,6 @@ function getSemanticsActions(semanticsHelper) {
         semanticsHelper.addCompileMessage(`WARNING: Not supported: ${message}`);
         return `/* not supported: ${name}${argStr} */`;
     };
-    /*
-    const processCode = (strings: TemplateStringsArray, ...values: string[]) => {
-        // Simple dedent and join logic
-        const raw = strings.reduce((acc, str, i) => acc + str + (values[i] ?? ""), "");
-        // Remove leading indentation (optional: use a library like `dedent`)
-        const lines = raw.split("\n");
-        const minIndent = lines.filter(l => l.trim()).reduce((min, l) => {
-            const m = l.match(/^(\s*)/);
-            return m ? Math.min(min, m[1].length) : min;
-        }, Infinity);
-        return lines.map(l => l.slice(minIndent)).join("\n").trim();
-    };
-    */
     function processSubroutines(lineList, definedLabels) {
         const usedLabels = semanticsHelper.getUsedLabels();
         const gosubLabels = usedLabels["gosub"] || {};
@@ -583,6 +585,9 @@ ${dataList.join(",\n")}
         Fix(_fixLit, _open, e, _close) {
             return `Math.trunc(${e.eval()})`;
         },
+        Fre(lit, open, e, close) {
+            return notSupported(lit, open, e, close) + "0";
+        },
         AnyFnArgs(_open, args, _close) {
             const argumentList = evalChildren(args.asIteration().children);
             return `(${argumentList.join(", ")})`;
@@ -677,15 +682,21 @@ ${dataList.join(",\n")}
         Inp(lit, open, num, close) {
             return notSupported(lit, open, num, close) + "0";
         },
-        Input(_inputLit, stream, _comma, message, _semi, e) {
+        Input(_inputLit, stream, _comma, message, _semi, ids) {
             var _a;
             semanticsHelper.addInstr("input");
             semanticsHelper.addInstr("frame");
             const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
             const messageString = message.sourceString.replace(/\s*[;,]$/, "");
-            const identifier = e.eval();
-            const isNumberString = identifier.includes("$") ? "" : ", true";
-            return `${identifier} = await input(${streamStr}${messageString}${isNumberString})`;
+            const identifiers = evalChildren(ids.asIteration().children);
+            if (identifiers.length > 1) {
+                const identifierStr = `[${identifiers.join(", ")}]`;
+                // TODO TTT
+                const isNumberString = identifiers[0].includes("$") ? "" : ", true";
+                return `${identifierStr} = (await input(${streamStr}${messageString}${isNumberString})).split(",")`;
+            }
+            const isNumberString = identifiers[0].includes("$") ? "" : ", true";
+            return `${identifiers[0]} = await input(${streamStr}${messageString}${isNumberString})`;
         },
         Instr_noLen(_instrLit, _open, e1, _comma, e2, _close) {
             return `((${e1.eval()}).indexOf(${e2.eval()}) + 1)`;
@@ -839,6 +850,10 @@ ${dataList.join(",\n")}
             return notSupported(lit, num, comma, num2);
         },
         Pos(lit, open, streamLit, num, close) {
+            if (num.eval() === "0") {
+                semanticsHelper.addInstr("pos");
+                return "pos()";
+            }
             return notSupported(lit, open, streamLit, num, close) + "0";
         },
         PrintArg_strCmp(_cmp, args) {
@@ -851,6 +866,9 @@ ${dataList.join(",\n")}
             const argumentList = evalChildren(numArgs.asIteration().children);
             const parameterString = argumentList.map((arg) => `dec$(${arg}, ${formatString})`).join(', ');
             return parameterString;
+        },
+        PrintArg_commaOp(_comma) {
+            return `"${CommaOpChar}"`; // Unicode arrow right
         },
         StreamArg(streamLit, stream) {
             return notSupported(streamLit, stream) + "";
@@ -1015,8 +1033,8 @@ ${dataList.join(",\n")}
         Symbol_after(lit, afterLit, num) {
             return notSupported(lit, afterLit, num);
         },
-        Tab(lit, open, len, close) {
-            return notSupported(lit, open, len, close) + '""';
+        Tab(_lit, _open, num, _close) {
+            return `"${TabOpChar}${num.eval()}"`; // Unicode double arrow right
         },
         Tag(_tagLit, stream) {
             var _a;
@@ -1059,6 +1077,10 @@ ${dataList.join(",\n")}
             return `val(${numStr})`;
         },
         Vpos(lit, open, streamLit, num, close) {
+            if (num.eval() === "0") {
+                semanticsHelper.addInstr("vpos");
+                return "vpos()";
+            }
             return notSupported(lit, open, streamLit, num, close) + "0";
         },
         Wait(lit, num, comma, num2, comma2, num3) {
@@ -1083,20 +1105,13 @@ ${dataList.join(",\n")}
         Window_swap(lit, swapLit, num, comma, num2) {
             return notSupported(lit, swapLit, num, comma, num2);
         },
-        WriteArg(e) {
-            const result = e.eval();
-            if (typeof result === "string") {
-                return `${result}`;
-            }
-            return result;
-        },
         Write(_printLit, stream, _comma, args) {
             var _a;
-            semanticsHelper.addInstr("print"); // we use print for output
+            semanticsHelper.addInstr("write");
             const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
             const argumentList = evalChildren(args.asIteration().children);
-            const parameterString = argumentList.join(', ') || "";
-            return `print(${streamStr}'${parameterString}')`;
+            const parameterString = argumentList.join(', ');
+            return `write(${streamStr}${parameterString})`;
         },
         Xpos(_xposLit) {
             semanticsHelper.addInstr("xpos");
@@ -1106,8 +1121,9 @@ ${dataList.join(",\n")}
             semanticsHelper.addInstr("ypos");
             return `ypos()`;
         },
-        Zone(lit, num) {
-            return notSupported(lit, num);
+        Zone(_lit, num) {
+            semanticsHelper.addInstr("zone");
+            return `zone(${num.eval()})`;
         },
         AndExp_and(a, _op, b) {
             return `${a.eval()} & ${b.eval()}`;

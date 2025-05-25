@@ -1,11 +1,17 @@
 import { BasicVmRsxHandler } from "./BasicVmRsxHandler";
+import { CommaOpChar, TabOpChar } from "./Semantics";
 const strokeWidthForMode = [4, 2, 1, 1];
 export class BasicVmCore {
     constructor(penColors, paperColors) {
         this.output = "";
         this.currPaper = -1;
         this.currPen = -1;
+        this.hasPaperChanged = false;
+        this.hasPenChanged = false;
         this.currMode = 2;
+        this.currPos = 0;
+        this.currVpos = 0;
+        this.currZone = 13; // comma tab zone value
         this.graphicsBuffer = [];
         this.graphicsPathBuffer = [];
         this.currGraphicsPen = -1;
@@ -41,9 +47,14 @@ export class BasicVmCore {
     }
     cls() {
         this.output = "";
+        this.currPos = 0;
+        this.currVpos = 0;
+        this.currZone = 13;
         this.isTag = false;
         this.currPaper = -1;
         this.currPen = -1;
+        this.hasPaperChanged = false;
+        this.hasPenChanged = false;
         this.graphicsBuffer.length = 0;
         this.graphicsPathBuffer.length = 0;
         this.currGraphicsPen = -1;
@@ -162,8 +173,8 @@ ${content}
             if (n < 0 || n >= this.paperColors.length) {
                 throw new Error("Invalid paper color index");
             }
-            this.output += this.paperColors[this.colorsForPens[n]];
             this.currPaper = n;
+            this.hasPaperChanged = true;
         }
     }
     pen(n) {
@@ -171,8 +182,8 @@ ${content}
             if (n < 0 || n >= this.penColors.length) {
                 throw new Error("Invalid pen color index");
             }
-            this.output += this.penColors[this.colorsForPens[n]];
             this.currPen = n;
+            this.hasPenChanged = true;
         }
     }
     printGraphicsText(text) {
@@ -183,13 +194,45 @@ ${content}
         }
         this.addGraphicsElement(`<text x="${this.graphicsX + this.originX}" y="${399 - this.graphicsY - this.originY + yOffset}"${styleStr}>${text}</text>`);
     }
-    print(...args) {
-        const text = args.join('');
-        if (this.isTag) {
-            this.printGraphicsText(text);
+    printText(text) {
+        this.output += text;
+        if (text.includes("\n")) {
+            const lines = text.split("\n");
+            const vadd = lines.length - 1;
+            if (vadd) {
+                this.currVpos += vadd;
+                this.currPos = lines[lines.length - 1].length;
+            }
+            else {
+                this.currPos += text.length;
+            }
         }
         else {
-            this.output += text;
+            this.currPos += text.length;
+        }
+    }
+    print(...args) {
+        if (this.isTag) {
+            return this.printGraphicsText(args.join(''));
+        }
+        if (this.hasPaperChanged) {
+            this.hasPaperChanged = false;
+            this.output += this.paperColors[this.colorsForPens[this.currPaper]];
+        }
+        if (this.hasPenChanged) {
+            this.hasPenChanged = false;
+            this.output += this.penColors[this.colorsForPens[this.currPen]];
+        }
+        for (const text of args) {
+            if (text === CommaOpChar) {
+                this.printText(" ".repeat(this.currZone - (this.currPos % this.currZone)));
+            }
+            else if (text.charAt(0) === TabOpChar) {
+                this.printText(" ".repeat(Number(text.substring(1)) - 1 - this.currPos));
+            }
+            else {
+                this.printText(text);
+            }
         }
     }
     setOnSpeak(fnOnSpeak) {
@@ -197,6 +240,12 @@ ${content}
     }
     async rsx(cmd, args) {
         return this.rsxHandler.rsx(cmd, args);
+    }
+    pos() {
+        return this.currPos;
+    }
+    vpos() {
+        return this.currVpos;
     }
     tag(active) {
         this.isTag = active;
@@ -207,15 +256,15 @@ ${content}
     ypos() {
         return this.graphicsY;
     }
+    zone(num) {
+        this.currZone = num;
+    }
     getSnippetData() {
         return this.snippetData;
     }
     getOutput() {
         const output = this.output;
         return output;
-    }
-    setOutput(str) {
-        this.output = str;
     }
 }
 BasicVmCore.cpcColors = [
