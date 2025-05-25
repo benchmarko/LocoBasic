@@ -803,9 +803,11 @@ a=PI: IF ROUND(a,8)<>3.14159265 THEN ERROR 33
 ''PLOTR x,y,m,g1
 ''POKE &C000,23
 ''POKE adr,by
-''a=POS(#0)
+PRINT "POS, ";
+a=POS(#0): IF a<>35 THEN ERROR 33
 ''a=POS(#stream)
 '
+PRINT
 PRINT "PRINT: ";
 PRINT
 ''PRINT ,
@@ -831,9 +833,13 @@ PRINT " / ";USING "###.###";-1.2;1.2
 ''PRINT USING "!";"a1";"a2";
 ''PRINT USING "&";"a1";"a2";
 ''PRINT #9,TAB(t);t$;i;"h1"
+PRINT "PRINT comma:", "13","26 apples","39"; " (default zone 13)"
+PRINT "PRINT SPC:"; SPC(3);"13";SPC(11);"26 apples" SPC(4);"39"
+PRINT "PRINT TAB:"; TAB(14);"13";TAB(27);"26 apples";TAB(40);"39"
 '
+PRINT "?: ";
 ?;
-?a$;b
+a$="print test":?a$;b
 ''?#2,ti-t0!;SPC(5);
 '
 ' RAD, RANDOMIZE, READ, RELEASE, REM, REMAIN, RENUM, RESTORE, RESUME, RETURN, RIGHT$, RND, ROUND, RUN
@@ -1032,7 +1038,8 @@ a=VAL(""): IF a<>0 THEN ERROR 33
 a=VAL("&ff"): IF a<>&FF THEN ERROR 33
 a=VAL("&7A00"): IF a<>31232 OR a<>&7A00 THEN ERROR 33
 '
-''a=VPOS(#0)
+PRINT "VPOS, ";
+a=VPOS(#0)
 ''a=VPOS(#stream)
 '
 ' WAIT, WEND, WHILE, WIDTH, WINDOW, WINDOW SWAP, WRITE
@@ -1050,6 +1057,8 @@ a=3:WHILE a>0:a=a-1:WEND: IF a<>0 THEN ERROR 33
 ''WINDOW SWAP 1
 ''WINDOW SWAP 1,0
 '''1 WINDOW SWAP #1
+PRINT
+PRINT "WRITE: ";: a$="def":WRITE "abc",a$,7,15; "abc";a$;7;15
 ''WRITE
 ''WRITE #2
 ''WRITE #2,
@@ -1067,47 +1076,21 @@ a=3:WHILE a>0:a=a-1:WEND: IF a<>0 THEN ERROR 33
 '
 ' XOR, XPOS
 '
-PRINT "XOR"
+PRINT "XOR, ";
 a=&X1001 XOR &X0110: IF a<>15 THEN ERROR 33
 b=5:c=7:a=b XOR c: IF a<>2 THEN ERROR 33
-''a=XPOS
+PRINT "XPOS, ";
+a=XPOS
 ' ypos
-''a=YPOS
+PRINT "YPOS, ";
+a=YPOS
 ' zone
-''ZONE 13+n
-'
-PRINT "RSX"
-'
-''|A
-''|B
-''|BASIC
-''|CPM
-''a$="*.drw":|DIR,@a$
-''|DISC
-''|DISC.IN
-''|DISC.OUT
-''|DRIVE,0
-'''1 |DRIVE,
-'''1 |DRIVE,#1
-''|ERA,"file.bas"
-''|REN,"file1.bas","file2.bas"
-''|TAPE
-''|TAPE.IN
-''|TAPE.OUT
-''|USER,1
-''|MODE,3
-''|RENUM,1,2,3,4
-''|
-d$=SPACE$(11)
-|DATE,@d$
-PRINT "|DATE ";d$;", ";
-t$=SPACE$(8)
-|TIME,@t$: 'get current time from RTC ("HH MM SS")
-PRINT "|TIME ";t$
-'
+PRINT
+ZONE 9
+PRINT "ZONE:","10","19","28"
+ZONE 13
 '
 PRINT "Completed."
-STOP
 END
 '
 10010 RETURN

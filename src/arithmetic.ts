@@ -464,6 +464,9 @@ export const arithmetic = {
     Pos
       = pos "(" "#" NumExp ")"
 
+    PrintCommaOp
+      = ","
+
     PrintArg
       = &StrCmpExp NumExp -- strCmp
       | StrExp
@@ -471,12 +474,16 @@ export const arithmetic = {
       | using StrExp ";" NonemptyListOf<NumExp, ";"> -- usingNum
       | Spc
       | Tab
+      | PrintCommaOp -- commaOp
 
     StreamArg
       = "#" NumExp
 
+    PrintSep
+      = ";" | ""
+
     Print
-      = (print | "?") (StreamArg ",")? ListOf<PrintArg, ";"> (";")?
+      = (print | "?") (StreamArg ",")? ListOf<PrintArg, PrintSep> (";")?
 
     Rad
       = rad
@@ -637,7 +644,7 @@ export const arithmetic = {
       | NumExp
 
     Write
-      = write (StreamArg ",")? ListOf<WriteArg, ";">
+      = write (StreamArg ",")? ListOf<WriteArg, (";" | ",")>
 
     Xpos
       = xpos

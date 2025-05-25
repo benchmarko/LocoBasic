@@ -559,7 +559,7 @@ describe('Semantics Class', () => {
         it('print should format numbers and strings', () => {
             let output = "";
             const snippets = getSnippets({
-                _o: { print: (s: string) => { output = s; } }
+                _o: { print: (...s: string[]) => { output = s.join(""); } }
             });
             snippets.print("A", 5, "B", -2);
             expect(output).toBe("A 5 B-2 ");

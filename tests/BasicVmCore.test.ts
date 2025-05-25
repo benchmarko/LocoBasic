@@ -6,9 +6,13 @@ describe('BasicVmCore Module', () => {
         return BasicVmCore.getTagInSvg(content, strokeWidth, "");
     }
 
-    const getMockColors = () => {
-        return [...BasicVmCore.getCpcColors()];
+    const getMockColors = (paper?: boolean) => {
+        return [...BasicVmCore.getCpcColors()].map((c) => `[${paper ? "paper" : "pen"}:${c}]`);
     };
+
+    const getPaperColors = () => getMockColors(true);
+
+    const getPenColors = () => getMockColors(false);
 
     it('should initialize with default values', () => {
         const vm = new BasicVmCore([], []);
@@ -19,9 +23,9 @@ describe('BasicVmCore Module', () => {
 
     it('should reset correctly', () => {
         const vm = new BasicVmCore([], []);
-        vm.setOutput('test');
+        vm.print('test');
         vm.tag(true);
-        vm.setOutput('graphics test');
+        vm.print('graphics test');
         vm.cls();
         expect(vm.getOutput()).toBe('');
         expect(vm.xpos()).toBe(0);
@@ -30,7 +34,7 @@ describe('BasicVmCore Module', () => {
 
     it('should set and get output correctly', () => {
         const vm = new BasicVmCore([], []);
-        vm.setOutput('Hello, World!');
+        vm.print('Hello, World!');
         expect(vm.getOutput()).toBe('Hello, World!');
     });
 
@@ -84,9 +88,20 @@ describe('BasicVmCore Module', () => {
     });
 
     it('should handle paper changes', () => {
-        const vm = new BasicVmCore([], getMockColors());
+        const vm = new BasicVmCore([], getPaperColors());
         vm.paper(2);
-        expect(vm.getOutput()).toBe('#00FFFF');
+        vm.print("Hello");
+        expect(vm.getOutput()).toBe('[paper:#00FFFF]Hello');
+    });
+
+    it('should handle pen changes', () => {
+        const vm = new BasicVmCore(getPenColors(), []);
+        vm.pen(3);
+        vm.print("Hello");
+        expect(vm.getOutput()).toBe('[pen:#FF0000]Hello');
+
+        vm.print(" World");
+        expect(vm.getOutput()).toBe('[pen:#FF0000]Hello World');
     });
 
     it('should handle rsx commands', async () => {

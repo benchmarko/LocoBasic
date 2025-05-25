@@ -60,11 +60,14 @@ const dummyVm: DummyVm = {
     origin(x: number, y: number) { this.debug("origin:", x, y); },
     paper(num: number) { this.debug("paper:", num); },
     pen(num: number) { this.debug("pen:", num); },
-    print(...args: (string | number)[]) { this._output += args.join(''); },
+    pos() { this.debug("pos:"); return 0; },
+    print(...args: string[]) { this._output += args.join(''); },
     rsx(cmd: string, args: (string | number)[]): Promise<(number | string)[]> { this._output += cmd + "," + args.join(''); return Promise.resolve([]); },
     tag(active: boolean) { this.debug("tag:", active); },
+    vpos() { this.debug("vpos:"); return 0; },
     xpos() { this.debug("xpos:"); return 0; },
     ypos() { this.debug("ypos:"); return 0; },
+    zone(num: number) { this.debug("zone:", num); },
     getEscape() { return false; },
     getSnippetData() { return this._snippetData; }
 };

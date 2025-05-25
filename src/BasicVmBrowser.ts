@@ -83,6 +83,10 @@ export class BasicVmBrowser implements IVmAdmin {
         this.vmCore.pen(n);
     }
 
+    public pos(): number {
+        return this.vmCore.pos();
+    }
+
     public print(...args: string[]): void {
         this.vmCore.print(...args);
     }
@@ -99,12 +103,20 @@ export class BasicVmBrowser implements IVmAdmin {
         this.vmCore.tag(active);
     }
 
+    public vpos(): number {
+        return this.vmCore.vpos();
+    }
+
     public xpos(): number {
         return this.vmCore.xpos();
     }
 
     public ypos(): number {
         return this.vmCore.ypos();
+    }
+
+    public zone(num: number): void {
+        this.vmCore.zone(num);
     }
 
     public getEscape(): boolean {
@@ -117,8 +129,5 @@ export class BasicVmBrowser implements IVmAdmin {
 
     public getOutput(): string {
         return this.vmCore.getOutput();
-    }
-    public setOutput(str: string): void {
-        this.vmCore.setOutput(str);
     }
 }

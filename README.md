@@ -169,7 +169,9 @@ LocoBasic can be run in a browser or as a Node.js application.
 - `INK pen,color` Sets the color (0..27) for PEN pen and GRAPHICS PEN pen.
   - **Note:** In LocoBasic, only following drawings get the new ink, existing drawings are not modified.
 - `INKEY$`: Gets the pressed character from the key buffer or an empty string if the buffer is empty.
-- `INPUT [message;] variable` Prompts the user for input (string or numeric).
+- `INPUT [message;] variable [, variable, ...]` Prompts the user for input (string or numeric).
+  - When using multiple variables, the input is split at "," and the parts are assigned to the variables
+  - **Note:** Currently the variables must have the same type.
 - `INSTR([startPos,] string1, string2)` Returns the first position of *string2* in *string1*, starting at optional *startPos*.
 - `INT(number)` Returns the integer part of *number*.
 - `LEFT$(string, number)` Returns *number* characters from the left of *string*.
@@ -198,11 +200,14 @@ LocoBasic can be run in a browser or as a Node.js application.
 - `PI` Returns the value of 'pi'.
 - `PLOT x,y`: Plot a point at position x,y.
 - `PLOTR x,y`: Plot a point relative with offset x,y.
+- `POS(#0)`: Returns the current x-position of text output (supports only stream 0).
 - `PRINT argument1 [; argument2; ...]` Outputs text and numbers.
-  - Arguments must be separated by `;`.
   - Numbers are padded with trailing space, and leading space for positive numbers.
-  - **Limitations:** No support for `TAB()`, `SPC()`. Formatting with `USING` only for one number as with `DEC$()`. No additional characters in the format string.
+  - Arguments can be separated by `;`.
+  - The comma operator `,` moves to the next tab position defined by *ZONE*, `TAB(n)` moves to position *n* (only increasing), and `SPC(n)` prints n spaces.
+  - Lines can have any length, no automatic newline is inserted.
   - When *TAG* is active, it creates [SVG text](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/text).
+  - **Limitations:** Formatting with `USING` only for one number as with `DEC$()`. No additional characters in the format string.
 - `RAD` Switches to radians mode (default) for *ATN*, *COS*, *SIN*, *TAN*.
   - **Note:** In LocoBasic, the flag is used at compile time starting from its lexical position and not dynamically during execution.
 - `READ variable` Reads the next value from a `DATA` statement into *variable*.
@@ -220,6 +225,7 @@ LocoBasic can be run in a browser or as a Node.js application.
 - `SIN(number)` Returns the sine of the given *number*.
   - *number* should be in radians (when *RAD* is active) or in degrees (when *DEG* is active).
 - `SPACE$(number)` Returns *number* spaces.
+- `SPC(number)` In *PRINT*, outputs *number* spaces before the next argument.
 - `SQR(number)` Returns the square root of *number*.
 - `STOP` Halts the execution.
   - Within subroutines, it functions as a *RETURN*.
@@ -227,6 +233,7 @@ LocoBasic can be run in a browser or as a Node.js application.
 - `STR$(number)` Converts a number to its string representation.
   - A positive number is prefixed with a space.
 - `STRING$(number, character | ASCIInumber)` Returns *character* (or `CHR$(ASCIInumber)`) repeated *number* times.
+- `TAB(number)` In *PRINT*, outputs the next argument at position *number*.
 - `TAG` Activates text at graphics mode. *PRINT* uses graphics cursor position and graphics color.
 - `TAGOFF` Deactivates text at graphics mode. *PRINT* uses text at text positions with text pen again.
 - `TAN(number)` Returns the tangent of the given *number*.
@@ -235,11 +242,13 @@ LocoBasic can be run in a browser or as a Node.js application.
 - `UPPER$(string)` Converts the string to uppercase.
 - `VAL(string)` Converts a string to a number.
   - Supports hexadecimal and binary formats.
+- `VPOS(#0)`: Returns the current vertical position / y-position of text output (supports only stream 0).
 - `WEND` Ends a *WHILE* loop.
 - `WHILE expression` Control structure: Repeats until *expression* evaluates to false.
-- `XPOS` Returns the x-pos of the current graphical cursor position
-- `YPOS` Returns the y-pos of the current graphical cursor position
+- `XPOS` Returns the x-pos of the current graphical cursor position.
+- `YPOS` Returns the y-pos of the current graphical cursor position.
 - `number XOR number` In expressions: exclusive-OR.
+- `ZONE number` Sets the tab zone for the comma operator in *PRINT* (default: 13)
 
 Notes:
 

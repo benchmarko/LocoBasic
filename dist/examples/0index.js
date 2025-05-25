@@ -220,12 +220,12 @@ cpcBasic.addIndex("./examples", {
 			"title": "Test Page Graphics"
 		},
 		{
-			"key": "testspch",
-			"title": "Test Speech Synthesis"
+			"key": "testprsx",
+			"title": "Test Page RSX"
 		},
 		{
-			"key": "testsub",
-			"title": "Test Subroutines"
+			"key": "testspch",
+			"title": "Test Speech Synthesis"
 		},
 		{
 			"key": "testsub",

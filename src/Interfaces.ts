@@ -57,11 +57,14 @@ export interface IVm {
     origin(x: number, y: number): void;
     paper(color: number): void;
     pen(color: number): void;
-    print(msg: string): void;
+    pos(): number;
+    print(...args: string[]): void;
     rsx(cmd: string, args: (string | number)[]): Promise<(number | string)[]>;
     tag(active: boolean): void;
+    vpos(): number;
     xpos(): number;
     ypos(): number;
+    zone(num: number): void;
     getEscape(): boolean;
     getSnippetData(): SnippetDataType;
 }
@@ -69,7 +72,7 @@ export interface IVm {
 export interface IVmAdmin extends IVm {
     reset(): void;
     getOutput(): string;
-    setOutput(str: string): void;
+    //setOutput(str: string): void;
 }
 
 export interface IVmRsxApi {

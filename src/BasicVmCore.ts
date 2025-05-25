@@ -1,5 +1,6 @@
 import type { IVmRsxApi, SnippetDataType } from "./Interfaces";
 import { BasicVmRsxHandler } from "./BasicVmRsxHandler";
+import { CommaOpChar, TabOpChar } from "./Semantics";
 
 const strokeWidthForMode: number[] = [4, 2, 1, 1];
 
@@ -9,7 +10,12 @@ export class BasicVmCore implements IVmRsxApi {
     private output: string = "";
     private currPaper: number = -1;
     private currPen: number = -1;
+    private hasPaperChanged: boolean = false;
+    private hasPenChanged:boolean = false;
     private currMode: number = 2;
+    private currPos: number = 0;
+    private currVpos: number = 0;
+    private currZone: number = 13; // comma tab zone value
     private readonly graphicsBuffer: string[] = [];
     private readonly graphicsPathBuffer: string[] = [];
     private currGraphicsPen: number = -1;
@@ -88,9 +94,14 @@ export class BasicVmCore implements IVmRsxApi {
 
     public cls(): void {
         this.output = "";
+        this.currPos = 0;
+        this.currVpos = 0;
+        this.currZone = 13;
         this.isTag = false;
         this.currPaper = -1;
         this.currPen = -1;
+        this.hasPaperChanged = false;
+        this.hasPenChanged = false;
         this.graphicsBuffer.length = 0;
         this.graphicsPathBuffer.length = 0;
         this.currGraphicsPen = -1;
@@ -226,8 +237,8 @@ ${content}
             if (n < 0 || n >= this.paperColors.length) {
                 throw new Error("Invalid paper color index");
             }
-            this.output += this.paperColors[this.colorsForPens[n]];
             this.currPaper = n;
+            this.hasPaperChanged = true;
         }
     }
 
@@ -236,8 +247,8 @@ ${content}
             if (n < 0 || n >= this.penColors.length) {
                 throw new Error("Invalid pen color index");
             }
-            this.output += this.penColors[this.colorsForPens[n]];
             this.currPen = n;
+            this.hasPenChanged = true;
         }
     }
 
@@ -250,12 +261,45 @@ ${content}
         this.addGraphicsElement(`<text x="${this.graphicsX + this.originX}" y="${399 - this.graphicsY - this.originY + yOffset}"${styleStr}>${text}</text>`)
     }
 
-    public print(...args: string[]): void {
-        const text = args.join('');
-        if (this.isTag) {
-            this.printGraphicsText(text);
+    private printText(text: string): void {
+        this.output += text;
+        if (text.includes("\n")) {
+            const lines = text.split("\n");
+            const vadd = lines.length - 1;
+            if (vadd) {
+                this.currVpos += vadd;
+                this.currPos = lines[lines.length - 1].length;
+            } else {
+                this.currPos += text.length;
+            }
         } else {
-            this.output += text;
+            this.currPos += text.length;
+        }
+    }
+
+    public print(...args: string[]): void {
+        if (this.isTag) {
+            return this.printGraphicsText(args.join(''));
+        }
+
+        if (this.hasPaperChanged) {
+            this.hasPaperChanged = false;
+            this.output += this.paperColors[this.colorsForPens[this.currPaper]];
+        }
+
+        if (this.hasPenChanged) {
+            this.hasPenChanged = false;
+            this.output += this.penColors[this.colorsForPens[this.currPen]];
+        }
+
+        for (const text of args) {
+            if (text === CommaOpChar) {
+                this.printText(" ".repeat(this.currZone - (this.currPos % this.currZone)));
+            } else if (text.charAt(0) === TabOpChar) {
+                this.printText(" ".repeat(Number(text.substring(1)) - 1 - this.currPos));
+            } else {
+                this.printText(text);
+            }
         }
     }
 
@@ -265,6 +309,14 @@ ${content}
 
     public async rsx(cmd: string, args: (number | string)[]): Promise<(number | string)[]> {
         return this.rsxHandler.rsx(cmd, args);
+    }
+
+    public pos(): number {
+        return this.currPos;
+    }
+
+    public vpos(): number {
+        return this.currVpos;
     }
 
     public tag(active: boolean): void {
@@ -279,6 +331,10 @@ ${content}
         return this.graphicsY;
     }
 
+    public zone(num: number): void {
+        this.currZone = num;
+    }
+
     public getSnippetData(): SnippetDataType {
         return this.snippetData;
     }
@@ -286,8 +342,5 @@ ${content}
     public getOutput(): string {
         const output = this.output;
         return output;
-    }
-    public setOutput(str: string): void {
-        this.output = str;
     }
 }

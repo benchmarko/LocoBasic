@@ -67,7 +67,7 @@ describe('BasicVmNode Module', () => {
     it('should get and set output', () => {
         const basicVmNode = new BasicVmNode(getMockNodeParts());
 
-        basicVmNode.setOutput('Output');
+        basicVmNode.print('Output');
         const output = basicVmNode.getOutput();
         expect(output).toBe('Output');
     });

@@ -86,7 +86,7 @@ describe('BasicVmBrowser Module', () => {
     it('should get and set output correctly', () => {
         const mockUI = getMockUI();
         const basicVmBrowser = new BasicVmBrowser(mockUI);
-        basicVmBrowser.setOutput('Output');
+        basicVmBrowser.print('Output');
         const output = basicVmBrowser.getOutput();
         expect(output).toBe('Output');
     });

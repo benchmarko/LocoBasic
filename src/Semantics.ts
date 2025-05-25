@@ -4,6 +4,9 @@ import { SemanticsHelper } from "./SemanticsHelper";
 
 type RecursiveArray<T> = T | RecursiveArray<T>[];
 
+export const CommaOpChar = "\u2192"; // Unicode arrow right
+export const TabOpChar = "\u21d2"; // Unicode double arrow right
+
 const codeSnippetsData = {
 	_o: {} as IVm,
 	_d: {} as SnippetDataType,
@@ -124,10 +127,13 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 		plotr: function plotr(x: number, y: number) {
 			_o.drawMovePlot("p", x, y);
 		},
+		pos: function pos() {
+			return _o.pos() + 1;
+		},
 		print: function print(...args: (string | number)[]) {
 			const _printNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
-			const output = args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg).join("");
-			_o.print(output);
+			const output = args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg);
+			_o.print(...output);
 		},
 		read: function read() {
 			return _d.data[_d.dataPtr++];
@@ -166,12 +172,22 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 		val: function val(str: string) {
 			return Number(str.replace("&x", "0b").replace("&", "0x"));
 		},
+		vpos: function vpos() {
+			return _o.vpos() + 1;
+		},
+		write: function write(...args: (string | number)[]) {
+			const output = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
+			_o.print(output);
+		},
 		xpos: function xpos() {
 			return _o.xpos();
 		},
 		ypos: function ypos() {
 			return _o.ypos();
-		}
+		},
+		zone: function zone(num: number) {
+			return _o.zone(num);
+		},
 	};
 	return codeSnippets;
 }
@@ -253,20 +269,6 @@ function getSemanticsActions(semanticsHelper: SemanticsHelper) {
 
 		return `/* not supported: ${name}${argStr} */`;
 	};
-
-	/*
-	const processCode = (strings: TemplateStringsArray, ...values: string[]) => {
-		// Simple dedent and join logic
-		const raw = strings.reduce((acc, str, i) => acc + str + (values[i] ?? ""), "");
-		// Remove leading indentation (optional: use a library like `dedent`)
-		const lines = raw.split("\n");
-		const minIndent = lines.filter(l => l.trim()).reduce((min, l) => {
-			const m = l.match(/^(\s*)/);
-			return m ? Math.min(min, m[1].length) : min;
-		}, Infinity);
-		return lines.map(l => l.slice(minIndent)).join("\n").trim();
-	};
-	*/
 
 	function processSubroutines(lineList: string[], definedLabels: DefinedLabelEntryType[]): string[] {
 		const usedLabels = semanticsHelper.getUsedLabels();
@@ -1027,6 +1029,10 @@ ${dataList.join(",\n")}
 		},
 
 		Pos(lit: Node, open: Node, streamLit: Node, num: Node, close: Node) {
+			if (num.eval() === "0") {
+				semanticsHelper.addInstr("pos");
+				return "pos()";
+			}
 			return notSupported(lit, open, streamLit, num, close) + "0";
 		},
 
@@ -1041,6 +1047,10 @@ ${dataList.join(",\n")}
 			const argumentList = evalChildren(numArgs.asIteration().children);
 			const parameterString = argumentList.map((arg) => `dec$(${arg}, ${formatString})`).join(', ');
 			return parameterString;
+		},
+
+		PrintArg_commaOp(_comma: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `"${CommaOpChar}"`; // Unicode arrow right
 		},
 
 		StreamArg(streamLit: Node, stream: Node) {
@@ -1250,8 +1260,8 @@ ${dataList.join(",\n")}
 			return notSupported(lit, afterLit, num);
 		},
 
-		Tab(lit: Node, open: Node, len: Node, close: Node) {
-			return notSupported(lit, open, len, close) + '""';
+		Tab(_lit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `"${TabOpChar}${num.eval()}"`; // Unicode double arrow right
 		},
 
 		Tag(_tagLit: Node, stream: Node) {
@@ -1305,6 +1315,10 @@ ${dataList.join(",\n")}
 		},
 
 		Vpos(lit: Node, open: Node, streamLit: Node, num: Node, close: Node) {
+			if (num.eval() === "0") {
+				semanticsHelper.addInstr("vpos");
+				return "vpos()";
+			}
 			return notSupported(lit, open, streamLit, num, close) + "0";
 		},
 
@@ -1337,22 +1351,12 @@ ${dataList.join(",\n")}
 			return notSupported(lit, swapLit, num, comma, num2);
 		},
 
-		WriteArg(e: Node) {
-			const result = e.eval();
-
-			if (typeof result === "string") {
-				return `${result}`;
-			}
-			return result;
-		},
-
 		Write(_printLit: Node, stream: Node, _comma: Node, args: Node) {
-			semanticsHelper.addInstr("print"); // we use print for output
+			semanticsHelper.addInstr("write");
 			const streamStr = stream.child(0)?.eval() || "";
 			const argumentList = evalChildren(args.asIteration().children);
-			const parameterString = argumentList.join(', ') || "";
-
-			return `print(${streamStr}'${parameterString}')`;
+			const parameterString = argumentList.join(', ');
+			return `write(${streamStr}${parameterString})`;
 		},
 
 		Xpos(_xposLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -1365,10 +1369,10 @@ ${dataList.join(",\n")}
 			return `ypos()`;
 		},
 
-		Zone(lit: Node, num: Node) {
-			return notSupported(lit, num);
+		Zone(_lit: Node, num: Node) {
+			semanticsHelper.addInstr("zone");
+			return `zone(${num.eval()})`;
 		},
-
 
 		AndExp_and(a: Node, _op: Node, b: Node) {
 			return `${a.eval()} & ${b.eval()}`;
