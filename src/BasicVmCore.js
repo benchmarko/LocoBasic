@@ -1,5 +1,4 @@
 import { BasicVmRsxHandler } from "./BasicVmRsxHandler";
-import { CommaOpChar, TabOpChar } from "./Semantics";
 const strokeWidthForMode = [4, 2, 1, 1];
 export class BasicVmCore {
     constructor(penColors, paperColors) {
@@ -9,9 +8,6 @@ export class BasicVmCore {
         this.hasPaperChanged = false;
         this.hasPenChanged = false;
         this.currMode = 2;
-        this.currPos = 0;
-        this.currVpos = 0;
-        this.currZone = 13; // comma tab zone value
         this.graphicsBuffer = [];
         this.graphicsPathBuffer = [];
         this.currGraphicsPen = -1;
@@ -21,7 +17,6 @@ export class BasicVmCore {
         this.graphicsY = 0;
         this.colorsForPens = [];
         this.backgroundColor = "";
-        this.isTag = false; // text at graphics
         this.snippetData = {};
         this.defaultColorsForPens = [
             1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
@@ -39,16 +34,12 @@ export class BasicVmCore {
     }
     reset() {
         this.colorsForPens.splice(0, this.colorsForPens.length, ...this.defaultColorsForPens);
+        BasicVmCore.deleteAllItems(this.snippetData);
         this.backgroundColor = "";
         this.mode(1);
-        BasicVmCore.deleteAllItems(this.snippetData);
     }
     cls() {
         this.output = "";
-        this.currPos = 0;
-        this.currVpos = 0;
-        this.currZone = 13;
-        this.isTag = false;
         this.currPaper = -1;
         this.currPen = -1;
         this.hasPaperChanged = false;
@@ -180,29 +171,12 @@ ${content}
             this.hasPenChanged = true;
         }
     }
-    pos() {
-        return this.currPos;
-    }
     printGraphicsText(text) {
         const yOffset = 16;
         const styleStr = this.currGraphicsPen >= 0 ? ` style="color: ${this.getRgbColorStringForPen(this.currGraphicsPen)}"` : "";
         this.addGraphicsElement(`<text x="${this.graphicsX + this.originX}" y="${399 - this.graphicsY - this.originY + yOffset}"${styleStr}>${text}</text>`);
     }
-    printText(text) {
-        this.output += text;
-        const lines = text.split("\n");
-        if (lines.length > 1) {
-            this.currVpos += lines.length - 1;
-            this.currPos = lines[lines.length - 1].length;
-        }
-        else {
-            this.currPos += text.length;
-        }
-    }
     print(...args) {
-        if (this.isTag) {
-            return this.printGraphicsText(args.join(''));
-        }
         if (this.hasPaperChanged) {
             this.hasPaperChanged = false;
             this.output += this.paperColors[this.colorsForPens[this.currPaper]];
@@ -211,17 +185,7 @@ ${content}
             this.hasPenChanged = false;
             this.output += this.penColors[this.colorsForPens[this.currPen]];
         }
-        for (const text of args) {
-            if (text === CommaOpChar) {
-                this.printText(" ".repeat(this.currZone - (this.currPos % this.currZone)));
-            }
-            else if (text.charAt(0) === TabOpChar) {
-                this.printText(" ".repeat(Number(text.substring(1)) - 1 - this.currPos));
-            }
-            else {
-                this.printText(text);
-            }
-        }
+        this.output += args.join("");
     }
     setOnSpeak(fnOnSpeak) {
         this.rsxHandler.setOnSpeak(fnOnSpeak);
@@ -229,20 +193,11 @@ ${content}
     async rsx(cmd, args) {
         return this.rsxHandler.rsx(cmd, args);
     }
-    tag(active) {
-        this.isTag = active;
-    }
-    vpos() {
-        return this.currVpos;
-    }
     xpos() {
         return this.graphicsX;
     }
     ypos() {
         return this.graphicsY;
-    }
-    zone(num) {
-        this.currZone = num;
     }
     getSnippetData() {
         return this.snippetData;

@@ -9,14 +9,11 @@ export declare class BasicVmBrowser implements IVmAdmin {
     origin: (x: number, y: number) => void;
     paper: (n: number) => void;
     pen: (n: number) => void;
-    pos: () => number;
     print: (...args: string[]) => void;
+    printGraphicsText: (text: string) => void;
     rsx: (cmd: string, args: (number | string)[]) => Promise<(number | string)[]>;
-    tag: (active: boolean) => void;
-    vpos: () => number;
     xpos: () => number;
     ypos: () => number;
-    zone: (num: number) => void;
     getSnippetData: () => SnippetDataType;
     getOutput: () => string;
     constructor(ui: IUI);

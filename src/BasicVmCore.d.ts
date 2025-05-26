@@ -8,9 +8,6 @@ export declare class BasicVmCore implements IVmRsxApi {
     private hasPaperChanged;
     private hasPenChanged;
     private currMode;
-    private currPos;
-    private currVpos;
-    private currZone;
     private readonly graphicsBuffer;
     private readonly graphicsPathBuffer;
     private currGraphicsPen;
@@ -20,7 +17,6 @@ export declare class BasicVmCore implements IVmRsxApi {
     private graphicsY;
     private readonly colorsForPens;
     private backgroundColor;
-    private isTag;
     private snippetData;
     private rsxHandler;
     private static readonly cpcColors;
@@ -44,17 +40,12 @@ export declare class BasicVmCore implements IVmRsxApi {
     origin(x: number, y: number): void;
     paper(n: number): void;
     pen(n: number): void;
-    pos(): number;
-    private printGraphicsText;
-    private printText;
+    printGraphicsText(text: string): void;
     print(...args: string[]): void;
     setOnSpeak(fnOnSpeak: (text: string, pitch: number) => Promise<void>): void;
     rsx(cmd: string, args: (number | string)[]): Promise<(number | string)[]>;
-    tag(active: boolean): void;
-    vpos(): number;
     xpos(): number;
     ypos(): number;
-    zone(num: number): void;
     getSnippetData(): SnippetDataType;
     getOutput(): string;
 }

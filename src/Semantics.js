@@ -19,6 +19,10 @@ function getCodeSnippets(snippetsData) {
         },
         cls: function cls() {
             _o.cls();
+            _d.pos = 0;
+            _d.tag = false;
+            _d.vpos = 0;
+            //_d.zone = 13;
         },
         dec$: function dec$(num, format) {
             const decimals = (format.split(".")[1] || "").length;
@@ -123,12 +127,36 @@ function getCodeSnippets(snippetsData) {
             _o.drawMovePlot("p", x, y);
         },
         pos: function pos() {
-            return _o.pos() + 1;
+            return _d.pos + 1;
         },
         print: function print(...args) {
             const _printNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
             const output = args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg);
-            _o.print(...output);
+            if (_d.tag) {
+                return _o.printGraphicsText(output.join(""));
+            }
+            const printText = (text) => {
+                _o.print(text);
+                const lines = text.split("\n");
+                if (lines.length > 1) {
+                    _d.vpos += lines.length - 1;
+                    _d.pos = lines[lines.length - 1].length;
+                }
+                else {
+                    _d.pos += text.length;
+                }
+            };
+            for (const text of output) {
+                if (text === CommaOpChar) {
+                    printText(" ".repeat(_d.zone - (_d.pos % _d.zone)));
+                }
+                else if (text.charAt(0) === TabOpChar) {
+                    printText(" ".repeat(Number(text.substring(1)) - 1 - _d.pos));
+                }
+                else {
+                    printText(text);
+                }
+            }
         },
         read: function read() {
             return _d.data[_d.dataPtr++];
@@ -159,7 +187,7 @@ function getCodeSnippets(snippetsData) {
             return num >= 0 ? ` ${num}` : String(num);
         },
         tag: function tag(active) {
-            _o.tag(active);
+            _d.tag = active;
         },
         time: function time() {
             return ((Date.now() - _d.startTime) * 3 / 10) | 0;
@@ -168,7 +196,7 @@ function getCodeSnippets(snippetsData) {
             return Number(str.replace("&x", "0b").replace("&", "0x"));
         },
         vpos: function vpos() {
-            return _o.vpos() + 1;
+            return _d.vpos + 1;
         },
         write: function write(...args) {
             const output = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
@@ -181,7 +209,7 @@ function getCodeSnippets(snippetsData) {
             return _o.ypos();
         },
         zone: function zone(num) {
-            return _o.zone(num);
+            _d.zone = num;
         },
     };
     return codeSnippets;
@@ -328,6 +356,12 @@ ${dataList.join(",\n")}
                 `const _d = _o.getSnippetData();${dataList.length ? ' _defineData();' : ''}`,
                 instrMap["time"] ? '_d.startTime = Date.now();' : '',
                 needsTimerMap ? '_d.timerMap = {};' : '',
+                `_d.pos = 0;`,
+                `_d.tag = false;`,
+                `_d.vpos = 0;`,
+                `_d.zone = 13;`,
+                `const CommaOpChar = "${CommaOpChar}";`, // TTT: TODO
+                `const TabOpChar = "${TabOpChar}";`,
                 variableDeclarations,
                 ...lineList.filter(line => line.trimEnd() !== ''),
                 !instrMap["end"] ? `return _o.flush();` : "",
@@ -689,13 +723,11 @@ ${dataList.join(",\n")}
             const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
             const messageString = message.sourceString.replace(/\s*[;,]$/, "");
             const identifiers = evalChildren(ids.asIteration().children);
+            const isNumberString = identifiers[0].includes("$") ? "" : ", true"; // TODO
             if (identifiers.length > 1) {
                 const identifierStr = `[${identifiers.join(", ")}]`;
-                // TODO TTT
-                const isNumberString = identifiers[0].includes("$") ? "" : ", true";
                 return `${identifierStr} = (await input(${streamStr}${messageString}${isNumberString})).split(",")`;
             }
-            const isNumberString = identifiers[0].includes("$") ? "" : ", true";
             return `${identifiers[0]} = await input(${streamStr}${messageString}${isNumberString})`;
         },
         Instr_noLen(_instrLit, _open, e1, _comma, e2, _close) {
@@ -850,11 +882,11 @@ ${dataList.join(",\n")}
             return notSupported(lit, num, comma, num2);
         },
         Pos(lit, open, streamLit, num, close) {
-            if (num.eval() === "0") {
-                semanticsHelper.addInstr("pos");
-                return "pos()";
+            if (num.eval() !== "0") {
+                return notSupported(lit, open, streamLit, num, close) + "0";
             }
-            return notSupported(lit, open, streamLit, num, close) + "0";
+            semanticsHelper.addInstr("pos");
+            return "pos()";
         },
         PrintArg_strCmp(_cmp, args) {
             const parameterString = args.children[0].eval();
@@ -1034,6 +1066,7 @@ ${dataList.join(",\n")}
             return notSupported(lit, afterLit, num);
         },
         Tab(_lit, _open, num, _close) {
+            //semanticsHelper.addInstr("TabOpChar");
             return `"${TabOpChar}${num.eval()}"`; // Unicode double arrow right
         },
         Tag(_tagLit, stream) {
@@ -1077,11 +1110,11 @@ ${dataList.join(",\n")}
             return `val(${numStr})`;
         },
         Vpos(lit, open, streamLit, num, close) {
-            if (num.eval() === "0") {
-                semanticsHelper.addInstr("vpos");
-                return "vpos()";
+            if (num.eval() !== "0") {
+                return notSupported(lit, open, streamLit, num, close) + "0";
             }
-            return notSupported(lit, open, streamLit, num, close) + "0";
+            semanticsHelper.addInstr("vpos");
+            return "vpos()";
         },
         Wait(lit, num, comma, num2, comma2, num3) {
             return notSupported(lit, num, comma, num2, comma2, num3);

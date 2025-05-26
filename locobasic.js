@@ -1798,6 +1798,10 @@
             },
             cls: function cls() {
                 _o.cls();
+                _d.pos = 0;
+                _d.tag = false;
+                _d.vpos = 0;
+                //_d.zone = 13;
             },
             dec$: function dec$(num, format) {
                 const decimals = (format.split(".")[1] || "").length;
@@ -1902,12 +1906,36 @@
                 _o.drawMovePlot("p", x, y);
             },
             pos: function pos() {
-                return _o.pos() + 1;
+                return _d.pos + 1;
             },
             print: function print(...args) {
                 const _printNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
                 const output = args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg);
-                _o.print(...output);
+                if (_d.tag) {
+                    return _o.printGraphicsText(output.join(""));
+                }
+                const printText = (text) => {
+                    _o.print(text);
+                    const lines = text.split("\n");
+                    if (lines.length > 1) {
+                        _d.vpos += lines.length - 1;
+                        _d.pos = lines[lines.length - 1].length;
+                    }
+                    else {
+                        _d.pos += text.length;
+                    }
+                };
+                for (const text of output) {
+                    if (text === CommaOpChar) {
+                        printText(" ".repeat(_d.zone - (_d.pos % _d.zone)));
+                    }
+                    else if (text.charAt(0) === TabOpChar) {
+                        printText(" ".repeat(Number(text.substring(1)) - 1 - _d.pos));
+                    }
+                    else {
+                        printText(text);
+                    }
+                }
             },
             read: function read() {
                 return _d.data[_d.dataPtr++];
@@ -1938,7 +1966,7 @@
                 return num >= 0 ? ` ${num}` : String(num);
             },
             tag: function tag(active) {
-                _o.tag(active);
+                _d.tag = active;
             },
             time: function time() {
                 return ((Date.now() - _d.startTime) * 3 / 10) | 0;
@@ -1947,7 +1975,7 @@
                 return Number(str.replace("&x", "0b").replace("&", "0x"));
             },
             vpos: function vpos() {
-                return _o.vpos() + 1;
+                return _d.vpos + 1;
             },
             write: function write(...args) {
                 const output = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
@@ -1960,7 +1988,7 @@
                 return _o.ypos();
             },
             zone: function zone(num) {
-                return _o.zone(num);
+                _d.zone = num;
             },
         };
         return codeSnippets;
@@ -2107,6 +2135,12 @@ ${dataList.join(",\n")}
                     `const _d = _o.getSnippetData();${dataList.length ? ' _defineData();' : ''}`,
                     instrMap["time"] ? '_d.startTime = Date.now();' : '',
                     needsTimerMap ? '_d.timerMap = {};' : '',
+                    `_d.pos = 0;`,
+                    `_d.tag = false;`,
+                    `_d.vpos = 0;`,
+                    `_d.zone = 13;`,
+                    `const CommaOpChar = "${CommaOpChar}";`, // TTT: TODO
+                    `const TabOpChar = "${TabOpChar}";`,
                     variableDeclarations,
                     ...lineList.filter(line => line.trimEnd() !== ''),
                     !instrMap["end"] ? `return _o.flush();` : "",
@@ -2468,13 +2502,11 @@ ${dataList.join(",\n")}
                 const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
                 const messageString = message.sourceString.replace(/\s*[;,]$/, "");
                 const identifiers = evalChildren(ids.asIteration().children);
+                const isNumberString = identifiers[0].includes("$") ? "" : ", true"; // TODO
                 if (identifiers.length > 1) {
                     const identifierStr = `[${identifiers.join(", ")}]`;
-                    // TODO TTT
-                    const isNumberString = identifiers[0].includes("$") ? "" : ", true";
                     return `${identifierStr} = (await input(${streamStr}${messageString}${isNumberString})).split(",")`;
                 }
-                const isNumberString = identifiers[0].includes("$") ? "" : ", true";
                 return `${identifiers[0]} = await input(${streamStr}${messageString}${isNumberString})`;
             },
             Instr_noLen(_instrLit, _open, e1, _comma, e2, _close) {
@@ -2629,11 +2661,11 @@ ${dataList.join(",\n")}
                 return notSupported(lit, num, comma, num2);
             },
             Pos(lit, open, streamLit, num, close) {
-                if (num.eval() === "0") {
-                    semanticsHelper.addInstr("pos");
-                    return "pos()";
+                if (num.eval() !== "0") {
+                    return notSupported(lit, open, streamLit, num, close) + "0";
                 }
-                return notSupported(lit, open, streamLit, num, close) + "0";
+                semanticsHelper.addInstr("pos");
+                return "pos()";
             },
             PrintArg_strCmp(_cmp, args) {
                 const parameterString = args.children[0].eval();
@@ -2813,6 +2845,7 @@ ${dataList.join(",\n")}
                 return notSupported(lit, afterLit, num);
             },
             Tab(_lit, _open, num, _close) {
+                //semanticsHelper.addInstr("TabOpChar");
                 return `"${TabOpChar}${num.eval()}"`; // Unicode double arrow right
             },
             Tag(_tagLit, stream) {
@@ -2856,11 +2889,11 @@ ${dataList.join(",\n")}
                 return `val(${numStr})`;
             },
             Vpos(lit, open, streamLit, num, close) {
-                if (num.eval() === "0") {
-                    semanticsHelper.addInstr("vpos");
-                    return "vpos()";
+                if (num.eval() !== "0") {
+                    return notSupported(lit, open, streamLit, num, close) + "0";
                 }
-                return notSupported(lit, open, streamLit, num, close) + "0";
+                semanticsHelper.addInstr("vpos");
+                return "vpos()";
             },
             Wait(lit, num, comma, num2, comma2, num3) {
                 return notSupported(lit, num, comma, num2, comma2, num3);
@@ -3382,9 +3415,6 @@ ${dataList.join(",\n")}
             this.hasPaperChanged = false;
             this.hasPenChanged = false;
             this.currMode = 2;
-            this.currPos = 0;
-            this.currVpos = 0;
-            this.currZone = 13; // comma tab zone value
             this.graphicsBuffer = [];
             this.graphicsPathBuffer = [];
             this.currGraphicsPen = -1;
@@ -3394,7 +3424,6 @@ ${dataList.join(",\n")}
             this.graphicsY = 0;
             this.colorsForPens = [];
             this.backgroundColor = "";
-            this.isTag = false; // text at graphics
             this.snippetData = {};
             this.defaultColorsForPens = [
                 1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
@@ -3412,16 +3441,12 @@ ${dataList.join(",\n")}
         }
         reset() {
             this.colorsForPens.splice(0, this.colorsForPens.length, ...this.defaultColorsForPens);
+            BasicVmCore.deleteAllItems(this.snippetData);
             this.backgroundColor = "";
             this.mode(1);
-            BasicVmCore.deleteAllItems(this.snippetData);
         }
         cls() {
             this.output = "";
-            this.currPos = 0;
-            this.currVpos = 0;
-            this.currZone = 13;
-            this.isTag = false;
             this.currPaper = -1;
             this.currPen = -1;
             this.hasPaperChanged = false;
@@ -3553,29 +3578,12 @@ ${content}
                 this.hasPenChanged = true;
             }
         }
-        pos() {
-            return this.currPos;
-        }
         printGraphicsText(text) {
             const yOffset = 16;
             const styleStr = this.currGraphicsPen >= 0 ? ` style="color: ${this.getRgbColorStringForPen(this.currGraphicsPen)}"` : "";
             this.addGraphicsElement(`<text x="${this.graphicsX + this.originX}" y="${399 - this.graphicsY - this.originY + yOffset}"${styleStr}>${text}</text>`);
         }
-        printText(text) {
-            this.output += text;
-            const lines = text.split("\n");
-            if (lines.length > 1) {
-                this.currVpos += lines.length - 1;
-                this.currPos = lines[lines.length - 1].length;
-            }
-            else {
-                this.currPos += text.length;
-            }
-        }
         print(...args) {
-            if (this.isTag) {
-                return this.printGraphicsText(args.join(''));
-            }
             if (this.hasPaperChanged) {
                 this.hasPaperChanged = false;
                 this.output += this.paperColors[this.colorsForPens[this.currPaper]];
@@ -3584,17 +3592,7 @@ ${content}
                 this.hasPenChanged = false;
                 this.output += this.penColors[this.colorsForPens[this.currPen]];
             }
-            for (const text of args) {
-                if (text === CommaOpChar) {
-                    this.printText(" ".repeat(this.currZone - (this.currPos % this.currZone)));
-                }
-                else if (text.charAt(0) === TabOpChar) {
-                    this.printText(" ".repeat(Number(text.substring(1)) - 1 - this.currPos));
-                }
-                else {
-                    this.printText(text);
-                }
-            }
+            this.output += args.join("");
         }
         setOnSpeak(fnOnSpeak) {
             this.rsxHandler.setOnSpeak(fnOnSpeak);
@@ -3602,20 +3600,11 @@ ${content}
         async rsx(cmd, args) {
             return this.rsxHandler.rsx(cmd, args);
         }
-        tag(active) {
-            this.isTag = active;
-        }
-        vpos() {
-            return this.currVpos;
-        }
         xpos() {
             return this.graphicsX;
         }
         ypos() {
             return this.graphicsY;
-        }
-        zone(num) {
-            this.currZone = num;
         }
         getSnippetData() {
             return this.snippetData;
@@ -3711,14 +3700,11 @@ ${content}
             this.origin = this.vmCore.origin.bind(this.vmCore);
             this.paper = this.vmCore.paper.bind(this.vmCore);
             this.pen = this.vmCore.pen.bind(this.vmCore);
-            this.pos = this.vmCore.pos.bind(this.vmCore);
             this.print = this.vmCore.print.bind(this.vmCore);
+            this.printGraphicsText = this.vmCore.printGraphicsText.bind(this.vmCore);
             this.rsx = this.vmCore.rsx.bind(this.vmCore);
-            this.tag = this.vmCore.tag.bind(this.vmCore);
-            this.vpos = this.vmCore.vpos.bind(this.vmCore);
             this.xpos = this.vmCore.xpos.bind(this.vmCore);
             this.ypos = this.vmCore.ypos.bind(this.vmCore);
-            this.zone = this.vmCore.zone.bind(this.vmCore);
             this.getSnippetData = this.vmCore.getSnippetData.bind(this.vmCore);
             this.getOutput = this.vmCore.getOutput.bind(this.vmCore);
         }
@@ -3776,14 +3762,11 @@ ${content}
         origin(x, y) { this.debug("origin:", x, y); },
         paper(num) { this.debug("paper:", num); },
         pen(num) { this.debug("pen:", num); },
-        pos() { this.debug("pos:"); return this._output.length - this._output.lastIndexOf("\n") - 1; },
         print(...args) { this._output += args.join(''); },
+        printGraphicsText(text) { this.debug("printGraphicsText:", text); },
         rsx(cmd, args) { this._output += cmd + "," + args.join(''); return Promise.resolve([]); },
-        tag(active) { this.debug("tag:", active); },
-        vpos() { this.debug("vpos:"); return (this._output.match(/\n/g) || []).length; },
         xpos() { this.debug("xpos:"); return 0; },
         ypos() { this.debug("ypos:"); return 0; },
-        zone(num) { this.debug("zone:", num); },
         getEscape() { return false; },
         getSnippetData() { return this._snippetData; }
     };
@@ -4115,14 +4098,11 @@ node hello1.js
             this.origin = this.vmCore.origin.bind(this.vmCore);
             this.paper = this.vmCore.paper.bind(this.vmCore);
             this.pen = this.vmCore.pen.bind(this.vmCore);
-            this.pos = this.vmCore.pos.bind(this.vmCore);
             this.print = this.vmCore.print.bind(this.vmCore);
+            this.printGraphicsText = this.vmCore.printGraphicsText.bind(this.vmCore);
             this.rsx = this.vmCore.rsx.bind(this.vmCore);
-            this.tag = this.vmCore.tag.bind(this.vmCore);
-            this.vpos = this.vmCore.vpos.bind(this.vmCore);
             this.xpos = this.vmCore.xpos.bind(this.vmCore);
             this.ypos = this.vmCore.ypos.bind(this.vmCore);
-            this.zone = this.vmCore.zone.bind(this.vmCore);
             this.getSnippetData = this.vmCore.getSnippetData.bind(this.vmCore);
             this.getOutput = this.vmCore.getOutput.bind(this.vmCore);
         }

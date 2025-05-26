@@ -18,14 +18,11 @@ const dummyVm = {
     origin(x, y) { this.debug("origin:", x, y); },
     paper(num) { this.debug("paper:", num); },
     pen(num) { this.debug("pen:", num); },
-    pos() { this.debug("pos:"); return this._output.length - this._output.lastIndexOf("\n") - 1; },
     print(...args) { this._output += args.join(''); },
+    printGraphicsText(text) { this.debug("printGraphicsText:", text); },
     rsx(cmd, args) { this._output += cmd + "," + args.join(''); return Promise.resolve([]); },
-    tag(active) { this.debug("tag:", active); },
-    vpos() { this.debug("vpos:"); return (this._output.match(/\n/g) || []).length; },
     xpos() { this.debug("xpos:"); return 0; },
     ypos() { this.debug("ypos:"); return 0; },
-    zone(num) { this.debug("zone:", num); },
     getEscape() { return false; },
     getSnippetData() { return this._snippetData; }
 };
