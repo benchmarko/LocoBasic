@@ -35,14 +35,16 @@ export type ConfigType = {
     showOutput: boolean;
 };
 
-//export type TimerMapType = Record<number, number | NodeJS.Timeout | undefined>;
-
 export type SnippetDataType = {
     data: (string | number)[];
     dataPtr: number;
     restoreMap: Record<string, number>;
     startTime: number;
     timerMap: Record<number, number | NodeJS.Timeout | undefined>;
+    pos: number;
+    tag: boolean;
+    vpos: number;
+    zone: number;
 }
 
 export interface IVm {
@@ -57,14 +59,11 @@ export interface IVm {
     origin(x: number, y: number): void;
     paper(color: number): void;
     pen(color: number): void;
-    pos(): number;
     print(...args: string[]): void;
+    printGraphicsText(text: string): void;
     rsx(cmd: string, args: (string | number)[]): Promise<(number | string)[]>;
-    tag(active: boolean): void;
-    vpos(): number;
     xpos(): number;
     ypos(): number;
-    zone(num: number): void;
     getEscape(): boolean;
     getSnippetData(): SnippetDataType;
 }
@@ -72,7 +71,6 @@ export interface IVm {
 export interface IVmAdmin extends IVm {
     reset(): void;
     getOutput(): string;
-    //setOutput(str: string): void;
 }
 
 export interface IVmRsxApi {

@@ -24,7 +24,6 @@ describe('BasicVmCore Module', () => {
     it('should reset correctly', () => {
         const vm = new BasicVmCore([], []);
         vm.print('test');
-        vm.tag(true);
         vm.print('graphics test');
         vm.cls();
         expect(vm.getOutput()).toBe('');
@@ -55,8 +54,7 @@ describe('BasicVmCore Module', () => {
         expect(vm.flushGraphics()).toBe(getInSvg('<path d="M210 279" />'));
 
         vm.cls();
-        vm.tag(true);
-        vm.print("test");
+        vm.printGraphicsText("test");
         expect(vm.flushGraphics()).toBe(getInSvg('<text x="10" y="395">test</text>'));
     });
 
@@ -158,13 +156,6 @@ describe('BasicVmCore Module', () => {
         expect(vm.flushText()).toBe('Hello, World!');
     });
 
-    it('should render text as graphics when isTag is true', () => {
-        const vm = new BasicVmCore([], []);
-        vm.tag(true);
-        vm.print('Graphics Text');
-        expect(vm.flushGraphics()).toBe(getInSvg('<text x="0" y="415">Graphics Text</text>'));
-    });
-
     it('should reset output after flushText is called', () => {
         const vm = new BasicVmCore([], []);
         vm.print('Temporary Text');
@@ -178,35 +169,30 @@ describe('BasicVmCore Module', () => {
         expect(vm.flushText()).toBe('');
     });
 
-    it('should render text with correct graphics position when isTag is true', () => {
+    it('should render graphics text', () => {
         const vm = new BasicVmCore([], []);
-        vm.tag(true);
+        vm.printGraphicsText('Graphics Text');
+        expect(vm.flushGraphics()).toBe(getInSvg('<text x="0" y="415">Graphics Text</text>'));
+    });
+
+    it('should render graphics text with correct graphics position', () => {
+        const vm = new BasicVmCore([], []);
         vm.origin(10, 20);
-        vm.print('Positioned Text');
+        vm.printGraphicsText('Positioned Text');
         expect(vm.flushGraphics()).toBe(getInSvg('<text x="10" y="395">Positioned Text</text>'));
     });
 
-    it('should render text with correct color when graphicsPen is set', () => {
+    it('should render graphics text with correct color when graphicsPen is set', () => {
         const vm = new BasicVmCore([], []);
-        vm.tag(true);
         vm.graphicsPen(1);
-        vm.print('Colored Text');
+        vm.printGraphicsText('Colored Text');
         expect(vm.flushGraphics()).toBe(getInSvg('<text x="0" y="415" style="color: #FFFF00">Colored Text</text>'));
     });
 
-    it('should not append text to output when isTag is true', () => {
-        const vm = new BasicVmCore([], []);
-        vm.tag(true);
-        vm.print('Graphics Only');
-        expect(vm.flushText()).toBe('');
-    });
-
-    it('should handle mixed isTag states correctly', () => {
+    it('should handle mixed graphics text and text correctly', () => {
         const vm = new BasicVmCore([], []);
         vm.print('Text Output');
-        vm.tag(true);
-        vm.print('Graphics Output');
-        vm.tag(false);
+        vm.printGraphicsText('Graphics Output');
         vm.print(' More Text');
         expect(vm.flushText()).toBe('Text Output More Text');
         expect(vm.flushGraphics()).toBe(getInSvg('<text x="0" y="415">Graphics Output</text>'));

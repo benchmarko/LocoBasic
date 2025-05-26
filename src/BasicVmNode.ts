@@ -52,14 +52,11 @@ export class BasicVmNode implements IVmAdmin {
     public origin: (x: number, y: number) => void;
     public paper: (n: number) => void;
     public pen: (n: number) => void;
-    public pos: () => number;
     public print: (...args: string[]) => void;
+    public printGraphicsText: (text: string) => void;
     public rsx: (cmd: string, args: (number | string)[]) => Promise<(number | string)[]>;
-    public tag: (active: boolean) => void;
-    public vpos: () => number;
     public xpos: () => number;
     public ypos: () => number;
-    public zone: (num: number) => void;
     public getSnippetData: () => SnippetDataType;
     public getOutput: () => string;
 
@@ -76,14 +73,11 @@ export class BasicVmNode implements IVmAdmin {
         this.origin = this.vmCore.origin.bind(this.vmCore);
         this.paper = this.vmCore.paper.bind(this.vmCore);
         this.pen = this.vmCore.pen.bind(this.vmCore);
-        this.pos = this.vmCore.pos.bind(this.vmCore);
         this.print = this.vmCore.print.bind(this.vmCore);
+        this.printGraphicsText = this.vmCore.printGraphicsText.bind(this.vmCore);
         this.rsx = this.vmCore.rsx.bind(this.vmCore);
-        this.tag = this.vmCore.tag.bind(this.vmCore);
-        this.vpos = this.vmCore.vpos.bind(this.vmCore);
         this.xpos = this.vmCore.xpos.bind(this.vmCore);
         this.ypos = this.vmCore.ypos.bind(this.vmCore);
-        this.zone = this.vmCore.zone.bind(this.vmCore);
         this.getSnippetData = this.vmCore.getSnippetData.bind(this.vmCore);
         this.getOutput = this.vmCore.getOutput.bind(this.vmCore);
     }

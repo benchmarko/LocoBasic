@@ -1,6 +1,5 @@
 import type { IVmRsxApi, SnippetDataType } from "./Interfaces";
 import { BasicVmRsxHandler } from "./BasicVmRsxHandler";
-import { CommaOpChar, TabOpChar } from "./Semantics";
 
 const strokeWidthForMode: number[] = [4, 2, 1, 1];
 
@@ -13,9 +12,6 @@ export class BasicVmCore implements IVmRsxApi {
     private hasPaperChanged: boolean = false;
     private hasPenChanged: boolean = false;
     private currMode: number = 2;
-    private currPos: number = 0;
-    private currVpos: number = 0;
-    private currZone: number = 13; // comma tab zone value
     private readonly graphicsBuffer: string[] = [];
     private readonly graphicsPathBuffer: string[] = [];
     private currGraphicsPen: number = -1;
@@ -25,7 +21,6 @@ export class BasicVmCore implements IVmRsxApi {
     private graphicsY: number = 0;
     private readonly colorsForPens: number[] = [];
     private backgroundColor = "";
-    private isTag: boolean = false; // text at graphics
     private snippetData: SnippetDataType = {} as SnippetDataType;
     private rsxHandler: BasicVmRsxHandler;
 
@@ -85,17 +80,13 @@ export class BasicVmCore implements IVmRsxApi {
 
     public reset(): void {
         this.colorsForPens.splice(0, this.colorsForPens.length, ...this.defaultColorsForPens);
+        BasicVmCore.deleteAllItems(this.snippetData);
         this.backgroundColor = "";
         this.mode(1);
-        BasicVmCore.deleteAllItems(this.snippetData);
     }
 
     public cls(): void {
         this.output = "";
-        this.currPos = 0;
-        this.currVpos = 0;
-        this.currZone = 13;
-        this.isTag = false;
         this.currPaper = -1;
         this.currPen = -1;
         this.hasPaperChanged = false;
@@ -246,32 +237,13 @@ ${content}
         }
     }
 
-    public pos(): number {
-        return this.currPos;
-    }
-
-    private printGraphicsText(text: string): void {
+    public printGraphicsText(text: string): void {
         const yOffset = 16;
         const styleStr = this.currGraphicsPen >= 0 ? ` style="color: ${this.getRgbColorStringForPen(this.currGraphicsPen)}"` : "";
         this.addGraphicsElement(`<text x="${this.graphicsX + this.originX}" y="${399 - this.graphicsY - this.originY + yOffset}"${styleStr}>${text}</text>`)
     }
 
-    private printText(text: string): void {
-        this.output += text;
-        const lines = text.split("\n");
-        if (lines.length > 1) {
-            this.currVpos += lines.length - 1;
-            this.currPos = lines[lines.length - 1].length;
-        } else {
-            this.currPos += text.length;
-        }
-    }
-
     public print(...args: string[]): void {
-        if (this.isTag) {
-            return this.printGraphicsText(args.join(''));
-        }
-
         if (this.hasPaperChanged) {
             this.hasPaperChanged = false;
             this.output += this.paperColors[this.colorsForPens[this.currPaper]];
@@ -282,15 +254,7 @@ ${content}
             this.output += this.penColors[this.colorsForPens[this.currPen]];
         }
 
-        for (const text of args) {
-            if (text === CommaOpChar) {
-                this.printText(" ".repeat(this.currZone - (this.currPos % this.currZone)));
-            } else if (text.charAt(0) === TabOpChar) {
-                this.printText(" ".repeat(Number(text.substring(1)) - 1 - this.currPos));
-            } else {
-                this.printText(text);
-            }
-        }
+        this.output += args.join("");
     }
 
     public setOnSpeak(fnOnSpeak: (text: string, pitch: number) => Promise<void>) {
@@ -301,24 +265,12 @@ ${content}
         return this.rsxHandler.rsx(cmd, args);
     }
 
-    public tag(active: boolean): void {
-        this.isTag = active;
-    }
-
-    public vpos(): number {
-        return this.currVpos;
-    }
-
     public xpos(): number {
         return this.graphicsX;
     }
 
     public ypos(): number {
         return this.graphicsY;
-    }
-
-    public zone(num: number): void {
-        this.currZone = num;
     }
 
     public getSnippetData(): SnippetDataType {

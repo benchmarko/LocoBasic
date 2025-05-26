@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { Node } from "ohm-js";
 import { Semantics } from '../src/Semantics';
+import { SnippetDataType } from '../src/Interfaces';
 
 describe('Semantics Class', () => {
     it('should initialize', () => {
@@ -559,7 +560,8 @@ describe('Semantics Class', () => {
         it('print should format numbers and strings', () => {
             let output = "";
             const snippets = getSnippets({
-                _o: { print: (...s: string[]) => { output = s.join(""); } }
+                _o: { print: (...s: string[]) => { output += s.join(""); } },
+                _d: {} as SnippetDataType
             });
             snippets.print("A", 5, "B", -2);
             expect(output).toBe("A 5 B-2 ");

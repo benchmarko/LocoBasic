@@ -27,6 +27,10 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 		},
 		cls: function cls() {
 			_o.cls();
+			_d.pos = 0;
+			_d.tag = false;
+			_d.vpos = 0;
+			//_d.zone = 13;
 		},
 		dec$: function dec$(num: number, format: string) {
 			const decimals = (format.split(".")[1] || "").length;
@@ -128,12 +132,34 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 			_o.drawMovePlot("p", x, y);
 		},
 		pos: function pos() {
-			return _o.pos() + 1;
+			return _d.pos + 1;
 		},
 		print: function print(...args: (string | number)[]) {
 			const _printNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
 			const output = args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg);
-			_o.print(...output);
+			if (_d.tag) {
+				return _o.printGraphicsText(output.join(""));
+			}
+
+			const printText = (text: string) => {
+				_o.print(text);
+				const lines = text.split("\n");
+				if (lines.length > 1) {
+					_d.vpos += lines.length - 1;
+					_d.pos = lines[lines.length - 1].length;
+				} else {
+					_d.pos += text.length;
+				}
+			};
+			for (const text of output) {
+            if (text === CommaOpChar) {
+                printText(" ".repeat(_d.zone - (_d.pos % _d.zone)));
+            } else if (text.charAt(0) === TabOpChar) {
+                printText(" ".repeat(Number(text.substring(1)) - 1 - _d.pos));
+            } else {
+                printText(text);
+            }
+        }
 		},
 		read: function read() {
 			return _d.data[_d.dataPtr++];
@@ -164,7 +190,7 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 			return num >= 0 ? ` ${num}` : String(num);
 		},
 		tag: function tag(active: boolean) {
-			_o.tag(active);
+			_d.tag = active;
 		},
 		time: function time() {
 			return ((Date.now() - _d.startTime) * 3 / 10) | 0;
@@ -173,7 +199,7 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 			return Number(str.replace("&x", "0b").replace("&", "0x"));
 		},
 		vpos: function vpos() {
-			return _o.vpos() + 1;
+			return _d.vpos + 1;
 		},
 		write: function write(...args: (string | number)[]) {
 			const output = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
@@ -186,7 +212,7 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 			return _o.ypos();
 		},
 		zone: function zone(num: number) {
-			return _o.zone(num);
+			_d.zone = num;
 		},
 	};
 	return codeSnippets;
@@ -362,6 +388,12 @@ ${dataList.join(",\n")}
 				`const _d = _o.getSnippetData();${dataList.length ? ' _defineData();' : ''}`,
 				instrMap["time"] ? '_d.startTime = Date.now();' : '',
 				needsTimerMap ? '_d.timerMap = {};' : '',
+				`_d.pos = 0;`,
+				`_d.tag = false;`,
+				`_d.vpos = 0;`,
+				`_d.zone = 13;`,
+				`const CommaOpChar = "${CommaOpChar}";`, // TTT: TODO
+				`const TabOpChar = "${TabOpChar}";`,
 				variableDeclarations,
 				...lineList.filter(line => line.trimEnd() !== ''),
 				!instrMap["end"] ? `return _o.flush();` : "",
@@ -822,14 +854,12 @@ ${dataList.join(",\n")}
 
 			const messageString = message.sourceString.replace(/\s*[;,]$/, "");
 			const identifiers = evalChildren(ids.asIteration().children);
+			const isNumberString = identifiers[0].includes("$") ? "" : ", true"; // TODO
 			if (identifiers.length > 1) {
 				const identifierStr = `[${identifiers.join(", ")}]`;
-				// TODO TTT
-				const isNumberString = identifiers[0].includes("$") ? "" : ", true";
 				return `${identifierStr} = (await input(${streamStr}${messageString}${isNumberString})).split(",")`;
 			}
 
-			const isNumberString = identifiers[0].includes("$") ? "" : ", true";
 			return `${identifiers[0]} = await input(${streamStr}${messageString}${isNumberString})`;
 		},
 
@@ -1029,11 +1059,11 @@ ${dataList.join(",\n")}
 		},
 
 		Pos(lit: Node, open: Node, streamLit: Node, num: Node, close: Node) {
-			if (num.eval() === "0") {
-				semanticsHelper.addInstr("pos");
-				return "pos()";
+			if (num.eval() !== "0") {
+				return notSupported(lit, open, streamLit, num, close) + "0";
 			}
-			return notSupported(lit, open, streamLit, num, close) + "0";
+			semanticsHelper.addInstr("pos");
+			return "pos()";
 		},
 
 		PrintArg_strCmp(_cmp: Node, args: Node) {
@@ -1261,6 +1291,7 @@ ${dataList.join(",\n")}
 		},
 
 		Tab(_lit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			//semanticsHelper.addInstr("TabOpChar");
 			return `"${TabOpChar}${num.eval()}"`; // Unicode double arrow right
 		},
 
@@ -1315,11 +1346,11 @@ ${dataList.join(",\n")}
 		},
 
 		Vpos(lit: Node, open: Node, streamLit: Node, num: Node, close: Node) {
-			if (num.eval() === "0") {
-				semanticsHelper.addInstr("vpos");
-				return "vpos()";
+			if (num.eval() !== "0") {
+				return notSupported(lit, open, streamLit, num, close) + "0";
 			}
-			return notSupported(lit, open, streamLit, num, close) + "0";
+			semanticsHelper.addInstr("vpos");
+			return "vpos()";
 		},
 
 		Wait(lit: Node, num: Node, comma: Node, num2: Node, comma2: Node, num3: Node) {
