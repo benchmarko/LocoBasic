@@ -57,8 +57,11 @@ export class BasicVmCore {
         return this.outputGraphicsIndex;
     }
     // type: M | m | P | p | L | l
-    drawMovePlot(type, x, y) {
+    drawMovePlot(type, x, y, pen) {
         this.setOutputGraphicsIndex();
+        if (pen !== undefined) {
+            this.graphicsPen(pen);
+        }
         x = Math.round(x);
         y = Math.round(y);
         if (!this.graphicsPathBuffer.length && type !== "M" && type !== "P") { // path must start with an absolute move
@@ -134,21 +137,6 @@ ${content}
         if (this.currGraphicsPen < 0) {
             this.graphicsPen(1);
         }
-        /*
-        if (this.currPen < 0) {
-            this.pen(1);
-        } else if (num === this.currPen) {
-            this.currPen = -1;
-            this.pen(num);
-        }
-
-        if (this.currPaper < 0) {
-            this.paper(0);
-        } else if (num === this.currPaper) {
-            this.currPaper = -1;
-            this.paper(num);
-        }
-        */
         if (num === 0) {
             this.backgroundColor = this.getRgbColorStringForPen(0);
         }

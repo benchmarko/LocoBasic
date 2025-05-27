@@ -4,7 +4,7 @@ const dummyVm = {
     _snippetData: {},
     debug(..._args) { }, // eslint-disable-line @typescript-eslint/no-unused-vars
     cls() { },
-    drawMovePlot(type, x, y) { this.debug("drawMovePlot:", type, x, y); },
+    drawMovePlot(type, x, y, pen) { this.debug("drawMovePlot:", type, x, y, pen !== undefined ? pen : ""); },
     flush() { if (this._snippetData.output) {
         console.log(this._snippetData.output);
         this._snippetData.output = "";

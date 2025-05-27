@@ -25,7 +25,7 @@ export declare class BasicVmCore implements IVmRsxApi {
     mode(num: number): void;
     private setOutputGraphicsIndex;
     getOutputGraphicsIndex(): number;
-    drawMovePlot(type: string, x: number, y: number): void;
+    drawMovePlot(type: string, x: number, y: number, pen?: number): void;
     getGraphicsPen(): number;
     getRgbColorStringForPen(pen: number): string;
     private flushGraphicsPath;

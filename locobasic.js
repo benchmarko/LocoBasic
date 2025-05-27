@@ -1839,11 +1839,11 @@
             dim1: function dim1(dim, value = 0) {
                 return new Array(dim + 1).fill(value);
             },
-            draw: function draw(x, y) {
-                _o.drawMovePlot("L", x, y);
+            draw: function draw(x, y, pen) {
+                _o.drawMovePlot("L", x, y, pen);
             },
-            drawr: function drawr(x, y) {
-                _o.drawMovePlot("l", x, y);
+            drawr: function drawr(x, y, pen) {
+                _o.drawMovePlot("l", x, y, pen);
             },
             end: function end() {
                 _o.flush();
@@ -1886,6 +1886,20 @@
                     return isNum ? Number(input) : input;
                 }
             },
+            instr: function instr(str, find, len) {
+                return str.indexOf(find, len !== undefined ? len - 1 : len) + 1;
+            },
+            /*
+            instrLen: function instrLen(str: string, find: string, len: number) {
+                return str.indexOf(find, len - 1) + 1;
+            },
+            */
+            left$: function left$(str, num) {
+                return str.slice(0, num);
+            },
+            mid$: function mid$(str, pos, len) {
+                return str.substr(pos - 1, len);
+            },
             mid$Assign: function mid$Assign(s, start, newString, len) {
                 start -= 1;
                 len = Math.min(len !== null && len !== void 0 ? len : newString.length, newString.length, s.length - start);
@@ -1895,11 +1909,11 @@
                 _o.mode(num);
                 cls();
             },
-            move: function move(x, y) {
-                _o.drawMovePlot("M", x, y);
+            move: function move(x, y, pen) {
+                _o.drawMovePlot("M", x, y, pen);
             },
-            mover: function mover(x, y) {
-                _o.drawMovePlot("m", x, y);
+            mover: function mover(x, y, pen) {
+                _o.drawMovePlot("m", x, y, pen);
             },
             origin: function origin(x, y) {
                 _o.origin(x, y);
@@ -1910,11 +1924,11 @@
             pen: function pen(n) {
                 _d.output += _o.getColorForPen(n);
             },
-            plot: function plot(x, y) {
-                _o.drawMovePlot("P", x, y);
+            plot: function plot(x, y, pen) {
+                _o.drawMovePlot("P", x, y, pen);
             },
-            plotr: function plotr(x, y) {
-                _o.drawMovePlot("p", x, y);
+            plotr: function plotr(x, y, pen) {
+                _o.drawMovePlot("p", x, y, pen);
             },
             pos: function pos() {
                 return _d.pos + 1;
@@ -1930,8 +1944,17 @@
                     _d.pos += text.length;
                 }
             },
-            // print: commaOp or tabOp: For graphics output the text position does not change, so we can output all at once.
             print: function print(...args) {
+                const formatNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
+                const text = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg).join("");
+                if (_d.tag) {
+                    return _o.printGraphicsText(text);
+                }
+                printText(text);
+            },
+            // printTab: print with commaOp or tabOp
+            // For graphics output the text position does not change, so we can output all at once.
+            printTab: function printTab(...args) {
                 const formatNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
                 const strArgs = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg);
                 const formatCommaOrTab = (str) => {
@@ -1966,6 +1989,9 @@
             },
             restore: function restore(label) {
                 _d.dataPtr = _d.restoreMap[label];
+            },
+            right$: function right$(str, num) {
+                return str.substring(str.length - num);
             },
             round: function round(num, dec) {
                 return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
@@ -2025,26 +2051,24 @@
     function evalChildren(children) {
         return children.map(child => child.eval());
     }
+    function evalOptionalArg(arg) {
+        var _a;
+        const argEval = (_a = arg.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
+        return argEval !== undefined ? `, ${argEval}` : "";
+    }
     function createComparisonExpression(a, op, b) {
         return `-(${a.eval()} ${op} ${b.eval()})`;
     }
     function getSemanticsActions(semanticsHelper) {
-        const drawMovePlot = (lit, x, _comma1, y, _comma2, e3, _comma3, e4) => {
-            var _a;
+        const drawMovePlot = (lit, x, _comma1, y, _comma2, pen, _comma3, mode) => {
             const command = lit.sourceString.toLowerCase();
             semanticsHelper.addInstr(command);
-            const pen = (_a = e3.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
-            let penStr = "";
-            if (pen !== undefined) {
-                semanticsHelper.addInstr("graphicsPen");
-                penStr = `graphicsPen(${pen}); `;
-            }
-            const modeStr = e4.child(0) ? notSupported(e4.child(0)) : "";
-            return penStr + `${command}(${x.eval()}, ${y.eval()}${modeStr})`;
+            const modeStr = mode.child(0) ? notSupported(mode.child(0)) : "";
+            return `${command}(${x.eval()}, ${y.eval()}${evalOptionalArg(pen)}${modeStr})`;
         };
-        const cosSinTan = (lit, _open, e, _close) => {
+        const cosSinTan = (lit, _open, num, _close) => {
             const func = lit.sourceString.toLowerCase();
-            return semanticsHelper.getDeg() ? `Math.${func}((${e.eval()}) * Math.PI / 180)` : `Math.${func}(${e.eval()})`;
+            return semanticsHelper.getDeg() ? `Math.${func}((${num.eval()}) * Math.PI / 180)` : `Math.${func}(${num.eval()})`;
         };
         const loopBlock = (startNode, content, separator, endNode) => {
             const startStr = startNode.eval();
@@ -2151,6 +2175,7 @@ ${dataList.join(",\n")}
                     .join('\n');
                 const needsAsync = Object.keys(codeSnippets).some(key => instrMap[key] && trimIndent(String(codeSnippets[key])).startsWith("async "));
                 const needsTimerMap = instrMap["after"] || instrMap["every"] || instrMap["remain"];
+                const needsCommaOrTabOpChar = instrMap["printTab"];
                 // Assemble code lines
                 const codeLines = [
                     needsAsync ? 'return async function() {' : '',
@@ -2158,8 +2183,7 @@ ${dataList.join(",\n")}
                     `const _d = _o.getSnippetData(); resetText();${dataList.length ? ' _defineData();' : ''}`,
                     instrMap["time"] ? '_d.startTime = Date.now();' : '',
                     needsTimerMap ? '_d.timerMap = {};' : '',
-                    `const CommaOpChar = "${CommaOpChar}";`,
-                    `const TabOpChar = "${TabOpChar}";`,
+                    needsCommaOrTabOpChar ? `const CommaOpChar = "${CommaOpChar}", TabOpChar = "${TabOpChar}";` : '',
                     variableDeclarations,
                     ...lineList.filter(line => line.trimEnd() !== ''),
                     !instrMap["end"] ? `return _o.flush();` : "",
@@ -2243,20 +2267,18 @@ ${dataList.join(",\n")}
                 semanticsHelper.addUsedLabel(labelString, "gosub");
                 return `after(${timeout}, ${timer}, _${labelString})`;
             },
-            Asc(_ascLit, _open, e, _close) {
-                return `(${e.eval()}).charCodeAt(0)`;
+            Asc(_ascLit, _open, str, _close) {
+                return `(${str.eval()}).charCodeAt(0)`;
             },
-            Atn(_atnLit, _open, e, _close) {
-                return semanticsHelper.getDeg() ? `(Math.atan(${e.eval()}) * 180 / Math.PI)` : `Math.atan(${e.eval()})`;
+            Atn(_atnLit, _open, num, _close) {
+                return semanticsHelper.getDeg() ? `(Math.atan(${num.eval()}) * 180 / Math.PI)` : `Math.atan(${num.eval()})`;
             },
             Auto(lit, label, comma, step) {
                 return notSupported(lit, label, comma, step);
             },
-            BinS(_binLit, _open, e, _comma, n, _close) {
-                var _a;
+            BinS(_binLit, _open, num, _comma, pad, _close) {
                 semanticsHelper.addInstr("bin$");
-                const pad = (_a = n.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
-                return pad !== undefined ? `bin$(${e.eval()}, ${pad})` : `bin$(${e.eval()})`;
+                return `bin$(${num.eval()}${evalOptionalArg(pad)})`;
             },
             Border(lit, num, comma, num2) {
                 return notSupported(lit, num, comma, num2);
@@ -2411,8 +2433,8 @@ ${dataList.join(",\n")}
             Fill(lit, num) {
                 return notSupported(lit, num);
             },
-            Fix(_fixLit, _open, e, _close) {
-                return `Math.trunc(${e.eval()})`;
+            Fix(_fixLit, _open, num, _close) {
+                return `Math.trunc(${num.eval()})`;
             },
             Fre(lit, open, e, close) {
                 return notSupported(lit, open, e, close) + "0";
@@ -2465,15 +2487,13 @@ ${dataList.join(",\n")}
             GraphicsPaper(lit, paperLit, num) {
                 return notSupported(lit, paperLit, num); // TODO
             },
-            GraphicsPen(_graphicsLit, _penLit, e) {
+            GraphicsPen(_graphicsLit, _penLit, num) {
                 semanticsHelper.addInstr("graphicsPen");
-                return `graphicsPen(${e.eval()})`;
+                return `graphicsPen(${num.eval()})`;
             },
-            HexS(_hexLit, _open, e, _comma, n, _close) {
-                var _a;
+            HexS(_hexLit, _open, num, _comma, pad, _close) {
                 semanticsHelper.addInstr("hex$");
-                const pad = (_a = n.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
-                return pad !== undefined ? `hex$(${e.eval()}, ${pad})` : `hex$(${e.eval()})`;
+                return `hex$(${num.eval()}${evalOptionalArg(pad)})`;
             },
             Himem(lit) {
                 return notSupported(lit) + "0";
@@ -2526,13 +2546,15 @@ ${dataList.join(",\n")}
                 return `${identifiers[0]} = await input(${streamStr}${messageString}${isNumberString})`;
             },
             Instr_noLen(_instrLit, _open, e1, _comma, e2, _close) {
-                return `((${e1.eval()}).indexOf(${e2.eval()}) + 1)`;
+                semanticsHelper.addInstr("instr");
+                return `instr(${e1.eval()}, ${e2.eval()})`;
             },
             Instr_len(_instrLit, _open, len, _comma1, e1, _comma2, e2, _close) {
-                return `((${e1.eval()}).indexOf(${e2.eval()}, ${len.eval()} - 1) + 1)`;
+                semanticsHelper.addInstr("instr");
+                return `instr(${e1.eval()}, ${e2.eval()}, ${len.eval()})`;
             },
-            Int(_intLit, _open, e, _close) {
-                return `Math.floor(${e.eval()})`;
+            Int(_intLit, _open, num, _close) {
+                return `Math.floor(${num.eval()})`;
             },
             Joy(lit, open, num, close) {
                 return notSupported(lit, open, num, close) + "0";
@@ -2540,15 +2562,15 @@ ${dataList.join(",\n")}
             Key(lit) {
                 return notSupported(lit);
             },
-            LeftS(_leftLit, _open, e1, _comma, e2, _close) {
-                return `(${e1.eval()}).slice(0, ${e2.eval()})`;
+            LeftS(_leftLit, _open, pos, _comma, len, _close) {
+                semanticsHelper.addInstr("left$");
+                return `left$(${pos.eval()}, ${len.eval()})`;
             },
-            Len(_lenLit, _open, e, _close) {
-                return `(${e.eval()}).length`;
+            Len(_lenLit, _open, str, _close) {
+                return `(${str.eval()}).length`;
             },
             Let(_letLit, assign) {
-                const assignStr = assign.eval();
-                return `${assignStr}`;
+                return `${assign.eval()}`;
             },
             LineInput(lit, inputLit, stream, comma, message, semi, e) {
                 return notSupported(lit, inputLit, stream, comma, message, semi, e);
@@ -2562,21 +2584,20 @@ ${dataList.join(",\n")}
             Locate(lit, stream, comma, x, comma2, y) {
                 return notSupported(lit, stream, comma, x, comma2, y);
             },
-            Log(_logLit, _open, e, _close) {
-                return `Math.log(${e.eval()})`;
+            Log(_logLit, _open, num, _close) {
+                return `Math.log(${num.eval()})`;
             },
-            Log10(_log10Lit, _open, e, _close) {
-                return `Math.log10(${e.eval()})`;
+            Log10(_log10Lit, _open, num, _close) {
+                return `Math.log10(${num.eval()})`;
             },
-            LowerS(_lowerLit, _open, e, _close) {
-                return `(${e.eval()}).toLowerCase()`;
+            LowerS(_lowerLit, _open, str, _close) {
+                return `(${str.eval()}).toLowerCase()`;
             },
             Mask(lit, num, comma, num2, comma2, num3) {
                 return notSupported(lit, num, comma, num2, comma2, num3);
             },
             Max(_maxLit, _open, args, _close) {
-                const argumentList = evalChildren(args.asIteration().children);
-                return `Math.max(${argumentList})`;
+                return `Math.max(${evalChildren(args.asIteration().children)})`;
             },
             Memory(lit, num) {
                 return notSupported(lit, num);
@@ -2584,30 +2605,23 @@ ${dataList.join(",\n")}
             Merge(lit, file) {
                 return notSupported(lit, file);
             },
-            MidS(_midLit, _open, e1, _comma1, e2, _comma2, e3, _close) {
-                var _a;
-                const length = (_a = e3.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
-                const lengthString = length === undefined ? "" : `, ${length}`;
-                return `(${e1.eval()}).substr(${e2.eval()} - 1${lengthString})`;
+            MidS(_midLit, _open, str, _comma1, start, _comma2, len, _close) {
+                semanticsHelper.addInstr("mid$");
+                return `mid$(${str.eval()}, ${start.eval()}${evalOptionalArg(len)})`;
             },
-            MidSAssign(_midLit, _open, ident, _comma1, e2, _comma2, e3, _close, _op, e) {
-                var _a;
+            MidSAssign(_midLit, _open, ident, _comma1, start, _comma2, len, _close, _op, newStr) {
                 semanticsHelper.addInstr("mid$Assign");
                 const variableName = ident.sourceString;
                 const resolvedVariableName = semanticsHelper.getVariable(variableName);
-                const start = e2.eval();
-                const newString = e.eval();
-                const length = (_a = e3.child(0)) === null || _a === void 0 ? void 0 : _a.eval(); // also undefined possible
-                return `${resolvedVariableName} = mid$Assign(${resolvedVariableName}, ${start}, ${newString}, ${length})`;
+                return `${resolvedVariableName} = mid$Assign(${resolvedVariableName}, ${start.eval()}, ${newStr.eval()}${evalOptionalArg(len)})`;
             },
             Min(_minLit, _open, args, _close) {
-                const argumentList = evalChildren(args.asIteration().children);
-                return `Math.min(${argumentList})`;
+                return `Math.min(${evalChildren(args.asIteration().children)})`;
             },
-            Mode(_modeLit, e) {
+            Mode(_modeLit, num) {
                 semanticsHelper.addInstr("mode");
                 semanticsHelper.addInstr("cls");
-                return `mode(${e.eval()})`;
+                return `mode(${num.eval()})`;
             },
             Move: drawMovePlot,
             Mover: drawMovePlot,
@@ -2703,24 +2717,22 @@ ${dataList.join(",\n")}
             },
             Print(_printLit, stream, _comma, args, semi) {
                 var _a;
-                semanticsHelper.addInstr("print");
                 semanticsHelper.addInstr("printText");
                 const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
                 const argumentList = evalChildren(args.asIteration().children);
                 const parameterString = argumentList.join(', ') || "";
-                /*
                 const hasCommaOrTab = parameterString.includes(`"${CommaOpChar}`) || parameterString.includes(`"${TabOpChar}`);
                 if (hasCommaOrTab) {
-                    semanticsHelper.addInstr("printCommaTab");
-                } else {
+                    semanticsHelper.addInstr("printTab");
+                }
+                else {
                     semanticsHelper.addInstr("print");
                 }
-                */
                 let newlineString = "";
                 if (!semi.sourceString) {
                     newlineString = parameterString ? `, "\\n"` : `"\\n"`;
                 }
-                return `print(${streamStr}${parameterString}${newlineString})`;
+                return `${hasCommaOrTab ? "printTab" : "print"}(${streamStr}${parameterString}${newlineString})`;
             },
             Rad(_radLit) {
                 semanticsHelper.setDeg(false);
@@ -2761,23 +2773,21 @@ ${dataList.join(",\n")}
             Return(_returnLit) {
                 return "return";
             },
-            RightS(_rightLit, _open, e1, _comma, e2, _close) {
-                const string = e1.eval();
-                const length = e2.eval();
-                return `(${string}).substring((${string}).length - (${length}))`;
+            RightS(_rightLit, _open, str, _comma, len, _close) {
+                semanticsHelper.addInstr("right$");
+                return `right$(${str.eval()}, ${len.eval()})`;
             },
             Rnd(_rndLit, _open, _e, _close) {
                 // args are ignored
                 return `Math.random()`;
             },
-            Round(_roundLit, _open, value, _comma, decimals, _close) {
-                var _a;
-                const decimalPlaces = (_a = decimals.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
+            Round(_roundLit, _open, num, _comma, decimals, _close) {
+                const decimalPlaces = evalOptionalArg(decimals);
                 if (decimalPlaces) {
                     semanticsHelper.addInstr("round");
-                    return `round(${value.eval()}, ${decimalPlaces})`;
+                    return `round(${num.eval()}${decimalPlaces})`;
                 }
-                return `Math.round(${value.eval()})`; // common round without decimals places
+                return `Math.round(${num.eval()})`; // common round without decimals places
                 // A better way to avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
             },
             Rsx(_rsxLit, cmd, e) {
@@ -2816,8 +2826,8 @@ ${dataList.join(",\n")}
             Save(lit, file, comma, type, comma2, num, comma3, num2, comma4, num3) {
                 return notSupported(lit, file, comma, type, comma2, num, comma3, num2, comma4, num3);
             },
-            Sgn(_sgnLit, _open, e, _close) {
-                return `Math.sign(${e.eval()})`;
+            Sgn(_sgnLit, _open, num, _close) {
+                return `Math.sign(${num.eval()})`;
             },
             Sin: cosSinTan,
             Sound(lit, args) {
@@ -2848,8 +2858,8 @@ ${dataList.join(",\n")}
                 semanticsHelper.addInstr("stop");
                 return `return stop()`;
             },
-            StrS(_strLit, _open, e, _close) {
-                const argument = e.eval();
+            StrS(_strLit, _open, num, _close) {
+                const argument = num.eval();
                 if (isNaN(Number(argument))) {
                     semanticsHelper.addInstr("str$");
                     return `str$(${argument})`;
@@ -2871,7 +2881,6 @@ ${dataList.join(",\n")}
                 return notSupported(lit, afterLit, num);
             },
             Tab(_lit, _open, num, _close) {
-                //semanticsHelper.addInstr("TabOpChar");
                 return `"${TabOpChar}${num.eval()}"`; // Unicode double arrow right
             },
             Tag(_tagLit, stream) {
@@ -2900,10 +2909,10 @@ ${dataList.join(",\n")}
             Troff: notSupported,
             Tron: notSupported,
             Unt(_lit, _open, num, _close) {
-                return `${num.eval()}`; //TTT
+                return `${num.eval()}`;
             },
-            UpperS(_upperLit, _open, e, _close) {
-                return `(${e.eval()}).toUpperCase()`;
+            UpperS(_upperLit, _open, str, _close) {
+                return `(${str.eval()}).toUpperCase()`;
             },
             Val(_upperLit, _open, e, _close) {
                 const numPattern = /^"[\\+\\-]?\d*\.?\d+(?:[Ee][\\+\\-]?\d+)?"$/;
@@ -2948,8 +2957,7 @@ ${dataList.join(",\n")}
                 semanticsHelper.addInstr("write");
                 semanticsHelper.addInstr("printText");
                 const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
-                const argumentList = evalChildren(args.asIteration().children);
-                const parameterString = argumentList.join(', ');
+                const parameterString = evalChildren(args.asIteration().children).join(', ');
                 return `write(${streamStr}${parameterString})`;
             },
             Xpos(_xposLit) {
@@ -3485,8 +3493,11 @@ ${dataList.join(",\n")}
             return this.outputGraphicsIndex;
         }
         // type: M | m | P | p | L | l
-        drawMovePlot(type, x, y) {
+        drawMovePlot(type, x, y, pen) {
             this.setOutputGraphicsIndex();
+            if (pen !== undefined) {
+                this.graphicsPen(pen);
+            }
             x = Math.round(x);
             y = Math.round(y);
             if (!this.graphicsPathBuffer.length && type !== "M" && type !== "P") { // path must start with an absolute move
@@ -3562,21 +3573,6 @@ ${content}
             if (this.currGraphicsPen < 0) {
                 this.graphicsPen(1);
             }
-            /*
-            if (this.currPen < 0) {
-                this.pen(1);
-            } else if (num === this.currPen) {
-                this.currPen = -1;
-                this.pen(num);
-            }
-
-            if (this.currPaper < 0) {
-                this.paper(0);
-            } else if (num === this.currPaper) {
-                this.currPaper = -1;
-                this.paper(num);
-            }
-            */
             if (num === 0) {
                 this.backgroundColor = this.getRgbColorStringForPen(0);
             }
@@ -3740,7 +3736,7 @@ ${content}
         _snippetData: {},
         debug(..._args) { }, // eslint-disable-line @typescript-eslint/no-unused-vars
         cls() { },
-        drawMovePlot(type, x, y) { this.debug("drawMovePlot:", type, x, y); },
+        drawMovePlot(type, x, y, pen) { this.debug("drawMovePlot:", type, x, y, pen !== undefined ? pen : ""); },
         flush() { if (this._snippetData.output) {
             console.log(this._snippetData.output);
             this._snippetData.output = "";

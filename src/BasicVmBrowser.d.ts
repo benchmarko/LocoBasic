@@ -3,7 +3,7 @@ export declare class BasicVmBrowser implements IVmAdmin {
     private readonly ui;
     private readonly vmCore;
     reset: () => void;
-    drawMovePlot: (type: string, x: number, y: number) => void;
+    drawMovePlot: (type: string, x: number, y: number, pen?: number) => void;
     graphicsPen: (num: number) => void;
     ink: (num: number, col: number) => void;
     origin: (x: number, y: number) => void;
