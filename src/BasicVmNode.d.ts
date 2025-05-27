@@ -7,15 +7,12 @@ export declare class BasicVmNode implements IVmAdmin {
     graphicsPen: (num: number) => void;
     ink: (num: number, col: number) => void;
     origin: (x: number, y: number) => void;
-    paper: (n: number) => void;
-    pen: (n: number) => void;
-    print: (...args: string[]) => void;
     printGraphicsText: (text: string) => void;
     rsx: (cmd: string, args: (number | string)[]) => Promise<(number | string)[]>;
     xpos: () => number;
     ypos: () => number;
     getSnippetData: () => SnippetDataType;
-    getOutput: () => string;
+    getColorForPen: (n: number, isPaper?: boolean) => string;
     constructor(nodeParts: INodeParts);
     cls(): void;
     flush(): void;

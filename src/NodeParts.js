@@ -1,14 +1,13 @@
 import { BasicVmNode } from "./BasicVmNode";
 // The functions from dummyVm will be stringified in the putScriptInFrame function
 const dummyVm = {
-    _output: "",
     _snippetData: {},
     debug(..._args) { }, // eslint-disable-line @typescript-eslint/no-unused-vars
     cls() { },
     drawMovePlot(type, x, y) { this.debug("drawMovePlot:", type, x, y); },
-    flush() { if (this._output) {
-        console.log(this._output);
-        this._output = "";
+    flush() { if (this._snippetData.output) {
+        console.log(this._snippetData.output);
+        this._snippetData.output = "";
     } },
     graphicsPen(num) { this.debug("graphicsPen:", num); },
     ink(num, col) { this.debug("ink:", num, col); },
@@ -16,15 +15,13 @@ const dummyVm = {
     async input(msg) { console.log(msg); return ""; },
     mode(num) { this.debug("mode:", num); },
     origin(x, y) { this.debug("origin:", x, y); },
-    paper(num) { this.debug("paper:", num); },
-    pen(num) { this.debug("pen:", num); },
-    print(...args) { this._output += args.join(''); },
     printGraphicsText(text) { this.debug("printGraphicsText:", text); },
-    rsx(cmd, args) { this._output += cmd + "," + args.join(''); return Promise.resolve([]); },
+    rsx(cmd, args) { this._snippetData.output += cmd + "," + args.join(''); return Promise.resolve([]); },
     xpos() { this.debug("xpos:"); return 0; },
     ypos() { this.debug("ypos:"); return 0; },
     getEscape() { return false; },
-    getSnippetData() { return this._snippetData; }
+    getSnippetData() { return this._snippetData; },
+    getColorForPen(_n, isPaper) { this.debug("getColorForPen:"); return isPaper ? "0" : "1"; }
 };
 function isUrl(s) {
     return s.startsWith("http"); // http or https
@@ -49,7 +46,7 @@ export class NodeParts {
         if (!this.nodeFs) {
             this.nodeFs = require("fs");
         }
-        if (!module) { //TTT
+        if (!module) {
             const module = require("module");
             this.modulePath = module.path || "";
             if (!this.modulePath) {

@@ -2,11 +2,6 @@ import { BasicVmRsxHandler } from "./BasicVmRsxHandler";
 const strokeWidthForMode = [4, 2, 1, 1];
 export class BasicVmCore {
     constructor(penColors, paperColors) {
-        this.output = "";
-        this.currPaper = -1;
-        this.currPen = -1;
-        this.hasPaperChanged = false;
-        this.hasPenChanged = false;
         this.currMode = 2;
         this.graphicsBuffer = [];
         this.graphicsPathBuffer = [];
@@ -37,13 +32,9 @@ export class BasicVmCore {
         BasicVmCore.deleteAllItems(this.snippetData);
         this.backgroundColor = "";
         this.mode(1);
+        this.cls();
     }
     cls() {
-        this.output = "";
-        this.currPaper = -1;
-        this.currPen = -1;
-        this.hasPaperChanged = false;
-        this.hasPenChanged = false;
         this.graphicsBuffer.length = 0;
         this.graphicsPathBuffer.length = 0;
         this.currGraphicsPen = -1;
@@ -52,7 +43,7 @@ export class BasicVmCore {
     }
     mode(num) {
         this.currMode = num;
-        this.cls();
+        //this.cls();
         this.origin(0, 0);
     }
     // type: M | m | P | p | L | l
@@ -114,11 +105,6 @@ ${content}
         }
         return "";
     }
-    flushText() {
-        const output = this.output;
-        this.output = "";
-        return output;
-    }
     graphicsPen(num) {
         if (num !== this.currGraphicsPen) {
             this.flushGraphicsPath();
@@ -131,20 +117,21 @@ ${content}
         if (this.currGraphicsPen < 0) {
             this.graphicsPen(1);
         }
+        /*
         if (this.currPen < 0) {
             this.pen(1);
-        }
-        else if (num === this.currPen) {
+        } else if (num === this.currPen) {
             this.currPen = -1;
             this.pen(num);
         }
+
         if (this.currPaper < 0) {
             this.paper(0);
-        }
-        else if (num === this.currPaper) {
+        } else if (num === this.currPaper) {
             this.currPaper = -1;
             this.paper(num);
         }
+        */
         if (num === 0) {
             this.backgroundColor = this.getRgbColorStringForPen(0);
         }
@@ -153,39 +140,13 @@ ${content}
         this.originX = x;
         this.originY = y;
     }
-    paper(n) {
-        if (n !== this.currPaper) {
-            if (n < 0 || n >= this.paperColors.length) {
-                throw new Error("Invalid paper color index");
-            }
-            this.currPaper = n;
-            this.hasPaperChanged = true;
-        }
-    }
-    pen(n) {
-        if (n !== this.currPen) {
-            if (n < 0 || n >= this.penColors.length) {
-                throw new Error("Invalid pen color index");
-            }
-            this.currPen = n;
-            this.hasPenChanged = true;
-        }
+    getColorForPen(n, isPaper) {
+        return isPaper ? this.paperColors[this.colorsForPens[n]] : this.penColors[this.colorsForPens[n]];
     }
     printGraphicsText(text) {
         const yOffset = 16;
         const styleStr = this.currGraphicsPen >= 0 ? ` style="color: ${this.getRgbColorStringForPen(this.currGraphicsPen)}"` : "";
         this.addGraphicsElement(`<text x="${this.graphicsX + this.originX}" y="${399 - this.graphicsY - this.originY + yOffset}"${styleStr}>${text}</text>`);
-    }
-    print(...args) {
-        if (this.hasPaperChanged) {
-            this.hasPaperChanged = false;
-            this.output += this.paperColors[this.colorsForPens[this.currPaper]];
-        }
-        if (this.hasPenChanged) {
-            this.hasPenChanged = false;
-            this.output += this.penColors[this.colorsForPens[this.currPen]];
-        }
-        this.output += args.join("");
     }
     setOnSpeak(fnOnSpeak) {
         this.rsxHandler.setOnSpeak(fnOnSpeak);
@@ -201,10 +162,6 @@ ${content}
     }
     getSnippetData() {
         return this.snippetData;
-    }
-    getOutput() {
-        const output = this.output;
-        return output;
     }
 }
 BasicVmCore.cpcColors = [

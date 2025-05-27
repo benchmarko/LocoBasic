@@ -1783,12 +1783,27 @@
     const codeSnippetsData = {
         _o: {},
         _d: {},
+        cls() { }, // dummy
         async frame() { }, // dummy
-        remain(timer) { return timer; } // dummy
+        printText(_text) { }, // eslint-disable-line @typescript-eslint/no-unused-vars
+        remain(timer) { return timer; }, // dummy
+        resetText() { }, // dummy
     };
     function getCodeSnippets(snippetsData) {
-        const { _o, _d, frame, remain } = snippetsData;
+        const { _o, _d, cls, frame, printText, remain, resetText } = snippetsData;
+        // We grab functions as Strings from the codeSnippets object so we need function names.
         const codeSnippets = {
+            resetText: function resetText() {
+                Object.assign(_d, {
+                    output: "",
+                    paper: 0,
+                    pen: 0,
+                    pos: 0,
+                    tag: false,
+                    vpos: 0,
+                    zone: 13
+                });
+            },
             after: function after(timeout, timer, fn) {
                 remain(timer);
                 _d.timerMap[timer] = setTimeout(() => fn(), timeout * 20);
@@ -1797,11 +1812,8 @@
                 return num.toString(2).toUpperCase().padStart(pad, "0");
             },
             cls: function cls() {
+                resetText();
                 _o.cls();
-                _d.pos = 0;
-                _d.tag = false;
-                _d.vpos = 0;
-                //_d.zone = 13;
             },
             dec$: function dec$(num, format) {
                 const decimals = (format.split(".")[1] || "").length;
@@ -1883,6 +1895,7 @@
             },
             mode: function mode(num) {
                 _o.mode(num);
+                cls();
             },
             move: function move(x, y) {
                 _o.drawMovePlot("M", x, y);
@@ -1894,10 +1907,12 @@
                 _o.origin(x, y);
             },
             paper: function paper(n) {
-                _o.paper(n);
+                _d.paper = n;
+                _d.output += _o.getColorForPen(n, true);
             },
             pen: function pen(n) {
-                _o.pen(n);
+                _d.pen = n;
+                _d.output += _o.getColorForPen(n);
             },
             plot: function plot(x, y) {
                 _o.drawMovePlot("P", x, y);
@@ -1908,23 +1923,23 @@
             pos: function pos() {
                 return _d.pos + 1;
             },
+            printText: function printText(text) {
+                _d.output += text;
+                const lines = text.split("\n");
+                if (lines.length > 1) {
+                    _d.vpos += lines.length - 1;
+                    _d.pos = lines[lines.length - 1].length;
+                }
+                else {
+                    _d.pos += text.length;
+                }
+            },
             print: function print(...args) {
-                const _printNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
-                const output = args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg);
+                const printFormatNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
+                const output = args.map((arg) => (typeof arg === "number") ? printFormatNumber(arg) : arg);
                 if (_d.tag) {
                     return _o.printGraphicsText(output.join(""));
                 }
-                const printText = (text) => {
-                    _o.print(text);
-                    const lines = text.split("\n");
-                    if (lines.length > 1) {
-                        _d.vpos += lines.length - 1;
-                        _d.pos = lines[lines.length - 1].length;
-                    }
-                    else {
-                        _d.pos += text.length;
-                    }
-                };
                 for (const text of output) {
                     if (text === CommaOpChar) {
                         printText(" ".repeat(_d.zone - (_d.pos % _d.zone)));
@@ -1978,8 +1993,8 @@
                 return _d.vpos + 1;
             },
             write: function write(...args) {
-                const output = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
-                _o.print(output);
+                const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
+                printText(text);
             },
             xpos: function xpos() {
                 return _o.xpos();
@@ -2100,6 +2115,7 @@
                 const definedLabels = semanticsHelper.getDefinedLabels();
                 const awaitLabels = processSubroutines(lineList, definedLabels);
                 const instrMap = semanticsHelper.getInstrMap();
+                semanticsHelper.addInstr("resetText");
                 const dataList = semanticsHelper.getDataList();
                 // Prepare data definition snippet if needed
                 let dataListSnippet = "";
@@ -2126,30 +2142,27 @@ ${dataList.join(",\n")}
 `;
                 }
                 const codeSnippets = getCodeSnippets(codeSnippetsData);
+                const librarySnippet = Object.keys(codeSnippets)
+                    .filter(key => instrMap[key])
+                    .map(key => trimIndent(String(codeSnippets[key])))
+                    .join('\n');
                 const needsAsync = Object.keys(codeSnippets).some(key => instrMap[key] && trimIndent(String(codeSnippets[key])).startsWith("async "));
                 const needsTimerMap = instrMap["after"] || instrMap["every"] || instrMap["remain"];
                 // Assemble code lines
                 const codeLines = [
                     needsAsync ? 'return async function() {' : '',
                     '"use strict";',
-                    `const _d = _o.getSnippetData();${dataList.length ? ' _defineData();' : ''}`,
+                    `const _d = _o.getSnippetData(); resetText();${dataList.length ? ' _defineData();' : ''}`,
                     instrMap["time"] ? '_d.startTime = Date.now();' : '',
                     needsTimerMap ? '_d.timerMap = {};' : '',
-                    `_d.pos = 0;`,
-                    `_d.tag = false;`,
-                    `_d.vpos = 0;`,
-                    `_d.zone = 13;`,
-                    `const CommaOpChar = "${CommaOpChar}";`, // TTT: TODO
+                    `const CommaOpChar = "${CommaOpChar}";`,
                     `const TabOpChar = "${TabOpChar}";`,
                     variableDeclarations,
                     ...lineList.filter(line => line.trimEnd() !== ''),
                     !instrMap["end"] ? `return _o.flush();` : "",
                     dataListSnippet,
                     '// library',
-                    Object.keys(codeSnippets)
-                        .filter(key => instrMap[key])
-                        .map(key => trimIndent(String(codeSnippets[key])))
-                        .join('\n'),
+                    librarySnippet,
                     needsAsync ? '}();' : ''
                 ].filter(Boolean);
                 let lineStr = codeLines.join('\n');
@@ -2590,6 +2603,7 @@ ${dataList.join(",\n")}
             },
             Mode(_modeLit, e) {
                 semanticsHelper.addInstr("mode");
+                semanticsHelper.addInstr("cls");
                 return `mode(${e.eval()})`;
             },
             Move: drawMovePlot,
@@ -2687,6 +2701,7 @@ ${dataList.join(",\n")}
             Print(_printLit, stream, _comma, args, semi) {
                 var _a;
                 semanticsHelper.addInstr("print");
+                semanticsHelper.addInstr("printText");
                 const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
                 const argumentList = evalChildren(args.asIteration().children);
                 const parameterString = argumentList.join(', ') || "";
@@ -2920,6 +2935,7 @@ ${dataList.join(",\n")}
             Write(_printLit, stream, _comma, args) {
                 var _a;
                 semanticsHelper.addInstr("write");
+                semanticsHelper.addInstr("printText");
                 const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
                 const argumentList = evalChildren(args.asIteration().children);
                 const parameterString = argumentList.join(', ');
@@ -3201,7 +3217,6 @@ ${dataList.join(",\n")}
         }
         async executeScript(compiledScript, vm) {
             vm.reset();
-            //vm.setOutput("");
             if (compiledScript.startsWith("ERROR:")) {
                 return "ERROR";
             }
@@ -3210,7 +3225,7 @@ ${dataList.join(",\n")}
                 vm.cls();
                 return "ERROR: " + syntaxError;
             }
-            let output = "";
+            let errorStr = "";
             try {
                 const fnScript = new Function("_o", compiledScript);
                 const result = await fnScript(vm);
@@ -3218,27 +3233,22 @@ ${dataList.join(",\n")}
                     console.debug("executeScript: ", result);
                 }
                 vm.flush();
-                output = vm.getOutput() || "";
             }
             catch (error) {
-                output = vm.getOutput() || "";
-                if (output) {
-                    output += "\n";
-                }
-                output += String(error).replace("Error: INFO: ", "INFO: ");
+                errorStr += String(error).replace("Error: INFO: ", "INFO: ");
                 if (error instanceof Error) {
                     const anyErr = error;
                     const lineNumber = anyErr.lineNumber; // only on FireFox
                     const columnNumber = anyErr.columnNumber; // only on FireFox
                     if (lineNumber || columnNumber) {
                         const errLine = lineNumber - 2; // lineNumber -2 because of anonymous function added by new Function() constructor
-                        output += ` (Line ${errLine}, column ${columnNumber})`;
+                        errorStr += ` (Line ${errLine}, column ${columnNumber})`;
                     }
                 }
             }
             // remain for all timers
             const snippetData = vm.getSnippetData();
-            const timerMap = snippetData.timerMap; //vm.getTimerMap();
+            const timerMap = snippetData.timerMap;
             for (const timer in timerMap) {
                 if (timerMap[timer] !== undefined) {
                     const value = timerMap[timer];
@@ -3248,8 +3258,8 @@ ${dataList.join(",\n")}
                 }
             }
             const compileMessages = this.semantics.getHelper().getCompileMessages();
-            output += compileMessages.join("\n"); //TTT
-            return output;
+            const output = [snippetData.output, errorStr, compileMessages.join("\n")].join("\n");
+            return output.trim();
         }
         getSemantics() {
             return this.semantics;
@@ -3409,11 +3419,6 @@ ${dataList.join(",\n")}
     const strokeWidthForMode = [4, 2, 1, 1];
     class BasicVmCore {
         constructor(penColors, paperColors) {
-            this.output = "";
-            this.currPaper = -1;
-            this.currPen = -1;
-            this.hasPaperChanged = false;
-            this.hasPenChanged = false;
             this.currMode = 2;
             this.graphicsBuffer = [];
             this.graphicsPathBuffer = [];
@@ -3444,13 +3449,9 @@ ${dataList.join(",\n")}
             BasicVmCore.deleteAllItems(this.snippetData);
             this.backgroundColor = "";
             this.mode(1);
+            this.cls();
         }
         cls() {
-            this.output = "";
-            this.currPaper = -1;
-            this.currPen = -1;
-            this.hasPaperChanged = false;
-            this.hasPenChanged = false;
             this.graphicsBuffer.length = 0;
             this.graphicsPathBuffer.length = 0;
             this.currGraphicsPen = -1;
@@ -3459,7 +3460,7 @@ ${dataList.join(",\n")}
         }
         mode(num) {
             this.currMode = num;
-            this.cls();
+            //this.cls();
             this.origin(0, 0);
         }
         // type: M | m | P | p | L | l
@@ -3521,11 +3522,6 @@ ${content}
             }
             return "";
         }
-        flushText() {
-            const output = this.output;
-            this.output = "";
-            return output;
-        }
         graphicsPen(num) {
             if (num !== this.currGraphicsPen) {
                 this.flushGraphicsPath();
@@ -3538,20 +3534,21 @@ ${content}
             if (this.currGraphicsPen < 0) {
                 this.graphicsPen(1);
             }
+            /*
             if (this.currPen < 0) {
                 this.pen(1);
-            }
-            else if (num === this.currPen) {
+            } else if (num === this.currPen) {
                 this.currPen = -1;
                 this.pen(num);
             }
+
             if (this.currPaper < 0) {
                 this.paper(0);
-            }
-            else if (num === this.currPaper) {
+            } else if (num === this.currPaper) {
                 this.currPaper = -1;
                 this.paper(num);
             }
+            */
             if (num === 0) {
                 this.backgroundColor = this.getRgbColorStringForPen(0);
             }
@@ -3560,39 +3557,13 @@ ${content}
             this.originX = x;
             this.originY = y;
         }
-        paper(n) {
-            if (n !== this.currPaper) {
-                if (n < 0 || n >= this.paperColors.length) {
-                    throw new Error("Invalid paper color index");
-                }
-                this.currPaper = n;
-                this.hasPaperChanged = true;
-            }
-        }
-        pen(n) {
-            if (n !== this.currPen) {
-                if (n < 0 || n >= this.penColors.length) {
-                    throw new Error("Invalid pen color index");
-                }
-                this.currPen = n;
-                this.hasPenChanged = true;
-            }
+        getColorForPen(n, isPaper) {
+            return isPaper ? this.paperColors[this.colorsForPens[n]] : this.penColors[this.colorsForPens[n]];
         }
         printGraphicsText(text) {
             const yOffset = 16;
             const styleStr = this.currGraphicsPen >= 0 ? ` style="color: ${this.getRgbColorStringForPen(this.currGraphicsPen)}"` : "";
             this.addGraphicsElement(`<text x="${this.graphicsX + this.originX}" y="${399 - this.graphicsY - this.originY + yOffset}"${styleStr}>${text}</text>`);
-        }
-        print(...args) {
-            if (this.hasPaperChanged) {
-                this.hasPaperChanged = false;
-                this.output += this.paperColors[this.colorsForPens[this.currPaper]];
-            }
-            if (this.hasPenChanged) {
-                this.hasPenChanged = false;
-                this.output += this.penColors[this.colorsForPens[this.currPen]];
-            }
-            this.output += args.join("");
         }
         setOnSpeak(fnOnSpeak) {
             this.rsxHandler.setOnSpeak(fnOnSpeak);
@@ -3608,10 +3579,6 @@ ${content}
         }
         getSnippetData() {
             return this.snippetData;
-        }
-        getOutput() {
-            const output = this.output;
-            return output;
         }
     }
     BasicVmCore.cpcColors = [
@@ -3698,24 +3665,22 @@ ${content}
             this.graphicsPen = this.vmCore.graphicsPen.bind(this.vmCore);
             this.ink = this.vmCore.ink.bind(this.vmCore);
             this.origin = this.vmCore.origin.bind(this.vmCore);
-            this.paper = this.vmCore.paper.bind(this.vmCore);
-            this.pen = this.vmCore.pen.bind(this.vmCore);
-            this.print = this.vmCore.print.bind(this.vmCore);
             this.printGraphicsText = this.vmCore.printGraphicsText.bind(this.vmCore);
             this.rsx = this.vmCore.rsx.bind(this.vmCore);
             this.xpos = this.vmCore.xpos.bind(this.vmCore);
             this.ypos = this.vmCore.ypos.bind(this.vmCore);
             this.getSnippetData = this.vmCore.getSnippetData.bind(this.vmCore);
-            this.getOutput = this.vmCore.getOutput.bind(this.vmCore);
+            this.getColorForPen = this.vmCore.getColorForPen.bind(this.vmCore);
         }
         cls() {
             this.vmCore.cls();
             this.nodeParts.consoleClear();
         }
         flush() {
-            const textOutput = this.vmCore.flushText();
-            if (textOutput) {
-                this.nodeParts.consolePrint(textOutput.replace(/\n$/, ""));
+            const snippetData = this.getSnippetData();
+            if (snippetData.output) {
+                this.nodeParts.consolePrint(snippetData.output.replace(/\n$/, ""));
+                snippetData.output = "";
             }
             const graphicsOutput = this.vmCore.flushGraphics();
             if (graphicsOutput) {
@@ -3736,7 +3701,7 @@ ${content}
         }
         mode(num) {
             this.vmCore.mode(num);
-            this.nodeParts.consoleClear();
+            //this.nodeParts.consoleClear();
         }
         getEscape() {
             return this.nodeParts.getEscape();
@@ -3745,14 +3710,13 @@ ${content}
 
     // The functions from dummyVm will be stringified in the putScriptInFrame function
     const dummyVm = {
-        _output: "",
         _snippetData: {},
         debug(..._args) { }, // eslint-disable-line @typescript-eslint/no-unused-vars
         cls() { },
         drawMovePlot(type, x, y) { this.debug("drawMovePlot:", type, x, y); },
-        flush() { if (this._output) {
-            console.log(this._output);
-            this._output = "";
+        flush() { if (this._snippetData.output) {
+            console.log(this._snippetData.output);
+            this._snippetData.output = "";
         } },
         graphicsPen(num) { this.debug("graphicsPen:", num); },
         ink(num, col) { this.debug("ink:", num, col); },
@@ -3760,15 +3724,13 @@ ${content}
         async input(msg) { console.log(msg); return ""; },
         mode(num) { this.debug("mode:", num); },
         origin(x, y) { this.debug("origin:", x, y); },
-        paper(num) { this.debug("paper:", num); },
-        pen(num) { this.debug("pen:", num); },
-        print(...args) { this._output += args.join(''); },
         printGraphicsText(text) { this.debug("printGraphicsText:", text); },
-        rsx(cmd, args) { this._output += cmd + "," + args.join(''); return Promise.resolve([]); },
+        rsx(cmd, args) { this._snippetData.output += cmd + "," + args.join(''); return Promise.resolve([]); },
         xpos() { this.debug("xpos:"); return 0; },
         ypos() { this.debug("ypos:"); return 0; },
         getEscape() { return false; },
-        getSnippetData() { return this._snippetData; }
+        getSnippetData() { return this._snippetData; },
+        getColorForPen(_n, isPaper) { this.debug("getColorForPen:"); return isPaper ? "0" : "1"; }
     };
     function isUrl(s) {
         return s.startsWith("http"); // http or https
@@ -3793,7 +3755,7 @@ ${content}
             if (!this.nodeFs) {
                 this.nodeFs = require("fs");
             }
-            if (!module) { //TTT
+            if (!module) {
                 const module = require("module");
                 this.modulePath = module.path || "";
                 if (!this.modulePath) {
@@ -4096,24 +4058,23 @@ node hello1.js
             this.graphicsPen = this.vmCore.graphicsPen.bind(this.vmCore);
             this.ink = this.vmCore.ink.bind(this.vmCore);
             this.origin = this.vmCore.origin.bind(this.vmCore);
-            this.paper = this.vmCore.paper.bind(this.vmCore);
-            this.pen = this.vmCore.pen.bind(this.vmCore);
-            this.print = this.vmCore.print.bind(this.vmCore);
             this.printGraphicsText = this.vmCore.printGraphicsText.bind(this.vmCore);
             this.rsx = this.vmCore.rsx.bind(this.vmCore);
             this.xpos = this.vmCore.xpos.bind(this.vmCore);
             this.ypos = this.vmCore.ypos.bind(this.vmCore);
             this.getSnippetData = this.vmCore.getSnippetData.bind(this.vmCore);
-            this.getOutput = this.vmCore.getOutput.bind(this.vmCore);
+            this.getColorForPen = this.vmCore.getColorForPen.bind(this.vmCore);
         }
         cls() {
             this.vmCore.cls();
             this.ui.setOutputText("");
         }
         flush() {
-            const textOutput = this.vmCore.flushText();
-            if (textOutput) {
-                this.ui.addOutputText(textOutput);
+            //const textOutput = this.vmCore.flushText();
+            const snippetData = this.getSnippetData();
+            if (snippetData.output) {
+                this.ui.addOutputText(snippetData.output);
+                snippetData.output = "";
             }
             const graphicsOutput = this.vmCore.flushGraphics();
             if (graphicsOutput) {
@@ -4139,7 +4100,7 @@ node hello1.js
         }
         mode(num) {
             this.vmCore.mode(num);
-            this.ui.setOutputText("");
+            //this.ui.setOutputText("");
         }
         async fnOnSpeak(text, pitch) {
             return this.ui.speak(text, pitch);

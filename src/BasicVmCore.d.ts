@@ -2,11 +2,6 @@ import type { IVmRsxApi, SnippetDataType } from "./Interfaces";
 export declare class BasicVmCore implements IVmRsxApi {
     private readonly penColors;
     private readonly paperColors;
-    private output;
-    private currPaper;
-    private currPen;
-    private hasPaperChanged;
-    private hasPenChanged;
     private currMode;
     private readonly graphicsBuffer;
     private readonly graphicsPathBuffer;
@@ -34,19 +29,15 @@ export declare class BasicVmCore implements IVmRsxApi {
     addGraphicsElement(element: string): void;
     static getTagInSvg(content: string, strokeWidth: string, backgroundColor: string): string;
     flushGraphics(): string;
-    flushText(): string;
     graphicsPen(num: number): void;
     ink(num: number, col: number): void;
     origin(x: number, y: number): void;
-    paper(n: number): void;
-    pen(n: number): void;
+    getColorForPen(n: number, isPaper?: boolean): string;
     printGraphicsText(text: string): void;
-    print(...args: string[]): void;
     setOnSpeak(fnOnSpeak: (text: string, pitch: number) => Promise<void>): void;
     rsx(cmd: string, args: (number | string)[]): Promise<(number | string)[]>;
     xpos(): number;
     ypos(): number;
     getSnippetData(): SnippetDataType;
-    getOutput(): string;
 }
 //# sourceMappingURL=BasicVmCore.d.ts.map

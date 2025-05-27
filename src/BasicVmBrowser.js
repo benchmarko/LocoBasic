@@ -12,24 +12,23 @@ export class BasicVmBrowser {
         this.graphicsPen = this.vmCore.graphicsPen.bind(this.vmCore);
         this.ink = this.vmCore.ink.bind(this.vmCore);
         this.origin = this.vmCore.origin.bind(this.vmCore);
-        this.paper = this.vmCore.paper.bind(this.vmCore);
-        this.pen = this.vmCore.pen.bind(this.vmCore);
-        this.print = this.vmCore.print.bind(this.vmCore);
         this.printGraphicsText = this.vmCore.printGraphicsText.bind(this.vmCore);
         this.rsx = this.vmCore.rsx.bind(this.vmCore);
         this.xpos = this.vmCore.xpos.bind(this.vmCore);
         this.ypos = this.vmCore.ypos.bind(this.vmCore);
         this.getSnippetData = this.vmCore.getSnippetData.bind(this.vmCore);
-        this.getOutput = this.vmCore.getOutput.bind(this.vmCore);
+        this.getColorForPen = this.vmCore.getColorForPen.bind(this.vmCore);
     }
     cls() {
         this.vmCore.cls();
         this.ui.setOutputText("");
     }
     flush() {
-        const textOutput = this.vmCore.flushText();
-        if (textOutput) {
-            this.ui.addOutputText(textOutput);
+        //const textOutput = this.vmCore.flushText();
+        const snippetData = this.getSnippetData();
+        if (snippetData.output) {
+            this.ui.addOutputText(snippetData.output);
+            snippetData.output = "";
         }
         const graphicsOutput = this.vmCore.flushGraphics();
         if (graphicsOutput) {
@@ -55,7 +54,7 @@ export class BasicVmBrowser {
     }
     mode(num) {
         this.vmCore.mode(num);
-        this.ui.setOutputText("");
+        //this.ui.setOutputText("");
     }
     async fnOnSpeak(text, pitch) {
         return this.ui.speak(text, pitch);

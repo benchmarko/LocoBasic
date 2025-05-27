@@ -98,7 +98,6 @@ export class Core {
     }
     async executeScript(compiledScript, vm) {
         vm.reset();
-        //vm.setOutput("");
         if (compiledScript.startsWith("ERROR:")) {
             return "ERROR";
         }
@@ -107,7 +106,7 @@ export class Core {
             vm.cls();
             return "ERROR: " + syntaxError;
         }
-        let output = "";
+        let errorStr = "";
         try {
             const fnScript = new Function("_o", compiledScript);
             const result = await fnScript(vm);
@@ -115,27 +114,22 @@ export class Core {
                 console.debug("executeScript: ", result);
             }
             vm.flush();
-            output = vm.getOutput() || "";
         }
         catch (error) {
-            output = vm.getOutput() || "";
-            if (output) {
-                output += "\n";
-            }
-            output += String(error).replace("Error: INFO: ", "INFO: ");
+            errorStr += String(error).replace("Error: INFO: ", "INFO: ");
             if (error instanceof Error) {
                 const anyErr = error;
                 const lineNumber = anyErr.lineNumber; // only on FireFox
                 const columnNumber = anyErr.columnNumber; // only on FireFox
                 if (lineNumber || columnNumber) {
                     const errLine = lineNumber - 2; // lineNumber -2 because of anonymous function added by new Function() constructor
-                    output += ` (Line ${errLine}, column ${columnNumber})`;
+                    errorStr += ` (Line ${errLine}, column ${columnNumber})`;
                 }
             }
         }
         // remain for all timers
         const snippetData = vm.getSnippetData();
-        const timerMap = snippetData.timerMap; //vm.getTimerMap();
+        const timerMap = snippetData.timerMap;
         for (const timer in timerMap) {
             if (timerMap[timer] !== undefined) {
                 const value = timerMap[timer];
@@ -145,8 +139,8 @@ export class Core {
             }
         }
         const compileMessages = this.semantics.getHelper().getCompileMessages();
-        output += compileMessages.join("\n"); //TTT
-        return output;
+        const output = [snippetData.output, errorStr, compileMessages.join("\n")].join("\n");
+        return output.trim();
     }
     getSemantics() {
         return this.semantics;

@@ -7,8 +7,11 @@ export declare const TabOpChar = "\u21D2";
 declare const codeSnippetsData: {
     _o: IVm;
     _d: SnippetDataType;
+    cls(): void;
     frame(): Promise<void>;
+    printText(_text: string): void;
     remain(timer: number): number;
+    resetText(): void;
 };
 export declare class Semantics implements ISemantics {
     private readonly helper;
@@ -252,6 +255,7 @@ export declare class Semantics implements ISemantics {
     getSemanticsActionDict(): ActionDict<string>;
     getHelper(): SemanticsHelper;
     getCodeSnippets4Test(data: Partial<typeof codeSnippetsData>): {
+        resetText: () => void;
         after: (timeout: number, timer: number, fn: () => void) => void;
         bin$: (num: number, pad?: number) => string;
         cls: () => void;
@@ -278,6 +282,7 @@ export declare class Semantics implements ISemantics {
         plot: (x: number, y: number) => void;
         plotr: (x: number, y: number) => void;
         pos: () => number;
+        printText: (text: string) => void;
         print: (...args: (string | number)[]) => void;
         read: () => string | number;
         remain: (timer: number) => number | NodeJS.Timeout | undefined;
