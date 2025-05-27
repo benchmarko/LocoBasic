@@ -22,7 +22,7 @@ export declare class UI implements IUI {
     private fnLoadScriptOrStyle;
     private loadScript;
     getCurrentDataKey(): string;
-    addOutputText(value: string): void;
+    addOutputText(value: string, hasGraphics?: boolean): void;
     setOutputText(value: string): void;
     getColor(color: string, background: boolean): string;
     /**

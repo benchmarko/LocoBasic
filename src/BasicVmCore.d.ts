@@ -14,6 +14,7 @@ export declare class BasicVmCore implements IVmRsxApi {
     private backgroundColor;
     private snippetData;
     private rsxHandler;
+    private outputGraphicsIndex;
     private static readonly cpcColors;
     private readonly defaultColorsForPens;
     constructor(penColors: string[], paperColors: string[]);
@@ -22,6 +23,8 @@ export declare class BasicVmCore implements IVmRsxApi {
     reset(): void;
     cls(): void;
     mode(num: number): void;
+    private setOutputGraphicsIndex;
+    getOutputGraphicsIndex(): number;
     drawMovePlot(type: string, x: number, y: number): void;
     getGraphicsPen(): number;
     getRgbColorStringForPen(pen: number): string;
@@ -29,6 +32,7 @@ export declare class BasicVmCore implements IVmRsxApi {
     addGraphicsElement(element: string): void;
     static getTagInSvg(content: string, strokeWidth: string, backgroundColor: string): string;
     flushGraphics(): string;
+    flushText(): string;
     graphicsPen(num: number): void;
     ink(num: number, col: number): void;
     origin(x: number, y: number): void;

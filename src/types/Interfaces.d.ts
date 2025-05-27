@@ -105,7 +105,7 @@ export interface INodeParts {
     consolePrint(msg: string): void;
 }
 export interface IUI {
-    addOutputText(value: string): void;
+    addOutputText(value: string, hasGraphics?: boolean): void;
     checkSyntax(str: string): Promise<string>;
     getColor(color: string, background: boolean): string;
     getCurrentDataKey(): string;

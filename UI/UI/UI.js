@@ -297,10 +297,10 @@ export class UI {
     getCurrentDataKey() {
         return document.currentScript && document.currentScript.getAttribute("data-key") || "";
     }
-    addOutputText(value) {
+    addOutputText(value, hasGraphics) {
         const outputText = document.getElementById("outputText");
         outputText.innerHTML += value;
-        if (value.startsWith("<svg xmlns=")) {
+        if (hasGraphics) {
             this.setButtonOrSelectDisabled("exportSvgButton", false);
         }
     }

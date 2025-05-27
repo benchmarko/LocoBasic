@@ -13,6 +13,7 @@ export class BasicVmCore {
         this.colorsForPens = [];
         this.backgroundColor = "";
         this.snippetData = {};
+        this.outputGraphicsIndex = -1;
         this.defaultColorsForPens = [
             1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
         ];
@@ -30,6 +31,7 @@ export class BasicVmCore {
     reset() {
         this.colorsForPens.splice(0, this.colorsForPens.length, ...this.defaultColorsForPens);
         BasicVmCore.deleteAllItems(this.snippetData);
+        this.snippetData.output = "";
         this.backgroundColor = "";
         this.mode(1);
         this.cls();
@@ -40,14 +42,23 @@ export class BasicVmCore {
         this.currGraphicsPen = -1;
         this.graphicsX = 0;
         this.graphicsY = 0;
+        this.outputGraphicsIndex = -1;
     }
     mode(num) {
         this.currMode = num;
-        //this.cls();
         this.origin(0, 0);
+    }
+    setOutputGraphicsIndex() {
+        if (this.outputGraphicsIndex < 0) {
+            this.outputGraphicsIndex = this.getSnippetData().output.length;
+        }
+    }
+    getOutputGraphicsIndex() {
+        return this.outputGraphicsIndex;
     }
     // type: M | m | P | p | L | l
     drawMovePlot(type, x, y) {
+        this.setOutputGraphicsIndex();
         x = Math.round(x);
         y = Math.round(y);
         if (!this.graphicsPathBuffer.length && type !== "M" && type !== "P") { // path must start with an absolute move
@@ -84,6 +95,7 @@ export class BasicVmCore {
         }
     }
     addGraphicsElement(element) {
+        this.setOutputGraphicsIndex();
         this.flushGraphicsPath(); // maybe a path is open
         this.graphicsBuffer.push(element);
     }
@@ -97,13 +109,18 @@ ${content}
     flushGraphics() {
         this.flushGraphicsPath();
         if (this.graphicsBuffer.length) {
-            // separate print for svg graphics (we check in another module, if output starts with "<svg" to enable export SVG button)
             const graphicsBufferStr = this.graphicsBuffer.join("\n");
             const strokeWith = strokeWidthForMode[this.currMode] + "px";
             this.graphicsBuffer.length = 0;
             return BasicVmCore.getTagInSvg(graphicsBufferStr, strokeWith, this.backgroundColor);
         }
         return "";
+    }
+    flushText() {
+        const snippetData = this.getSnippetData();
+        const output = snippetData.output; // text output
+        snippetData.output = "";
+        return output;
     }
     graphicsPen(num) {
         if (num !== this.currGraphicsPen) {
@@ -145,8 +162,9 @@ ${content}
     }
     printGraphicsText(text) {
         const yOffset = 16;
-        const styleStr = this.currGraphicsPen >= 0 ? ` style="color: ${this.getRgbColorStringForPen(this.currGraphicsPen)}"` : "";
-        this.addGraphicsElement(`<text x="${this.graphicsX + this.originX}" y="${399 - this.graphicsY - this.originY + yOffset}"${styleStr}>${text}</text>`);
+        const colorStyleStr = this.currGraphicsPen >= 0 ? `; color: ${this.getRgbColorStringForPen(this.currGraphicsPen)}` : "";
+        this.addGraphicsElement(`<text x="${this.graphicsX + this.originX}" y="${399 - this.graphicsY - this.originY + yOffset}" style="white-space: pre${colorStyleStr}">${text}</text>`);
+        this.graphicsX += text.length * 8; // assuming 8px width per character
     }
     setOnSpeak(fnOnSpeak) {
         this.rsxHandler.setOnSpeak(fnOnSpeak);

@@ -32,7 +32,7 @@ END
 400 CLS
 TAG
 MOVE -25,r/2
-PRINT USING "##:##:##";h;m;s;
+PRINT USING "##";h;: PRINT":";: PRINT USING "##";m;: PRINT":";: PRINT USING "##";s; 'todo: PRINT USING "##:##:##";h;m;s; 
 FOR a=0 TO 360 STEP 6
   IF a MOD 30>0 THEN z=0.9 ELSE z=0.8
   MOVE z*r*SIN(a),z*r*COS(a)

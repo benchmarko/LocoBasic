@@ -24,15 +24,13 @@ export class BasicVmBrowser {
         this.ui.setOutputText("");
     }
     flush() {
-        //const textOutput = this.vmCore.flushText();
-        const snippetData = this.getSnippetData();
-        if (snippetData.output) {
-            this.ui.addOutputText(snippetData.output);
-            snippetData.output = "";
-        }
+        const textOutput = this.vmCore.flushText();
         const graphicsOutput = this.vmCore.flushGraphics();
-        if (graphicsOutput) {
-            this.ui.addOutputText(graphicsOutput);
+        const outputGraphicsIndex = this.vmCore.getOutputGraphicsIndex();
+        const hasGraphics = outputGraphicsIndex >= 0;
+        const output = hasGraphics ? textOutput.substring(0, outputGraphicsIndex) + graphicsOutput + textOutput.substring(outputGraphicsIndex) : textOutput;
+        if (output !== "") {
+            this.ui.addOutputText(output, hasGraphics);
         }
     }
     inkey$() {

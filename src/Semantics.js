@@ -17,8 +17,6 @@ function getCodeSnippets(snippetsData) {
         resetText: function resetText() {
             Object.assign(_d, {
                 output: "",
-                paper: 0,
-                pen: 0,
                 pos: 0,
                 tag: false,
                 vpos: 0,
@@ -128,11 +126,9 @@ function getCodeSnippets(snippetsData) {
             _o.origin(x, y);
         },
         paper: function paper(n) {
-            _d.paper = n;
             _d.output += _o.getColorForPen(n, true);
         },
         pen: function pen(n) {
-            _d.pen = n;
             _d.output += _o.getColorForPen(n);
         },
         plot: function plot(x, y) {
@@ -155,27 +151,31 @@ function getCodeSnippets(snippetsData) {
                 _d.pos += text.length;
             }
         },
+        // print: commaOp or tabOp: For graphics output the text position does not change, so we can output all at once.
         print: function print(...args) {
-            const printFormatNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
-            const output = args.map((arg) => (typeof arg === "number") ? printFormatNumber(arg) : arg);
+            const formatNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
+            const strArgs = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg);
+            const formatCommaOrTab = (str) => {
+                if (str === CommaOpChar) {
+                    return " ".repeat(_d.zone - (_d.pos % _d.zone));
+                }
+                else if (str.charAt(0) === TabOpChar) {
+                    const tabSize = Number(str.substring(1));
+                    return " ".repeat(tabSize - 1 - _d.pos);
+                }
+                return str;
+            };
             if (_d.tag) {
-                return _o.printGraphicsText(output.join(""));
+                return _o.printGraphicsText(strArgs.map(arg => formatCommaOrTab(arg)).join(""));
             }
-            for (const text of output) {
-                if (text === CommaOpChar) {
-                    printText(" ".repeat(_d.zone - (_d.pos % _d.zone)));
-                }
-                else if (text.charAt(0) === TabOpChar) {
-                    printText(" ".repeat(Number(text.substring(1)) - 1 - _d.pos));
-                }
-                else {
-                    printText(text);
-                }
+            for (const str of strArgs) {
+                printText(formatCommaOrTab(str));
             }
         },
         read: function read() {
             return _d.data[_d.dataPtr++];
         },
+        // remain: the return value is not really the remaining time
         remain: function remain(timer) {
             const value = _d.timerMap[timer];
             if (value !== undefined) {
@@ -183,7 +183,7 @@ function getCodeSnippets(snippetsData) {
                 clearInterval(value);
                 delete _d.timerMap[timer];
             }
-            return value; // not really remain
+            return value;
         },
         restore: function restore(label) {
             _d.dataPtr = _d.restoreMap[label];
@@ -215,6 +215,9 @@ function getCodeSnippets(snippetsData) {
         },
         write: function write(...args) {
             const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
+            if (_d.tag) {
+                return _o.printGraphicsText(text);
+            }
             printText(text);
         },
         xpos: function xpos() {
@@ -926,6 +929,14 @@ ${dataList.join(",\n")}
             const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
             const argumentList = evalChildren(args.asIteration().children);
             const parameterString = argumentList.join(', ') || "";
+            /*
+            const hasCommaOrTab = parameterString.includes(`"${CommaOpChar}`) || parameterString.includes(`"${TabOpChar}`);
+            if (hasCommaOrTab) {
+                semanticsHelper.addInstr("printCommaTab");
+            } else {
+                semanticsHelper.addInstr("print");
+            }
+            */
             let newlineString = "";
             if (!semi.sourceString) {
                 newlineString = parameterString ? `, "\\n"` : `"\\n"`;

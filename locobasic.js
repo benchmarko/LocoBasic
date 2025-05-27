@@ -1796,8 +1796,6 @@
             resetText: function resetText() {
                 Object.assign(_d, {
                     output: "",
-                    paper: 0,
-                    pen: 0,
                     pos: 0,
                     tag: false,
                     vpos: 0,
@@ -1907,11 +1905,9 @@
                 _o.origin(x, y);
             },
             paper: function paper(n) {
-                _d.paper = n;
                 _d.output += _o.getColorForPen(n, true);
             },
             pen: function pen(n) {
-                _d.pen = n;
                 _d.output += _o.getColorForPen(n);
             },
             plot: function plot(x, y) {
@@ -1934,27 +1930,31 @@
                     _d.pos += text.length;
                 }
             },
+            // print: commaOp or tabOp: For graphics output the text position does not change, so we can output all at once.
             print: function print(...args) {
-                const printFormatNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
-                const output = args.map((arg) => (typeof arg === "number") ? printFormatNumber(arg) : arg);
+                const formatNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
+                const strArgs = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg);
+                const formatCommaOrTab = (str) => {
+                    if (str === CommaOpChar) {
+                        return " ".repeat(_d.zone - (_d.pos % _d.zone));
+                    }
+                    else if (str.charAt(0) === TabOpChar) {
+                        const tabSize = Number(str.substring(1));
+                        return " ".repeat(tabSize - 1 - _d.pos);
+                    }
+                    return str;
+                };
                 if (_d.tag) {
-                    return _o.printGraphicsText(output.join(""));
+                    return _o.printGraphicsText(strArgs.map(arg => formatCommaOrTab(arg)).join(""));
                 }
-                for (const text of output) {
-                    if (text === CommaOpChar) {
-                        printText(" ".repeat(_d.zone - (_d.pos % _d.zone)));
-                    }
-                    else if (text.charAt(0) === TabOpChar) {
-                        printText(" ".repeat(Number(text.substring(1)) - 1 - _d.pos));
-                    }
-                    else {
-                        printText(text);
-                    }
+                for (const str of strArgs) {
+                    printText(formatCommaOrTab(str));
                 }
             },
             read: function read() {
                 return _d.data[_d.dataPtr++];
             },
+            // remain: the return value is not really the remaining time
             remain: function remain(timer) {
                 const value = _d.timerMap[timer];
                 if (value !== undefined) {
@@ -1962,7 +1962,7 @@
                     clearInterval(value);
                     delete _d.timerMap[timer];
                 }
-                return value; // not really remain
+                return value;
             },
             restore: function restore(label) {
                 _d.dataPtr = _d.restoreMap[label];
@@ -1994,6 +1994,9 @@
             },
             write: function write(...args) {
                 const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
+                if (_d.tag) {
+                    return _o.printGraphicsText(text);
+                }
                 printText(text);
             },
             xpos: function xpos() {
@@ -2705,6 +2708,14 @@ ${dataList.join(",\n")}
                 const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
                 const argumentList = evalChildren(args.asIteration().children);
                 const parameterString = argumentList.join(', ') || "";
+                /*
+                const hasCommaOrTab = parameterString.includes(`"${CommaOpChar}`) || parameterString.includes(`"${TabOpChar}`);
+                if (hasCommaOrTab) {
+                    semanticsHelper.addInstr("printCommaTab");
+                } else {
+                    semanticsHelper.addInstr("print");
+                }
+                */
                 let newlineString = "";
                 if (!semi.sourceString) {
                     newlineString = parameterString ? `, "\\n"` : `"\\n"`;
@@ -3430,6 +3441,7 @@ ${dataList.join(",\n")}
             this.colorsForPens = [];
             this.backgroundColor = "";
             this.snippetData = {};
+            this.outputGraphicsIndex = -1;
             this.defaultColorsForPens = [
                 1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
             ];
@@ -3447,6 +3459,7 @@ ${dataList.join(",\n")}
         reset() {
             this.colorsForPens.splice(0, this.colorsForPens.length, ...this.defaultColorsForPens);
             BasicVmCore.deleteAllItems(this.snippetData);
+            this.snippetData.output = "";
             this.backgroundColor = "";
             this.mode(1);
             this.cls();
@@ -3457,14 +3470,23 @@ ${dataList.join(",\n")}
             this.currGraphicsPen = -1;
             this.graphicsX = 0;
             this.graphicsY = 0;
+            this.outputGraphicsIndex = -1;
         }
         mode(num) {
             this.currMode = num;
-            //this.cls();
             this.origin(0, 0);
+        }
+        setOutputGraphicsIndex() {
+            if (this.outputGraphicsIndex < 0) {
+                this.outputGraphicsIndex = this.getSnippetData().output.length;
+            }
+        }
+        getOutputGraphicsIndex() {
+            return this.outputGraphicsIndex;
         }
         // type: M | m | P | p | L | l
         drawMovePlot(type, x, y) {
+            this.setOutputGraphicsIndex();
             x = Math.round(x);
             y = Math.round(y);
             if (!this.graphicsPathBuffer.length && type !== "M" && type !== "P") { // path must start with an absolute move
@@ -3501,6 +3523,7 @@ ${dataList.join(",\n")}
             }
         }
         addGraphicsElement(element) {
+            this.setOutputGraphicsIndex();
             this.flushGraphicsPath(); // maybe a path is open
             this.graphicsBuffer.push(element);
         }
@@ -3514,13 +3537,18 @@ ${content}
         flushGraphics() {
             this.flushGraphicsPath();
             if (this.graphicsBuffer.length) {
-                // separate print for svg graphics (we check in another module, if output starts with "<svg" to enable export SVG button)
                 const graphicsBufferStr = this.graphicsBuffer.join("\n");
                 const strokeWith = strokeWidthForMode[this.currMode] + "px";
                 this.graphicsBuffer.length = 0;
                 return BasicVmCore.getTagInSvg(graphicsBufferStr, strokeWith, this.backgroundColor);
             }
             return "";
+        }
+        flushText() {
+            const snippetData = this.getSnippetData();
+            const output = snippetData.output; // text output
+            snippetData.output = "";
+            return output;
         }
         graphicsPen(num) {
             if (num !== this.currGraphicsPen) {
@@ -3562,8 +3590,9 @@ ${content}
         }
         printGraphicsText(text) {
             const yOffset = 16;
-            const styleStr = this.currGraphicsPen >= 0 ? ` style="color: ${this.getRgbColorStringForPen(this.currGraphicsPen)}"` : "";
-            this.addGraphicsElement(`<text x="${this.graphicsX + this.originX}" y="${399 - this.graphicsY - this.originY + yOffset}"${styleStr}>${text}</text>`);
+            const colorStyleStr = this.currGraphicsPen >= 0 ? `; color: ${this.getRgbColorStringForPen(this.currGraphicsPen)}` : "";
+            this.addGraphicsElement(`<text x="${this.graphicsX + this.originX}" y="${399 - this.graphicsY - this.originY + yOffset}" style="white-space: pre${colorStyleStr}">${text}</text>`);
+            this.graphicsX += text.length * 8; // assuming 8px width per character
         }
         setOnSpeak(fnOnSpeak) {
             this.rsxHandler.setOnSpeak(fnOnSpeak);
@@ -3677,14 +3706,12 @@ ${content}
             this.nodeParts.consoleClear();
         }
         flush() {
-            const snippetData = this.getSnippetData();
-            if (snippetData.output) {
-                this.nodeParts.consolePrint(snippetData.output.replace(/\n$/, ""));
-                snippetData.output = "";
-            }
-            const graphicsOutput = this.vmCore.flushGraphics();
-            if (graphicsOutput) {
-                this.nodeParts.consolePrint(graphicsOutput.replace(/\n$/, ""));
+            const textOutput = this.vmCore.flushText().replace(/\n$/, "");
+            const graphicsOutput = this.vmCore.flushGraphics().replace(/\n$/, "");
+            const outputGraphicsIndex = this.vmCore.getOutputGraphicsIndex();
+            const output = outputGraphicsIndex >= 0 ? textOutput.substring(0, outputGraphicsIndex) + graphicsOutput + textOutput.substring(outputGraphicsIndex) : textOutput;
+            if (output !== "") {
+                this.nodeParts.consolePrint(output);
             }
         }
         inkey$() {
@@ -4070,15 +4097,13 @@ node hello1.js
             this.ui.setOutputText("");
         }
         flush() {
-            //const textOutput = this.vmCore.flushText();
-            const snippetData = this.getSnippetData();
-            if (snippetData.output) {
-                this.ui.addOutputText(snippetData.output);
-                snippetData.output = "";
-            }
+            const textOutput = this.vmCore.flushText();
             const graphicsOutput = this.vmCore.flushGraphics();
-            if (graphicsOutput) {
-                this.ui.addOutputText(graphicsOutput);
+            const outputGraphicsIndex = this.vmCore.getOutputGraphicsIndex();
+            const hasGraphics = outputGraphicsIndex >= 0;
+            const output = hasGraphics ? textOutput.substring(0, outputGraphicsIndex) + graphicsOutput + textOutput.substring(outputGraphicsIndex) : textOutput;
+            if (output !== "") {
+                this.ui.addOutputText(output, hasGraphics);
             }
         }
         inkey$() {
