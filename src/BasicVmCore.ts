@@ -110,8 +110,11 @@ export class BasicVmCore implements IVmRsxApi {
 
 
     // type: M | m | P | p | L | l
-    public drawMovePlot(type: string, x: number, y: number): void {
+    public drawMovePlot(type: string, x: number, y: number, pen?: number): void {
         this.setOutputGraphicsIndex();
+        if (pen !== undefined) {
+            this.graphicsPen(pen);
+        }
         x = Math.round(x);
         y = Math.round(y);
 
@@ -199,23 +202,6 @@ ${content}
         if (this.currGraphicsPen < 0) {
             this.graphicsPen(1);
         }
-
-        /*
-        if (this.currPen < 0) {
-            this.pen(1);
-        } else if (num === this.currPen) {
-            this.currPen = -1;
-            this.pen(num);
-        }
-
-        if (this.currPaper < 0) {
-            this.paper(0);
-        } else if (num === this.currPaper) {
-            this.currPaper = -1;
-            this.paper(num);
-        }
-        */
-
         if (num === 0) {
             this.backgroundColor = this.getRgbColorStringForPen(0);
         }

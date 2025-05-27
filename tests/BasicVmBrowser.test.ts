@@ -76,13 +76,4 @@ describe('BasicVmBrowser Module', () => {
 
         expect(mockUI.addOutputText).toHaveBeenCalledWith(getInSvg('<path d="M10 379h1v1h-1v-1" />'), true);
     });
-
-    /*
-    it('should clear the output text when mode is called', () => {
-        const mockUI = getMockUI();
-        const basicVmBrowser = new BasicVmBrowser(mockUI);
-        basicVmBrowser.mode(2);
-        expect(mockUI.setOutputText).toHaveBeenCalledWith('');
-    });
-    */
 });

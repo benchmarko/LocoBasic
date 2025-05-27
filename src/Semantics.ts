@@ -67,11 +67,11 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 		dim1: function dim1(dim: number, value: string | number = 0) {
 			return new Array(dim + 1).fill(value);
 		},
-		draw: function draw(x: number, y: number) {
-			_o.drawMovePlot("L", x, y);
+		draw: function draw(x: number, y: number, pen?: number) {
+			_o.drawMovePlot("L", x, y, pen);
 		},
-		drawr: function drawr(x: number, y: number) {
-			_o.drawMovePlot("l", x, y);
+		drawr: function drawr(x: number, y: number, pen?: number) {
+			_o.drawMovePlot("l", x, y, pen);
 		},
 		end: function end() {
 			_o.flush();
@@ -112,6 +112,20 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 				return isNum ? Number(input) : input;
 			}
 		},
+		instr: function instr(str: string, find: string, len: number) {
+			return str.indexOf(find, len !== undefined ? len - 1 : len) + 1;
+		},
+		/*
+		instrLen: function instrLen(str: string, find: string, len: number) {
+			return str.indexOf(find, len - 1) + 1;
+		},
+		*/
+		left$: function left$(str: string, num: number) {
+			return str.slice(0, num);
+		},
+		mid$: function mid$(str: string, pos: number, len?: number) {
+			return str.substr(pos - 1, len);
+		},
 		mid$Assign: function mid$Assign(s: string, start: number, newString: string, len?: number) {
 			start -= 1;
 			len = Math.min(len ?? newString.length, newString.length, s.length - start);
@@ -121,11 +135,11 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 			_o.mode(num);
 			cls();
 		},
-		move: function move(x: number, y: number) {
-			_o.drawMovePlot("M", x, y);
+		move: function move(x: number, y: number, pen?: number) {
+			_o.drawMovePlot("M", x, y, pen);
 		},
-		mover: function mover(x: number, y: number) {
-			_o.drawMovePlot("m", x, y);
+		mover: function mover(x: number, y: number, pen?: number) {
+			_o.drawMovePlot("m", x, y, pen);
 		},
 		origin: function origin(x: number, y: number) {
 			_o.origin(x, y);
@@ -136,11 +150,11 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 		pen: function pen(n: number) {
 			_d.output += _o.getColorForPen(n);
 		},
-		plot: function plot(x: number, y: number) {
-			_o.drawMovePlot("P", x, y);
+		plot: function plot(x: number, y: number, pen?: number) {
+			_o.drawMovePlot("P", x, y, pen);
 		},
-		plotr: function plotr(x: number, y: number) {
-			_o.drawMovePlot("p", x, y);
+		plotr: function plotr(x: number, y: number, pen?: number) {
+			_o.drawMovePlot("p", x, y, pen);
 		},
 		pos: function pos() {
 			return _d.pos + 1;
@@ -155,8 +169,17 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 				_d.pos += text.length;
 			}
 		},
-		// print: commaOp or tabOp: For graphics output the text position does not change, so we can output all at once.
 		print: function print(...args: (string | number)[]) {
+			const formatNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
+			const text = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg).join("");
+			if (_d.tag) {
+				return _o.printGraphicsText(text);
+			}
+			printText(text);
+		},
+		// printTab: print with commaOp or tabOp
+		// For graphics output the text position does not change, so we can output all at once.
+		printTab: function printTab(...args: (string | number)[]) {
 			const formatNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
 			const strArgs = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg);
 			const formatCommaOrTab = (str: string) => {
@@ -190,6 +213,9 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 		},
 		restore: function restore(label: string) {
 			_d.dataPtr = _d.restoreMap[label];
+		},
+		right$: function right$(str: string, num: number) {
+			return str.substring(str.length - num);
 		},
 		round: function round(num: number, dec: number) {
 			return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
@@ -253,27 +279,26 @@ function evalChildren(children: Node[]): string[] {
 	return children.map(child => child.eval());
 }
 
+function evalOptionalArg(arg: Node): string {
+	const argEval = arg.child(0)?.eval();
+	return argEval !== undefined ? `, ${argEval}` : "";
+}
+
 function createComparisonExpression(a: Node, op: string, b: Node): string {
 	return `-(${a.eval()} ${op} ${b.eval()})`;
 }
 
 function getSemanticsActions(semanticsHelper: SemanticsHelper) {
-	const drawMovePlot = (lit: Node, x: Node, _comma1: Node, y: Node, _comma2: Node, e3: Node, _comma3: Node, e4: Node) => {
+	const drawMovePlot = (lit: Node, x: Node, _comma1: Node, y: Node, _comma2: Node, pen: Node, _comma3: Node, mode: Node) => {
 		const command = lit.sourceString.toLowerCase();
 		semanticsHelper.addInstr(command);
-		const pen = e3.child(0)?.eval();
-		let penStr = "";
-		if (pen !== undefined) {
-			semanticsHelper.addInstr("graphicsPen");
-			penStr = `graphicsPen(${pen}); `;
-		}
-		const modeStr = e4.child(0) ? notSupported(e4.child(0)) : "";
-		return penStr + `${command}(${x.eval()}, ${y.eval()}${modeStr})`;
+		const modeStr = mode.child(0) ? notSupported(mode.child(0)) : "";
+		return `${command}(${x.eval()}, ${y.eval()}${evalOptionalArg(pen)}${modeStr})`;
 	};
 
-	const cosSinTan = (lit: Node, _open: Node, e: Node, _close: Node) => { // eslint-disable-line @typescript-eslint/no-unused-vars
+	const cosSinTan = (lit: Node, _open: Node, num: Node, _close: Node) => { // eslint-disable-line @typescript-eslint/no-unused-vars
 		const func = lit.sourceString.toLowerCase();
-		return semanticsHelper.getDeg() ? `Math.${func}((${e.eval()}) * Math.PI / 180)` : `Math.${func}(${e.eval()})`;
+		return semanticsHelper.getDeg() ? `Math.${func}((${num.eval()}) * Math.PI / 180)` : `Math.${func}(${num.eval()})`;
 	};
 
 	const loopBlock = (startNode: Node, content: Node, separator: Node, endNode: Node) => {
@@ -404,6 +429,7 @@ ${dataList.join(",\n")}
 			);
 
 			const needsTimerMap = instrMap["after"] || instrMap["every"] || instrMap["remain"];
+			const needsCommaOrTabOpChar = instrMap["printTab"];
 
 			// Assemble code lines
 			const codeLines = [
@@ -412,8 +438,7 @@ ${dataList.join(",\n")}
 				`const _d = _o.getSnippetData(); resetText();${dataList.length ? ' _defineData();' : ''}`,
 				instrMap["time"] ? '_d.startTime = Date.now();' : '',
 				needsTimerMap ? '_d.timerMap = {};' : '',
-				`const CommaOpChar = "${CommaOpChar}";`,
-				`const TabOpChar = "${TabOpChar}";`,
+				needsCommaOrTabOpChar ? `const CommaOpChar = "${CommaOpChar}", TabOpChar = "${TabOpChar}";` : '',
 				variableDeclarations,
 				...lineList.filter(line => line.trimEnd() !== ''),
 				!instrMap["end"] ? `return _o.flush();` : "",
@@ -517,22 +542,21 @@ ${dataList.join(",\n")}
 			return `after(${timeout}, ${timer}, _${labelString})`;
 		},
 
-		Asc(_ascLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `(${e.eval()}).charCodeAt(0)`;
+		Asc(_ascLit: Node, _open: Node, str: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `(${str.eval()}).charCodeAt(0)`;
 		},
 
-		Atn(_atnLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return semanticsHelper.getDeg() ? `(Math.atan(${e.eval()}) * 180 / Math.PI)` : `Math.atan(${e.eval()})`;
+		Atn(_atnLit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return semanticsHelper.getDeg() ? `(Math.atan(${num.eval()}) * 180 / Math.PI)` : `Math.atan(${num.eval()})`;
 		},
 
 		Auto(lit: Node, label: Node, comma: Node, step: Node) {
 			return notSupported(lit, label, comma, step);
 		},
 
-		BinS(_binLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		BinS(_binLit: Node, _open: Node, num: Node, _comma: Node, pad: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.addInstr("bin$");
-			const pad = n.child(0)?.eval();
-			return pad !== undefined ? `bin$(${e.eval()}, ${pad})` : `bin$(${e.eval()})`
+			return `bin$(${num.eval()}${evalOptionalArg(pad)})`;
 		},
 
 		Border(lit: Node, num: Node, comma: Node, num2: Node) {
@@ -740,8 +764,8 @@ ${dataList.join(",\n")}
 			return notSupported(lit, num);
 		},
 
-		Fix(_fixLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.trunc(${e.eval()})`;
+		Fix(_fixLit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `Math.trunc(${num.eval()})`;
 		},
 
 		Fre(lit: Node, open: Node, e: Node, close: Node) {
@@ -807,15 +831,14 @@ ${dataList.join(",\n")}
 			return notSupported(lit, paperLit, num); // TODO
 		},
 
-		GraphicsPen(_graphicsLit: Node, _penLit: Node, e: Node) {
+		GraphicsPen(_graphicsLit: Node, _penLit: Node, num: Node) {
 			semanticsHelper.addInstr("graphicsPen");
-			return `graphicsPen(${e.eval()})`;
+			return `graphicsPen(${num.eval()})`;
 		},
 
-		HexS(_hexLit: Node, _open: Node, e: Node, _comma: Node, n: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		HexS(_hexLit: Node, _open: Node, num: Node, _comma: Node, pad: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.addInstr("hex$");
-			const pad = n.child(0)?.eval();
-			return pad !== undefined ? `hex$(${e.eval()}, ${pad})` : `hex$(${e.eval()})`
+			return `hex$(${num.eval()}${evalOptionalArg(pad)})`;
 		},
 
 		Himem(lit: Node) {
@@ -881,15 +904,17 @@ ${dataList.join(",\n")}
 		},
 
 		Instr_noLen(_instrLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `((${e1.eval()}).indexOf(${e2.eval()}) + 1)`;
+			semanticsHelper.addInstr("instr");
+			return `instr(${e1.eval()}, ${e2.eval()})`;
 		},
 
 		Instr_len(_instrLit: Node, _open: Node, len: Node, _comma1: Node, e1: Node, _comma2: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `((${e1.eval()}).indexOf(${e2.eval()}, ${len.eval()} - 1) + 1)`;
+			semanticsHelper.addInstr("instr");
+			return `instr(${e1.eval()}, ${e2.eval()}, ${len.eval()})`;
 		},
 
-		Int(_intLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.floor(${e.eval()})`;
+		Int(_intLit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `Math.floor(${num.eval()})`;
 		},
 
 		Joy(lit: Node, open: Node, num: Node, close: Node) {
@@ -900,17 +925,17 @@ ${dataList.join(",\n")}
 			return notSupported(lit);
 		},
 
-		LeftS(_leftLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `(${e1.eval()}).slice(0, ${e2.eval()})`;
+		LeftS(_leftLit: Node, _open: Node, pos: Node, _comma: Node, len: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addInstr("left$");
+			return `left$(${pos.eval()}, ${len.eval()})`;
 		},
 
-		Len(_lenLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `(${e.eval()}).length`;
+		Len(_lenLit: Node, _open: Node, str: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `(${str.eval()}).length`;
 		},
 
 		Let(_letLit: Node, assign: Node) {
-			const assignStr = assign.eval();
-			return `${assignStr}`;
+			return `${assign.eval()}`;
 		},
 
 		LineInput(lit: Node, inputLit: Node, stream: Node, comma: Node, message: Node, semi: Node, e: Node) {
@@ -929,16 +954,16 @@ ${dataList.join(",\n")}
 			return notSupported(lit, stream, comma, x, comma2, y);
 		},
 
-		Log(_logLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.log(${e.eval()})`;
+		Log(_logLit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `Math.log(${num.eval()})`;
 		},
 
-		Log10(_log10Lit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.log10(${e.eval()})`;
+		Log10(_log10Lit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `Math.log10(${num.eval()})`;
 		},
 
-		LowerS(_lowerLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `(${e.eval()}).toLowerCase()`;
+		LowerS(_lowerLit: Node, _open: Node, str: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `(${str.eval()}).toLowerCase()`;
 		},
 
 		Mask(lit: Node, num: Node, comma: Node, num2: Node, comma2: Node, num3: Node) {
@@ -946,8 +971,7 @@ ${dataList.join(",\n")}
 		},
 
 		Max(_maxLit: Node, _open: Node, args: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			const argumentList = evalChildren(args.asIteration().children);
-			return `Math.max(${argumentList})`;
+			return `Math.max(${evalChildren(args.asIteration().children)})`;
 		},
 
 		Memory(lit: Node, num: Node) {
@@ -958,33 +982,27 @@ ${dataList.join(",\n")}
 			return notSupported(lit, file);
 		},
 
-		MidS(_midLit: Node, _open: Node, e1: Node, _comma1: Node, e2: Node, _comma2: Node, e3: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			const length = e3.child(0)?.eval();
-			const lengthString = length === undefined ? "" : `, ${length}`;
-			return `(${e1.eval()}).substr(${e2.eval()} - 1${lengthString})`;
+		MidS(_midLit: Node, _open: Node, str: Node, _comma1: Node, start: Node, _comma2: Node, len: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addInstr("mid$");
+			return `mid$(${str.eval()}, ${start.eval()}${evalOptionalArg(len)})`;
 		},
 
-		MidSAssign(_midLit: Node, _open: Node, ident: Node, _comma1: Node, e2: Node, _comma2: Node, e3: Node, _close: Node, _op: Node, e: Node) {
+		MidSAssign(_midLit: Node, _open: Node, ident: Node, _comma1: Node, start: Node, _comma2: Node, len: Node, _close: Node, _op: Node, newStr: Node) {
 			semanticsHelper.addInstr("mid$Assign");
-
 			const variableName = ident.sourceString;
 			const resolvedVariableName = semanticsHelper.getVariable(variableName);
-			const start = e2.eval();
-			const newString = e.eval();
-			const length = e3.child(0)?.eval(); // also undefined possible
 
-			return `${resolvedVariableName} = mid$Assign(${resolvedVariableName}, ${start}, ${newString}, ${length})`;
+			return `${resolvedVariableName} = mid$Assign(${resolvedVariableName}, ${start.eval()}, ${newStr.eval()}${evalOptionalArg(len)})`;
 		},
 
 		Min(_minLit: Node, _open: Node, args: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			const argumentList = evalChildren(args.asIteration().children);
-			return `Math.min(${argumentList})`;
+			return `Math.min(${evalChildren(args.asIteration().children)})`;
 		},
 
-		Mode(_modeLit: Node, e: Node) {
+		Mode(_modeLit: Node, num: Node) {
 			semanticsHelper.addInstr("mode");
 			semanticsHelper.addInstr("cls");
-			return `mode(${e.eval()})`;
+			return `mode(${num.eval()})`;
 		},
 
 		Move: drawMovePlot,
@@ -1106,26 +1124,23 @@ ${dataList.join(",\n")}
 		},
 
 		Print(_printLit: Node, stream: Node, _comma: Node, args: Node, semi: Node) {
-			semanticsHelper.addInstr("print");
 			semanticsHelper.addInstr("printText");
 			const streamStr = stream.child(0)?.eval() || "";
 			const argumentList = evalChildren(args.asIteration().children);
 			const parameterString = argumentList.join(', ') || "";
 
-			/*
 			const hasCommaOrTab = parameterString.includes(`"${CommaOpChar}`) || parameterString.includes(`"${TabOpChar}`);
 			if (hasCommaOrTab) {
-				semanticsHelper.addInstr("printCommaTab");
+				semanticsHelper.addInstr("printTab");
 			} else {
 				semanticsHelper.addInstr("print");
 			}
-			*/
 
 			let newlineString = "";
 			if (!semi.sourceString) {
 				newlineString = parameterString ? `, "\\n"` : `"\\n"`;
 			}
-			return `print(${streamStr}${parameterString}${newlineString})`;
+			return `${hasCommaOrTab ? "printTab" : "print"}(${streamStr}${parameterString}${newlineString})`;
 		},
 
 		Rad(_radLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -1178,10 +1193,9 @@ ${dataList.join(",\n")}
 			return "return";
 		},
 
-		RightS(_rightLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			const string: string = e1.eval();
-			const length: string = e2.eval();
-			return `(${string}).substring((${string}).length - (${length}))`;
+		RightS(_rightLit: Node, _open: Node, str: Node, _comma: Node, len: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addInstr("right$");
+			return `right$(${str.eval()}, ${len.eval()})`;
 		},
 
 		Rnd(_rndLit: Node, _open: Node, _e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -1189,13 +1203,13 @@ ${dataList.join(",\n")}
 			return `Math.random()`;
 		},
 
-		Round(_roundLit: Node, _open: Node, value: Node, _comma: Node, decimals: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			const decimalPlaces = decimals.child(0)?.eval();
+		Round(_roundLit: Node, _open: Node, num: Node, _comma: Node, decimals: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			const decimalPlaces = evalOptionalArg(decimals);
 			if (decimalPlaces) {
 				semanticsHelper.addInstr("round");
-				return `round(${value.eval()}, ${decimalPlaces})`;
+				return `round(${num.eval()}${decimalPlaces})`;
 			}
-			return `Math.round(${value.eval()})`; // common round without decimals places
+			return `Math.round(${num.eval()})`; // common round without decimals places
 			// A better way to avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
 		},
 
@@ -1247,8 +1261,8 @@ ${dataList.join(",\n")}
 			return notSupported(lit, file, comma, type, comma2, num, comma3, num2, comma4, num3);
 		},
 
-		Sgn(_sgnLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.sign(${e.eval()})`;
+		Sgn(_sgnLit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `Math.sign(${num.eval()})`;
 		},
 
 		Sin: cosSinTan,
@@ -1290,8 +1304,8 @@ ${dataList.join(",\n")}
 			return `return stop()`;
 		},
 
-		StrS(_strLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			const argument = e.eval();
+		StrS(_strLit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			const argument = num.eval();
 
 			if (isNaN(Number(argument))) {
 				semanticsHelper.addInstr("str$");
@@ -1319,7 +1333,6 @@ ${dataList.join(",\n")}
 		},
 
 		Tab(_lit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			//semanticsHelper.addInstr("TabOpChar");
 			return `"${TabOpChar}${num.eval()}"`; // Unicode double arrow right
 		},
 
@@ -1355,11 +1368,11 @@ ${dataList.join(",\n")}
 		Tron: notSupported,
 
 		Unt(_lit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `${num.eval()}`; //TTT
+			return `${num.eval()}`;
 		},
 
-		UpperS(_upperLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `(${e.eval()}).toUpperCase()`;
+		UpperS(_upperLit: Node, _open: Node, str: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return `(${str.eval()}).toUpperCase()`;
 		},
 
 		Val(_upperLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -1414,8 +1427,7 @@ ${dataList.join(",\n")}
 			semanticsHelper.addInstr("write");
 			semanticsHelper.addInstr("printText");
 			const streamStr = stream.child(0)?.eval() || "";
-			const argumentList = evalChildren(args.asIteration().children);
-			const parameterString = argumentList.join(', ');
+			const parameterString = evalChildren(args.asIteration().children).join(', ');
 			return `write(${streamStr}${parameterString})`;
 		},
 

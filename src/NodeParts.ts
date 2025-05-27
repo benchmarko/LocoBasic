@@ -48,7 +48,7 @@ const dummyVm: DummyVm = {
     _snippetData: {} as SnippetDataType,
     debug(..._args: (string | number)[]) { /* console.debug(...args); */ }, // eslint-disable-line @typescript-eslint/no-unused-vars
     cls() { },
-    drawMovePlot(type: string, x: number, y: number) { this.debug("drawMovePlot:", type, x, y); },
+    drawMovePlot(type: string, x: number, y: number, pen?: number) { this.debug("drawMovePlot:", type, x, y, pen !== undefined ? pen : ""); },
     flush() { if (this._snippetData.output) { console.log(this._snippetData.output); this._snippetData.output = ""; } },
     graphicsPen(num: number) { this.debug("graphicsPen:", num); },
     ink(num: number, col: number) { this.debug("ink:", num, col); },

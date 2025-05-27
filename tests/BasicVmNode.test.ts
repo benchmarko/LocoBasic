@@ -57,14 +57,4 @@ describe('BasicVmNode Module', () => {
         const key = await basicVmNode.inkey$();
         expect(key).toBe('A');
     });
-
-    /*
-    it('should clear the console when mode is called', () => {
-        const mockNodeParts = getMockNodeParts();
-        const basicVmNode = new BasicVmNode(mockNodeParts);
-
-        basicVmNode.mode(2);
-        expect(mockNodeParts.consoleClear).toHaveBeenCalled();
-    });
-    */
 });

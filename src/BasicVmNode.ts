@@ -46,7 +46,7 @@ export class BasicVmNode implements IVmAdmin {
     private readonly nodeParts: INodeParts;
 
     public reset: () => void;
-    public drawMovePlot: (type: string, x: number, y: number) => void;
+    public drawMovePlot: (type: string, x: number, y: number, pen?: number) => void;
     public graphicsPen: (num: number) => void;
     public ink: (num: number, col: number) => void;
     public origin: (x: number, y: number) => void;

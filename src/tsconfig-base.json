@@ -27,6 +27,5 @@
       "alwaysStrict": true,
       "preserveConstEnums": true,
       "newLine": "lf",
-  },
-  //"include": ["*.ts"],
+  }
 }

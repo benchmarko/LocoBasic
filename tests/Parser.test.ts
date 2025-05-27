@@ -52,11 +52,4 @@ describe('Parser Module', () => {
         const result = parser.parseAndEval('1+2+3');
         expect(result).toBe('1 + 2 + 3');
     });
-
-    /*
-    it('should throw an error if semantics are not properly defined', () => {
-        const invalidSemanticsMap = {};
-        expect(() => new Parser(grammarString, invalidSemanticsMap)).toThrow();
-    });
-    */
 });

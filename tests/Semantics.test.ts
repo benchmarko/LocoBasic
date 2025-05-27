@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Node } from "ohm-js";
 import { Semantics } from '../src/Semantics';
-//import { SnippetDataType } from '../src/Interfaces';
 
 describe('Semantics Class', () => {
     it('should initialize', () => {
@@ -105,8 +104,7 @@ describe('Semantics Class', () => {
 
             const penNode2 = getChildEvalNode('2');
             const result2 = actions.Draw(litNode, xNode, dummy, yNode, dummy, penNode2, dummy, modeNode);
-            expect(result2).toContain('graphicsPen(2); draw(100, 200)');
-            expect(semantics.getHelper().getInstrMap()['graphicsPen']).toBe(1);
+            expect(result2).toContain('draw(100, 200, 2)');
         });
 
         it('should correctly evaluate the "ForNextBlock" action', () => {
@@ -138,7 +136,7 @@ describe('Semantics Class', () => {
             const lengthNode = getChildEvalNode('5');
             const dummy = getDummyNode();
             const result = actions.MidS(dummy, dummy, strNode, dummy, startNode, dummy, lengthNode, dummy);
-            expect(result).toBe('("Hello, World!").substr(8 - 1, 5)');
+            expect(result).toBe('mid$("Hello, World!", 8, 5)');
         });
 
         it('should correctly evaluate the "Rnd" action', () => {
