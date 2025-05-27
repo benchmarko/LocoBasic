@@ -64,7 +64,7 @@ describe('BasicVmBrowser Module', () => {
 
         basicVmBrowser.flush();
 
-        expect(mockUI.addOutputText).toHaveBeenCalledWith("Hello");
+        expect(mockUI.addOutputText).toHaveBeenCalledWith("Hello", false);
     });
 
     it('should flush graphics output correctly', () => {
@@ -74,7 +74,7 @@ describe('BasicVmBrowser Module', () => {
         basicVmBrowser.drawMovePlot("P", 10, 20);
         basicVmBrowser.flush();
 
-        expect(mockUI.addOutputText).toHaveBeenCalledWith(getInSvg('<path d="M10 379h1v1h-1v-1" />'));
+        expect(mockUI.addOutputText).toHaveBeenCalledWith(getInSvg('<path d="M10 379h1v1h-1v-1" />'), true);
     });
 
     /*

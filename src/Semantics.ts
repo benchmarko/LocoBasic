@@ -25,8 +25,6 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 		resetText: function resetText() {
 			Object.assign(_d, {
 				output: "",
-				paper: 0,
-				pen: 0,
 				pos: 0,
 				tag: false,
 				vpos: 0,
@@ -133,11 +131,9 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 			_o.origin(x, y);
 		},
 		paper: function paper(n: number) {
-			_d.paper = n;
 			_d.output += _o.getColorForPen(n, true);
 		},
 		pen: function pen(n: number) {
-			_d.pen = n;
 			_d.output += _o.getColorForPen(n);
 		},
 		plot: function plot(x: number, y: number) {
@@ -159,25 +155,30 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 				_d.pos += text.length;
 			}
 		},
+		// print: commaOp or tabOp: For graphics output the text position does not change, so we can output all at once.
 		print: function print(...args: (string | number)[]) {
-			const printFormatNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
-			const output = args.map((arg) => (typeof arg === "number") ? printFormatNumber(arg) : arg);
-			if (_d.tag) {
-				return _o.printGraphicsText(output.join(""));
-			}
-			for (const text of output) {
-				if (text === CommaOpChar) {
-					printText(" ".repeat(_d.zone - (_d.pos % _d.zone)));
-				} else if (text.charAt(0) === TabOpChar) {
-					printText(" ".repeat(Number(text.substring(1)) - 1 - _d.pos));
-				} else {
-					printText(text);
+			const formatNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
+			const strArgs = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg);
+			const formatCommaOrTab = (str: string) => {
+				if (str === CommaOpChar) {
+					return " ".repeat(_d.zone - (_d.pos % _d.zone));
+				} else if (str.charAt(0) === TabOpChar) {
+					const tabSize = Number(str.substring(1));
+					return " ".repeat(tabSize - 1 - _d.pos);
 				}
+				return str;
+			};
+			if (_d.tag) {
+				return _o.printGraphicsText(strArgs.map(arg => formatCommaOrTab(arg)).join(""));
+			}
+			for (const str of strArgs) {
+				printText(formatCommaOrTab(str));
 			}
 		},
 		read: function read() {
 			return _d.data[_d.dataPtr++];
 		},
+		// remain: the return value is not really the remaining time
 		remain: function remain(timer: number) {
 			const value = _d.timerMap[timer];
 			if (value !== undefined) {
@@ -185,7 +186,7 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 				clearInterval(value);
 				delete _d.timerMap[timer];
 			}
-			return value; // not really remain
+			return value;
 		},
 		restore: function restore(label: string) {
 			_d.dataPtr = _d.restoreMap[label];
@@ -217,6 +218,9 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 		},
 		write: function write(...args: (string | number)[]) {
 			const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
+			if (_d.tag) {
+				return _o.printGraphicsText(text);
+			}
 			printText(text);
 		},
 		xpos: function xpos() {
@@ -391,9 +395,9 @@ ${dataList.join(",\n")}
 			const codeSnippets = getCodeSnippets(codeSnippetsData);
 
 			const librarySnippet = Object.keys(codeSnippets)
-					.filter(key => instrMap[key])
-					.map(key => trimIndent(String(codeSnippets[key as keyof typeof codeSnippets])))
-					.join('\n');
+				.filter(key => instrMap[key])
+				.map(key => trimIndent(String(codeSnippets[key as keyof typeof codeSnippets])))
+				.join('\n');
 
 			const needsAsync = Object.keys(codeSnippets).some(key =>
 				instrMap[key] && trimIndent(String(codeSnippets[key as keyof typeof codeSnippets])).startsWith("async ")
@@ -1107,6 +1111,15 @@ ${dataList.join(",\n")}
 			const streamStr = stream.child(0)?.eval() || "";
 			const argumentList = evalChildren(args.asIteration().children);
 			const parameterString = argumentList.join(', ') || "";
+
+			/*
+			const hasCommaOrTab = parameterString.includes(`"${CommaOpChar}`) || parameterString.includes(`"${TabOpChar}`);
+			if (hasCommaOrTab) {
+				semanticsHelper.addInstr("printCommaTab");
+			} else {
+				semanticsHelper.addInstr("print");
+			}
+			*/
 
 			let newlineString = "";
 			if (!semi.sourceString) {

@@ -157,10 +157,10 @@ export class UI implements IUI {
         return document.currentScript && document.currentScript.getAttribute("data-key") || "";
     }
 
-    public addOutputText(value: string): void {
+    public addOutputText(value: string, hasGraphics?: boolean): void {
         const outputText = document.getElementById("outputText") as HTMLPreElement;
         outputText.innerHTML += value;
-        if (value.startsWith("<svg xmlns=")) {
+        if (hasGraphics) {
             this.setButtonOrSelectDisabled("exportSvgButton", false);
         }
     }

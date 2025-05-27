@@ -16,8 +16,10 @@ export class BasicVmCore implements IVmRsxApi {
     private graphicsY: number = 0;
     private readonly colorsForPens: number[] = [];
     private backgroundColor = "";
-    private snippetData: SnippetDataType = {} as SnippetDataType;
+    private snippetData: SnippetDataType = {
+    } as SnippetDataType;
     private rsxHandler: BasicVmRsxHandler;
+    private outputGraphicsIndex: number = -1;
 
     private static readonly cpcColors = [
         "#000000", //  0 Black
@@ -76,6 +78,7 @@ export class BasicVmCore implements IVmRsxApi {
     public reset(): void {
         this.colorsForPens.splice(0, this.colorsForPens.length, ...this.defaultColorsForPens);
         BasicVmCore.deleteAllItems(this.snippetData);
+        this.snippetData.output = "";
         this.backgroundColor = "";
         this.mode(1);
         this.cls();
@@ -87,16 +90,28 @@ export class BasicVmCore implements IVmRsxApi {
         this.currGraphicsPen = -1;
         this.graphicsX = 0;
         this.graphicsY = 0;
+        this.outputGraphicsIndex = -1;
     }
 
     public mode(num: number): void {
         this.currMode = num;
-        //this.cls();
         this.origin(0, 0);
     }
 
+    private setOutputGraphicsIndex(): void {
+        if (this.outputGraphicsIndex < 0) {
+            this.outputGraphicsIndex = this.getSnippetData().output.length;
+        }
+    }
+
+    public getOutputGraphicsIndex(): number {
+        return this.outputGraphicsIndex;
+    }
+
+
     // type: M | m | P | p | L | l
     public drawMovePlot(type: string, x: number, y: number): void {
+        this.setOutputGraphicsIndex();
         x = Math.round(x);
         y = Math.round(y);
 
@@ -140,6 +155,7 @@ export class BasicVmCore implements IVmRsxApi {
     }
 
     public addGraphicsElement(element: string): void {
+        this.setOutputGraphicsIndex();
         this.flushGraphicsPath(); // maybe a path is open
         this.graphicsBuffer.push(element);
     }
@@ -155,13 +171,19 @@ ${content}
     public flushGraphics(): string {
         this.flushGraphicsPath();
         if (this.graphicsBuffer.length) {
-            // separate print for svg graphics (we check in another module, if output starts with "<svg" to enable export SVG button)
             const graphicsBufferStr = this.graphicsBuffer.join("\n");
             const strokeWith = strokeWidthForMode[this.currMode] + "px";
             this.graphicsBuffer.length = 0;
             return BasicVmCore.getTagInSvg(graphicsBufferStr, strokeWith, this.backgroundColor);
         }
         return "";
+    }
+
+    public flushText(): string {
+        const snippetData = this.getSnippetData();
+        const output = snippetData.output; // text output
+        snippetData.output = "";
+        return output;
     }
 
     public graphicsPen(num: number): void {
@@ -210,8 +232,9 @@ ${content}
 
     public printGraphicsText(text: string): void {
         const yOffset = 16;
-        const styleStr = this.currGraphicsPen >= 0 ? ` style="color: ${this.getRgbColorStringForPen(this.currGraphicsPen)}"` : "";
-        this.addGraphicsElement(`<text x="${this.graphicsX + this.originX}" y="${399 - this.graphicsY - this.originY + yOffset}"${styleStr}>${text}</text>`)
+        const colorStyleStr = this.currGraphicsPen >= 0 ? `; color: ${this.getRgbColorStringForPen(this.currGraphicsPen)}` : "";
+        this.addGraphicsElement(`<text x="${this.graphicsX + this.originX}" y="${399 - this.graphicsY - this.originY + yOffset}" style="white-space: pre${colorStyleStr}">${text}</text>`);
+        this.graphicsX += text.length * 8; // assuming 8px width per character
     }
 
     public setOnSpeak(fnOnSpeak: (text: string, pitch: number) => Promise<void>) {

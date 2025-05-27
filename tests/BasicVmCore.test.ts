@@ -46,8 +46,8 @@ describe('BasicVmCore Module', () => {
         expect(vm.flushGraphics()).toBe(getInSvg('<path d="M210 279" />'));
 
         vm.cls();
-        vm.printGraphicsText("test");
-        expect(vm.flushGraphics()).toBe(getInSvg('<text x="10" y="395">test</text>'));
+        vm.printGraphicsText("test  this");
+        expect(vm.flushGraphics()).toBe(getInSvg('<text x="10" y="395" style="white-space: pre">test  this</text>'));
     });
 
     it('should handle mode changes', () => {
@@ -120,21 +120,21 @@ describe('BasicVmCore Module', () => {
     it('should render graphics text', () => {
         const vm = new BasicVmCore([], []);
         vm.printGraphicsText('Graphics Text');
-        expect(vm.flushGraphics()).toBe(getInSvg('<text x="0" y="415">Graphics Text</text>'));
+        expect(vm.flushGraphics()).toBe(getInSvg('<text x="0" y="415" style="white-space: pre">Graphics Text</text>'));
     });
 
     it('should render graphics text with correct graphics position', () => {
         const vm = new BasicVmCore([], []);
         vm.origin(10, 20);
         vm.printGraphicsText('Positioned Text');
-        expect(vm.flushGraphics()).toBe(getInSvg('<text x="10" y="395">Positioned Text</text>'));
+        expect(vm.flushGraphics()).toBe(getInSvg('<text x="10" y="395" style="white-space: pre">Positioned Text</text>'));
     });
 
     it('should render graphics text with correct color when graphicsPen is set', () => {
         const vm = new BasicVmCore([], []);
         vm.graphicsPen(1);
         vm.printGraphicsText('Colored Text');
-        expect(vm.flushGraphics()).toBe(getInSvg('<text x="0" y="415" style="color: #FFFF00">Colored Text</text>'));
+        expect(vm.flushGraphics()).toBe(getInSvg('<text x="0" y="415" style="white-space: pre; color: #FFFF00">Colored Text</text>'));
     });
 
     it('should handle rsx circle command correctly', async () => {

@@ -82,14 +82,12 @@ export class BasicVmNode implements IVmAdmin {
     }
 
     public flush(): void {
-        const snippetData = this.getSnippetData();
-        if (snippetData.output) {
-            this.nodeParts.consolePrint(snippetData.output.replace(/\n$/, ""));
-            snippetData.output = "";
-        }
-        const graphicsOutput = this.vmCore.flushGraphics();
-        if (graphicsOutput) {
-            this.nodeParts.consolePrint(graphicsOutput.replace(/\n$/, ""));
+        const textOutput = this.vmCore.flushText().replace(/\n$/, "");
+        const graphicsOutput = this.vmCore.flushGraphics().replace(/\n$/, "");
+        const outputGraphicsIndex = this.vmCore.getOutputGraphicsIndex();
+        const output = outputGraphicsIndex >= 0 ? textOutput.substring(0, outputGraphicsIndex) + graphicsOutput + textOutput.substring(outputGraphicsIndex) : textOutput;
+        if (output !== "") {
+            this.nodeParts.consolePrint(output);
         }
     }
 
