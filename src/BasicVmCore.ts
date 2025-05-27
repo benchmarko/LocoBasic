@@ -6,11 +6,6 @@ const strokeWidthForMode: number[] = [4, 2, 1, 1];
 export class BasicVmCore implements IVmRsxApi {
     private readonly penColors: string[];
     private readonly paperColors: string[];
-    private output: string = "";
-    private currPaper: number = -1;
-    private currPen: number = -1;
-    private hasPaperChanged: boolean = false;
-    private hasPenChanged: boolean = false;
     private currMode: number = 2;
     private readonly graphicsBuffer: string[] = [];
     private readonly graphicsPathBuffer: string[] = [];
@@ -83,14 +78,10 @@ export class BasicVmCore implements IVmRsxApi {
         BasicVmCore.deleteAllItems(this.snippetData);
         this.backgroundColor = "";
         this.mode(1);
+        this.cls();
     }
 
     public cls(): void {
-        this.output = "";
-        this.currPaper = -1;
-        this.currPen = -1;
-        this.hasPaperChanged = false;
-        this.hasPenChanged = false;
         this.graphicsBuffer.length = 0;
         this.graphicsPathBuffer.length = 0;
         this.currGraphicsPen = -1;
@@ -100,7 +91,7 @@ export class BasicVmCore implements IVmRsxApi {
 
     public mode(num: number): void {
         this.currMode = num;
-        this.cls();
+        //this.cls();
         this.origin(0, 0);
     }
 
@@ -173,12 +164,6 @@ ${content}
         return "";
     }
 
-    public flushText(): string {
-        const output = this.output;
-        this.output = "";
-        return output;
-    }
-
     public graphicsPen(num: number): void {
         if (num !== this.currGraphicsPen) {
             this.flushGraphicsPath();
@@ -193,6 +178,7 @@ ${content}
             this.graphicsPen(1);
         }
 
+        /*
         if (this.currPen < 0) {
             this.pen(1);
         } else if (num === this.currPen) {
@@ -206,6 +192,7 @@ ${content}
             this.currPaper = -1;
             this.paper(num);
         }
+        */
 
         if (num === 0) {
             this.backgroundColor = this.getRgbColorStringForPen(0);
@@ -217,44 +204,14 @@ ${content}
         this.originY = y;
     }
 
-    public paper(n: number): void {
-        if (n !== this.currPaper) {
-            if (n < 0 || n >= this.paperColors.length) {
-                throw new Error("Invalid paper color index");
-            }
-            this.currPaper = n;
-            this.hasPaperChanged = true;
-        }
-    }
-
-    public pen(n: number): void {
-        if (n !== this.currPen) {
-            if (n < 0 || n >= this.penColors.length) {
-                throw new Error("Invalid pen color index");
-            }
-            this.currPen = n;
-            this.hasPenChanged = true;
-        }
+    public getColorForPen(n: number, isPaper?: boolean): string {
+        return isPaper ? this.paperColors[this.colorsForPens[n]] : this.penColors[this.colorsForPens[n]];
     }
 
     public printGraphicsText(text: string): void {
         const yOffset = 16;
         const styleStr = this.currGraphicsPen >= 0 ? ` style="color: ${this.getRgbColorStringForPen(this.currGraphicsPen)}"` : "";
         this.addGraphicsElement(`<text x="${this.graphicsX + this.originX}" y="${399 - this.graphicsY - this.originY + yOffset}"${styleStr}>${text}</text>`)
-    }
-
-    public print(...args: string[]): void {
-        if (this.hasPaperChanged) {
-            this.hasPaperChanged = false;
-            this.output += this.paperColors[this.colorsForPens[this.currPaper]];
-        }
-
-        if (this.hasPenChanged) {
-            this.hasPenChanged = false;
-            this.output += this.penColors[this.colorsForPens[this.currPen]];
-        }
-
-        this.output += args.join("");
     }
 
     public setOnSpeak(fnOnSpeak: (text: string, pitch: number) => Promise<void>) {
@@ -275,10 +232,5 @@ ${content}
 
     public getSnippetData(): SnippetDataType {
         return this.snippetData;
-    }
-
-    public getOutput(): string {
-        const output = this.output;
-        return output;
     }
 }

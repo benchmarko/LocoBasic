@@ -10,31 +10,23 @@ describe('BasicVmCore Module', () => {
         return [...BasicVmCore.getCpcColors()].map((c) => `[${paper ? "paper" : "pen"}:${c}]`);
     };
 
-    const getPaperColors = () => getMockColors(true);
-
-    const getPenColors = () => getMockColors(false);
+    //const getPaperColors = () => getMockColors(true);
+    //const getPenColors = () => getMockColors(false);
 
     it('should initialize with default values', () => {
         const vm = new BasicVmCore([], []);
         expect(vm.xpos()).toBe(0);
         expect(vm.ypos()).toBe(0);
-        expect(vm.getOutput()).toBe('');
     });
 
     it('should reset correctly', () => {
         const vm = new BasicVmCore([], []);
-        vm.print('test');
-        vm.print('graphics test');
+        vm.printGraphicsText('test');
+        vm.printGraphicsText('graphics test');
         vm.cls();
-        expect(vm.getOutput()).toBe('');
+        //expect(vm.getOutput()).toBe(''); //TTT
         expect(vm.xpos()).toBe(0);
         expect(vm.ypos()).toBe(0);
-    });
-
-    it('should set and get output correctly', () => {
-        const vm = new BasicVmCore([], []);
-        vm.print('Hello, World!');
-        expect(vm.getOutput()).toBe('Hello, World!');
     });
 
     it('should handle graphicsPen changes', () => {
@@ -85,23 +77,6 @@ describe('BasicVmCore Module', () => {
         expect(vm.flushGraphics()).toBe(getInSvg('<path stroke="#8000FF" d="M200 299" />'));
     });
 
-    it('should handle paper changes', () => {
-        const vm = new BasicVmCore([], getPaperColors());
-        vm.paper(2);
-        vm.print("Hello");
-        expect(vm.getOutput()).toBe('[paper:#00FFFF]Hello');
-    });
-
-    it('should handle pen changes', () => {
-        const vm = new BasicVmCore(getPenColors(), []);
-        vm.pen(3);
-        vm.print("Hello");
-        expect(vm.getOutput()).toBe('[pen:#FF0000]Hello');
-
-        vm.print(" World");
-        expect(vm.getOutput()).toBe('[pen:#FF0000]Hello World');
-    });
-
     it('should handle rsx commands', async () => {
         const vm = new BasicVmCore([], []);
         const result = await vm.rsx('time', ['']);
@@ -142,33 +117,6 @@ describe('BasicVmCore Module', () => {
         expect(vm.ypos()).toBe(200);
     });
 
-    it('should append text to output when isTag is false', () => {
-        const vm = new BasicVmCore([], []);
-        vm.print('Hello, ', 'World!');
-        expect(vm.flushText()).toBe('Hello, World!');
-    });
-
-    it('should append multiple calls to output when isTag is false', () => {
-        const vm = new BasicVmCore([], []);
-        vm.print('Hello');
-        vm.print(', ');
-        vm.print('World!');
-        expect(vm.flushText()).toBe('Hello, World!');
-    });
-
-    it('should reset output after flushText is called', () => {
-        const vm = new BasicVmCore([], []);
-        vm.print('Temporary Text');
-        expect(vm.flushText()).toBe('Temporary Text');
-        expect(vm.flushText()).toBe('');
-    });
-
-    it('should handle empty print calls gracefully', () => {
-        const vm = new BasicVmCore([], []);
-        vm.print();
-        expect(vm.flushText()).toBe('');
-    });
-
     it('should render graphics text', () => {
         const vm = new BasicVmCore([], []);
         vm.printGraphicsText('Graphics Text');
@@ -187,15 +135,6 @@ describe('BasicVmCore Module', () => {
         vm.graphicsPen(1);
         vm.printGraphicsText('Colored Text');
         expect(vm.flushGraphics()).toBe(getInSvg('<text x="0" y="415" style="color: #FFFF00">Colored Text</text>'));
-    });
-
-    it('should handle mixed graphics text and text correctly', () => {
-        const vm = new BasicVmCore([], []);
-        vm.print('Text Output');
-        vm.printGraphicsText('Graphics Output');
-        vm.print(' More Text');
-        expect(vm.flushText()).toBe('Text Output More Text');
-        expect(vm.flushGraphics()).toBe(getInSvg('<text x="0" y="415">Graphics Output</text>'));
     });
 
     it('should handle rsx circle command correctly', async () => {

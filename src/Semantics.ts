@@ -10,14 +10,29 @@ export const TabOpChar = "\u21d2"; // Unicode double arrow right
 const codeSnippetsData = {
 	_o: {} as IVm,
 	_d: {} as SnippetDataType,
+	cls() { }, // dummy
 	async frame() { }, // dummy
-	remain(timer: number) { return timer; } // dummy
+	printText(_text: string) { }, // eslint-disable-line @typescript-eslint/no-unused-vars
+	remain(timer: number) { return timer; }, // dummy
+	resetText() { }, // dummy
 };
 
 function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
-	const { _o, _d, frame, remain } = snippetsData;
+	const { _o, _d, cls, frame, printText, remain, resetText } = snippetsData;
 
+	// We grab functions as Strings from the codeSnippets object so we need function names.
 	const codeSnippets = {
+		resetText: function resetText() {
+			Object.assign(_d, {
+				output: "",
+				paper: 0,
+				pen: 0,
+				pos: 0,
+				tag: false,
+				vpos: 0,
+				zone: 13
+			});
+		},
 		after: function after(timeout: number, timer: number, fn: () => void) {
 			remain(timer);
 			_d.timerMap[timer] = setTimeout(() => fn(), timeout * 20);
@@ -26,11 +41,8 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 			return num.toString(2).toUpperCase().padStart(pad, "0");
 		},
 		cls: function cls() {
+			resetText();
 			_o.cls();
-			_d.pos = 0;
-			_d.tag = false;
-			_d.vpos = 0;
-			//_d.zone = 13;
 		},
 		dec$: function dec$(num: number, format: string) {
 			const decimals = (format.split(".")[1] || "").length;
@@ -109,6 +121,7 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 		},
 		mode: function mode(num: number) {
 			_o.mode(num);
+			cls();
 		},
 		move: function move(x: number, y: number) {
 			_o.drawMovePlot("M", x, y);
@@ -120,10 +133,12 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 			_o.origin(x, y);
 		},
 		paper: function paper(n: number) {
-			_o.paper(n);
+			_d.paper = n;
+			_d.output += _o.getColorForPen(n, true);
 		},
 		pen: function pen(n: number) {
-			_o.pen(n);
+			_d.pen = n;
+			_d.output += _o.getColorForPen(n);
 		},
 		plot: function plot(x: number, y: number) {
 			_o.drawMovePlot("P", x, y);
@@ -134,32 +149,31 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 		pos: function pos() {
 			return _d.pos + 1;
 		},
+		printText: function printText(text: string) {
+			_d.output += text;
+			const lines = text.split("\n");
+			if (lines.length > 1) {
+				_d.vpos += lines.length - 1;
+				_d.pos = lines[lines.length - 1].length;
+			} else {
+				_d.pos += text.length;
+			}
+		},
 		print: function print(...args: (string | number)[]) {
-			const _printNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
-			const output = args.map((arg) => (typeof arg === "number") ? _printNumber(arg) : arg);
+			const printFormatNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
+			const output = args.map((arg) => (typeof arg === "number") ? printFormatNumber(arg) : arg);
 			if (_d.tag) {
 				return _o.printGraphicsText(output.join(""));
 			}
-
-			const printText = (text: string) => {
-				_o.print(text);
-				const lines = text.split("\n");
-				if (lines.length > 1) {
-					_d.vpos += lines.length - 1;
-					_d.pos = lines[lines.length - 1].length;
-				} else {
-					_d.pos += text.length;
-				}
-			};
 			for (const text of output) {
-            if (text === CommaOpChar) {
-                printText(" ".repeat(_d.zone - (_d.pos % _d.zone)));
-            } else if (text.charAt(0) === TabOpChar) {
-                printText(" ".repeat(Number(text.substring(1)) - 1 - _d.pos));
-            } else {
-                printText(text);
-            }
-        }
+				if (text === CommaOpChar) {
+					printText(" ".repeat(_d.zone - (_d.pos % _d.zone)));
+				} else if (text.charAt(0) === TabOpChar) {
+					printText(" ".repeat(Number(text.substring(1)) - 1 - _d.pos));
+				} else {
+					printText(text);
+				}
+			}
 		},
 		read: function read() {
 			return _d.data[_d.dataPtr++];
@@ -202,8 +216,8 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 			return _d.vpos + 1;
 		},
 		write: function write(...args: (string | number)[]) {
-			const output = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
-			_o.print(output);
+			const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
+			printText(text);
 		},
 		xpos: function xpos() {
 			return _o.xpos();
@@ -344,6 +358,7 @@ function getSemanticsActions(semanticsHelper: SemanticsHelper) {
 			const awaitLabels = processSubroutines(lineList, definedLabels);
 
 			const instrMap = semanticsHelper.getInstrMap();
+			semanticsHelper.addInstr("resetText");
 			const dataList = semanticsHelper.getDataList();
 
 			// Prepare data definition snippet if needed
@@ -375,6 +390,11 @@ ${dataList.join(",\n")}
 
 			const codeSnippets = getCodeSnippets(codeSnippetsData);
 
+			const librarySnippet = Object.keys(codeSnippets)
+					.filter(key => instrMap[key])
+					.map(key => trimIndent(String(codeSnippets[key as keyof typeof codeSnippets])))
+					.join('\n');
+
 			const needsAsync = Object.keys(codeSnippets).some(key =>
 				instrMap[key] && trimIndent(String(codeSnippets[key as keyof typeof codeSnippets])).startsWith("async ")
 			);
@@ -385,24 +405,17 @@ ${dataList.join(",\n")}
 			const codeLines = [
 				needsAsync ? 'return async function() {' : '',
 				'"use strict";',
-				`const _d = _o.getSnippetData();${dataList.length ? ' _defineData();' : ''}`,
+				`const _d = _o.getSnippetData(); resetText();${dataList.length ? ' _defineData();' : ''}`,
 				instrMap["time"] ? '_d.startTime = Date.now();' : '',
 				needsTimerMap ? '_d.timerMap = {};' : '',
-				`_d.pos = 0;`,
-				`_d.tag = false;`,
-				`_d.vpos = 0;`,
-				`_d.zone = 13;`,
-				`const CommaOpChar = "${CommaOpChar}";`, // TTT: TODO
+				`const CommaOpChar = "${CommaOpChar}";`,
 				`const TabOpChar = "${TabOpChar}";`,
 				variableDeclarations,
 				...lineList.filter(line => line.trimEnd() !== ''),
 				!instrMap["end"] ? `return _o.flush();` : "",
 				dataListSnippet,
 				'// library',
-				Object.keys(codeSnippets)
-					.filter(key => instrMap[key])
-					.map(key => trimIndent(String(codeSnippets[key as keyof typeof codeSnippets])))
-					.join('\n'),
+				librarySnippet,
 				needsAsync ? '}();' : ''
 			].filter(Boolean);
 
@@ -966,6 +979,7 @@ ${dataList.join(",\n")}
 
 		Mode(_modeLit: Node, e: Node) {
 			semanticsHelper.addInstr("mode");
+			semanticsHelper.addInstr("cls");
 			return `mode(${e.eval()})`;
 		},
 
@@ -1089,6 +1103,7 @@ ${dataList.join(",\n")}
 
 		Print(_printLit: Node, stream: Node, _comma: Node, args: Node, semi: Node) {
 			semanticsHelper.addInstr("print");
+			semanticsHelper.addInstr("printText");
 			const streamStr = stream.child(0)?.eval() || "";
 			const argumentList = evalChildren(args.asIteration().children);
 			const parameterString = argumentList.join(', ') || "";
@@ -1384,6 +1399,7 @@ ${dataList.join(",\n")}
 
 		Write(_printLit: Node, stream: Node, _comma: Node, args: Node) {
 			semanticsHelper.addInstr("write");
+			semanticsHelper.addInstr("printText");
 			const streamStr = stream.child(0)?.eval() || "";
 			const argumentList = evalChildren(args.asIteration().children);
 			const parameterString = argumentList.join(', ');

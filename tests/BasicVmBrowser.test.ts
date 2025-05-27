@@ -59,8 +59,9 @@ describe('BasicVmBrowser Module', () => {
     it('should flush text output correctly', () => {
         const mockUI = getMockUI();
         const basicVmBrowser = new BasicVmBrowser(mockUI);
+        const snippetData = basicVmBrowser.getSnippetData();
+        snippetData.output = "Hello";
 
-        basicVmBrowser.print("Hello");
         basicVmBrowser.flush();
 
         expect(mockUI.addOutputText).toHaveBeenCalledWith("Hello");
@@ -76,19 +77,12 @@ describe('BasicVmBrowser Module', () => {
         expect(mockUI.addOutputText).toHaveBeenCalledWith(getInSvg('<path d="M10 379h1v1h-1v-1" />'));
     });
 
+    /*
     it('should clear the output text when mode is called', () => {
         const mockUI = getMockUI();
         const basicVmBrowser = new BasicVmBrowser(mockUI);
         basicVmBrowser.mode(2);
         expect(mockUI.setOutputText).toHaveBeenCalledWith('');
     });
-
-    it('should get and set output correctly', () => {
-        const mockUI = getMockUI();
-        const basicVmBrowser = new BasicVmBrowser(mockUI);
-        basicVmBrowser.print('Output');
-        const output = basicVmBrowser.getOutput();
-        expect(output).toBe('Output');
-    });
-
+    */
 });

@@ -39,34 +39,30 @@ type NodeKeyPressType = {
 declare function require(name: string): NodeFs | NodeHttps | NodeModule | NodePath | NodeReadline | NodeVm;
 
 interface DummyVm extends IVm {
-    _output: string;
     _snippetData: SnippetDataType;
     debug(...args: (string | number | boolean)[]): void;
 }
 
 // The functions from dummyVm will be stringified in the putScriptInFrame function
 const dummyVm: DummyVm = {
-    _output: "",
     _snippetData: {} as SnippetDataType,
     debug(..._args: (string | number)[]) { /* console.debug(...args); */ }, // eslint-disable-line @typescript-eslint/no-unused-vars
     cls() { },
     drawMovePlot(type: string, x: number, y: number) { this.debug("drawMovePlot:", type, x, y); },
-    flush() { if (this._output) { console.log(this._output); this._output = ""; } },
+    flush() { if (this._snippetData.output) { console.log(this._snippetData.output); this._snippetData.output = ""; } },
     graphicsPen(num: number) { this.debug("graphicsPen:", num); },
     ink(num: number, col: number) { this.debug("ink:", num, col); },
     async inkey$() { return Promise.resolve(""); },
     async input(msg: string) { console.log(msg); return ""; },
     mode(num: number) { this.debug("mode:", num); },
     origin(x: number, y: number) { this.debug("origin:", x, y); },
-    paper(num: number) { this.debug("paper:", num); },
-    pen(num: number) { this.debug("pen:", num); },
-    print(...args: string[]) { this._output += args.join(''); },
     printGraphicsText(text: string) { this.debug("printGraphicsText:", text); },
-    rsx(cmd: string, args: (string | number)[]): Promise<(number | string)[]> { this._output += cmd + "," + args.join(''); return Promise.resolve([]); },
+    rsx(cmd: string, args: (string | number)[]): Promise<(number | string)[]> { this._snippetData.output += cmd + "," + args.join(''); return Promise.resolve([]); },
     xpos() { this.debug("xpos:"); return 0; },
     ypos() { this.debug("ypos:"); return 0; },
     getEscape() { return false; },
-    getSnippetData() { return this._snippetData; }
+    getSnippetData() { return this._snippetData; },
+    getColorForPen(_n: number, isPaper?: boolean) { this.debug("getColorForPen:"); return isPaper ? "0" : "1"; }
 };
 
 function isUrl(s: string) {
@@ -102,7 +98,7 @@ export class NodeParts implements INodeParts {
             this.nodeFs = require("fs") as NodeFs;
         }
 
-        if (!module) { //TTT
+        if (!module) {
             const module = require("module") as NodeModule;
             this.modulePath = module.path || "";
 

@@ -50,15 +50,12 @@ export class BasicVmNode implements IVmAdmin {
     public graphicsPen: (num: number) => void;
     public ink: (num: number, col: number) => void;
     public origin: (x: number, y: number) => void;
-    public paper: (n: number) => void;
-    public pen: (n: number) => void;
-    public print: (...args: string[]) => void;
     public printGraphicsText: (text: string) => void;
     public rsx: (cmd: string, args: (number | string)[]) => Promise<(number | string)[]>;
     public xpos: () => number;
     public ypos: () => number;
     public getSnippetData: () => SnippetDataType;
-    public getOutput: () => string;
+    public getColorForPen: (n: number, isPaper?: boolean) => string;
 
     constructor(nodeParts: INodeParts) {
         this.nodeParts = nodeParts;
@@ -71,15 +68,12 @@ export class BasicVmNode implements IVmAdmin {
         this.graphicsPen = this.vmCore.graphicsPen.bind(this.vmCore);
         this.ink = this.vmCore.ink.bind(this.vmCore);
         this.origin = this.vmCore.origin.bind(this.vmCore);
-        this.paper = this.vmCore.paper.bind(this.vmCore);
-        this.pen = this.vmCore.pen.bind(this.vmCore);
-        this.print = this.vmCore.print.bind(this.vmCore);
         this.printGraphicsText = this.vmCore.printGraphicsText.bind(this.vmCore);
         this.rsx = this.vmCore.rsx.bind(this.vmCore);
         this.xpos = this.vmCore.xpos.bind(this.vmCore);
         this.ypos = this.vmCore.ypos.bind(this.vmCore);
         this.getSnippetData = this.vmCore.getSnippetData.bind(this.vmCore);
-        this.getOutput = this.vmCore.getOutput.bind(this.vmCore);
+        this.getColorForPen = this.vmCore.getColorForPen.bind(this.vmCore);
     }
 
     public cls(): void {
@@ -88,9 +82,10 @@ export class BasicVmNode implements IVmAdmin {
     }
 
     public flush(): void {
-        const textOutput = this.vmCore.flushText();
-        if (textOutput) {
-            this.nodeParts.consolePrint(textOutput.replace(/\n$/, ""));
+        const snippetData = this.getSnippetData();
+        if (snippetData.output) {
+            this.nodeParts.consolePrint(snippetData.output.replace(/\n$/, ""));
+            snippetData.output = "";
         }
         const graphicsOutput = this.vmCore.flushGraphics();
         if (graphicsOutput) {
@@ -115,7 +110,7 @@ export class BasicVmNode implements IVmAdmin {
 
     public mode(num: number): void {
         this.vmCore.mode(num);
-        this.nodeParts.consoleClear();
+        //this.nodeParts.consoleClear();
     }
 
     public getEscape(): boolean {

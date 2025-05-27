@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { Node } from "ohm-js";
 import { Semantics } from '../src/Semantics';
-import { SnippetDataType } from '../src/Interfaces';
+//import { SnippetDataType } from '../src/Interfaces';
 
 describe('Semantics Class', () => {
     it('should initialize', () => {
@@ -557,6 +557,7 @@ describe('Semantics Class', () => {
             expect(snippets.val("&FF")).toBe(255);
         });
 
+        /*
         it('print should format numbers and strings', () => {
             let output = "";
             const snippets = getSnippets({
@@ -566,6 +567,7 @@ describe('Semantics Class', () => {
             snippets.print("A", 5, "B", -2);
             expect(output).toBe("A 5 B-2 ");
         });
+        */
 
         it('read should increment pointer and return data', () => {
             const snippetData = {

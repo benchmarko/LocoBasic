@@ -41,6 +41,9 @@ export type SnippetDataType = {
     restoreMap: Record<string, number>;
     startTime: number;
     timerMap: Record<number, number | NodeJS.Timeout | undefined>;
+    output: string;
+    paper: number;
+    pen: number;
     pos: number;
     tag: boolean;
     vpos: number;
@@ -57,20 +60,17 @@ export interface IVm {
     input(msg: string): Promise<string | null>;
     mode(num: number): void;
     origin(x: number, y: number): void;
-    paper(color: number): void;
-    pen(color: number): void;
-    print(...args: string[]): void;
     printGraphicsText(text: string): void;
     rsx(cmd: string, args: (string | number)[]): Promise<(number | string)[]>;
     xpos(): number;
     ypos(): number;
     getEscape(): boolean;
     getSnippetData(): SnippetDataType;
+    getColorForPen(n: number, isPaper?: boolean): string;
 }
 
 export interface IVmAdmin extends IVm {
     reset(): void;
-    getOutput(): string;
 }
 
 export interface IVmRsxApi {
