@@ -504,7 +504,7 @@ ${dataList.join(",\n")}
 		},
 
 		Assign(ident: Node, _op: Node, e: Node): string {
-			const variableName = ident.sourceString;
+			const variableName = ident.eval();
 			const resolvedVariableName = semanticsHelper.getVariable(variableName);
 			const value = e.eval();
 			return `${resolvedVariableName} = ${value}`;
@@ -656,7 +656,7 @@ ${dataList.join(",\n")}
 		},
 
 		DefAssign(ident: Node, args: Node, _equal: Node, e: Node) {
-			const fnIdent = semanticsHelper.getVariable(`fn${ident.sourceString}`);
+			const fnIdent = semanticsHelper.getVariable(`fn${ident.eval()}`);
 
 			semanticsHelper.setDefContext(true); // do not create global variables in this context
 			const argStr = evalChildren(args.children).join(", ") || "()";
@@ -989,7 +989,7 @@ ${dataList.join(",\n")}
 
 		MidSAssign(_midLit: Node, _open: Node, ident: Node, _comma1: Node, start: Node, _comma2: Node, len: Node, _close: Node, _op: Node, newStr: Node) {
 			semanticsHelper.addInstr("mid$Assign");
-			const variableName = ident.sourceString;
+			const variableName = ident.eval();
 			const resolvedVariableName = semanticsHelper.getVariable(variableName);
 
 			return `${resolvedVariableName} = mid$Assign(${resolvedVariableName}, ${start.eval()}, ${newStr.eval()}${evalOptionalArg(len)})`;
@@ -1226,7 +1226,7 @@ ${dataList.join(",\n")}
 		},
 
 		RsxAddressOfIdent(_adressOfLit: Node, ident: Node) {
-			const identString = ident.sourceString.toLowerCase();
+			const identString = ident.eval().toLowerCase();
 			return `@${identString}`;
 		},
 
@@ -1597,13 +1597,21 @@ ${dataList.join(",\n")}
 			return `"${str}"`;
 		},
 
-		ident(ident: Node) {
+		ident(ident: Node, suffix: Node) {
 			const name = ident.sourceString;
+			const suffixStr = suffix.child(0)?.sourceString;
+			if (suffixStr !== undefined) { // real or integer suffix
+				return semanticsHelper.getVariable(name) + notSupported(suffix);
+			}
 			return semanticsHelper.getVariable(name);
 		},
 
-		fnIdent(fn: Node, ident: Node) {
+		fnIdent(fn: Node, ident: Node, suffix: Node) {
 			const name = fn.sourceString + ident.sourceString;
+			const suffixStr = suffix.child(0)?.sourceString;
+			if (suffixStr !== undefined) { // real or integer suffix
+				return semanticsHelper.getVariable(name) + notSupported(suffix);
+			}
 			return semanticsHelper.getVariable(name);
 		},
 

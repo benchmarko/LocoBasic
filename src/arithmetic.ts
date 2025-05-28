@@ -1183,10 +1183,10 @@ export const arithmetic = {
       = ("zone" | "ZONE") ~identPart
 
     ident (an identifier)
-      = ~keyword identName
+      = ~keyword identName ("%" | "!")?
 
     fnIdent
-      = fn ~keyword identName
+      = fn ~keyword identName ("%" | "!")?
 
     rsxIdentName = letter alnum*
 

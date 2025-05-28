@@ -481,11 +481,12 @@ describe('Semantics Class', () => {
             const actions = new Semantics().getSemanticsActions();
 
             const valueNode = getSourceNode('myVariableName');
-            const result = actions.ident(valueNode);
+            const suffixNode = getChildNode(undefined);
+            const result = actions.ident(valueNode, suffixNode);
             expect(result).toBe('myvariablename');
 
             const valueNode2 = getSourceNode('void');
-            const result2 = actions.ident(valueNode2);
+            const result2 = actions.ident(valueNode2, suffixNode);
             expect(result2).toBe('_void');
         });
     });
