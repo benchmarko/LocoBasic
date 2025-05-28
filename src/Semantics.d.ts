@@ -73,6 +73,7 @@ export declare class Semantics implements ISemantics {
         End(_endLit: Node): string;
         Ent(lit: Node, nums: Node): string;
         Env(lit: Node, nums: Node): string;
+        Eof(lit: Node): string;
         Erase(_eraseLit: Node, arrayIdents: Node): string;
         Erl(lit: Node): string;
         Err(lit: Node): string;
@@ -105,7 +106,8 @@ export declare class Semantics implements ISemantics {
         Instr_len(_instrLit: Node, _open: Node, len: Node, _comma1: Node, e1: Node, _comma2: Node, e2: Node, _close: Node): string;
         Int(_intLit: Node, _open: Node, num: Node, _close: Node): string;
         Joy(lit: Node, open: Node, num: Node, close: Node): string;
-        Key(lit: Node): string;
+        Key_key(lit: Node, num: Node, comma: Node, str: Node): string;
+        Key_def(lit: Node, defLit: Node, nums: Node): string;
         LeftS(_leftLit: Node, _open: Node, pos: Node, _comma: Node, len: Node, _close: Node): string;
         Len(_lenLit: Node, _open: Node, str: Node, _close: Node): string;
         Let(_letLit: Node, assign: Node): string;
@@ -247,8 +249,8 @@ export declare class Semantics implements ISemantics {
         binaryValue(_prefix: Node, value: Node): string;
         signedDecimal(sign: Node, value: Node): string;
         string(_quote1: Node, e: Node, _quote2: Node): string;
-        ident(ident: Node): string;
-        fnIdent(fn: Node, ident: Node): string;
+        ident(ident: Node, suffix: Node): string;
+        fnIdent(fn: Node, ident: Node, suffix: Node): string;
         strIdent(ident: Node, typeSuffix: Node): string;
         strFnIdent(fn: Node, ident: Node, typeSuffix: Node): string;
     };

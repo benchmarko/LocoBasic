@@ -224,13 +224,13 @@ export const arithmetic = {
       = letter ("-" letter)?
 
     Defint
-      = defint LetterRange
+      = defint NonemptyListOf<LetterRange, ",">
 
     Defreal
-      = defreal LetterRange
+      = defreal NonemptyListOf<LetterRange, ",">
 
     Defstr
-      = defstr LetterRange
+      = defstr NonemptyListOf<LetterRange, ",">
 
     Deg
       = deg
@@ -270,6 +270,9 @@ export const arithmetic = {
 
     Env
       = env ListOf<NumExp, ",">
+
+    Eof
+      = eof
 
     Erase
       = erase NonemptyListOf<SimpleIdent, ",">
@@ -350,8 +353,9 @@ export const arithmetic = {
     Joy
       = joy "(" NumExp ")"
 
-    Key // TODO
-      = key
+    Key 
+      = key NumExp "," StrExp -- key
+      | key def NonemptyListOf<NumExp, ","> -- def
 
     LeftS
       = leftS "(" StrExp "," NumExp ")"
@@ -363,7 +367,7 @@ export const arithmetic = {
       = let (ArrayAssign | Assign)
 
     LineInput
-      = line input (StreamArg ",")? (string (";" | ","))? AnyIdent
+      = line input (StreamArg ",")? (string (";" | ","))? (StrArrayIdent | strIdent)
 
     List
       = list LabelRange? ("," StreamArg)?
@@ -763,9 +767,10 @@ export const arithmetic = {
       | Cos
       | Creal
       | Derr
-      | Exp
+      | Eof
       | Erl
       | Err
+      | Exp
       | Fix
       | Fre
       | Himem
@@ -1182,10 +1187,10 @@ export const arithmetic = {
       = ("zone" | "ZONE") ~identPart
 
     ident (an identifier)
-      = ~keyword identName
+      = ~keyword identName ("%" | "!")?
 
     fnIdent
-      = fn ~keyword identName
+      = fn ~keyword identName ("%" | "!")?
 
     rsxIdentName = letter alnum*
 

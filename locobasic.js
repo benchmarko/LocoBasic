@@ -294,13 +294,13 @@
       = letter ("-" letter)?
 
     Defint
-      = defint LetterRange
+      = defint NonemptyListOf<LetterRange, ",">
 
     Defreal
-      = defreal LetterRange
+      = defreal NonemptyListOf<LetterRange, ",">
 
     Defstr
-      = defstr LetterRange
+      = defstr NonemptyListOf<LetterRange, ",">
 
     Deg
       = deg
@@ -340,6 +340,9 @@
 
     Env
       = env ListOf<NumExp, ",">
+
+    Eof
+      = eof
 
     Erase
       = erase NonemptyListOf<SimpleIdent, ",">
@@ -420,8 +423,9 @@
     Joy
       = joy "(" NumExp ")"
 
-    Key // TODO
-      = key
+    Key 
+      = key NumExp "," StrExp -- key
+      | key def NonemptyListOf<NumExp, ","> -- def
 
     LeftS
       = leftS "(" StrExp "," NumExp ")"
@@ -433,7 +437,7 @@
       = let (ArrayAssign | Assign)
 
     LineInput
-      = line input (StreamArg ",")? (string (";" | ","))? AnyIdent
+      = line input (StreamArg ",")? (string (";" | ","))? (StrArrayIdent | strIdent)
 
     List
       = list LabelRange? ("," StreamArg)?
@@ -833,9 +837,10 @@
       | Cos
       | Creal
       | Derr
-      | Exp
+      | Eof
       | Erl
       | Err
+      | Exp
       | Fix
       | Fre
       | Himem
@@ -1252,10 +1257,10 @@
       = ("zone" | "ZONE") ~identPart
 
     ident (an identifier)
-      = ~keyword identName
+      = ~keyword identName ("%" | "!")?
 
     fnIdent
-      = fn ~keyword identName
+      = fn ~keyword identName ("%" | "!")?
 
     rsxIdentName = letter alnum*
 
@@ -1732,13 +1737,17 @@
         }
         getVariable(name) {
             name = name.toLowerCase();
+            const matches = name.match(/\/\* not supported: [%|!] \*\//);
+            if (matches) {
+                name = name.substring(0, matches.index);
+            }
             if (SemanticsHelper.reJsKeyword.test(name)) {
                 name = `_${name}`;
             }
             if (!this.isDefContext) {
                 this.variables[name] = (this.variables[name] || 0) + 1;
             }
-            return name;
+            return name + (matches ? matches[0] : "");
         }
         setDefContext(isDef) {
             this.isDefContext = isDef;
@@ -2235,7 +2244,7 @@ ${dataList.join(",\n")}
                 return `${ident.eval()} = ${e.eval()}`;
             },
             Assign(ident, _op, e) {
-                const variableName = ident.sourceString;
+                const variableName = ident.eval();
                 const resolvedVariableName = semanticsHelper.getVariable(variableName);
                 const value = e.eval();
                 return `${resolvedVariableName} = ${value}`;
@@ -2352,7 +2361,7 @@ ${dataList.join(",\n")}
                 return `(${argList.join(", ")})`;
             },
             DefAssign(ident, args, _equal, e) {
-                const fnIdent = semanticsHelper.getVariable(`fn${ident.sourceString}`);
+                const fnIdent = semanticsHelper.getVariable(`fn${ident.eval()}`);
                 semanticsHelper.setDefContext(true); // do not create global variables in this context
                 const argStr = evalChildren(args.children).join(", ") || "()";
                 const defBody = e.eval();
@@ -2360,13 +2369,13 @@ ${dataList.join(",\n")}
                 return `${fnIdent} = ${argStr} => ${defBody}`;
             },
             Defint(lit, letterRange) {
-                return notSupported(lit, letterRange);
+                return notSupported(lit, letterRange.asIteration());
             },
             Defreal(lit, letterRange) {
-                return notSupported(lit, letterRange);
+                return notSupported(lit, letterRange.asIteration());
             },
             Defstr(lit, letterRange) {
-                return notSupported(lit, letterRange);
+                return notSupported(lit, letterRange.asIteration());
             },
             Deg(_degLit) {
                 semanticsHelper.setDeg(true);
@@ -2398,6 +2407,9 @@ ${dataList.join(",\n")}
             },
             Env(lit, nums) {
                 return notSupported(lit, nums.asIteration());
+            },
+            Eof(lit) {
+                return notSupported(lit) + "-1";
             },
             Erase(_eraseLit, arrayIdents) {
                 const arrayIdentifiers = evalChildren(arrayIdents.asIteration().children);
@@ -2485,7 +2497,7 @@ ${dataList.join(",\n")}
                 return notSupported(lit, label);
             },
             GraphicsPaper(lit, paperLit, num) {
-                return notSupported(lit, paperLit, num); // TODO
+                return notSupported(lit, paperLit, num);
             },
             GraphicsPen(_graphicsLit, _penLit, num) {
                 semanticsHelper.addInstr("graphicsPen");
@@ -2536,7 +2548,7 @@ ${dataList.join(",\n")}
                 semanticsHelper.addInstr("input");
                 semanticsHelper.addInstr("frame");
                 const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
-                const messageString = message.sourceString.replace(/\s*[;,]$/, "");
+                const messageString = message.sourceString.replace(/\s*[;,]$/, "") || '""';
                 const identifiers = evalChildren(ids.asIteration().children);
                 const isNumberString = identifiers[0].includes("$") ? "" : ", true"; // TODO
                 if (identifiers.length > 1) {
@@ -2559,8 +2571,11 @@ ${dataList.join(",\n")}
             Joy(lit, open, num, close) {
                 return notSupported(lit, open, num, close) + "0";
             },
-            Key(lit) {
-                return notSupported(lit);
+            Key_key(lit, num, comma, str) {
+                return notSupported(lit, num, comma, str);
+            },
+            Key_def(lit, defLit, nums) {
+                return notSupported(lit, defLit, nums.asIteration());
             },
             LeftS(_leftLit, _open, pos, _comma, len, _close) {
                 semanticsHelper.addInstr("left$");
@@ -2611,7 +2626,7 @@ ${dataList.join(",\n")}
             },
             MidSAssign(_midLit, _open, ident, _comma1, start, _comma2, len, _close, _op, newStr) {
                 semanticsHelper.addInstr("mid$Assign");
-                const variableName = ident.sourceString;
+                const variableName = ident.eval();
                 const resolvedVariableName = semanticsHelper.getVariable(variableName);
                 return `${resolvedVariableName} = mid$Assign(${resolvedVariableName}, ${start.eval()}, ${newStr.eval()}${evalOptionalArg(len)})`;
             },
@@ -2802,7 +2817,7 @@ ${dataList.join(",\n")}
                 return rsxArgs.replace("<RSXFUNCTION>", `await rsxCall("${cmdString}"`) + ")";
             },
             RsxAddressOfIdent(_adressOfLit, ident) {
-                const identString = ident.sourceString.toLowerCase();
+                const identString = ident.eval().toLowerCase();
                 return `@${identString}`;
             },
             RsxArgs(_comma, args) {
@@ -3096,12 +3111,22 @@ ${dataList.join(",\n")}
                 const str = e.sourceString.replace(/\\/g, "\\\\"); // escape backslashes
                 return `"${str}"`;
             },
-            ident(ident) {
+            ident(ident, suffix) {
+                var _a;
                 const name = ident.sourceString;
+                const suffixStr = (_a = suffix.child(0)) === null || _a === void 0 ? void 0 : _a.sourceString;
+                if (suffixStr !== undefined) { // real or integer suffix
+                    return semanticsHelper.getVariable(name) + notSupported(suffix);
+                }
                 return semanticsHelper.getVariable(name);
             },
-            fnIdent(fn, ident) {
+            fnIdent(fn, ident, suffix) {
+                var _a;
                 const name = fn.sourceString + ident.sourceString;
+                const suffixStr = (_a = suffix.child(0)) === null || _a === void 0 ? void 0 : _a.sourceString;
+                if (suffixStr !== undefined) { // real or integer suffix
+                    return semanticsHelper.getVariable(name) + notSupported(suffix);
+                }
                 return semanticsHelper.getVariable(name);
             },
             strIdent(ident, typeSuffix) {
@@ -4055,7 +4080,7 @@ npx ts-node dist/locobasic.js input='PRINT "Hello!"'
 node dist/locobasic.js input='?3 + 5 * (2 - 8)' example=''
 node dist/locobasic.js example=euler
 node dist/locobasic.js example=archidr0 > test1.svg
-node dist/locobasic.js example=binary database=rosetta databaseDirs=examples,https://benchmarko.github.io/CPCBasicApps/rosetta
+node dist/locobasic.js example=binary database=rosetta databaseDirs=examples,https://benchmarko.github.io/CPCBasicApps/apps,https://benchmarko.github.io/CPCBasicApps/rosetta
 node dist/locobasic.js grammar='strict' input='a$="Bob":PRINT "Hello ";a$;"!"'
 node dist/locobasic.js fileName=dist/examples/example.bas  (if you have an example.bas file)
 

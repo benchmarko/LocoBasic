@@ -84,13 +84,17 @@ export class SemanticsHelper {
     }
     getVariable(name) {
         name = name.toLowerCase();
+        const matches = name.match(/\/\* not supported: [%|!] \*\//);
+        if (matches) {
+            name = name.substring(0, matches.index);
+        }
         if (SemanticsHelper.reJsKeyword.test(name)) {
             name = `_${name}`;
         }
         if (!this.isDefContext) {
             this.variables[name] = (this.variables[name] || 0) + 1;
         }
-        return name;
+        return name + (matches ? matches[0] : "");
     }
     setDefContext(isDef) {
         this.isDefContext = isDef;
