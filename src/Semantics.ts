@@ -668,15 +668,15 @@ ${dataList.join(",\n")}
 		},
 
 		Defint(lit: Node, letterRange: Node) {
-			return notSupported(lit, letterRange);
+			return notSupported(lit, letterRange.asIteration());
 		},
 
 		Defreal(lit: Node, letterRange: Node) {
-			return notSupported(lit, letterRange);
+			return notSupported(lit, letterRange.asIteration());
 		},
 
 		Defstr(lit: Node, letterRange: Node) {
-			return notSupported(lit, letterRange);
+			return notSupported(lit, letterRange.asIteration());
 		},
 
 		Deg(_degLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -720,6 +720,10 @@ ${dataList.join(",\n")}
 
 		Env(lit: Node, nums: Node) { // TODO: separator
 			return notSupported(lit, nums.asIteration());
+		},
+
+		Eof(lit: Node) {
+			return notSupported(lit) + "-1";
 		},
 
 		Erase(_eraseLit: Node, arrayIdents: Node) { // erase not really needed
@@ -828,7 +832,7 @@ ${dataList.join(",\n")}
 		},
 
 		GraphicsPaper(lit: Node, paperLit: Node, num: Node) {
-			return notSupported(lit, paperLit, num); // TODO
+			return notSupported(lit, paperLit, num);
 		},
 
 		GraphicsPen(_graphicsLit: Node, _penLit: Node, num: Node) {
@@ -892,7 +896,7 @@ ${dataList.join(",\n")}
 			semanticsHelper.addInstr("frame");
 			const streamStr = stream.child(0)?.eval() || "";
 
-			const messageString = message.sourceString.replace(/\s*[;,]$/, "");
+			const messageString = message.sourceString.replace(/\s*[;,]$/, "") || '""';
 			const identifiers = evalChildren(ids.asIteration().children);
 			const isNumberString = identifiers[0].includes("$") ? "" : ", true"; // TODO
 			if (identifiers.length > 1) {
@@ -921,8 +925,12 @@ ${dataList.join(",\n")}
 			return notSupported(lit, open, num, close) + "0";
 		},
 
-		Key(lit: Node) { // TODO
-			return notSupported(lit);
+		Key_key(lit: Node, num: Node, comma: Node, str: Node) {
+			return notSupported(lit, num, comma, str);
+		},
+
+		Key_def(lit: Node, defLit: Node, nums: Node) {
+			return notSupported(lit, defLit, nums.asIteration());
 		},
 
 		LeftS(_leftLit: Node, _open: Node, pos: Node, _comma: Node, len: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
