@@ -160,7 +160,7 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 			return _d.pos + 1;
 		},
 		printText: function printText(text: string) {
-			_d.output += text;
+			_d.output += _o.escapeText(text);
 			const lines = text.split("\n");
 			if (lines.length > 1) {
 				_d.vpos += lines.length - 1;
@@ -173,7 +173,7 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 			const formatNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
 			const text = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg).join("");
 			if (_d.tag) {
-				return _o.printGraphicsText(text);
+				return _o.printGraphicsText(_o.escapeText(text, true));
 			}
 			printText(text);
 		},
@@ -192,7 +192,7 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 				return str;
 			};
 			if (_d.tag) {
-				return _o.printGraphicsText(strArgs.map(arg => formatCommaOrTab(arg)).join(""));
+				return _o.printGraphicsText(_o.escapeText(strArgs.map(arg => formatCommaOrTab(arg)).join(""), true));
 			}
 			for (const str of strArgs) {
 				printText(formatCommaOrTab(str));
@@ -245,7 +245,7 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 		write: function write(...args: (string | number)[]) {
 			const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
 			if (_d.tag) {
-				return _o.printGraphicsText(text);
+				return _o.printGraphicsText(_o.escapeText(text, true));
 			}
 			printText(text);
 		},

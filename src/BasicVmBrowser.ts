@@ -43,6 +43,11 @@ export class BasicVmBrowser implements IVmAdmin {
         this.ui.setOutputText("");
     }
 
+    public escapeText(str: string, _isGraphics?: boolean): string { // eslint-disable-line @typescript-eslint/no-unused-vars
+        // for a browser, we need to escape text and graphics text
+        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+    }
+
     public flush(): void {
         const textOutput = this.vmCore.flushText();
         const graphicsOutput = this.vmCore.flushGraphics();

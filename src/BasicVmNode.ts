@@ -81,6 +81,11 @@ export class BasicVmNode implements IVmAdmin {
         this.nodeParts.consoleClear();
     }
 
+    public escapeText(str: string, isGraphics?: boolean): string {
+        // for node we need to escape only graphics text
+        return isGraphics ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;") : str;
+    }
+
     public flush(): void {
         const textOutput = this.vmCore.flushText().replace(/\n$/, "");
         const graphicsOutput = this.vmCore.flushGraphics().replace(/\n$/, "");

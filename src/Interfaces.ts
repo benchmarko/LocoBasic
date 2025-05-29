@@ -53,6 +53,7 @@ export type SnippetDataType = {
 export interface IVm {
     cls(): void;
     drawMovePlot(type: string, x: number, y: number, pen?: number): void;
+    escapeText(str: string, isGraphics?: boolean): string;
     flush(): void;
     graphicsPen(num: number): void;
     ink(num: number, col: number): void;
