@@ -1213,13 +1213,13 @@ export const arithmetic = {
     fnIdent
       = fn ~keyword identName ("%" | "!")?
 
-    rsxIdentName = letter alnum*
+    rsxIdentName = letter identPart*
 
     identName = identStart identPart*
 
     identStart = letter
 
-    identPart = alnum
+    identPart = alnum | "."
 
     variable = ident
 
@@ -1601,7 +1601,7 @@ export const arithmetic = {
 
     identStart := lower
 
-    rsxIdentName := upper (upper | digit)*
+    rsxIdentName := upper (upper | digit | ".")*
 }
   `
 };

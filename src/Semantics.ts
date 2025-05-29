@@ -289,6 +289,8 @@ function createComparisonExpression(a: Node, op: string, b: Node): string {
 }
 
 function getSemanticsActions(semanticsHelper: SemanticsHelper) {
+	const adaptIdentName = (str: string) => str.replace(/\./g, "_");
+
 	const drawMovePlot = (lit: Node, x: Node, _comma1: Node, y: Node, _comma2: Node, pen: Node, _comma3: Node, mode: Node) => {
 		const command = lit.sourceString.toLowerCase();
 		semanticsHelper.addInstr(command);
@@ -1239,7 +1241,7 @@ ${dataList.join(",\n")}
 
 		Rsx(_rsxLit: Node, cmd: Node, e: Node) {
 			semanticsHelper.addInstr("rsxCall");
-			const cmdString = cmd.sourceString.toLowerCase();
+			const cmdString = adaptIdentName(cmd.sourceString).toLowerCase();
 			const rsxArgs: string = e.child(0)?.eval() || "";
 
 			if (rsxArgs === "") {
@@ -1630,7 +1632,7 @@ ${dataList.join(",\n")}
 		},
 
 		ident(ident: Node, suffix: Node) {
-			const name = ident.sourceString;
+			const name = adaptIdentName(ident.sourceString);
 			const suffixStr = suffix.child(0)?.sourceString;
 			if (suffixStr !== undefined) { // real or integer suffix
 				return semanticsHelper.getVariable(name) + notSupported(suffix);
@@ -1639,7 +1641,7 @@ ${dataList.join(",\n")}
 		},
 
 		fnIdent(fn: Node, ident: Node, suffix: Node) {
-			const name = fn.sourceString + ident.sourceString;
+			const name = fn.sourceString + adaptIdentName(ident.sourceString);
 			const suffixStr = suffix.child(0)?.sourceString;
 			if (suffixStr !== undefined) { // real or integer suffix
 				return semanticsHelper.getVariable(name) + notSupported(suffix);
@@ -1648,12 +1650,12 @@ ${dataList.join(",\n")}
 		},
 
 		strIdent(ident: Node, typeSuffix: Node) {
-			const name = ident.sourceString + typeSuffix.sourceString;
+			const name = adaptIdentName(ident.sourceString) + typeSuffix.sourceString;
 			return semanticsHelper.getVariable(name);
 		},
 
 		strFnIdent(fn: Node, ident: Node, typeSuffix: Node) {
-			const name = fn.sourceString + ident.sourceString + typeSuffix.sourceString;
+			const name = fn.sourceString + adaptIdentName(ident.sourceString) + typeSuffix.sourceString;
 			return semanticsHelper.getVariable(name);
 		}
 	};
