@@ -313,6 +313,14 @@ function getSemanticsActions(semanticsHelper: SemanticsHelper) {
 		return `${startStr}${contentStr}${separatorStr}${endStr}`;
 	};
 
+	const uncommentNotSupported = (str: string) => {
+		const regExpNotSupp = new RegExp("/\\* not supported: (.*) \\*/");
+		if (regExpNotSupp.test(str)) {
+			return str.replace(regExpNotSupp, "$1");
+		}
+		return str;
+	};
+
 	const evalAnyFn = (arg: Node): string => {
 		if (arg.isIteration()) {
 			return arg.children.map(evalAnyFn).join(",");
@@ -320,23 +328,19 @@ function getSemanticsActions(semanticsHelper: SemanticsHelper) {
 			return arg.sourceString;
 		}
 		const argStr = arg.eval() as string;
-		const regExpNotSupp = new RegExp("^/\\* not supported: (.*) \\*/$");
-		if (regExpNotSupp.test(argStr)) {
-			return argStr.replace(regExpNotSupp, "$1");
-		}
-		return argStr;
+		return uncommentNotSupported(argStr);
 	};
 
-	const notSupported = (lit: Node, ...args: Node[]) => {
-		const name = lit.sourceString.toLowerCase();
+	const notSupported = (str: Node, ...args: Node[]) => {
+		const name = evalAnyFn(str);
 
 		const argList = args.map(evalAnyFn);
 		const argStr = argList.length ? ` ${argList.join(" ")}` : "";
 
-		const message = lit.source.getLineAndColumnMessage();
+		const message = str.source.getLineAndColumnMessage();
 		semanticsHelper.addCompileMessage(`WARNING: Not supported: ${message}`);
 
-		return `/* not supported: ${name}${argStr} */`;
+		return `/* not supported: ${name}${uncommentNotSupported(argStr)} */`;
 	};
 
 	function processSubroutines(lineList: string[], definedLabels: DefinedLabelEntryType[]): string[] {
@@ -532,9 +536,13 @@ ${dataList.join(",\n")}
 			return `Math.abs(${e.eval()})`;
 		},
 
+		AddressOf(op: Node, ident: Node) {
+			return notSupported(op, ident) + "0";
+		},
+
 		After(_afterLit: Node, e1: Node, _comma1: Node, e2: Node, _gosubLit: Node, label: Node) {
 			semanticsHelper.addInstr("after");
-			semanticsHelper.addInstr("remain"); // we also call this
+			semanticsHelper.addInstr("remain"); // we also call "remain"
 			const timeout = e1.eval();
 			const timer = e2.child(0)?.eval() || 0;
 			const labelString = label.sourceString;
@@ -835,9 +843,10 @@ ${dataList.join(",\n")}
 			return notSupported(lit, paperLit, num);
 		},
 
-		GraphicsPen(_graphicsLit: Node, _penLit: Node, num: Node) {
+		GraphicsPen(_graphicsLit: Node, _penLit: Node, num: Node, _comma: Node, mode: Node) {
 			semanticsHelper.addInstr("graphicsPen");
-			return `graphicsPen(${num.eval()})`;
+			const modeStr = mode.child(0) ? notSupported(mode.child(0)) : "";
+			return `graphicsPen(${num.eval()}${modeStr})`;
 		},
 
 		HexS(_hexLit: Node, _open: Node, num: Node, _comma: Node, pad: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -853,7 +862,12 @@ ${dataList.join(",\n")}
 			return notSupported(label);
 		},
 
-		If(_iflit: Node, condExp: Node, _thenLit: Node, thenStat: Node, elseLit: Node, elseStat: Node) {
+		IfThen_then(_thenLit: Node, thenStat: Node) {
+			const thenStatement = thenStat.eval();
+			return thenStatement;
+		},
+
+		If(_iflit: Node, condExp: Node, thenStat: Node, elseLit: Node, elseStat: Node) {
 			const initialIndent = semanticsHelper.getIndentStr();
 			semanticsHelper.addIndent(2);
 			const increasedIndent = semanticsHelper.getIndentStr();
@@ -1019,9 +1033,10 @@ ${dataList.join(",\n")}
 
 		New: notSupported,
 
-		Next(_nextLit: Node, _variable: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		Next(_nextLit: Node, _variable: Node, _comma: Node, vars: Node) {
 			semanticsHelper.addIndent(-2);
-			return "}";
+			const varStr = vars.child(0) ? notSupported(vars.child(0)) : "";
+			return `${varStr}}`;
 		},
 
 		On_numGosub(_onLit: Node, e1: Node, _gosubLit: Node, args: Node) {
@@ -1064,9 +1079,10 @@ ${dataList.join(",\n")}
 			return notSupported(lit, file);
 		},
 
-		Origin(_originLit: Node, x: Node, _comma1: Node, y: Node) {
+		Origin(_originLit: Node, x: Node, _comma: Node, y: Node, _comma2: Node, win: Node,) {
 			semanticsHelper.addInstr("origin");
-			return `origin(${x.eval()}, ${y.eval()})`;
+			const winStr = win.child(0) ? notSupported(win.child(0)) : "";
+			return `origin(${x.eval()}, ${y.eval()}${winStr})`;
 		},
 
 		Out(lit: Node, num: Node, comma: Node, num2: Node) {
@@ -1233,7 +1249,7 @@ ${dataList.join(",\n")}
 			return rsxArgs.replace("<RSXFUNCTION>", `await rsxCall("${cmdString}"`) + ")";
 		},
 
-		RsxAddressOfIdent(_adressOfLit: Node, ident: Node) {
+		RsxAddressOf(_adressOfLit: Node, ident: Node) {
 			const identString = ident.eval().toLowerCase();
 			return `@${identString}`;
 		},
@@ -1582,6 +1598,14 @@ ${dataList.join(",\n")}
 
 		StrArrayIdent(ident: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			return `${ident.eval()}[${e.eval()}]`;
+		},
+
+		dataUnquoted(data: Node) {
+			const str = data.sourceString;
+			if (!isNaN(Number(str))) {
+				return str;
+			}
+			return notSupported(data) + `"${str}"`;
 		},
 
 		decimalValue(value: Node) {
