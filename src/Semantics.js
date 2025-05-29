@@ -155,7 +155,7 @@ function getCodeSnippets(snippetsData) {
             return _d.pos + 1;
         },
         printText: function printText(text) {
-            _d.output += text;
+            _d.output += _o.escapeText(text);
             const lines = text.split("\n");
             if (lines.length > 1) {
                 _d.vpos += lines.length - 1;
@@ -169,7 +169,7 @@ function getCodeSnippets(snippetsData) {
             const formatNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
             const text = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg).join("");
             if (_d.tag) {
-                return _o.printGraphicsText(text);
+                return _o.printGraphicsText(_o.escapeText(text, true));
             }
             printText(text);
         },
@@ -189,7 +189,7 @@ function getCodeSnippets(snippetsData) {
                 return str;
             };
             if (_d.tag) {
-                return _o.printGraphicsText(strArgs.map(arg => formatCommaOrTab(arg)).join(""));
+                return _o.printGraphicsText(_o.escapeText(strArgs.map(arg => formatCommaOrTab(arg)).join(""), true));
             }
             for (const str of strArgs) {
                 printText(formatCommaOrTab(str));
@@ -242,7 +242,7 @@ function getCodeSnippets(snippetsData) {
         write: function write(...args) {
             const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
             if (_d.tag) {
-                return _o.printGraphicsText(text);
+                return _o.printGraphicsText(_o.escapeText(text, true));
             }
             printText(text);
         },
@@ -281,6 +281,7 @@ function createComparisonExpression(a, op, b) {
     return `-(${a.eval()} ${op} ${b.eval()})`;
 }
 function getSemanticsActions(semanticsHelper) {
+    const adaptIdentName = (str) => str.replace(/\./g, "_");
     const drawMovePlot = (lit, x, _comma1, y, _comma2, pen, _comma3, mode) => {
         const command = lit.sourceString.toLowerCase();
         semanticsHelper.addInstr(command);
@@ -301,6 +302,13 @@ function getSemanticsActions(semanticsHelper) {
         }
         return `${startStr}${contentStr}${separatorStr}${endStr}`;
     };
+    const uncommentNotSupported = (str) => {
+        const regExpNotSupp = new RegExp("/\\* not supported: (.*) \\*/");
+        if (regExpNotSupp.test(str)) {
+            return str.replace(regExpNotSupp, "$1");
+        }
+        return str;
+    };
     const evalAnyFn = (arg) => {
         if (arg.isIteration()) {
             return arg.children.map(evalAnyFn).join(",");
@@ -309,19 +317,15 @@ function getSemanticsActions(semanticsHelper) {
             return arg.sourceString;
         }
         const argStr = arg.eval();
-        const regExpNotSupp = new RegExp("^/\\* not supported: (.*) \\*/$");
-        if (regExpNotSupp.test(argStr)) {
-            return argStr.replace(regExpNotSupp, "$1");
-        }
-        return argStr;
+        return uncommentNotSupported(argStr);
     };
-    const notSupported = (lit, ...args) => {
-        const name = lit.sourceString.toLowerCase();
+    const notSupported = (str, ...args) => {
+        const name = evalAnyFn(str);
         const argList = args.map(evalAnyFn);
         const argStr = argList.length ? ` ${argList.join(" ")}` : "";
-        const message = lit.source.getLineAndColumnMessage();
+        const message = str.source.getLineAndColumnMessage();
         semanticsHelper.addCompileMessage(`WARNING: Not supported: ${message}`);
-        return `/* not supported: ${name}${argStr} */`;
+        return `/* not supported: ${name}${uncommentNotSupported(argStr)} */`;
     };
     function processSubroutines(lineList, definedLabels) {
         const usedLabels = semanticsHelper.getUsedLabels();
@@ -478,10 +482,13 @@ ${dataList.join(",\n")}
         Abs(_absLit, _open, e, _close) {
             return `Math.abs(${e.eval()})`;
         },
+        AddressOf(op, ident) {
+            return notSupported(op, ident) + "0";
+        },
         After(_afterLit, e1, _comma1, e2, _gosubLit, label) {
             var _a;
             semanticsHelper.addInstr("after");
-            semanticsHelper.addInstr("remain"); // we also call this
+            semanticsHelper.addInstr("remain"); // we also call "remain"
             const timeout = e1.eval();
             const timer = ((_a = e2.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || 0;
             const labelString = label.sourceString;
@@ -711,9 +718,10 @@ ${dataList.join(",\n")}
         GraphicsPaper(lit, paperLit, num) {
             return notSupported(lit, paperLit, num);
         },
-        GraphicsPen(_graphicsLit, _penLit, num) {
+        GraphicsPen(_graphicsLit, _penLit, num, _comma, mode) {
             semanticsHelper.addInstr("graphicsPen");
-            return `graphicsPen(${num.eval()})`;
+            const modeStr = mode.child(0) ? notSupported(mode.child(0)) : "";
+            return `graphicsPen(${num.eval()}${modeStr})`;
         },
         HexS(_hexLit, _open, num, _comma, pad, _close) {
             semanticsHelper.addInstr("hex$");
@@ -725,7 +733,11 @@ ${dataList.join(",\n")}
         IfExp_label(label) {
             return notSupported(label);
         },
-        If(_iflit, condExp, _thenLit, thenStat, elseLit, elseStat) {
+        IfThen_then(_thenLit, thenStat) {
+            const thenStatement = thenStat.eval();
+            return thenStatement;
+        },
+        If(_iflit, condExp, thenStat, elseLit, elseStat) {
             const initialIndent = semanticsHelper.getIndentStr();
             semanticsHelper.addIndent(2);
             const increasedIndent = semanticsHelper.getIndentStr();
@@ -853,9 +865,10 @@ ${dataList.join(",\n")}
         Move: drawMovePlot,
         Mover: drawMovePlot,
         New: notSupported,
-        Next(_nextLit, _variable) {
+        Next(_nextLit, _variable, _comma, vars) {
             semanticsHelper.addIndent(-2);
-            return "}";
+            const varStr = vars.child(0) ? notSupported(vars.child(0)) : "";
+            return `${varStr}}`;
         },
         On_numGosub(_onLit, e1, _gosubLit, args) {
             const index = e1.eval();
@@ -887,9 +900,10 @@ ${dataList.join(",\n")}
         Openout(lit, file) {
             return notSupported(lit, file);
         },
-        Origin(_originLit, x, _comma1, y) {
+        Origin(_originLit, x, _comma, y, _comma2, win) {
             semanticsHelper.addInstr("origin");
-            return `origin(${x.eval()}, ${y.eval()})`;
+            const winStr = win.child(0) ? notSupported(win.child(0)) : "";
+            return `origin(${x.eval()}, ${y.eval()}${winStr})`;
         },
         Out(lit, num, comma, num2) {
             return notSupported(lit, num, comma, num2);
@@ -1020,7 +1034,7 @@ ${dataList.join(",\n")}
         Rsx(_rsxLit, cmd, e) {
             var _a;
             semanticsHelper.addInstr("rsxCall");
-            const cmdString = cmd.sourceString.toLowerCase();
+            const cmdString = adaptIdentName(cmd.sourceString).toLowerCase();
             const rsxArgs = ((_a = e.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
             if (rsxArgs === "") {
                 return `await rsxCall("${cmdString}"${rsxArgs})`;
@@ -1028,7 +1042,7 @@ ${dataList.join(",\n")}
             // need assign, not so nice to use <RSXFUNCTION>" as separator
             return rsxArgs.replace("<RSXFUNCTION>", `await rsxCall("${cmdString}"`) + ")";
         },
-        RsxAddressOfIdent(_adressOfLit, ident) {
+        RsxAddressOf(_adressOfLit, ident) {
             const identString = ident.eval().toLowerCase();
             return `@${identString}`;
         },
@@ -1307,6 +1321,13 @@ ${dataList.join(",\n")}
         StrArrayIdent(ident, _open, e, _close) {
             return `${ident.eval()}[${e.eval()}]`;
         },
+        dataUnquoted(data) {
+            const str = data.sourceString;
+            if (!isNaN(Number(str))) {
+                return str;
+            }
+            return notSupported(data) + `"${str}"`;
+        },
         decimalValue(value) {
             return value.sourceString;
         },
@@ -1325,7 +1346,7 @@ ${dataList.join(",\n")}
         },
         ident(ident, suffix) {
             var _a;
-            const name = ident.sourceString;
+            const name = adaptIdentName(ident.sourceString);
             const suffixStr = (_a = suffix.child(0)) === null || _a === void 0 ? void 0 : _a.sourceString;
             if (suffixStr !== undefined) { // real or integer suffix
                 return semanticsHelper.getVariable(name) + notSupported(suffix);
@@ -1334,7 +1355,7 @@ ${dataList.join(",\n")}
         },
         fnIdent(fn, ident, suffix) {
             var _a;
-            const name = fn.sourceString + ident.sourceString;
+            const name = fn.sourceString + adaptIdentName(ident.sourceString);
             const suffixStr = (_a = suffix.child(0)) === null || _a === void 0 ? void 0 : _a.sourceString;
             if (suffixStr !== undefined) { // real or integer suffix
                 return semanticsHelper.getVariable(name) + notSupported(suffix);
@@ -1342,11 +1363,11 @@ ${dataList.join(",\n")}
             return semanticsHelper.getVariable(name);
         },
         strIdent(ident, typeSuffix) {
-            const name = ident.sourceString + typeSuffix.sourceString;
+            const name = adaptIdentName(ident.sourceString) + typeSuffix.sourceString;
             return semanticsHelper.getVariable(name);
         },
         strFnIdent(fn, ident, typeSuffix) {
-            const name = fn.sourceString + ident.sourceString + typeSuffix.sourceString;
+            const name = fn.sourceString + adaptIdentName(ident.sourceString) + typeSuffix.sourceString;
             return semanticsHelper.getVariable(name);
         }
     };

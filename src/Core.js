@@ -139,7 +139,7 @@ export class Core {
             }
         }
         const compileMessages = this.semantics.getHelper().getCompileMessages();
-        const output = [snippetData.output, errorStr, compileMessages.join("\n")].join("\n");
+        const output = [snippetData.output, vm.escapeText(errorStr), vm.escapeText(compileMessages.join("\n"))].join("\n");
         return output.trim();
     }
     getSemantics() {

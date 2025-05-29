@@ -15,6 +15,7 @@ export declare class BasicVmBrowser implements IVmAdmin {
     getColorForPen: (n: number, isPaper?: boolean) => string;
     constructor(ui: IUI);
     cls(): void;
+    escapeText(str: string, _isGraphics?: boolean): string;
     flush(): void;
     inkey$(): Promise<string>;
     /**

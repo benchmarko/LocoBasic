@@ -5,6 +5,7 @@ const dummyVm = {
     debug(..._args) { }, // eslint-disable-line @typescript-eslint/no-unused-vars
     cls() { },
     drawMovePlot(type, x, y, pen) { this.debug("drawMovePlot:", type, x, y, pen !== undefined ? pen : ""); },
+    escapeText(str, isGraphics) { return isGraphics ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;") : str; },
     flush() { if (this._snippetData.output) {
         console.log(this._snippetData.output);
         this._snippetData.output = "";

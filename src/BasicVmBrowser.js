@@ -23,6 +23,10 @@ export class BasicVmBrowser {
         this.vmCore.cls();
         this.ui.setOutputText("");
     }
+    escapeText(str, _isGraphics) {
+        // for a browser, we need to escape text and graphics text
+        return str.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+    }
     flush() {
         const textOutput = this.vmCore.flushText();
         const graphicsOutput = this.vmCore.flushGraphics();

@@ -15,6 +15,7 @@ export declare class BasicVmNode implements IVmAdmin {
     getColorForPen: (n: number, isPaper?: boolean) => string;
     constructor(nodeParts: INodeParts);
     cls(): void;
+    escapeText(str: string, isGraphics?: boolean): string;
     flush(): void;
     inkey$(): Promise<string>;
     private fnOnInput;

@@ -127,6 +127,9 @@ export const arithmetic = {
     Abs
       = abs "(" NumExp ")"
 
+    AddressOf
+      = "@" AnyIdent
+
     After
       = after NumExp ("," NumExp)? gosub label
 
@@ -198,8 +201,20 @@ export const arithmetic = {
     Cursor
       = cursor NumExp ("," NumExp)?
 
+    //unquotedAlphaNum
+    //  = digit+ letter alnum*
+
+    DataUnquoted
+      = binaryValue
+      | hexValue
+      //= signedDecimal
+      //| number
+      //= unquotedAlphaNum
+      | dataUnquoted
+
     DataItem
-      = string | number | signedDecimal
+      = string
+      | DataUnquoted
 
     Data
       = data NonemptyListOf<DataItem, ",">
@@ -320,7 +335,7 @@ export const arithmetic = {
       = graphics paper NumExp
 
     GraphicsPen
-      = graphics pen NumExp
+      = graphics pen NumExp ("," NumExp)?
 
     HexS
       = hexS "(" NumExp ("," NumExp)? ")"
@@ -420,8 +435,8 @@ export const arithmetic = {
     New
       = new
 
-    Next
-      = next variable?
+    Next 
+      = next variable? ("," variable)*
 
     On
       = on NumExp gosub NonemptyListOf<label, ","> -- numGosub
@@ -438,7 +453,7 @@ export const arithmetic = {
       = openout StrExp
 
     Origin
-      = origin NumExp "," NumExp
+      = origin NumExp "," NumExp ("," NumExp)*
 
     Out
       = out NumExp "," NumExp
@@ -530,10 +545,10 @@ export const arithmetic = {
     Rsx
       = "|" #rsxIdentName RsxArgs?
 
-    RsxAddressOfIdent
+    RsxAddressOf
       = "@" AnyIdent
 
-    RsxArg = AnyFnArg | RsxAddressOfIdent
+    RsxArg = RsxAddressOf | AnyFnArg
 
     RsxArgs
       = "," NonemptyListOf<RsxArg, ",">
@@ -662,8 +677,12 @@ export const arithmetic = {
       = Statements
       | label -- label
 
+    IfThen
+      = then IfExp -- then
+      | Goto
+
     If
-      = if NumExp then IfExp (else IfExp)?
+      = if NumExp IfThen (else IfExp)?
 
     StrExp
       = StrAddExp
@@ -761,6 +780,7 @@ export const arithmetic = {
       | ident
       | number
       | Abs
+      | AddressOf
       | Asc
       | Atn
       | Cint
@@ -1192,13 +1212,13 @@ export const arithmetic = {
     fnIdent
       = fn ~keyword identName ("%" | "!")?
 
-    rsxIdentName = letter alnum*
+    rsxIdentName = letter identPart*
 
     identName = identStart identPart*
 
     identStart = letter
 
-    identPart = alnum
+    identPart = alnum | "."
 
     variable = ident
 
@@ -1209,6 +1229,8 @@ export const arithmetic = {
       = fn ~keyword identName "$"
 
     binaryDigit = "0".."1"
+
+    dataUnquoted = (~(eol | "," | ":" | "'") any)*
 
     exponentPart = ("e" | "E") signedDecimal
 
@@ -1576,7 +1598,7 @@ export const arithmetic = {
 
     identStart := lower
 
-    rsxIdentName := upper (upper | digit)*
+    rsxIdentName := upper (upper | digit | ".")*
 }
   `
 };

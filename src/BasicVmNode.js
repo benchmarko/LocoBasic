@@ -59,6 +59,10 @@ export class BasicVmNode {
         this.vmCore.cls();
         this.nodeParts.consoleClear();
     }
+    escapeText(str, isGraphics) {
+        // for node we need to escape only graphics text
+        return isGraphics ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;") : str;
+    }
     flush() {
         const textOutput = this.vmCore.flushText().replace(/\n$/, "");
         const graphicsOutput = this.vmCore.flushGraphics().replace(/\n$/, "");
