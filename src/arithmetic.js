@@ -418,7 +418,7 @@ export const arithmetic = {
       = midS "(" StrExp "," NumExp ("," NumExp)? ")"
 
     MidSAssign
-      = midS "(" strIdent "," NumExp ("," NumExp)? ")" "=" StrExp
+      = midS "(" (StrArrayIdent | strIdent) "," NumExp ("," NumExp)? ")" "=" StrExp
 
     Min
       = min "(" NonemptyListOf<NumExp, ","> ")"
@@ -436,7 +436,7 @@ export const arithmetic = {
       = new
 
     Next 
-      = next variable? ("," variable)*
+      = next variable?
 
     On
       = on NumExp gosub NonemptyListOf<label, ","> -- numGosub
@@ -501,7 +501,7 @@ export const arithmetic = {
       = ";" | ""
 
     Print
-      = (print | "?") (StreamArg ",")? ListOf<PrintArg, PrintSep> (";")?
+      = (print | "?") (StreamArg ("," | &":" | &Comment | &eol))? ListOf<PrintArg, PrintSep> (";")?
 
     Rad
       = rad
@@ -1210,7 +1210,7 @@ export const arithmetic = {
       = ~keyword identName ("%" | "!")?
 
     fnIdent
-      = fn ~keyword identName ("%" | "!")?
+      = fn space* ~keyword identName ("%" | "!")?
 
     rsxIdentName = letter identPart*
 
@@ -1226,7 +1226,7 @@ export const arithmetic = {
       = ~keyword identName "$"
 
     strFnIdent
-      = fn ~keyword identName "$"
+      = fn space* ~keyword identName "$"
 
     binaryDigit = "0".."1"
 
@@ -1256,7 +1256,9 @@ export const arithmetic = {
       = (~eol any)*
 
     stringDelimiter = "\\""
-    string = stringDelimiter (~stringDelimiter any)* stringDelimiter
+
+    string
+      = stringDelimiter (~(stringDelimiter | eol) any)* (stringDelimiter | &eol)
 
     label = digit+
 

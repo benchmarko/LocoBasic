@@ -131,7 +131,7 @@ export declare class Semantics implements ISemantics {
         Move: (lit: Node, x: Node, _comma1: Node, y: Node, _comma2: Node, pen: Node, _comma3: Node, mode: Node) => string;
         Mover: (lit: Node, x: Node, _comma1: Node, y: Node, _comma2: Node, pen: Node, _comma3: Node, mode: Node) => string;
         New: (str: Node, ...args: Node[]) => string;
-        Next(_nextLit: Node, _variable: Node, _comma: Node, vars: Node): string;
+        Next(_nextLit: Node, _variable: Node): string;
         On_numGosub(_onLit: Node, e1: Node, _gosubLit: Node, args: Node): string;
         On_numGoto(lit: Node, num: Node, gotoLit: Node, labels: Node): string;
         On_breakCont(lit: Node, breakLit: Node, contLit: Node): string;
@@ -251,11 +251,11 @@ export declare class Semantics implements ISemantics {
         hexValue(_prefix: Node, value: Node): string;
         binaryValue(_prefix: Node, value: Node): string;
         signedDecimal(sign: Node, value: Node): string;
-        string(_quote1: Node, e: Node, _quote2: Node): string;
+        string(_quote1: Node, e: Node, quote2: Node): string;
         ident(ident: Node, suffix: Node): string;
-        fnIdent(fn: Node, ident: Node, suffix: Node): string;
+        fnIdent(fn: Node, _space: Node, ident: Node, suffix: Node): string;
         strIdent(ident: Node, typeSuffix: Node): string;
-        strFnIdent(fn: Node, ident: Node, typeSuffix: Node): string;
+        strFnIdent(fn: Node, _space: Node, ident: Node, typeSuffix: Node): string;
     };
     getSemanticsActionDict(): ActionDict<string>;
     getHelper(): SemanticsHelper;

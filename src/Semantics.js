@@ -851,8 +851,7 @@ ${dataList.join(",\n")}
         MidSAssign(_midLit, _open, ident, _comma1, start, _comma2, len, _close, _op, newStr) {
             semanticsHelper.addInstr("mid$Assign");
             const variableName = ident.eval();
-            const resolvedVariableName = semanticsHelper.getVariable(variableName);
-            return `${resolvedVariableName} = mid$Assign(${resolvedVariableName}, ${start.eval()}, ${newStr.eval()}${evalOptionalArg(len)})`;
+            return `${variableName} = mid$Assign(${variableName}, ${start.eval()}, ${newStr.eval()}${evalOptionalArg(len)})`;
         },
         Min(_minLit, _open, args, _close) {
             return `Math.min(${evalChildren(args.asIteration().children)})`;
@@ -865,10 +864,10 @@ ${dataList.join(",\n")}
         Move: drawMovePlot,
         Mover: drawMovePlot,
         New: notSupported,
-        Next(_nextLit, _variable, _comma, vars) {
+        Next(_nextLit, _variable) {
+            // we cannot parse NEXT with multiple variables, if we want to match FOR and NEXT
             semanticsHelper.addIndent(-2);
-            const varStr = vars.child(0) ? notSupported(vars.child(0)) : "";
-            return `${varStr}}`;
+            return `}`;
         },
         On_numGosub(_onLit, e1, _gosubLit, args) {
             const index = e1.eval();
@@ -1340,9 +1339,10 @@ ${dataList.join(",\n")}
         signedDecimal(sign, value) {
             return `${sign.sourceString}${value.sourceString}`;
         },
-        string(_quote1, e, _quote2) {
+        string(_quote1, e, quote2) {
             const str = e.sourceString.replace(/\\/g, "\\\\"); // escape backslashes
-            return `"${str}"`;
+            const varStr = quote2.sourceString !== '"' ? notSupported(quote2).replace("\n", "eol") : "";
+            return `"${str}"${varStr}`;
         },
         ident(ident, suffix) {
             var _a;
@@ -1353,7 +1353,7 @@ ${dataList.join(",\n")}
             }
             return semanticsHelper.getVariable(name);
         },
-        fnIdent(fn, ident, suffix) {
+        fnIdent(fn, _space, ident, suffix) {
             var _a;
             const name = fn.sourceString + adaptIdentName(ident.sourceString);
             const suffixStr = (_a = suffix.child(0)) === null || _a === void 0 ? void 0 : _a.sourceString;
@@ -1366,7 +1366,7 @@ ${dataList.join(",\n")}
             const name = adaptIdentName(ident.sourceString) + typeSuffix.sourceString;
             return semanticsHelper.getVariable(name);
         },
-        strFnIdent(fn, ident, typeSuffix) {
+        strFnIdent(fn, _space, ident, typeSuffix) {
             const name = fn.sourceString + adaptIdentName(ident.sourceString) + typeSuffix.sourceString;
             return semanticsHelper.getVariable(name);
         }
