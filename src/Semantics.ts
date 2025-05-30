@@ -1014,9 +1014,7 @@ ${dataList.join(",\n")}
 		MidSAssign(_midLit: Node, _open: Node, ident: Node, _comma1: Node, start: Node, _comma2: Node, len: Node, _close: Node, _op: Node, newStr: Node) {
 			semanticsHelper.addInstr("mid$Assign");
 			const variableName = ident.eval();
-			const resolvedVariableName = semanticsHelper.getVariable(variableName);
-
-			return `${resolvedVariableName} = mid$Assign(${resolvedVariableName}, ${start.eval()}, ${newStr.eval()}${evalOptionalArg(len)})`;
+			return `${variableName} = mid$Assign(${variableName}, ${start.eval()}, ${newStr.eval()}${evalOptionalArg(len)})`;
 		},
 
 		Min(_minLit: Node, _open: Node, args: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -1035,10 +1033,10 @@ ${dataList.join(",\n")}
 
 		New: notSupported,
 
-		Next(_nextLit: Node, _variable: Node, _comma: Node, vars: Node) {
+		Next(_nextLit: Node, _variable: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			// we cannot parse NEXT with multiple variables, if we want to match FOR and NEXT
 			semanticsHelper.addIndent(-2);
-			const varStr = vars.child(0) ? notSupported(vars.child(0)) : "";
-			return `${varStr}}`;
+			return `}`;
 		},
 
 		On_numGosub(_onLit: Node, e1: Node, _gosubLit: Node, args: Node) {
@@ -1626,9 +1624,10 @@ ${dataList.join(",\n")}
 			return `${sign.sourceString}${value.sourceString}`;
 		},
 
-		string(_quote1: Node, e: Node, _quote2: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		string(_quote1: Node, e: Node, quote2: Node) {
 			const str = e.sourceString.replace(/\\/g, "\\\\"); // escape backslashes
-			return `"${str}"`;
+			const varStr = quote2.sourceString !== '"' ? notSupported(quote2).replace("\n", "eol") : "";
+			return `"${str}"${varStr}`;
 		},
 
 		ident(ident: Node, suffix: Node) {
