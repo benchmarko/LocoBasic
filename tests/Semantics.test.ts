@@ -472,8 +472,9 @@ describe('Semantics Class', () => {
             const actions = new Semantics().getSemanticsActions();
 
             const valueNode = getSourceNode('Hello, World!');
+            const quotesNode = getSourceNode('"');
             const dummy = getDummyNode();
-            const result = actions.string(dummy, valueNode, dummy);
+            const result = actions.string(dummy, valueNode, quotesNode);
             expect(result).toBe('"Hello, World!"');
         });
 

@@ -1211,7 +1211,7 @@ export const arithmetic = {
       = ~keyword identName ("%" | "!")?
 
     fnIdent
-      = fn ~keyword identName ("%" | "!")?
+      = fn space* ~keyword identName ("%" | "!")?
 
     rsxIdentName = letter identPart*
 
@@ -1227,8 +1227,7 @@ export const arithmetic = {
       = ~keyword identName "$"
 
     strFnIdent
-      = fn ~keyword identName "$"
-    // = fn space* ~keyword identName "$" // TTT
+      = fn space* ~keyword identName "$"
 
     binaryDigit = "0".."1"
 

@@ -136,8 +136,7 @@ LocoBasic can be run in a browser or as a Node.js application.
   - Only "#" and "." are supported in the format (no extra characters). Example: "##.###".
   - There is no overflow warning.
 - `DEF FNname[(arg1, ...)] = expression` Defines a function *FNname*.
-  - Can be used as `FNname()`.
-  - No space between *FN* and *name* is allowed.
+  - Can be used as `FNname()` or `FN name()`.
   - If there are no arguments, do not use parentheses.
 - `DEG` Switches to degrees mode for *ATN*, *COS*, *SIN*, *TAN*.
   - **Note:** In LocoBasic, the flag is used at compile time starting from its lexical position and not dynamically during execution. Therefore, it is recommended to place it at the top of the code.

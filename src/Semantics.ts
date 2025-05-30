@@ -1639,7 +1639,7 @@ ${dataList.join(",\n")}
 			return semanticsHelper.getVariable(name);
 		},
 
-		fnIdent(fn: Node, ident: Node, suffix: Node) {
+		fnIdent(fn: Node, _space: Node, ident: Node, suffix: Node) {
 			const name = fn.sourceString + adaptIdentName(ident.sourceString);
 			const suffixStr = suffix.child(0)?.sourceString;
 			if (suffixStr !== undefined) { // real or integer suffix
@@ -1653,7 +1653,7 @@ ${dataList.join(",\n")}
 			return semanticsHelper.getVariable(name);
 		},
 
-		strFnIdent(fn: Node, ident: Node, typeSuffix: Node) {
+		strFnIdent(fn: Node, _space: Node, ident: Node, typeSuffix: Node) {
 			const name = fn.sourceString + adaptIdentName(ident.sourceString) + typeSuffix.sourceString;
 			return semanticsHelper.getVariable(name);
 		}
