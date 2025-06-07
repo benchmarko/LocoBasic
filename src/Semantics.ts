@@ -102,7 +102,6 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 			return await _o.inkey$();
 		},
 		input: async function input(msg: string, isNum: boolean) {
-			await frame();
 			const input = await _o.input(msg);
 			if (input === null) {
 				throw new Error("INFO: Input canceled");
@@ -115,11 +114,6 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 		instr: function instr(str: string, find: string, len: number) {
 			return str.indexOf(find, len !== undefined ? len - 1 : len) + 1;
 		},
-		/*
-		instrLen: function instrLen(str: string, find: string, len: number) {
-			return str.indexOf(find, len - 1) + 1;
-		},
-		*/
 		left$: function left$(str: string, num: number) {
 			return str.slice(0, num);
 		},
@@ -909,7 +903,6 @@ ${dataList.join(",\n")}
 
 		Input(_inputLit: Node, stream: Node, _comma: Node, message: Node, _semi: Node, ids: Node) {
 			semanticsHelper.addInstr("input");
-			semanticsHelper.addInstr("frame");
 			const streamStr = stream.child(0)?.eval() || "";
 
 			const messageString = message.sourceString.replace(/\s*[;,]$/, "") || '""';
@@ -1609,7 +1602,7 @@ ${dataList.join(",\n")}
 		},
 
 		decimalValue(value: Node) {
-			return value.sourceString;
+			return value.sourceString.replace(/^(-?)(0+)(\d)/, "$1$3"); // avoid actal numbers: remove leading zeros, but keep sign
 		},
 
 		hexValue(_prefix: Node, value: Node) {

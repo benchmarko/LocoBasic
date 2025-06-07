@@ -1271,7 +1271,7 @@ export const arithmetic = {
   `,
 
   strictGrammar:
-  `strictGrammar <: basicGrammar {
+    `strictGrammar <: basicGrammar {
     abs
       := "ABS" ~identPart
     after

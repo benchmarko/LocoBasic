@@ -343,6 +343,9 @@ export class UI implements IUI {
         // Execute the compiled script
         const compiledScript = this.compiledCm?.getValue() || "";
         const output = await core.executeScript(compiledScript, this.vm) || "";
+        if (output) {
+            this.addOutputText(output);
+        }
 
         outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.removeEventListener("click", this.fnOnClickHandler, false);
@@ -354,8 +357,6 @@ export class UI implements IUI {
             databaseSelect: false,
             exampleSelect: false
         });
-
-        this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
     };
 
     private onCompiledTextChange = (): void => { // bound this

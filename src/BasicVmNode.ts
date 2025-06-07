@@ -113,7 +113,6 @@ export class BasicVmNode implements IVmAdmin {
 
     public mode(num: number): void {
         this.vmCore.mode(num);
-        //this.nodeParts.consoleClear();
     }
 
     public getEscape(): boolean {

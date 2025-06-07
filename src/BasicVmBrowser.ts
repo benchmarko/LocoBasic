@@ -71,18 +71,18 @@ export class BasicVmBrowser implements IVmAdmin {
      * @returns A promise that resolves to the user input or null if canceled.
      */
     private async fnOnInput(msg: string): Promise<string | null> {
+        await new Promise(resolve => setTimeout(resolve, 50)); // 50 ms delay to allow UI to update
         const input = this.ui.prompt(msg);
         return Promise.resolve(input);
     }
 
-    public input(msg: string): Promise<string | null> {
+    public async input(msg: string): Promise<string | null> {
         this.flush();
         return this.fnOnInput(msg);
     }
 
     public mode(num: number): void {
         this.vmCore.mode(num);
-        //this.ui.setOutputText("");
     }
 
     private async fnOnSpeak(text: string, pitch: number): Promise<void> {
