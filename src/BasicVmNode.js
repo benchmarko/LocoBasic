@@ -86,7 +86,6 @@ export class BasicVmNode {
     }
     mode(num) {
         this.vmCore.mode(num);
-        //this.nodeParts.consoleClear();
     }
     getEscape() {
         return this.nodeParts.getEscape();

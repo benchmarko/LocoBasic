@@ -45,10 +45,15 @@ export class UI {
             this.keyBuffer.length = 0;
             const outputText = document.getElementById("outputText");
             outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
+            outputText.addEventListener("click", this.fnOnClickHandler, false);
             // Execute the compiled script
             const compiledScript = ((_a = this.compiledCm) === null || _a === void 0 ? void 0 : _a.getValue()) || "";
             const output = await core.executeScript(compiledScript, this.vm) || "";
+            if (output) {
+                this.addOutputText(output);
+            }
             outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
+            outputText.removeEventListener("click", this.fnOnClickHandler, false);
             this.updateButtonStates({
                 executeButton: false,
                 stopButton: true,
@@ -56,7 +61,6 @@ export class UI {
                 databaseSelect: false,
                 exampleSelect: false
             });
-            this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
         };
         this.onCompiledTextChange = () => {
             if (this.hasCompiledError()) {
@@ -211,6 +215,7 @@ export class UI {
             UI.fnDownloadBlob(svgBlob, filename);
         };
         this.fnOnKeyPressHandler = (event) => this.onOutputTextKeydown(event);
+        this.fnOnClickHandler = (event) => this.onOutputTextClick(event);
     }
     debounce(func, fngetDelay) {
         let timeoutId;
@@ -297,11 +302,18 @@ export class UI {
     getCurrentDataKey() {
         return document.currentScript && document.currentScript.getAttribute("data-key") || "";
     }
+    scrollToBottom(id) {
+        const element = document.getElementById(id);
+        element.scrollTop = element.scrollHeight;
+    }
     addOutputText(value, hasGraphics) {
         const outputText = document.getElementById("outputText");
         outputText.innerHTML += value;
         if (hasGraphics) {
             this.setButtonOrSelectDisabled("exportSvgButton", false);
+        }
+        else {
+            this.scrollToBottom("outputText");
         }
     }
     setOutputText(value) {
@@ -545,6 +557,41 @@ export class UI {
         else if (key.length === 1 && event.ctrlKey === false && event.altKey === false) {
             this.putKeyInBuffer(key);
             event.preventDefault();
+        }
+    }
+    getClickedKey(e) {
+        let textNode = null;
+        let offset;
+        if (document.caretPositionFromPoint) {
+            const caretPosition = document.caretPositionFromPoint(e.clientX, e.clientY);
+            if (!caretPosition) {
+                return;
+            }
+            textNode = caretPosition.offsetNode;
+            offset = caretPosition.offset;
+        }
+        else if (document.caretRangeFromPoint) {
+            // Use WebKit-proprietary fallback method
+            const range = document.caretRangeFromPoint(e.clientX, e.clientY);
+            if (!range) {
+                return;
+            }
+            textNode = range.startContainer;
+            offset = range.startOffset;
+        }
+        else {
+            return;
+        }
+        if ((textNode === null || textNode === void 0 ? void 0 : textNode.nodeType) === 3) { // Check if the node is a text node
+            const textContent = textNode.textContent;
+            return textContent ? textContent.charAt(offset) : "";
+        }
+    }
+    onOutputTextClick(event) {
+        const key = this.getClickedKey(event);
+        if (key) {
+            this.putKeyInBuffer(key);
+            event.preventDefault(); // Prevent default action if needed
         }
     }
     static getErrorEventFn() {

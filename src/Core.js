@@ -116,14 +116,20 @@ export class Core {
             vm.flush();
         }
         catch (error) {
-            errorStr += String(error).replace("Error: INFO: ", "INFO: ");
-            if (error instanceof Error) {
-                const anyErr = error;
-                const lineNumber = anyErr.lineNumber; // only on FireFox
-                const columnNumber = anyErr.columnNumber; // only on FireFox
-                if (lineNumber || columnNumber) {
-                    const errLine = lineNumber - 2; // lineNumber -2 because of anonymous function added by new Function() constructor
-                    errorStr += ` (Line ${errLine}, column ${columnNumber})`;
+            const errorMsg = String(error).replace("Error: INFO: ", "INFO: ");
+            if (this.config.debug > 0) {
+                console.log("DEBUG: executeScript: ", errorMsg);
+            }
+            if (errorMsg !== "INFO: Program stopped") {
+                errorStr += errorMsg;
+                if (error instanceof Error) {
+                    const anyErr = error;
+                    const lineNumber = anyErr.lineNumber; // only on FireFox
+                    const columnNumber = anyErr.columnNumber; // only on FireFox
+                    if (lineNumber || columnNumber) {
+                        const errLine = lineNumber - 2; // lineNumber -2 because of anonymous function added by new Function() constructor
+                        errorStr += ` (Line ${errLine}, column ${columnNumber})`;
+                    }
                 }
             }
         }

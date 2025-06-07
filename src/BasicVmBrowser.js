@@ -47,16 +47,16 @@ export class BasicVmBrowser {
      * @returns A promise that resolves to the user input or null if canceled.
      */
     async fnOnInput(msg) {
+        await new Promise(resolve => setTimeout(resolve, 50)); // 50 ms delay to allow UI to update
         const input = this.ui.prompt(msg);
         return Promise.resolve(input);
     }
-    input(msg) {
+    async input(msg) {
         this.flush();
         return this.fnOnInput(msg);
     }
     mode(num) {
         this.vmCore.mode(num);
-        //this.ui.setOutputText("");
     }
     async fnOnSpeak(text, pitch) {
         return this.ui.speak(text, pitch);

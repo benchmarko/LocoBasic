@@ -95,7 +95,6 @@ function getCodeSnippets(snippetsData) {
             return await _o.inkey$();
         },
         input: async function input(msg, isNum) {
-            await frame();
             const input = await _o.input(msg);
             if (input === null) {
                 throw new Error("INFO: Input canceled");
@@ -110,11 +109,6 @@ function getCodeSnippets(snippetsData) {
         instr: function instr(str, find, len) {
             return str.indexOf(find, len !== undefined ? len - 1 : len) + 1;
         },
-        /*
-        instrLen: function instrLen(str: string, find: string, len: number) {
-            return str.indexOf(find, len - 1) + 1;
-        },
-        */
         left$: function left$(str, num) {
             return str.slice(0, num);
         },
@@ -770,7 +764,6 @@ ${dataList.join(",\n")}
         Input(_inputLit, stream, _comma, message, _semi, ids) {
             var _a;
             semanticsHelper.addInstr("input");
-            semanticsHelper.addInstr("frame");
             const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
             const messageString = message.sourceString.replace(/\s*[;,]$/, "") || '""';
             const identifiers = evalChildren(ids.asIteration().children);
@@ -1328,7 +1321,7 @@ ${dataList.join(",\n")}
             return notSupported(data) + `"${str}"`;
         },
         decimalValue(value) {
-            return value.sourceString;
+            return value.sourceString.replace(/^(-?)(0+)(\d)/, "$1$3"); // avoid actal numbers: remove leading zeros, but keep sign
         },
         hexValue(_prefix, value) {
             return `0x${value.sourceString}`;

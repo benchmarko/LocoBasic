@@ -18,8 +18,9 @@ FOR rows = 5 TO 95 STEP 5
   GOSUB 200 'calculate
   t=TIME-t0
   CLS
-  PRINT "height";height;", cols=";cols;", rows=";rows;", time=";ROUND(t*10/3,3)
-  FRAME
+  TAG
+  MOVE 0,399:PRINT "height";height;", cols=";cols;", rows=";rows;", time=";ROUND(t*10/3,3)
+  TAGOFF
   GOSUB 700 'graphical output
   FRAME:t=t0+300:WHILE TIME<t AND INKEY$="":WEND
 NEXT rows

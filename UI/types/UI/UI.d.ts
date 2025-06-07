@@ -8,6 +8,7 @@ export declare class UI implements IUI {
     private escape;
     private initialUserAction;
     private fnOnKeyPressHandler;
+    private fnOnClickHandler;
     private speechSynthesisUtterance?;
     private static getErrorEvent?;
     constructor();
@@ -22,6 +23,7 @@ export declare class UI implements IUI {
     private fnLoadScriptOrStyle;
     private loadScript;
     getCurrentDataKey(): string;
+    private scrollToBottom;
     addOutputText(value: string, hasGraphics?: boolean): void;
     setOutputText(value: string): void;
     getColor(color: string, background: boolean): string;
@@ -67,6 +69,8 @@ export declare class UI implements IUI {
     getKeyFromBuffer(): string;
     private putKeyInBuffer;
     private onOutputTextKeydown;
+    private getClickedKey;
+    private onOutputTextClick;
     private static getErrorEventFn;
     private static describeError;
     checkSyntax(str: string): Promise<string>;
