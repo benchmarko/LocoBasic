@@ -204,6 +204,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "String Art"
 		},
 		{
+			"key": "tester",
+			"title": "Tester"
+		},
+		{
 			"key": "testinpu",
 			"title": "Test Input"
 		},

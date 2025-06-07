@@ -50,12 +50,14 @@ export class UI implements IUI {
     private escape = false;
     private initialUserAction = false;
     private fnOnKeyPressHandler: (event: KeyboardEvent) => void;
+    private fnOnClickHandler: (event: MouseEvent) => void;
     private speechSynthesisUtterance?: SpeechSynthesisUtterance;
 
     private static getErrorEvent?: (s: string) => Promise<PlainErrorEventType>;
 
     constructor() {
         this.fnOnKeyPressHandler = (event: KeyboardEvent) => this.onOutputTextKeydown(event);
+        this.fnOnClickHandler = (event: MouseEvent) => this.onOutputTextClick(event);
     }
 
     private debounce<T extends (...args: unknown[]) => void | Promise<void>>(func: T, fngetDelay: () => number): (...args: Parameters<T>) => void {
@@ -157,11 +159,18 @@ export class UI implements IUI {
         return document.currentScript && document.currentScript.getAttribute("data-key") || "";
     }
 
+    private scrollToBottom(id: string): void {
+        const element = document.getElementById(id) as HTMLElement;
+        element.scrollTop = element.scrollHeight;
+    }
+
     public addOutputText(value: string, hasGraphics?: boolean): void {
         const outputText = document.getElementById("outputText") as HTMLPreElement;
         outputText.innerHTML += value;
         if (hasGraphics) {
             this.setButtonOrSelectDisabled("exportSvgButton", false);
+        } else {
+            this.scrollToBottom("outputText");
         }
     }
 
@@ -184,7 +193,7 @@ export class UI implements IUI {
         const input = window.prompt(msg);
         return input;
     }
-    
+
     private async waitForVoices(callback: () => void): Promise<void> {
         return new Promise<void>((resolve) => {
             window.speechSynthesis.addEventListener("voiceschanged", () => {
@@ -210,7 +219,7 @@ export class UI implements IUI {
             }, { once: true });
         });
     }
-    
+
     private logVoiceDebugInfo(selectedVoice?: SpeechSynthesisVoice): void {
         const debug = this.getCore().getConfigMap().debug;
         if (debug > 1) {
@@ -227,7 +236,7 @@ export class UI implements IUI {
         if (this.speechSynthesisUtterance) {
             return this.speechSynthesisUtterance;
         }
-    
+
         if (!window.speechSynthesis) {
             throw new Error("Speech Synthesis API is not supported in this browser.");
         }
@@ -235,12 +244,12 @@ export class UI implements IUI {
         this.speechSynthesisUtterance = new SpeechSynthesisUtterance();
         const utterance = this.speechSynthesisUtterance;
         utterance.lang = document.documentElement.lang || "en";
-    
+
         const selectVoice = (): SpeechSynthesisVoice | undefined => {
             const voices = window.speechSynthesis.getVoices();
             return voices.find((voice) => voice.lang === "en-GB" && voice.name === "Daniel");
         };
-    
+
         const onVoicesChanged = (): void => {
             const selectedVoice = selectVoice();
             if (selectedVoice) {
@@ -248,13 +257,13 @@ export class UI implements IUI {
             }
             this.logVoiceDebugInfo(selectedVoice);
         };
-    
+
         await this.waitForVoices(onVoicesChanged);
-    
+
         if (!this.initialUserAction) {
             await this.waitForUserInteraction("startSpeechButton");
         }
-    
+
         return utterance;
     }
 
@@ -265,7 +274,7 @@ export class UI implements IUI {
         }
         msg.text = text;
         msg.pitch = pitch; // 0 to 2
-    
+
         return new Promise<void>((resolve, reject) => {
             msg.onend = () => resolve();
             msg.onerror = (event) => {
@@ -275,7 +284,7 @@ export class UI implements IUI {
             window.speechSynthesis.speak(msg);
         });
     }
-    
+
     private updateConfigParameter(name: string, value: string | boolean) {
         const core = this.getCore();
         const configAsRecord = core.getConfigMap() as Record<string, unknown>;
@@ -312,9 +321,9 @@ export class UI implements IUI {
         if (!this.vm || this.hasCompiledError()) {
             return;
         }
-    
+
         this.setElementHidden("convertArea");
-    
+
         const buttonStates = {
             executeButton: true,
             stopButton: false,
@@ -323,19 +332,21 @@ export class UI implements IUI {
             exampleSelect: true
         };
         this.updateButtonStates(buttonStates);
-    
+
         this.setEscape(false);
         this.keyBuffer.length = 0;
-    
+
         const outputText = document.getElementById("outputText") as HTMLPreElement;
         outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
-    
+        outputText.addEventListener("click", this.fnOnClickHandler, false);
+
         // Execute the compiled script
         const compiledScript = this.compiledCm?.getValue() || "";
         const output = await core.executeScript(compiledScript, this.vm) || "";
-    
+
         outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
-    
+        outputText.removeEventListener("click", this.fnOnClickHandler, false);
+
         this.updateButtonStates({
             executeButton: false,
             stopButton: true,
@@ -343,7 +354,7 @@ export class UI implements IUI {
             databaseSelect: false,
             exampleSelect: false
         });
-    
+
         this.addOutputText(output + (output.endsWith("\n") ? "" : "\n"));
     };
 
@@ -427,32 +438,32 @@ export class UI implements IUI {
     }
 
     private static addLabels(input: string) {
-		const lineParts = input.split("\n");
-		let lastLine = 0;
+        const lineParts = input.split("\n");
+        let lastLine = 0;
 
-		for (let i = 0; i < lineParts.length; i += 1) {
-			let lineNum = parseInt(lineParts[i], 10);
+        for (let i = 0; i < lineParts.length; i += 1) {
+            let lineNum = parseInt(lineParts[i], 10);
 
-			if (isNaN(lineNum)) {
-				lineNum = lastLine + 1;
-				lineParts[i] = `${lineNum} ${lineParts[i]}`;
-			}
-			lastLine = lineNum;
-		}
-		return lineParts.join("\n");
-	}
+            if (isNaN(lineNum)) {
+                lineNum = lastLine + 1;
+                lineParts[i] = `${lineNum} ${lineParts[i]}`;
+            }
+            lastLine = lineNum;
+        }
+        return lineParts.join("\n");
+    }
 
     private static removeUnusedLabels(input: string, usedLabels: Record<string, unknown>) {
         const lineParts = input.split("\n");
-		for (let i = 0; i < lineParts.length; i += 1) {
-			const lineNum = parseInt(lineParts[i], 10);
+        for (let i = 0; i < lineParts.length; i += 1) {
+            const lineNum = parseInt(lineParts[i], 10);
 
-			if (!isNaN(lineNum) && !usedLabels[lineNum]) {
-				lineParts[i] = lineParts[i].replace(/^\d+\s/, "");
-			}
-		}
-		return lineParts.join("\n");
-	}
+            if (!isNaN(lineNum) && !usedLabels[lineNum]) {
+                lineParts[i] = lineParts[i].replace(/^\d+\s/, "");
+            }
+        }
+        return lineParts.join("\n");
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onLabelAddButtonClick = (_event: Event): void => { // bound this
@@ -463,7 +474,7 @@ export class UI implements IUI {
             this.basicCm!.setValue(output);
         }
     }
-    
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onLabelRemoveButtonClick = (_event: Event): void => { // bound this
         const input = this.basicCm!.getValue();
@@ -471,7 +482,7 @@ export class UI implements IUI {
         const core = this.getCore();
         const semantics = core.getSemantics();
         const usedLabels = semantics.getUsedLabels();
-       
+
         const allUsedLabels: Record<string, boolean> = {};
         for (const type of Object.keys(usedLabels)) {
             for (const label of Object.keys(usedLabels[type])) {
@@ -676,6 +687,43 @@ export class UI implements IUI {
         }
     }
 
+    private getClickedKey(e: MouseEvent): string | undefined {
+        let textNode: Node | null = null;
+        let offset: number;
+
+        if (document.caretPositionFromPoint) {
+            const caretPosition = document.caretPositionFromPoint(e.clientX, e.clientY);
+            if (!caretPosition) {
+                return;
+            }
+            textNode = caretPosition.offsetNode;
+            offset = caretPosition.offset;
+        } else if (document.caretRangeFromPoint) {
+            // Use WebKit-proprietary fallback method
+            const range = document.caretRangeFromPoint(e.clientX, e.clientY);
+            if (!range) {
+                return;
+            }
+            textNode = range.startContainer;
+            offset = range.startOffset;
+        } else {
+            return;
+        }
+
+        if (textNode?.nodeType === 3) { // Check if the node is a text node
+            const textContent = textNode.textContent;
+            return textContent ? textContent.charAt(offset) : "";
+        }
+    }
+
+    private onOutputTextClick(event: MouseEvent): void {
+        const key = this.getClickedKey(event);
+        if (key) {
+            this.putKeyInBuffer(key);
+            event.preventDefault(); // Prevent default action if needed
+        }
+    }
+
     private static getErrorEventFn(): (s: string) => Promise<PlainErrorEventType> {
         if (UI.getErrorEvent) {
             return UI.getErrorEvent;
@@ -786,7 +834,7 @@ export class UI implements IUI {
         editor.on("changes", this.debounce(changeHandler, () => debounceDelay)); // changeHandler.bind(this)
         return editor;
     }
-    
+
     private syncInputState(inputId: string, configValue: boolean): void {
         const input = window.document.getElementById(inputId) as HTMLInputElement;
         if (input.checked !== configValue) {
@@ -802,7 +850,7 @@ export class UI implements IUI {
         const args = this.parseUri(config);
         core.parseArgs(args, config);
         core.setOnCheckSyntax((s: string) => Promise.resolve(this.checkSyntax(s)));
-    
+
         // Map of element IDs to event handlers
         const buttonHandlers: Record<string, EventListener> = {
             compileButton: this.onCompileButtonClick,
@@ -814,7 +862,7 @@ export class UI implements IUI {
             helpButton: this.onHelpButtonClick,
             exportSvgButton: this.onExportSvgButtonClick,
         };
-    
+
         const inputAndSelectHandlers: Record<string, EventListener> = {
             autoCompileInput: this.onAutoCompileInputChange,
             autoExecuteInput: this.onAutoExecuteInputChange,
@@ -824,29 +872,29 @@ export class UI implements IUI {
             databaseSelect: this.onDatabaseSelectChange,
             exampleSelect: this.onExampleSelectChange,
         };
-    
+
         // Attach event listeners for buttons
         Object.entries(buttonHandlers).forEach(([id, handler]) => {
             const element = window.document.getElementById(id) as HTMLButtonElement;
             element.addEventListener("click", handler, false);
         });
-    
+
         // Attach event listeners for inputs or selects
         Object.entries(inputAndSelectHandlers).forEach(([id, handler]) => {
             const element = window.document.getElementById(id) as HTMLInputElement | HTMLSelectElement;
             element.addEventListener("change", handler, false); // handler.bind(this)
         });
-    
+
         // Initialize CodeMirror editors
         const WinCodeMirror = window.CodeMirror;
         if (WinCodeMirror) {
             const getModeFn = LocoBasicMode.getMode;
             WinCodeMirror.defineMode("lbasic", getModeFn);
-    
+
             this.basicCm = this.initializeEditor("basicEditor", "lbasic", this.onBasicTextChange, config.debounceCompile);
             this.compiledCm = this.initializeEditor("compiledEditor", "javascript", this.onCompiledTextChange, config.debounceExecute);
         }
-    
+
         // Handle browser navigation (popstate)
         window.addEventListener("popstate", (event: PopStateEvent) => {
             if (event.state) {
@@ -857,18 +905,18 @@ export class UI implements IUI {
                 databaseSelect.dispatchEvent(new Event("change"));
             }
         });
-    
+
         // Sync UI state with config
         this.syncInputState("showOutputInput", config.showOutput);
         this.syncInputState("showBasicInput", config.showBasic);
         this.syncInputState("showCompiledInput", config.showCompiled);
         this.syncInputState("autoCompileInput", config.autoCompile);
         this.syncInputState("autoExecuteInput", config.autoExecute);
-    
+
         window.document.addEventListener("click", () => {
             this.initialUserAction = true;
         }, { once: true });
-            
+
         // Initialize database and examples
         UI.asyncDelay(() => {
             const databaseMap = core.initDatabaseMap();
