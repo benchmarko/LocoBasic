@@ -81,6 +81,12 @@ export class BasicVmBrowser implements IVmAdmin {
         return this.fnOnInput(msg);
     }
 
+    public keyDef(num: number, repeat: number, ...codes: number[]): void {
+        if (num === 78 && repeat === 1) {
+            this.ui.setUiKeys(codes);
+        }
+    }
+
     public mode(num: number): void {
         this.vmCore.mode(num);
     }

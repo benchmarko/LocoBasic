@@ -51,6 +51,7 @@ export class UI implements IUI {
     private initialUserAction = false;
     private fnOnKeyPressHandler: (event: KeyboardEvent) => void;
     private fnOnClickHandler: (event: MouseEvent) => void;
+    private fnOnUserKeyClickHandler: (event: MouseEvent) => void;
     private speechSynthesisUtterance?: SpeechSynthesisUtterance;
 
     private static getErrorEvent?: (s: string) => Promise<PlainErrorEventType>;
@@ -58,6 +59,7 @@ export class UI implements IUI {
     constructor() {
         this.fnOnKeyPressHandler = (event: KeyboardEvent) => this.onOutputTextKeydown(event);
         this.fnOnClickHandler = (event: MouseEvent) => this.onOutputTextClick(event);
+        this.fnOnUserKeyClickHandler = (event: MouseEvent) => this.onUserKeyClick(event);
     }
 
     private debounce<T extends (...args: unknown[]) => void | Promise<void>>(func: T, fngetDelay: () => number): (...args: Parameters<T>) => void {
@@ -179,6 +181,27 @@ export class UI implements IUI {
         outputText.innerText = value;
         this.setButtonOrSelectDisabled("exportSvgButton", true);
     }
+
+    private onUserKeyClick(event: Event) {
+        const target = event.target as HTMLButtonElement;
+        const dataKey = target.getAttribute("data-key");
+        this.putKeyInBuffer(String.fromCharCode(Number(dataKey)));
+    }
+
+    public setUiKeys(codes: number[]): void {
+        if (codes.length) {
+            const code = codes[0];
+            const userKeys = document.getElementById("userKeys") as HTMLSpanElement;
+            if (code) {
+                const char = String.fromCharCode(code);
+                const buttonStr = `<button data-key="${code}" title="${char}">${char}</button>`;
+                userKeys.innerHTML += buttonStr;
+            } else {
+                userKeys.innerHTML = "";
+            }
+        }
+    }
+
 
     public getColor(color: string, background: boolean): string {
         return `<span style="${background ? 'background-color' : 'color'}: ${color}">`;
@@ -325,6 +348,7 @@ export class UI implements IUI {
         this.setElementHidden("convertArea");
 
         const buttonStates = {
+            enterButton: false,
             executeButton: true,
             stopButton: false,
             convertButton: true,
@@ -337,8 +361,13 @@ export class UI implements IUI {
         this.keyBuffer.length = 0;
 
         const outputText = document.getElementById("outputText") as HTMLPreElement;
+        outputText.setAttribute("contenteditable", "false");
         outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.addEventListener("click", this.fnOnClickHandler, false);
+
+        const userKeys = document.getElementById("userKeys") as HTMLSpanElement;
+        userKeys.addEventListener("click", this.fnOnUserKeyClickHandler, false);
+
 
         // Execute the compiled script
         const compiledScript = this.compiledCm?.getValue() || "";
@@ -349,8 +378,11 @@ export class UI implements IUI {
 
         outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.removeEventListener("click", this.fnOnClickHandler, false);
+        outputText.setAttribute("contenteditable", "true");
+        this.setUiKeys([0]); // remove user keys 
 
         this.updateButtonStates({
+            enterButton: true,
             executeButton: false,
             stopButton: true,
             convertButton: false,
@@ -388,6 +420,11 @@ export class UI implements IUI {
                 this.setButtonOrSelectDisabled("labelRemoveButton", false);
             }
         }, 1);
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onEnterButtonClick = (_event: Event): void => { // bound this
+        this.putKeyInBuffer("\x0d");
     }
 
     private onAutoCompileInputChange = (event: Event): void => { // bound this
@@ -855,6 +892,7 @@ export class UI implements IUI {
         // Map of element IDs to event handlers
         const buttonHandlers: Record<string, EventListener> = {
             compileButton: this.onCompileButtonClick,
+            enterButton: this.onEnterButtonClick,
             executeButton: this.onExecuteButtonClick,
             stopButton: this.onStopButtonClick,
             convertButton: this.onConvertButtonClick,

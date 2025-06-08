@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="locobasic.css">
-  <title>LocoBasic v0.3.23</title>
+  <title>LocoBasic v0.3.24</title>
 </head>
 
 <body>
@@ -26,10 +26,10 @@
   </div>
 
   <div id="outputArea" class="area">
-    <pre id="outputText" contenteditable="true" spellcheck="false" autocomplete="off" autocapitalize="off"></pre>
+    <pre id="outputText" tabindex="0" contenteditable="true" spellcheck="false" autocomplete="off" autocapitalize="off"></pre>
   </div>
 
-  <div id="basicIoolbarArea" class="area">
+  <div id="executeToolbarArea" class="area">
     <div class="toolbarAreaInner">
       <div class="toolbarLine">
         <span>
@@ -37,6 +37,27 @@
           <button id="executeButton" title="Execute JavaScript">Execute</button>
         </span>
         <button id="stopButton" title="Stop Execution" disabled>Stop</button>
+        <span>
+          <!-- <input id="inputInput" title="Input" type="text" placeholder="input" autocomplete="off"> -->
+          <button id="enterButton" title="Enter" disabled>Enter</button>
+        </span>
+        <span id="userKeys"></span>
+        <span class="toolbarLineItemRight" title="Execute and Input">Execute</span>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div id="basicIoolbarArea" class="area">
+    <div class="toolbarAreaInner">
+      <div class="toolbarLine">
+        <!--
+        <span>
+          <input id="autoExecuteInput" type="checkbox" title="Automatic execute" checked>
+          <button id="executeButton" title="Execute JavaScript">Execute</button>
+        </span>
+        <button id="stopButton" title="Stop Execution" disabled>Stop</button>
+        -->
         <span class="buttonPopoverContainer">
           <button id="convertButton" class="popoverButton" title="Convert BASIC source">Convert</button>
           <span id="convertArea" class="popover" hidden>

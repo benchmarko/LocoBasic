@@ -938,8 +938,12 @@ ${dataList.join(",\n")}
 			return notSupported(lit, num, comma, str);
 		},
 
-		Key_def(lit: Node, defLit: Node, nums: Node) {
-			return notSupported(lit, defLit, nums.asIteration());
+		Key_def(lit: Node, defLit: Node, num: Node, comma: Node, repeat: Node, comma2: Node, codes: Node) {
+			if (num.sourceString === "78" && repeat.sourceString === "1") {
+				const codeList = evalChildren(codes.asIteration().children);
+				return `_o.keyDef(${num.eval()}, ${repeat.eval()}, ${codeList.join(", ")})`;
+			}
+			return notSupported(lit, defLit, num, comma, repeat, comma2, codes.asIteration());
 		},
 
 		LeftS(_leftLit: Node, _open: Node, pos: Node, _comma: Node, len: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars

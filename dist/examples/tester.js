@@ -12,12 +12,16 @@ PRINT
 PRINT "1) English (Englisch)"
 PRINT "2) Deutsch (German)"
 PRINT "1..2) ";
+FOR k=ASC("1") TO ASC("2"):GOSUB 950:NEXT
 t$="":WHILE t$<"1" OR t$>"2":t$=INKEY$:WEND
+k=0:GOSUB 950
 lg=VAL(t$)
 PRINT t$;" -> ";
 ON lg GOSUB 1000,1500 'English or German help
-PRINT "1..4) ";
+PRINT "1..5) ";
+FOR k=ASC("1") TO ASC("5"):GOSUB 950:NEXT
 t$="":WHILE t$<"1" OR t$>"5":t$=INKEY$:WEND
+k=0:GOSUB 950
 PRINT t$;" -> ";
 IF t$="1" THEN IF lg=1 THEN RESTORE 2000 ELSE RESTORE 2500
 IF t$="2" THEN IF lg=1 THEN RESTORE 3000 ELSE RESTORE 3500
@@ -103,12 +107,18 @@ NEXT
 PRINT
 mx$=RIGHT$(STR$(n),1)
 PRINT "0..";mx$;")";
+FOR k=ASC("0") TO ASC(mx$):GOSUB 950:NEXT
 t$="":WHILE t$<"0" OR t$>mx$:t$=INKEY$:WEND
+k=0:GOSUB 950
 s=VAL(t$)
 IF s=0 THEN a$(g,a(s))="End of test"
 PRINT s;"- ";a$(g,a(s));" -> ";
 IF s>0 THEN IF a(s)=r2 THEN PRINT "Correct":ca=ca+1 ELSE PRINT "Wrong" ELSE PRINT ""
 ERASE a
+RETURN
+'
+' Define user key for LocoBasic
+950 KEY DEF 78,1,k
 RETURN
 '
 ' English help

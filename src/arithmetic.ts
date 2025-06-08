@@ -365,7 +365,7 @@ export const arithmetic = {
 
     Key 
       = key NumExp "," StrExp -- key
-      | key def NonemptyListOf<NumExp, ","> -- def
+      | key def NumExp "," NumExp "," NonemptyListOf<NumExp, ","> -- def
 
     LeftS
       = leftS "(" StrExp "," NumExp ")"

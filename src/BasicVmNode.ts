@@ -111,6 +111,10 @@ export class BasicVmNode implements IVmAdmin {
         return this.fnOnInput(msg);
     }
 
+    public keyDef(_num: number, _repeat: number, ..._codes: number[]): void { // eslint-disable-line @typescript-eslint/no-unused-vars
+        // empty
+    }
+
     public mode(num: number): void {
         this.vmCore.mode(num);
     }
