@@ -52,6 +52,7 @@ export interface IVm {
     ink(num: number, col: number): void;
     inkey$(): Promise<string>;
     input(msg: string): Promise<string | null>;
+    keyDef(num: number, repeat: number, ...codes: number[]): void;
     mode(num: number): void;
     origin(x: number, y: number): void;
     printGraphicsText(text: string): void;
@@ -114,6 +115,7 @@ export interface IUI {
     getKeyFromBuffer(): string;
     onWindowLoadContinue(core: ICore, vm: IVmAdmin): void;
     setOutputText(value: string): void;
+    setUiKeys(codes: number[]): void;
     prompt(msg: string): string | null;
     speak(text: string, pitch: number): Promise<void>;
 }

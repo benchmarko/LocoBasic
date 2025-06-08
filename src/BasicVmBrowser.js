@@ -55,6 +55,11 @@ export class BasicVmBrowser {
         this.flush();
         return this.fnOnInput(msg);
     }
+    keyDef(num, repeat, ...codes) {
+        if (num === 78 && repeat === 1) {
+            this.ui.setUiKeys(codes);
+        }
+    }
     mode(num) {
         this.vmCore.mode(num);
     }

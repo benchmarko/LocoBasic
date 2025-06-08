@@ -791,8 +791,12 @@ ${dataList.join(",\n")}
         Key_key(lit, num, comma, str) {
             return notSupported(lit, num, comma, str);
         },
-        Key_def(lit, defLit, nums) {
-            return notSupported(lit, defLit, nums.asIteration());
+        Key_def(lit, defLit, num, comma, repeat, comma2, codes) {
+            if (num.sourceString === "78" && repeat.sourceString === "1") {
+                const codeList = evalChildren(codes.asIteration().children);
+                return `_o.keyDef(${num.eval()}, ${repeat.eval()}, ${codeList.join(", ")})`;
+            }
+            return notSupported(lit, defLit, num, comma, repeat, comma2, codes.asIteration());
         },
         LeftS(_leftLit, _open, pos, _comma, len, _close) {
             semanticsHelper.addInstr("left$");

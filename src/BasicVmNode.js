@@ -84,6 +84,9 @@ export class BasicVmNode {
         this.flush();
         return this.fnOnInput(msg);
     }
+    keyDef(_num, _repeat, ..._codes) {
+        // empty
+    }
     mode(num) {
         this.vmCore.mode(num);
     }

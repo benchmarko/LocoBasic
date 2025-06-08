@@ -9,6 +9,7 @@ export declare class UI implements IUI {
     private initialUserAction;
     private fnOnKeyPressHandler;
     private fnOnClickHandler;
+    private fnOnUserKeyClickHandler;
     private speechSynthesisUtterance?;
     private static getErrorEvent?;
     constructor();
@@ -26,6 +27,8 @@ export declare class UI implements IUI {
     private scrollToBottom;
     addOutputText(value: string, hasGraphics?: boolean): void;
     setOutputText(value: string): void;
+    private onUserKeyClick;
+    setUiKeys(codes: number[]): void;
     getColor(color: string, background: boolean): string;
     /**
      * Prompts the user with a message and returns the input.
@@ -44,6 +47,7 @@ export declare class UI implements IUI {
     private onExecuteButtonClick;
     private onCompiledTextChange;
     private onCompileButtonClick;
+    private onEnterButtonClick;
     private onAutoCompileInputChange;
     private onAutoExecuteInputChange;
     private onShowOutputInputChange;

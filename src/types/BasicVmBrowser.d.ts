@@ -25,6 +25,7 @@ export declare class BasicVmBrowser implements IVmAdmin {
      */
     private fnOnInput;
     input(msg: string): Promise<string | null>;
+    keyDef(num: number, repeat: number, ...codes: number[]): void;
     mode(num: number): void;
     private fnOnSpeak;
     getEscape(): boolean;

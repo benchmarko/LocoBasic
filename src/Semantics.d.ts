@@ -109,7 +109,7 @@ export declare class Semantics implements ISemantics {
         Int(_intLit: Node, _open: Node, num: Node, _close: Node): string;
         Joy(lit: Node, open: Node, num: Node, close: Node): string;
         Key_key(lit: Node, num: Node, comma: Node, str: Node): string;
-        Key_def(lit: Node, defLit: Node, nums: Node): string;
+        Key_def(lit: Node, defLit: Node, num: Node, comma: Node, repeat: Node, comma2: Node, codes: Node): string;
         LeftS(_leftLit: Node, _open: Node, pos: Node, _comma: Node, len: Node, _close: Node): string;
         Len(_lenLit: Node, _open: Node, str: Node, _close: Node): string;
         Let(_letLit: Node, assign: Node): string;

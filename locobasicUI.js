@@ -139,6 +139,7 @@
                 }
                 this.setElementHidden("convertArea");
                 const buttonStates = {
+                    enterButton: false,
                     executeButton: true,
                     stopButton: false,
                     convertButton: true,
@@ -149,8 +150,11 @@
                 this.setEscape(false);
                 this.keyBuffer.length = 0;
                 const outputText = document.getElementById("outputText");
+                outputText.setAttribute("contenteditable", "false");
                 outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
                 outputText.addEventListener("click", this.fnOnClickHandler, false);
+                const userKeys = document.getElementById("userKeys");
+                userKeys.addEventListener("click", this.fnOnUserKeyClickHandler, false);
                 // Execute the compiled script
                 const compiledScript = ((_a = this.compiledCm) === null || _a === void 0 ? void 0 : _a.getValue()) || "";
                 const output = await core.executeScript(compiledScript, this.vm) || "";
@@ -159,7 +163,10 @@
                 }
                 outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
                 outputText.removeEventListener("click", this.fnOnClickHandler, false);
+                outputText.setAttribute("contenteditable", "true");
+                this.setUiKeys([0]); // remove user keys 
                 this.updateButtonStates({
+                    enterButton: true,
                     executeButton: false,
                     stopButton: true,
                     convertButton: false,
@@ -194,6 +201,10 @@
                         this.setButtonOrSelectDisabled("labelRemoveButton", false);
                     }
                 }, 1);
+            };
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            this.onEnterButtonClick = (_event) => {
+                this.putKeyInBuffer("\x0d");
             };
             this.onAutoCompileInputChange = (event) => {
                 const autoCompileInput = event.target;
@@ -321,6 +332,7 @@
             };
             this.fnOnKeyPressHandler = (event) => this.onOutputTextKeydown(event);
             this.fnOnClickHandler = (event) => this.onOutputTextClick(event);
+            this.fnOnUserKeyClickHandler = (event) => this.onUserKeyClick(event);
         }
         debounce(func, fngetDelay) {
             let timeoutId;
@@ -425,6 +437,25 @@
             const outputText = document.getElementById("outputText");
             outputText.innerText = value;
             this.setButtonOrSelectDisabled("exportSvgButton", true);
+        }
+        onUserKeyClick(event) {
+            const target = event.target;
+            const dataKey = target.getAttribute("data-key");
+            this.putKeyInBuffer(String.fromCharCode(Number(dataKey)));
+        }
+        setUiKeys(codes) {
+            if (codes.length) {
+                const code = codes[0];
+                const userKeys = document.getElementById("userKeys");
+                if (code) {
+                    const char = String.fromCharCode(code);
+                    const buttonStr = `<button data-key="${code}" title="${char}">${char}</button>`;
+                    userKeys.innerHTML += buttonStr;
+                }
+                else {
+                    userKeys.innerHTML = "";
+                }
+            }
         }
         getColor(color, background) {
             return `<span style="${background ? 'background-color' : 'color'}: ${color}">`;
@@ -802,6 +833,7 @@
             // Map of element IDs to event handlers
             const buttonHandlers = {
                 compileButton: this.onCompileButtonClick,
+                enterButton: this.onEnterButtonClick,
                 executeButton: this.onExecuteButtonClick,
                 stopButton: this.onStopButtonClick,
                 convertButton: this.onConvertButtonClick,

@@ -434,7 +434,7 @@
 
     Key 
       = key NumExp "," StrExp -- key
-      | key def NonemptyListOf<NumExp, ","> -- def
+      | key def NumExp "," NumExp "," NonemptyListOf<NumExp, ","> -- def
 
     LeftS
       = leftS "(" StrExp "," NumExp ")"
@@ -2597,8 +2597,12 @@ ${dataList.join(",\n")}
             Key_key(lit, num, comma, str) {
                 return notSupported(lit, num, comma, str);
             },
-            Key_def(lit, defLit, nums) {
-                return notSupported(lit, defLit, nums.asIteration());
+            Key_def(lit, defLit, num, comma, repeat, comma2, codes) {
+                if (num.sourceString === "78" && repeat.sourceString === "1") {
+                    const codeList = evalChildren(codes.asIteration().children);
+                    return `_o.keyDef(${num.eval()}, ${repeat.eval()}, ${codeList.join(", ")})`;
+                }
+                return notSupported(lit, defLit, num, comma, repeat, comma2, codes.asIteration());
             },
             LeftS(_leftLit, _open, pos, _comma, len, _close) {
                 semanticsHelper.addInstr("left$");
@@ -3790,6 +3794,9 @@ ${content}
             this.flush();
             return this.fnOnInput(msg);
         }
+        keyDef(_num, _repeat, ..._codes) {
+            // empty
+        }
         mode(num) {
             this.vmCore.mode(num);
         }
@@ -3813,6 +3820,7 @@ ${content}
         ink(num, col) { this.debug("ink:", num, col); },
         async inkey$() { return Promise.resolve(""); },
         async input(msg) { console.log(msg); return ""; },
+        keyDef(num, repeat, ...codes) { this.debug("keyDef:", num, repeat, codes.join(", ")); },
         mode(num) { this.debug("mode:", num); },
         origin(x, y) { this.debug("origin:", x, y); },
         printGraphicsText(text) { this.debug("printGraphicsText:", text); },
@@ -4191,6 +4199,11 @@ node hello1.js
         async input(msg) {
             this.flush();
             return this.fnOnInput(msg);
+        }
+        keyDef(num, repeat, ...codes) {
+            if (num === 78 && repeat === 1) {
+                this.ui.setUiKeys(codes);
+            }
         }
         mode(num) {
             this.vmCore.mode(num);

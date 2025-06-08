@@ -20,6 +20,7 @@ export declare class BasicVmNode implements IVmAdmin {
     inkey$(): Promise<string>;
     private fnOnInput;
     input(msg: string): Promise<string | null>;
+    keyDef(_num: number, _repeat: number, ..._codes: number[]): void;
     mode(num: number): void;
     getEscape(): boolean;
 }

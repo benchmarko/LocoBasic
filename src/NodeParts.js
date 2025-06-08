@@ -14,6 +14,7 @@ const dummyVm = {
     ink(num, col) { this.debug("ink:", num, col); },
     async inkey$() { return Promise.resolve(""); },
     async input(msg) { console.log(msg); return ""; },
+    keyDef(num, repeat, ...codes) { this.debug("keyDef:", num, repeat, codes.join(", ")); },
     mode(num) { this.debug("mode:", num); },
     origin(x, y) { this.debug("origin:", x, y); },
     printGraphicsText(text) { this.debug("printGraphicsText:", text); },
