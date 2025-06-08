@@ -19,7 +19,7 @@ cols=80/xd:rows=50/yd
 pens=4^(2-m MOD 3)+ABS(m=2)
 x=7*8:y=399-7*8
 TAG
-MOVE x,y-00:PRINT "Mode";STR$(m);
+MOVE x,y-0 :PRINT "Mode";STR$(m);
 MOVE x,y-16:PRINT "Cols";STR$(cols);
 MOVE x,y-32:PRINT "Rows";STR$(rows);
 MOVE x,y-48:PRINT "Res.";cols*8;"x";STR$(rows*8);

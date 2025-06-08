@@ -168,6 +168,18 @@ cpcBasic.addIndex("./examples", {
 			"title": "N-queens problem"
 		},
 		{
+			"key": "primebe",
+			"title": "Prime Benchmark (trial division)"
+		},
+		{
+			"key": "primebe2",
+			"title": "Prime Benchmark (Sieve of Atkin)"
+		},
+		{
+			"key": "primebe3",
+			"title": "Prime Benchmark (Sieve of Eratosthenes)"
+		},
+		{
 			"key": "question",
 			"title": "Funny Questions and Answers"
 		},
@@ -184,6 +196,14 @@ cpcBasic.addIndex("./examples", {
 			"title": "Scrolling text"
 		},
 		{
+			"key": "serpent",
+			"title": "Serpent"
+		},
+		{
+			"key": "serpent2",
+			"title": "Serpent 2"
+		},
+		{
 			"key": "showasc",
 			"title": "Show ASCII table"
 		},
@@ -194,10 +214,6 @@ cpcBasic.addIndex("./examples", {
 		{
 			"key": "sierpin2",
 			"title": "Sierpinski triangle (graphical)"
-		},
-		{
-			"key": "sievebe",
-			"title": "Sieve Benchmark"
 		},
 		{
 			"key": "striart",

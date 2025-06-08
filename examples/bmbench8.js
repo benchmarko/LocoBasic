@@ -26,7 +26,7 @@ startTs = FNgetTs
 DIM command$(5)
 REM
 REM main()
-6000 bench1 = 0: REM first benchmark to test
+bench1 = 0: REM first benchmark to test
 bench2 = 5: REM last benchmark to test
 n = 1000000: REM maximum number
 IF bwbasic = 0 THEN n = 10000: REM reduce n for Locomotive BASIC

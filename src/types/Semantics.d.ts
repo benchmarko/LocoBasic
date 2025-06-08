@@ -39,7 +39,7 @@ export declare class Semantics implements ISemantics {
         Border(lit: Node, num: Node, comma: Node, num2: Node): string;
         Call(lit: Node, args: Node): string;
         Cat: (str: Node, ...args: Node[]) => string;
-        Chain(lit: Node, merge: Node, file: Node, comma: Node, num: Node, comma2: Node, del: Node, num2: Node): string;
+        Chain(lit: Node, merge: Node, file: Node, comma: Node, num: Node, comma2: Node, del: Node): string;
         ChrS(_chrLit: Node, _open: Node, e: Node, _close: Node): string;
         Cint(_cintLit: Node, _open: Node, e: Node, _close: Node): string;
         Clear: (str: Node, ...args: Node[]) => string;
@@ -103,7 +103,7 @@ export declare class Semantics implements ISemantics {
         Inkey(lit: Node, open: Node, num: Node, close: Node): string;
         InkeyS(_inkeySLit: Node): string;
         Inp(lit: Node, open: Node, num: Node, close: Node): string;
-        Input(_inputLit: Node, stream: Node, _comma: Node, message: Node, _semi: Node, ids: Node): string;
+        Input(_inputLit: Node, stream: Node, _comma: Node, _semi: Node, message: Node, _commaSemi: Node, ids: Node): string;
         Instr_noLen(_instrLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node): string;
         Instr_len(_instrLit: Node, _open: Node, len: Node, _comma1: Node, e1: Node, _comma2: Node, e2: Node, _close: Node): string;
         Int(_intLit: Node, _open: Node, num: Node, _close: Node): string;
@@ -250,7 +250,6 @@ export declare class Semantics implements ISemantics {
         decimalValue(value: Node): string;
         hexValue(_prefix: Node, value: Node): string;
         binaryValue(_prefix: Node, value: Node): string;
-        signedDecimal(sign: Node, value: Node): string;
         string(_quote1: Node, e: Node, quote2: Node): string;
         ident(ident: Node, suffix: Node): string;
         fnIdent(fn: Node, _space: Node, ident: Node, suffix: Node): string;

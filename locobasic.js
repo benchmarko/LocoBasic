@@ -229,7 +229,7 @@
       = cat
 
     Chain
-      = chain merge? StrExp ("," NumExp)? ("," delete label)? // delete simplified
+      = chain merge? StrExp ("," NumExp)? ("," Delete)?
 
     ChrS
       = chrS "(" NumExp ")"
@@ -271,15 +271,9 @@
     Cursor
       = cursor NumExp ("," NumExp)?
 
-    //unquotedAlphaNum
-    //  = digit+ letter alnum*
-
     DataUnquoted
       = binaryValue
       | hexValue
-      //= signedDecimal
-      //| number
-      //= unquotedAlphaNum
       | dataUnquoted
 
     DataItem
@@ -426,7 +420,7 @@
       = inp "(" NumExp ")"
 
     Input
-      = input (StreamArg ",")? (string (";" | ","))? NonemptyListOf<AnyIdent, ",">
+      = input (StreamArg ",")? ";"? (string (";" | ","))? NonemptyListOf<AnyIdent, ",">
 
     Instr
       = instr "(" StrExp "," StrExp ")" -- noLen
@@ -1052,7 +1046,7 @@
     fix
       = ("fix" | "FIX") ~identPart
     fn
-      = ("fn" | "FN")  //~identPart
+      = ("fn" | "FN")
     for
       = ("for" | "FOR") ~identPart
     frame
@@ -1444,7 +1438,7 @@
     fix
       := "FIX" ~identPart
     fn
-      := "FN"  //~identPart
+      := "FN"
     for
       := "FOR" ~identPart
     frame
@@ -2321,8 +2315,8 @@ ${dataList.join(",\n")}
                 return notSupported(lit, args.asIteration());
             },
             Cat: notSupported,
-            Chain(lit, merge, file, comma, num, comma2, del, num2) {
-                return notSupported(lit, merge, file, comma, num, comma2, del, num2);
+            Chain(lit, merge, file, comma, num, comma2, del) {
+                return notSupported(lit, merge, file, comma, num, comma2, del);
             },
             ChrS(_chrLit, _open, e, _close) {
                 return `String.fromCharCode(${e.eval()})`;
@@ -2573,7 +2567,7 @@ ${dataList.join(",\n")}
             Inp(lit, open, num, close) {
                 return notSupported(lit, open, num, close) + "0";
             },
-            Input(_inputLit, stream, _comma, message, _semi, ids) {
+            Input(_inputLit, stream, _comma, _semi, message, _commaSemi, ids) {
                 var _a;
                 semanticsHelper.addInstr("input");
                 const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
@@ -3133,16 +3127,17 @@ ${dataList.join(",\n")}
                 return notSupported(data) + `"${str}"`;
             },
             decimalValue(value) {
-                return value.sourceString.replace(/^(-?)(0+)(\d)/, "$1$3"); // avoid actal numbers: remove leading zeros, but keep sign
+                const valueStr = value.sourceString.replace(/^(-?)(0+)(\d)/, "$1$3"); // avoid octal numbers: remove leading zeros, but keep sign
+                if (valueStr !== value.sourceString) {
+                    notSupported(value);
+                }
+                return valueStr;
             },
             hexValue(_prefix, value) {
                 return `0x${value.sourceString}`;
             },
             binaryValue(_prefix, value) {
                 return `0b${value.sourceString}`;
-            },
-            signedDecimal(sign, value) {
-                return `${sign.sourceString}${value.sourceString}`;
             },
             string(_quote1, e, quote2) {
                 const str = e.sourceString.replace(/\\/g, "\\\\"); // escape backslashes
