@@ -1602,7 +1602,11 @@ ${dataList.join(",\n")}
 		},
 
 		decimalValue(value: Node) {
-			return value.sourceString.replace(/^(-?)(0+)(\d)/, "$1$3"); // avoid actal numbers: remove leading zeros, but keep sign
+			const valueStr = value.sourceString.replace(/^(-?)(0+)(\d)/, "$1$3"); // avoid octal numbers: remove leading zeros, but keep sign
+			if (valueStr !== value.sourceString) {
+				notSupported(value);
+			}
+			return valueStr;
 		},
 
 		hexValue(_prefix: Node, value: Node) {

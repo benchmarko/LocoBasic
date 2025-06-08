@@ -184,6 +184,14 @@ cpcBasic.addIndex("./examples", {
 			"title": "Scrolling text"
 		},
 		{
+			"key": "serpent",
+			"title": "Serpent"
+		},
+		{
+			"key": "serpent2",
+			"title": "Serpent 2"
+		},
+		{
 			"key": "showasc",
 			"title": "Show ASCII table"
 		},
