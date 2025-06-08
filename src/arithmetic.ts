@@ -160,7 +160,7 @@ export const arithmetic = {
       = cat
 
     Chain
-      = chain merge? StrExp ("," NumExp)? ("," delete label)? // delete simplified
+      = chain merge? StrExp ("," NumExp)? ("," Delete)?
 
     ChrS
       = chrS "(" NumExp ")"
@@ -202,15 +202,9 @@ export const arithmetic = {
     Cursor
       = cursor NumExp ("," NumExp)?
 
-    //unquotedAlphaNum
-    //  = digit+ letter alnum*
-
     DataUnquoted
       = binaryValue
       | hexValue
-      //= signedDecimal
-      //| number
-      //= unquotedAlphaNum
       | dataUnquoted
 
     DataItem
@@ -357,7 +351,7 @@ export const arithmetic = {
       = inp "(" NumExp ")"
 
     Input
-      = input (StreamArg ",")? (string (";" | ","))? NonemptyListOf<AnyIdent, ",">
+      = input (StreamArg ",")? ";"? (string (";" | ","))? NonemptyListOf<AnyIdent, ",">
 
     Instr
       = instr "(" StrExp "," StrExp ")" -- noLen
@@ -983,7 +977,7 @@ export const arithmetic = {
     fix
       = ("fix" | "FIX") ~identPart
     fn
-      = ("fn" | "FN")  //~identPart
+      = ("fn" | "FN")
     for
       = ("for" | "FOR") ~identPart
     frame
@@ -1377,7 +1371,7 @@ export const arithmetic = {
     fix
       := "FIX" ~identPart
     fn
-      := "FN"  //~identPart
+      := "FN"
     for
       := "FOR" ~identPart
     frame

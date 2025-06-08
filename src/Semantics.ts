@@ -573,8 +573,8 @@ ${dataList.join(",\n")}
 
 		Cat: notSupported,
 
-		Chain(lit: Node, merge: Node, file: Node, comma: Node, num: Node, comma2: Node, del: Node, num2: Node) {
-			return notSupported(lit, merge, file, comma, num, comma2, del, num2);
+		Chain(lit: Node, merge: Node, file: Node, comma: Node, num: Node, comma2: Node, del: Node) {
+			return notSupported(lit, merge, file, comma, num, comma2, del);
 		},
 
 		ChrS(_chrLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -901,7 +901,7 @@ ${dataList.join(",\n")}
 			return notSupported(lit, open, num, close) + "0";
 		},
 
-		Input(_inputLit: Node, stream: Node, _comma: Node, message: Node, _semi: Node, ids: Node) {
+		Input(_inputLit: Node, stream: Node, _comma: Node, _semi: Node, message: Node, _commaSemi: Node, ids: Node) {
 			semanticsHelper.addInstr("input");
 			const streamStr = stream.child(0)?.eval() || "";
 
@@ -1615,10 +1615,6 @@ ${dataList.join(",\n")}
 
 		binaryValue(_prefix: Node, value: Node) {
 			return `0b${value.sourceString}`;
-		},
-
-		signedDecimal(sign: Node, value: Node) {
-			return `${sign.sourceString}${value.sourceString}`;
 		},
 
 		string(_quote1: Node, e: Node, quote2: Node) {
