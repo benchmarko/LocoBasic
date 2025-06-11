@@ -42,7 +42,9 @@ export type SnippetDataType = {
     startTime: number;
     timerMap: Record<number, number | NodeJS.Timeout | undefined>;
     output: string;
+    paperSpanPos: number;
     paperValue: number;
+    penSpanPos: number;
     penValue: number;
     pos: number;
     tag: boolean;

@@ -86,29 +86,59 @@ export class BasicVmBrowser implements IVmAdmin {
         this.vmCore.mode(num);
     }
 
-    private getColorForPenPaper(snippetData: SnippetDataType, needClose: boolean) {
-        const cpcColors = BasicVmCore.getCpcColors();
-        const colorForPen = snippetData.penValue >= 0 ? `color: ${cpcColors[this.vmCore.getColorForPen(snippetData.penValue)]}` : "";
-        const colorForPaper = snippetData.paperValue >= 0 ? `background-color: ${cpcColors[this.vmCore.getColorForPen(snippetData.paperValue)]}` : "";
-        const style = colorForPen + (colorForPen && colorForPaper ? ";" : "") + colorForPaper;
-        return (needClose ? "</span>" : "") + `<span style="${style}">`;
-    }
+    // Use a virtual stack to handle paper and pen spans
 
     public paper(n: number): void {
         const snippetData = this.vmCore.getSnippetData();
         if (n !== snippetData.paperValue) {
-            const needClose = snippetData.paperValue >= 0 || snippetData.penValue >= 0; // pen/paper was set before
+            // close open paper first
+            if (snippetData.paperSpanPos >= 0) {
+                if (snippetData.penSpanPos > snippetData.paperSpanPos) { // if pen inside paper is open, close it
+                    snippetData.output += "</span>";
+                    snippetData.penSpanPos = -1;
+                }
+                snippetData.output += "</span>";
+                snippetData.paperSpanPos = -1;
+            }
+
+            // Open new paper span
             snippetData.paperValue = n;
-            snippetData.output += this.getColorForPenPaper(snippetData, needClose);
+            snippetData.paperSpanPos = snippetData.penSpanPos + 1;
+            const cpcColors = BasicVmCore.getCpcColors();
+            snippetData.output += `<span style="background-color: ${cpcColors[this.vmCore.getColorForPen(n)]}">`;
+
+            // If pen was open before, reopen it inside
+            if (snippetData.penValue >= 0 && snippetData.penSpanPos === -1) {
+                snippetData.penSpanPos = snippetData.paperSpanPos + 1;
+                snippetData.output += `<span style="color: ${cpcColors[this.vmCore.getColorForPen(snippetData.penValue)]}">`;
+            }
         }
     }
 
     public pen(n: number): void {
         const snippetData = this.vmCore.getSnippetData();
         if (n !== snippetData.penValue) {
-            const needClose = snippetData.paperValue >= 0 || snippetData.penValue >= 0; // pen/paper was set before
+            // close open pen first
+            if (snippetData.penSpanPos >= 0) {
+                if (snippetData.paperSpanPos > snippetData.penSpanPos) { // if paper inside pen is open, close it
+                    snippetData.output += "</span>";
+                    snippetData.paperSpanPos = -1;
+                }
+                snippetData.output += "</span>";
+                snippetData.penSpanPos = -1;
+            }
+
+            // Open new pen span
             snippetData.penValue = n;
-            snippetData.output += this.getColorForPenPaper(snippetData, needClose);
+            snippetData.penSpanPos = snippetData.paperSpanPos + 1;
+            const cpcColors = BasicVmCore.getCpcColors();
+            snippetData.output += `<span style="color: ${cpcColors[this.vmCore.getColorForPen(n)]}">`;
+
+             // If paper was open before, reopen it inside
+            if (snippetData.paperValue >= 0 && snippetData.paperSpanPos === -1) {
+                snippetData.paperSpanPos = snippetData.penSpanPos + 1;
+                snippetData.output += `<span style="background-color: ${cpcColors[this.vmCore.getColorForPen(snippetData.paperValue)]}">`;
+            }
         }
     }
 
