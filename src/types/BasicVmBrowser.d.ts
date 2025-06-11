@@ -12,7 +12,6 @@ export declare class BasicVmBrowser implements IVmAdmin {
     xpos: () => number;
     ypos: () => number;
     getSnippetData: () => SnippetDataType;
-    getColorForPen: (n: number, isPaper?: boolean) => string;
     constructor(ui: IUI);
     cls(): void;
     escapeText(str: string, _isGraphics?: boolean): string;
@@ -27,6 +26,9 @@ export declare class BasicVmBrowser implements IVmAdmin {
     input(msg: string): Promise<string | null>;
     keyDef(num: number, repeat: number, ...codes: number[]): void;
     mode(num: number): void;
+    private getColorForPenPaper;
+    paper(n: number): void;
+    pen(n: number): void;
     private fnOnSpeak;
     getEscape(): boolean;
 }

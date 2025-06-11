@@ -1823,6 +1823,8 @@
             resetText: function resetText() {
                 Object.assign(_d, {
                     output: "",
+                    paperValue: -1,
+                    penValue: -1,
                     pos: 0,
                     tag: false,
                     vpos: 0,
@@ -1940,10 +1942,10 @@
                 _o.origin(x, y);
             },
             paper: function paper(n) {
-                _d.output += _o.getColorForPen(n, true);
+                _o.paper(n);
             },
             pen: function pen(n) {
-                _d.output += _o.getColorForPen(n);
+                _o.pen(n);
             },
             plot: function plot(x, y, pen) {
                 _o.drawMovePlot("P", x, y, pen);
@@ -3505,7 +3507,7 @@ ${dataList.join(",\n")}
 
     const strokeWidthForMode = [4, 2, 1, 1];
     class BasicVmCore {
-        constructor(penColors, paperColors) {
+        constructor() {
             this.currMode = 2;
             this.graphicsBuffer = [];
             this.graphicsPathBuffer = [];
@@ -3521,8 +3523,6 @@ ${dataList.join(",\n")}
             this.defaultColorsForPens = [
                 1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
             ];
-            this.penColors = penColors;
-            this.paperColors = paperColors;
             this.rsxHandler = new BasicVmRsxHandler(this);
             this.reset();
         }
@@ -3649,8 +3649,8 @@ ${content}
             this.originX = x;
             this.originY = y;
         }
-        getColorForPen(n, isPaper) {
-            return isPaper ? this.paperColors[this.colorsForPens[n]] : this.penColors[this.colorsForPens[n]];
+        getColorForPen(n) {
+            return this.colorsForPens[n];
         }
         printGraphicsText(text) {
             const yOffset = 16;
@@ -3750,9 +3750,9 @@ ${content}
     class BasicVmNode {
         constructor(nodeParts) {
             this.nodeParts = nodeParts;
-            const penColors = getAnsiColors(false);
-            const paperColors = getAnsiColors(true);
-            this.vmCore = new BasicVmCore(penColors, paperColors);
+            this.penColors = getAnsiColors(false);
+            this.paperColors = getAnsiColors(true);
+            this.vmCore = new BasicVmCore();
             this.reset = this.vmCore.reset.bind(this.vmCore);
             this.drawMovePlot = this.vmCore.drawMovePlot.bind(this.vmCore);
             this.graphicsPen = this.vmCore.graphicsPen.bind(this.vmCore);
@@ -3763,7 +3763,6 @@ ${content}
             this.xpos = this.vmCore.xpos.bind(this.vmCore);
             this.ypos = this.vmCore.ypos.bind(this.vmCore);
             this.getSnippetData = this.vmCore.getSnippetData.bind(this.vmCore);
-            this.getColorForPen = this.vmCore.getColorForPen.bind(this.vmCore);
         }
         cls() {
             this.vmCore.cls();
@@ -3800,6 +3799,20 @@ ${content}
         mode(num) {
             this.vmCore.mode(num);
         }
+        paper(n) {
+            const snippetData = this.vmCore.getSnippetData();
+            if (n !== snippetData.paperValue) {
+                snippetData.paperValue = n;
+                snippetData.output += this.paperColors[this.vmCore.getColorForPen(n)];
+            }
+        }
+        pen(n) {
+            const snippetData = this.vmCore.getSnippetData();
+            if (n !== snippetData.penValue) {
+                snippetData.penValue = n;
+                snippetData.output += this.penColors[this.vmCore.getColorForPen(n)];
+            }
+        }
         getEscape() {
             return this.nodeParts.getEscape();
         }
@@ -3823,13 +3836,14 @@ ${content}
         keyDef(num, repeat, ...codes) { this.debug("keyDef:", num, repeat, codes.join(", ")); },
         mode(num) { this.debug("mode:", num); },
         origin(x, y) { this.debug("origin:", x, y); },
+        paper(num) { this.debug("paper:", num); },
+        pen(num) { this.debug("pen:", num); },
         printGraphicsText(text) { this.debug("printGraphicsText:", text); },
         rsx(cmd, args) { this._snippetData.output += cmd + "," + args.join(''); return Promise.resolve([]); },
         xpos() { this.debug("xpos:"); return 0; },
         ypos() { this.debug("ypos:"); return 0; },
         getEscape() { return false; },
-        getSnippetData() { return this._snippetData; },
-        getColorForPen(_n, isPaper) { this.debug("getColorForPen:"); return isPaper ? "0" : "1"; }
+        getSnippetData() { return this._snippetData; }
     };
     function isUrl(s) {
         return s.startsWith("http"); // http or https
@@ -4147,10 +4161,7 @@ node hello1.js
     class BasicVmBrowser {
         constructor(ui) {
             this.ui = ui;
-            const cpcColors = BasicVmCore.getCpcColors();
-            const penColors = cpcColors.map((color) => ui.getColor(color, false));
-            const paperColors = cpcColors.map((color) => ui.getColor(color, true));
-            this.vmCore = new BasicVmCore(penColors, paperColors);
+            this.vmCore = new BasicVmCore();
             this.vmCore.setOnSpeak(this.fnOnSpeak.bind(this));
             this.reset = this.vmCore.reset.bind(this.vmCore);
             this.drawMovePlot = this.vmCore.drawMovePlot.bind(this.vmCore);
@@ -4162,7 +4173,6 @@ node hello1.js
             this.xpos = this.vmCore.xpos.bind(this.vmCore);
             this.ypos = this.vmCore.ypos.bind(this.vmCore);
             this.getSnippetData = this.vmCore.getSnippetData.bind(this.vmCore);
-            this.getColorForPen = this.vmCore.getColorForPen.bind(this.vmCore);
         }
         cls() {
             this.vmCore.cls();
@@ -4207,6 +4217,29 @@ node hello1.js
         }
         mode(num) {
             this.vmCore.mode(num);
+        }
+        getColorForPenPaper(snippetData, needClose) {
+            const cpcColors = BasicVmCore.getCpcColors();
+            const colorForPen = snippetData.penValue >= 0 ? `color: ${cpcColors[this.vmCore.getColorForPen(snippetData.penValue)]}` : "";
+            const colorForPaper = snippetData.paperValue >= 0 ? `background-color: ${cpcColors[this.vmCore.getColorForPen(snippetData.paperValue)]}` : "";
+            const style = colorForPen + (colorForPen && colorForPaper ? ";" : "") + colorForPaper;
+            return (needClose ? "</span>" : "") + `<span style="${style}">`;
+        }
+        paper(n) {
+            const snippetData = this.vmCore.getSnippetData();
+            if (n !== snippetData.paperValue) {
+                const needClose = snippetData.paperValue >= 0 || snippetData.penValue >= 0; // pen/paper was set before
+                snippetData.paperValue = n;
+                snippetData.output += this.getColorForPenPaper(snippetData, needClose);
+            }
+        }
+        pen(n) {
+            const snippetData = this.vmCore.getSnippetData();
+            if (n !== snippetData.penValue) {
+                const needClose = snippetData.paperValue >= 0 || snippetData.penValue >= 0; // pen/paper was set before
+                snippetData.penValue = n;
+                snippetData.output += this.getColorForPenPaper(snippetData, needClose);
+            }
         }
         async fnOnSpeak(text, pitch) {
             return this.ui.speak(text, pitch);

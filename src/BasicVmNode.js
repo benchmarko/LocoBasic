@@ -40,9 +40,9 @@ function getAnsiColors(background) {
 export class BasicVmNode {
     constructor(nodeParts) {
         this.nodeParts = nodeParts;
-        const penColors = getAnsiColors(false);
-        const paperColors = getAnsiColors(true);
-        this.vmCore = new BasicVmCore(penColors, paperColors);
+        this.penColors = getAnsiColors(false);
+        this.paperColors = getAnsiColors(true);
+        this.vmCore = new BasicVmCore();
         this.reset = this.vmCore.reset.bind(this.vmCore);
         this.drawMovePlot = this.vmCore.drawMovePlot.bind(this.vmCore);
         this.graphicsPen = this.vmCore.graphicsPen.bind(this.vmCore);
@@ -53,7 +53,6 @@ export class BasicVmNode {
         this.xpos = this.vmCore.xpos.bind(this.vmCore);
         this.ypos = this.vmCore.ypos.bind(this.vmCore);
         this.getSnippetData = this.vmCore.getSnippetData.bind(this.vmCore);
-        this.getColorForPen = this.vmCore.getColorForPen.bind(this.vmCore);
     }
     cls() {
         this.vmCore.cls();
@@ -89,6 +88,20 @@ export class BasicVmNode {
     }
     mode(num) {
         this.vmCore.mode(num);
+    }
+    paper(n) {
+        const snippetData = this.vmCore.getSnippetData();
+        if (n !== snippetData.paperValue) {
+            snippetData.paperValue = n;
+            snippetData.output += this.paperColors[this.vmCore.getColorForPen(n)];
+        }
+    }
+    pen(n) {
+        const snippetData = this.vmCore.getSnippetData();
+        if (n !== snippetData.penValue) {
+            snippetData.penValue = n;
+            snippetData.output += this.penColors[this.vmCore.getColorForPen(n)];
+        }
     }
     getEscape() {
         return this.nodeParts.getEscape();

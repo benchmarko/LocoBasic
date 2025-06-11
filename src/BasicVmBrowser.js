@@ -2,10 +2,7 @@ import { BasicVmCore } from "./BasicVmCore";
 export class BasicVmBrowser {
     constructor(ui) {
         this.ui = ui;
-        const cpcColors = BasicVmCore.getCpcColors();
-        const penColors = cpcColors.map((color) => ui.getColor(color, false));
-        const paperColors = cpcColors.map((color) => ui.getColor(color, true));
-        this.vmCore = new BasicVmCore(penColors, paperColors);
+        this.vmCore = new BasicVmCore();
         this.vmCore.setOnSpeak(this.fnOnSpeak.bind(this));
         this.reset = this.vmCore.reset.bind(this.vmCore);
         this.drawMovePlot = this.vmCore.drawMovePlot.bind(this.vmCore);
@@ -17,7 +14,6 @@ export class BasicVmBrowser {
         this.xpos = this.vmCore.xpos.bind(this.vmCore);
         this.ypos = this.vmCore.ypos.bind(this.vmCore);
         this.getSnippetData = this.vmCore.getSnippetData.bind(this.vmCore);
-        this.getColorForPen = this.vmCore.getColorForPen.bind(this.vmCore);
     }
     cls() {
         this.vmCore.cls();
@@ -62,6 +58,29 @@ export class BasicVmBrowser {
     }
     mode(num) {
         this.vmCore.mode(num);
+    }
+    getColorForPenPaper(snippetData, needClose) {
+        const cpcColors = BasicVmCore.getCpcColors();
+        const colorForPen = snippetData.penValue >= 0 ? `color: ${cpcColors[this.vmCore.getColorForPen(snippetData.penValue)]}` : "";
+        const colorForPaper = snippetData.paperValue >= 0 ? `background-color: ${cpcColors[this.vmCore.getColorForPen(snippetData.paperValue)]}` : "";
+        const style = colorForPen + (colorForPen && colorForPaper ? ";" : "") + colorForPaper;
+        return (needClose ? "</span>" : "") + `<span style="${style}">`;
+    }
+    paper(n) {
+        const snippetData = this.vmCore.getSnippetData();
+        if (n !== snippetData.paperValue) {
+            const needClose = snippetData.paperValue >= 0 || snippetData.penValue >= 0; // pen/paper was set before
+            snippetData.paperValue = n;
+            snippetData.output += this.getColorForPenPaper(snippetData, needClose);
+        }
+    }
+    pen(n) {
+        const snippetData = this.vmCore.getSnippetData();
+        if (n !== snippetData.penValue) {
+            const needClose = snippetData.paperValue >= 0 || snippetData.penValue >= 0; // pen/paper was set before
+            snippetData.penValue = n;
+            snippetData.output += this.getColorForPenPaper(snippetData, needClose);
+        }
     }
     async fnOnSpeak(text, pitch) {
         return this.ui.speak(text, pitch);

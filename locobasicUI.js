@@ -457,9 +457,6 @@
                 }
             }
         }
-        getColor(color, background) {
-            return `<span style="${background ? 'background-color' : 'color'}: ${color}">`;
-        }
         /**
          * Prompts the user with a message and returns the input.
          * @param msg - The message to prompt.

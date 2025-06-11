@@ -1,7 +1,7 @@
 import { BasicVmRsxHandler } from "./BasicVmRsxHandler";
 const strokeWidthForMode = [4, 2, 1, 1];
 export class BasicVmCore {
-    constructor(penColors, paperColors) {
+    constructor() {
         this.currMode = 2;
         this.graphicsBuffer = [];
         this.graphicsPathBuffer = [];
@@ -17,8 +17,6 @@ export class BasicVmCore {
         this.defaultColorsForPens = [
             1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
         ];
-        this.penColors = penColors;
-        this.paperColors = paperColors;
         this.rsxHandler = new BasicVmRsxHandler(this);
         this.reset();
     }
@@ -145,8 +143,8 @@ ${content}
         this.originX = x;
         this.originY = y;
     }
-    getColorForPen(n, isPaper) {
-        return isPaper ? this.paperColors[this.colorsForPens[n]] : this.penColors[this.colorsForPens[n]];
+    getColorForPen(n) {
+        return this.colorsForPens[n];
     }
     printGraphicsText(text) {
         const yOffset = 16;

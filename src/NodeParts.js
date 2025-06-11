@@ -17,13 +17,14 @@ const dummyVm = {
     keyDef(num, repeat, ...codes) { this.debug("keyDef:", num, repeat, codes.join(", ")); },
     mode(num) { this.debug("mode:", num); },
     origin(x, y) { this.debug("origin:", x, y); },
+    paper(num) { this.debug("paper:", num); },
+    pen(num) { this.debug("pen:", num); },
     printGraphicsText(text) { this.debug("printGraphicsText:", text); },
     rsx(cmd, args) { this._snippetData.output += cmd + "," + args.join(''); return Promise.resolve([]); },
     xpos() { this.debug("xpos:"); return 0; },
     ypos() { this.debug("ypos:"); return 0; },
     getEscape() { return false; },
-    getSnippetData() { return this._snippetData; },
-    getColorForPen(_n, isPaper) { this.debug("getColorForPen:"); return isPaper ? "0" : "1"; }
+    getSnippetData() { return this._snippetData; }
 };
 function isUrl(s) {
     return s.startsWith("http"); // http or https

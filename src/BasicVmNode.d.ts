@@ -2,6 +2,8 @@ import type { INodeParts, IVmAdmin, SnippetDataType } from "./Interfaces";
 export declare class BasicVmNode implements IVmAdmin {
     private readonly vmCore;
     private readonly nodeParts;
+    private readonly penColors;
+    private readonly paperColors;
     reset: () => void;
     drawMovePlot: (type: string, x: number, y: number, pen?: number) => void;
     graphicsPen: (num: number) => void;
@@ -12,7 +14,6 @@ export declare class BasicVmNode implements IVmAdmin {
     xpos: () => number;
     ypos: () => number;
     getSnippetData: () => SnippetDataType;
-    getColorForPen: (n: number, isPaper?: boolean) => string;
     constructor(nodeParts: INodeParts);
     cls(): void;
     escapeText(str: string, isGraphics?: boolean): string;
@@ -22,6 +23,8 @@ export declare class BasicVmNode implements IVmAdmin {
     input(msg: string): Promise<string | null>;
     keyDef(_num: number, _repeat: number, ..._codes: number[]): void;
     mode(num: number): void;
+    paper(n: number): void;
+    pen(n: number): void;
     getEscape(): boolean;
 }
 //# sourceMappingURL=BasicVmNode.d.ts.map

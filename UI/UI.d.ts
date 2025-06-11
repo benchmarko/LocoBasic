@@ -29,7 +29,6 @@ export declare class UI implements IUI {
     setOutputText(value: string): void;
     private onUserKeyClick;
     setUiKeys(codes: number[]): void;
-    getColor(color: string, background: boolean): string;
     /**
      * Prompts the user with a message and returns the input.
      * @param msg - The message to prompt.

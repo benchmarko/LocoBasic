@@ -1,7 +1,5 @@
 import type { IVmRsxApi, SnippetDataType } from "./Interfaces";
 export declare class BasicVmCore implements IVmRsxApi {
-    private readonly penColors;
-    private readonly paperColors;
     private currMode;
     private readonly graphicsBuffer;
     private readonly graphicsPathBuffer;
@@ -17,7 +15,7 @@ export declare class BasicVmCore implements IVmRsxApi {
     private outputGraphicsIndex;
     private static readonly cpcColors;
     private readonly defaultColorsForPens;
-    constructor(penColors: string[], paperColors: string[]);
+    constructor();
     static getCpcColors(): string[];
     private static deleteAllItems;
     reset(): void;
@@ -36,7 +34,7 @@ export declare class BasicVmCore implements IVmRsxApi {
     graphicsPen(num: number): void;
     ink(num: number, col: number): void;
     origin(x: number, y: number): void;
-    getColorForPen(n: number, isPaper?: boolean): string;
+    getColorForPen(n: number): number;
     printGraphicsText(text: string): void;
     setOnSpeak(fnOnSpeak: (text: string, pitch: number) => Promise<void>): void;
     rsx(cmd: string, args: (number | string)[]): Promise<(number | string)[]>;
