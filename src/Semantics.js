@@ -17,7 +17,9 @@ function getCodeSnippets(snippetsData) {
         resetText: function resetText() {
             Object.assign(_d, {
                 output: "",
+                paperSpanPos: -1,
                 paperValue: -1,
+                penSpanPos: -1,
                 penValue: -1,
                 pos: 0,
                 tag: false,

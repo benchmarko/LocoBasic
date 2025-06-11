@@ -26,7 +26,6 @@ export declare class BasicVmBrowser implements IVmAdmin {
     input(msg: string): Promise<string | null>;
     keyDef(num: number, repeat: number, ...codes: number[]): void;
     mode(num: number): void;
-    private getColorForPenPaper;
     paper(n: number): void;
     pen(n: number): void;
     private fnOnSpeak;
