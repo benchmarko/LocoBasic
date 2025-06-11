@@ -44,6 +44,8 @@ function getAnsiColors(background: boolean): string[] {
 export class BasicVmNode implements IVmAdmin {
     private readonly vmCore: BasicVmCore;
     private readonly nodeParts: INodeParts;
+    private readonly penColors: string[];
+    private readonly paperColors: string[];
 
     public reset: () => void;
     public drawMovePlot: (type: string, x: number, y: number, pen?: number) => void;
@@ -55,13 +57,12 @@ export class BasicVmNode implements IVmAdmin {
     public xpos: () => number;
     public ypos: () => number;
     public getSnippetData: () => SnippetDataType;
-    public getColorForPen: (n: number, isPaper?: boolean) => string;
 
     constructor(nodeParts: INodeParts) {
         this.nodeParts = nodeParts;
-        const penColors = getAnsiColors(false);
-        const paperColors = getAnsiColors(true);
-        this.vmCore = new BasicVmCore(penColors, paperColors);
+        this.penColors = getAnsiColors(false);
+        this.paperColors = getAnsiColors(true);
+        this.vmCore = new BasicVmCore();
 
         this.reset = this.vmCore.reset.bind(this.vmCore);
         this.drawMovePlot = this.vmCore.drawMovePlot.bind(this.vmCore);
@@ -73,7 +74,6 @@ export class BasicVmNode implements IVmAdmin {
         this.xpos = this.vmCore.xpos.bind(this.vmCore);
         this.ypos = this.vmCore.ypos.bind(this.vmCore);
         this.getSnippetData = this.vmCore.getSnippetData.bind(this.vmCore);
-        this.getColorForPen = this.vmCore.getColorForPen.bind(this.vmCore);
     }
 
     public cls(): void {
@@ -117,6 +117,22 @@ export class BasicVmNode implements IVmAdmin {
 
     public mode(num: number): void {
         this.vmCore.mode(num);
+    }
+
+    public paper(n: number): void {
+        const snippetData = this.vmCore.getSnippetData();
+        if (n !== snippetData.paperValue) {
+            snippetData.paperValue = n;
+            snippetData.output += this.paperColors[this.vmCore.getColorForPen(n)];
+        }
+    }
+
+    public pen(n: number): void {
+        const snippetData = this.vmCore.getSnippetData();
+        if (n !== snippetData.penValue) {
+            snippetData.penValue = n;
+            snippetData.output += this.penColors[this.vmCore.getColorForPen(n)];
+        }
     }
 
     public getEscape(): boolean {

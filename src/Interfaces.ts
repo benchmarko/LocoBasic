@@ -42,8 +42,8 @@ export type SnippetDataType = {
     startTime: number;
     timerMap: Record<number, number | NodeJS.Timeout | undefined>;
     output: string;
-    paper: number;
-    pen: number;
+    paperValue: number;
+    penValue: number;
     pos: number;
     tag: boolean;
     vpos: number;
@@ -61,6 +61,8 @@ export interface IVm {
     input(msg: string): Promise<string | null>;
     keyDef(num: number, repeat: number, ...codes: number[]): void;
     mode(num: number): void;
+    paper(num: number): void;
+    pen(num: number): void;
     origin(x: number, y: number): void;
     printGraphicsText(text: string): void;
     rsx(cmd: string, args: (string | number)[]): Promise<(number | string)[]>;
@@ -68,7 +70,6 @@ export interface IVm {
     ypos(): number;
     getEscape(): boolean;
     getSnippetData(): SnippetDataType;
-    getColorForPen(n: number, isPaper?: boolean): string;
 }
 
 export interface IVmAdmin extends IVm {
@@ -126,7 +127,6 @@ export interface INodeParts {
 export interface IUI {
     addOutputText(value: string, hasGraphics?: boolean): void;
     checkSyntax(str: string): Promise<string>;
-    getColor(color: string, background: boolean): string;
     getCurrentDataKey(): string;
     getEscape(): boolean;
     getKeyFromBuffer(): string;

@@ -25,6 +25,8 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 		resetText: function resetText() {
 			Object.assign(_d, {
 				output: "",
+				paperValue: -1,
+				penValue: -1,
 				pos: 0,
 				tag: false,
 				vpos: 0,
@@ -139,10 +141,10 @@ function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
 			_o.origin(x, y);
 		},
 		paper: function paper(n: number) {
-			_d.output += _o.getColorForPen(n, true);
+			_o.paper(n);
 		},
 		pen: function pen(n: number) {
-			_d.output += _o.getColorForPen(n);
+			_o.pen(n);
 		},
 		plot: function plot(x: number, y: number, pen?: number) {
 			_o.drawMovePlot("P", x, y, pen);

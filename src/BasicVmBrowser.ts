@@ -15,14 +15,10 @@ export class BasicVmBrowser implements IVmAdmin {
     public xpos: () => number;
     public ypos: () => number;
     public getSnippetData: () => SnippetDataType;
-    public getColorForPen: (n: number, isPaper?: boolean) => string;
 
     constructor(ui: IUI) {
         this.ui = ui;
-        const cpcColors = BasicVmCore.getCpcColors();
-        const penColors = cpcColors.map((color) => ui.getColor(color, false));
-        const paperColors = cpcColors.map((color) => ui.getColor(color, true));
-        this.vmCore = new BasicVmCore(penColors, paperColors);
+        this.vmCore = new BasicVmCore();
         this.vmCore.setOnSpeak(this.fnOnSpeak.bind(this));
 
         this.reset = this.vmCore.reset.bind(this.vmCore);
@@ -35,7 +31,6 @@ export class BasicVmBrowser implements IVmAdmin {
         this.xpos = this.vmCore.xpos.bind(this.vmCore);
         this.ypos = this.vmCore.ypos.bind(this.vmCore);
         this.getSnippetData = this.vmCore.getSnippetData.bind(this.vmCore);
-        this.getColorForPen = this.vmCore.getColorForPen.bind(this.vmCore);
     }
 
     public cls(): void {
@@ -89,6 +84,32 @@ export class BasicVmBrowser implements IVmAdmin {
 
     public mode(num: number): void {
         this.vmCore.mode(num);
+    }
+
+    private getColorForPenPaper(snippetData: SnippetDataType, needClose: boolean) {
+        const cpcColors = BasicVmCore.getCpcColors();
+        const colorForPen = snippetData.penValue >= 0 ? `color: ${cpcColors[this.vmCore.getColorForPen(snippetData.penValue)]}` : "";
+        const colorForPaper = snippetData.paperValue >= 0 ? `background-color: ${cpcColors[this.vmCore.getColorForPen(snippetData.paperValue)]}` : "";
+        const style = colorForPen + (colorForPen && colorForPaper ? ";" : "") + colorForPaper;
+        return (needClose ? "</span>" : "") + `<span style="${style}">`;
+    }
+
+    public paper(n: number): void {
+        const snippetData = this.vmCore.getSnippetData();
+        if (n !== snippetData.paperValue) {
+            const needClose = snippetData.paperValue >= 0 || snippetData.penValue >= 0; // pen/paper was set before
+            snippetData.paperValue = n;
+            snippetData.output += this.getColorForPenPaper(snippetData, needClose);
+        }
+    }
+
+    public pen(n: number): void {
+        const snippetData = this.vmCore.getSnippetData();
+        if (n !== snippetData.penValue) {
+            const needClose = snippetData.paperValue >= 0 || snippetData.penValue >= 0; // pen/paper was set before
+            snippetData.penValue = n;
+            snippetData.output += this.getColorForPenPaper(snippetData, needClose);
+        }
     }
 
     private async fnOnSpeak(text: string, pitch: number): Promise<void> {

@@ -58,13 +58,14 @@ const dummyVm: DummyVm = {
     keyDef(num: number, repeat: number, ...codes: number[]) { this.debug("keyDef:", num, repeat, codes.join(", ")); },
     mode(num: number) { this.debug("mode:", num); },
     origin(x: number, y: number) { this.debug("origin:", x, y); },
+    paper(num: number) { this.debug("paper:", num); },
+    pen(num: number) { this.debug("pen:", num); },
     printGraphicsText(text: string) { this.debug("printGraphicsText:", text); },
     rsx(cmd: string, args: (string | number)[]): Promise<(number | string)[]> { this._snippetData.output += cmd + "," + args.join(''); return Promise.resolve([]); },
     xpos() { this.debug("xpos:"); return 0; },
     ypos() { this.debug("ypos:"); return 0; },
     getEscape() { return false; },
-    getSnippetData() { return this._snippetData; },
-    getColorForPen(_n: number, isPaper?: boolean) { this.debug("getColorForPen:"); return isPaper ? "0" : "1"; }
+    getSnippetData() { return this._snippetData; }
 };
 
 function isUrl(s: string) {

@@ -242,7 +242,7 @@ DATA "Was ist Quacksalber?", "Scharlatanerie"
 DATA "Was ist Messing?", "eine Legierung"
 DATA "Was ist Quarz?", "ein Mineral"
 DATA "Was ist Kalkwasser?", "eine Loesung"
-DATA "Was ist (undestilliertes) Wasser?", "eine Verbildung"
+DATA "Was ist (undestilliertes) Wasser?", "eine Verbindung"
 DATA 3
 DATA "Was ist Inflation?", "Geldentwertung"
 DATA "Was ist das Gegenteil von Inflation?", "Geldaufwertung"

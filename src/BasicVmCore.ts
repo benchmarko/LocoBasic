@@ -4,8 +4,6 @@ import { BasicVmRsxHandler } from "./BasicVmRsxHandler";
 const strokeWidthForMode: number[] = [4, 2, 1, 1];
 
 export class BasicVmCore implements IVmRsxApi {
-    private readonly penColors: string[];
-    private readonly paperColors: string[];
     private currMode: number = 2;
     private readonly graphicsBuffer: string[] = [];
     private readonly graphicsPathBuffer: string[] = [];
@@ -60,9 +58,7 @@ export class BasicVmCore implements IVmRsxApi {
         1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
     ];
 
-    public constructor(penColors: string[], paperColors: string[]) {
-        this.penColors = penColors;
-        this.paperColors = paperColors;
+    public constructor() {
         this.rsxHandler = new BasicVmRsxHandler(this);
         this.reset();
     }
@@ -212,8 +208,8 @@ ${content}
         this.originY = y;
     }
 
-    public getColorForPen(n: number, isPaper?: boolean): string {
-        return isPaper ? this.paperColors[this.colorsForPens[n]] : this.penColors[this.colorsForPens[n]];
+    public getColorForPen(n: number): number {
+        return this.colorsForPens[n];
     }
 
     public printGraphicsText(text: string): void {
