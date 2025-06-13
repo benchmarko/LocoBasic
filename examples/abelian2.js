@@ -19,9 +19,10 @@ FOR rows = 5 TO 95 STEP 5
   t=TIME-t0
   CLS
   TAG
-  MOVE 0,399:PRINT "height";height;", cols=";cols;", rows=";rows;", time=";ROUND(t*10/3,3)
+  MOVE 0,399:PRINT cols;"x";rows;" height";height;" time";ROUND(t*10/3,3);
   TAGOFF
   GOSUB 700 'graphical output
+  GRAPHICS PEN 1
   FRAME:t=t0+300:WHILE TIME<t AND INKEY$="":WEND
 NEXT rows
 END

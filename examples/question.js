@@ -6,6 +6,7 @@ cpcBasic.addItem("", `
 REM question - Funny Questions and Answers
 REM Marco Vieth
 REM
+lbasic=&8000>0: 'fast hack to detect LocoBasic
 MODE 2
 PRINT "Funny Questions and Answers"
 PRINT
@@ -38,13 +39,13 @@ RETURN
 500 i=INT(RND*n+1)
 GOSUB 800: 'prepare combination i
 PRINT i;
-FRAME: '|SAY,STR$(i)
 PRINT q$;"?"
-FRAME:|SAY,q$
+IF lbasic THEN FRAME:|SAY,q$
 t=TIME+150:WHILE TIME<t:FRAME:WEND
 PRINT SPACE$(7);"-- ";a$;"."
-FRAME:|PITCH,14:|SAY,a$:|PITCH,10
+IF lbasic THEN FRAME:|PITCH,14:|SAY,a$:|PITCH,10
 PRINT:PRINT STRING$(60,"-"):PRINT
+t=TIME+300:WHILE TIME<t:FRAME:WEND
 RETURN
 '
 ' Output all combinations
