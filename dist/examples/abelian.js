@@ -18,7 +18,7 @@ FOR rows = 5 TO 25 STEP 5
   GOSUB 200 'calculate
   t=TIME-t0
   CLS
-  PRINT "height";height;", cols=";cols;", rows=";rows;", time=";ROUND(t*10/3,3)
+  PRINT cols;"x";rows;" height";height;" time";ROUND(t*10/3,3)
   PRINT
   GOSUB 600 'textual output
   FRAME:t=t0+300:WHILE TIME<t AND INKEY$="":WEND

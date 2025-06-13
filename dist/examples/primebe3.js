@@ -9,15 +9,15 @@ MODE 2
 n=5000
 res=669 'expected result (669 for n=5000)
 PRINT "Prime Benchmark (Sieve of Eratosthenes)"
-PRINT "Number of primes below n=";n
+PRINT "Number of primes below n=";n;"(primes=";STR$(res);")"
 '
 loops=1
 minms=100
 maxruns=8
 t=0:r=1
 PRINT "Testing loops:";
-WHILE t<minms 
-  loops=loops*10:FRAME:PRINT loops;
+WHILE t<minms
+  loops=loops*10:FRAME:PRINT STR$(loops);
   x=1:GOSUB 500:IF x<>1 THEN ERROR 33
 WEND
 PRINT
@@ -31,13 +31,12 @@ WHILE r<=maxruns AND tput>tputMax
 WEND
 '
 PRINT
-PRINT "maximum thoughput=";DEC$(tputMax,"######.###")
+PRINT "Maximum thoughput=";DEC$(tputMax,"######.###")
 END
 '
 ' print results
 400 tput=loops/(t/1000)
-'IF POS(#0)>1 THEN PRINT
-PRINT "n=";STR$(n);", primes=";STR$(res);", loops=";STR$(loops);", time=";DEC$(t,"######.###");" ms, loops/sec=";DEC$(tput,"######.###")
+PRINT "time=";DEC$(t,"######.###");" ms, loops/sec=";DEC$(tput,"######.###")
 IF tput>tputMax THEN tputMax=tput:tput=tputMax+1
 RETURN
 '
