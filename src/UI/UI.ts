@@ -1,60 +1,18 @@
 import type { Editor } from "codemirror";
-import type { ConfigEntryType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore, IUI, IVmAdmin } from "../Interfaces";
+import type { ConfigEntryType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore, IUI } from "../Interfaces";
 import { LocoBasicMode } from "./LocoBasicMode";
-
-// Worker:
-type PlainErrorEventType = {
-    lineno: number,
-    colno: number,
-    message: string
-};
-
-type ProcessingQueueType = {
-    resolve: (value: PlainErrorEventType) => void,
-    jsText: string
-};
-
-// Worker function to handle JavaScript evaluation and error reporting
-const workerFn = (): void => {
-    const doEvalAndReply = (jsText: string) => {
-        self.addEventListener(
-            "error",
-            (errorEvent) => {
-                errorEvent.preventDefault();
-                const { lineno, colno, message } = errorEvent;
-                const plainErrorEventObj: PlainErrorEventType = { lineno, colno, message };
-                self.postMessage(JSON.stringify(plainErrorEventObj));
-            },
-            { once: true }
-        );
-        new Function("_o", jsText);
-        const plainErrorEventObj: PlainErrorEventType = {
-            lineno: -1,
-            colno: -1,
-            message: "No Error: Parsing successful!"
-        };
-        self.postMessage(JSON.stringify(plainErrorEventObj));
-    };
-
-    self.addEventListener("message", (e) => {
-        doEvalAndReply(e.data);
-    });
-};
-
+import { VmMain } from "./VmMain";
 export class UI implements IUI {
     private core?: ICore;
-    private vm?: IVmAdmin;
+    private vmMain?: VmMain;
     private basicCm?: Editor;
     private compiledCm?: Editor;
-    private readonly keyBuffer: string[] = []; // buffered pressed keys
     private escape = false;
     private initialUserAction = false;
     private fnOnKeyPressHandler: (event: KeyboardEvent) => void;
     private fnOnClickHandler: (event: MouseEvent) => void;
     private fnOnUserKeyClickHandler: (event: MouseEvent) => void;
     private speechSynthesisUtterance?: SpeechSynthesisUtterance;
-
-    private static getErrorEvent?: (s: string) => Promise<PlainErrorEventType>;
 
     constructor() {
         this.fnOnKeyPressHandler = (event: KeyboardEvent) => this.onOutputTextKeydown(event);
@@ -88,11 +46,11 @@ export class UI implements IUI {
         return this.core;
     }
 
-    public getEscape() {
+    private getEscape() {
         return this.escape;
     }
 
-    public setEscape(escape: boolean) {
+    private setEscape(escape: boolean) {
         this.escape = escape;
         if (escape) {
             if (this.speechSynthesisUtterance && this.speechSynthesisUtterance.text) {
@@ -185,10 +143,10 @@ export class UI implements IUI {
     private onUserKeyClick(event: Event) {
         const target = event.target as HTMLButtonElement;
         const dataKey = target.getAttribute("data-key");
-        this.putKeyInBuffer(String.fromCharCode(Number(dataKey)));
+        this.putKeysInBuffer(String.fromCharCode(Number(dataKey)));
     }
 
-    public setUiKeys(codes: number[]): void {
+    private onSetUiKeys = (codes: number[]): void => { // bound this
         if (codes.length) {
             const code = codes[0];
             const userKeys = document.getElementById("userKeys") as HTMLSpanElement;
@@ -285,9 +243,9 @@ export class UI implements IUI {
         return utterance;
     }
 
-    public async speak(text: string, pitch: number): Promise<void> {
+    private onSpeak = async (text: string, pitch: number): Promise<void> => { // bound this
         const msg = await this.getSpeechSynthesisUtterance();
-        if (this.getEscape()) { // program already escaped? 
+        if (this.getEscape()) { // program already escaped?
             return Promise.reject("Speech canceled.");
         }
         msg.text = text;
@@ -333,13 +291,7 @@ export class UI implements IUI {
         });
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    private onExecuteButtonClick = async (_event: Event): Promise<void> => {
-        const core = this.getCore();
-        if (!this.vm || this.hasCompiledError()) {
-            return;
-        }
-
+    private beforeExecute() {
         this.setElementHidden("convertArea");
 
         const buttonStates = {
@@ -353,7 +305,6 @@ export class UI implements IUI {
         this.updateButtonStates(buttonStates);
 
         this.setEscape(false);
-        this.keyBuffer.length = 0;
 
         const outputText = document.getElementById("outputText") as HTMLPreElement;
         outputText.setAttribute("contenteditable", "false");
@@ -362,19 +313,14 @@ export class UI implements IUI {
 
         const userKeys = document.getElementById("userKeys") as HTMLSpanElement;
         userKeys.addEventListener("click", this.fnOnUserKeyClickHandler, false);
+    }
 
-
-        // Execute the compiled script
-        const compiledScript = this.compiledCm?.getValue() || "";
-        const output = await core.executeScript(compiledScript, this.vm) || "";
-        if (output) {
-            this.addOutputText(output);
-        }
-
+    private afterExecute() {
+        const outputText = document.getElementById("outputText") as HTMLPreElement;
         outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.removeEventListener("click", this.fnOnClickHandler, false);
         outputText.setAttribute("contenteditable", "true");
-        this.setUiKeys([0]); // remove user keys 
+        this.onSetUiKeys([0]); // remove user keys
 
         this.updateButtonStates({
             enterButton: true,
@@ -384,6 +330,28 @@ export class UI implements IUI {
             databaseSelect: false,
             exampleSelect: false
         });
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onExecuteButtonClick = async (_event: Event): Promise<void> => {
+        if (this.hasCompiledError()) {
+            return;
+        }
+        //const core = this.getCore();
+        /*
+        if (!this.vm || this.hasCompiledError()) {
+            return;
+        }
+        */
+
+        this.beforeExecute();
+
+        const compiledScript = this.compiledCm?.getValue() || ""; // Execute the compiled script
+        const output = await this.vmMain?.run(compiledScript);
+        if (output) {
+            this.addOutputText(output);
+        }
+        this.afterExecute();
     };
 
     private onCompiledTextChange = (): void => { // bound this
@@ -419,7 +387,7 @@ export class UI implements IUI {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onEnterButtonClick = (_event: Event): void => { // bound this
-        this.putKeyInBuffer("\x0d");
+        this.putKeysInBuffer("\x0d");
     }
 
     private onAutoCompileInputChange = (event: Event): void => { // bound this
@@ -459,10 +427,18 @@ export class UI implements IUI {
     private onStopButtonClick = (_event: Event): void => { // bound this
         this.setEscape(true);
         this.setButtonOrSelectDisabled("stopButton", true);
+        /*
         const startSpeechButton = window.document.getElementById("startSpeechButton") as HTMLButtonElement;
         if (!startSpeechButton.hidden) {
             startSpeechButton.dispatchEvent(new Event("click"));
         }
+        */
+        this.vmMain?.stop();
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onResetButtonClick = (_event: Event): void => { // bound this
+        this.vmMain?.reset();
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -698,13 +674,8 @@ export class UI implements IUI {
         UI.fnDownloadBlob(svgBlob, filename);
     }
 
-    public getKeyFromBuffer(): string {
-        const key = this.keyBuffer.length ? this.keyBuffer.shift() as string : "";
-        return key;
-    }
-
-    private putKeyInBuffer(key: string): void {
-        this.keyBuffer.push(key);
+    private putKeysInBuffer(keys: string): void {
+        this.vmMain?.putKeys(keys);
     }
 
     private onOutputTextKeydown(event: KeyboardEvent): void {
@@ -712,10 +683,10 @@ export class UI implements IUI {
         if (key === "Escape") {
             this.setEscape(true);
         } else if (key === "Enter") {
-            this.putKeyInBuffer("\x0d");
+            this.putKeysInBuffer("\x0d");
             event.preventDefault();
         } else if (key.length === 1 && event.ctrlKey === false && event.altKey === false) {
-            this.putKeyInBuffer(key);
+            this.putKeysInBuffer(key);
             event.preventDefault();
         }
     }
@@ -752,74 +723,9 @@ export class UI implements IUI {
     private onOutputTextClick(event: MouseEvent): void {
         const key = this.getClickedKey(event);
         if (key) {
-            this.putKeyInBuffer(key);
+            this.putKeysInBuffer(key);
             event.preventDefault(); // Prevent default action if needed
         }
-    }
-
-    private static getErrorEventFn(): (s: string) => Promise<PlainErrorEventType> {
-        if (UI.getErrorEvent) {
-            return UI.getErrorEvent;
-        }
-
-        const blob = new Blob(
-            [`(${workerFn})();`],
-            { type: "text/javascript" }
-        );
-
-        const worker = new Worker(window.URL.createObjectURL(blob));
-        const processingQueue: ProcessingQueueType[] = [];
-        let isProcessing = false;
-
-        const processNext = () => {
-            isProcessing = true;
-            const { resolve, jsText } = processingQueue.shift() as ProcessingQueueType;
-            worker.addEventListener(
-                "message",
-                ({ data }) => {
-                    resolve(JSON.parse(data));
-                    if (processingQueue.length) {
-                        processNext();
-                    } else {
-                        isProcessing = false;
-                    }
-                },
-                { once: true }
-            );
-            worker.postMessage(jsText);
-        };
-
-        const getErrorEvent = (jsText: string): Promise<PlainErrorEventType> => {
-            return new Promise<PlainErrorEventType>((resolve) => {
-                processingQueue.push({ resolve, jsText });
-                if (!isProcessing) {
-                    processNext();
-                }
-            });
-        };
-
-        UI.getErrorEvent = getErrorEvent;
-        return getErrorEvent;
-    }
-
-    private static describeError(stringToEval: string, lineno: number, colno: number): string {
-        const lines = stringToEval.split("\n");
-        const line = lines[lineno - 1];
-        return `${line}\n${" ".repeat(colno - 1) + "^"}`;
-    }
-
-    public async checkSyntax(str: string): Promise<string> {
-        const getErrorEvent = UI.getErrorEventFn();
-
-        let output = "";
-        const { lineno, colno, message } = await getErrorEvent(str);
-        if (message === "No Error: Parsing successful!") {
-            return "";
-        }
-        output += `Syntax error thrown at: Line ${lineno - 2}, col: ${colno}\n`;
-        output += UI.describeError(str, lineno - 2, colno) + "\n";
-        output += message;
-        return output;
     }
 
     private fnDecodeUri(s: string): string {
@@ -876,13 +782,13 @@ export class UI implements IUI {
         }
     }
 
-    public onWindowLoadContinue(core: ICore, vm: IVmAdmin): void {
+    public onWindowLoadContinue(core: ICore, workerFn: () => unknown): void {
         this.core = core;
-        this.vm = vm;
+        //this.vm = vm;
         const config = core.getConfigMap();
         const args = this.parseUri(config);
         core.parseArgs(args, config);
-        core.setOnCheckSyntax((s: string) => Promise.resolve(this.checkSyntax(s)));
+        //core.setOnCheckSyntax((s: string) => Promise.resolve(this.checkSyntax(s)));
 
         // Map of element IDs to event handlers
         const buttonHandlers: Record<string, EventListener> = {
@@ -890,6 +796,7 @@ export class UI implements IUI {
             enterButton: this.onEnterButtonClick,
             executeButton: this.onExecuteButtonClick,
             stopButton: this.onStopButtonClick,
+            resetButton: this.onResetButtonClick,
             convertButton: this.onConvertButtonClick,
             labelAddButton: this.onLabelAddButtonClick,
             labelRemoveButton: this.onLabelRemoveButtonClick,
@@ -950,6 +857,11 @@ export class UI implements IUI {
         window.document.addEventListener("click", () => {
             this.initialUserAction = true;
         }, { once: true });
+
+        //const workerFn = (window as any).locoVmWorker.workerFn;
+        const workerScript = `(${workerFn})();`;
+
+        this.vmMain = new VmMain(workerScript, this.onSetUiKeys, this.onSpeak);
 
         // Initialize database and examples
         UI.asyncDelay(() => {

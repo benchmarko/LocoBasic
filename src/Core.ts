@@ -1,4 +1,4 @@
-import type { ConfigEntryType, ConfigType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore, IVm, IVmAdmin } from "./Interfaces";
+import type { ConfigEntryType, ConfigType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore } from "./Interfaces";
 import { Parser } from "./Parser";
 import { arithmetic } from "./arithmetic";
 import { Semantics } from "./Semantics";
@@ -18,8 +18,6 @@ export class Core implements ICore {
         this.defaultConfig = defaultConfig;
         this.config = { ...defaultConfig };
     }
-
-    private onCheckSyntax = async (_s: string) => ""; // eslint-disable-line @typescript-eslint/no-unused-vars
 
     public getDefaultConfigMap(): ConfigType {
         return this.defaultConfig;
@@ -71,10 +69,6 @@ export class Core implements ICore {
         return exampleMap[name];
     }
 
-    public setOnCheckSyntax(fn: (s: string) => Promise<string>): void {
-        this.onCheckSyntax = fn;
-    }
-
     public compileScript(script: string): string {
         if (!this.arithmeticParser) {
             const semanticsActionDict = this.semantics.getSemanticsActionDict();
@@ -87,66 +81,6 @@ export class Core implements ICore {
         }
         this.semantics.resetParser();
         return this.arithmeticParser.parseAndEval(script);
-    }
-
-    public async executeScript(compiledScript: string, vm: IVmAdmin): Promise<string> {
-        vm.reset();
-
-        if (compiledScript.startsWith("ERROR:")) {
-            return "ERROR";
-        }
-
-        const syntaxError = await this.onCheckSyntax(compiledScript);
-        if (syntaxError) {
-            vm.cls();
-            return "ERROR: " + syntaxError;
-        }
-
-        let errorStr = "";
-        try {
-            const fnScript = new Function("_o", compiledScript);
-            const result = await fnScript(vm as IVm);
-
-            if (this.config.debug > 0) {
-                console.debug("executeScript: ", result);
-            }
-            vm.flush();
-        } catch (error) {
-            const errorMsg = String(error).replace("Error: INFO: ", "INFO: ");
-            if (this.config.debug > 0) {
-                console.log("DEBUG: executeScript: ", errorMsg);
-            }
-            if (errorMsg !== "INFO: Program stopped") {
-                errorStr += errorMsg;
-                if (error instanceof Error) {
-                    const anyErr = error as unknown as Record<string, number>;
-                    const lineNumber = anyErr.lineNumber; // only on FireFox
-                    const columnNumber = anyErr.columnNumber; // only on FireFox
-
-                    if (lineNumber || columnNumber) {
-                        const errLine = lineNumber - 2; // lineNumber -2 because of anonymous function added by new Function() constructor
-                        errorStr += ` (Line ${errLine}, column ${columnNumber})`;
-                    }
-                }
-            }
-        }
-
-        // remain for all timers
-        const snippetData = vm.getSnippetData();
-
-        const timerMap = snippetData.timerMap;
-        for (const timer in timerMap) {
-            if (timerMap[timer] !== undefined) {
-                const value = timerMap[timer];
-                clearTimeout(value);
-                clearInterval(value);
-                timerMap[timer] = undefined;
-            }
-        }
-
-        const compileMessages = this.semantics.getHelper().getCompileMessages();
-        const output = [snippetData.output, vm.escapeText(errorStr), vm.escapeText(compileMessages.join("\n"))].join("\n");
-        return output.trim();
     }
 
     public getSemantics() {

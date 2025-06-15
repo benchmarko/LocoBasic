@@ -1,5 +1,7 @@
-import type { DatabaseType, ExampleType, ICore, INodeParts, IVm, IVmAdmin, SnippetDataType } from "./Interfaces";
-import { BasicVmNode } from "./BasicVmNode";
+//import { NodeWorker } from "inspector/promises";
+import type { DatabaseType, ExampleType, ICore, INodeParts, MessageFromWorker, NodeWorkerType } from "./Interfaces";
+import { NodeVmMain } from "./NodeVmMain";
+//import { BasicVmNode } from "./BasicVmNode";
 
 interface NodePath {
     dirname: (dirname: string) => string;
@@ -28,6 +30,14 @@ interface NodeVm {
     runInNewContext: (code: string) => string;
 }
 
+type NodeWorkerConstructorType = new (filename: string) => NodeWorkerType;
+interface NodeWorkerThreads {
+    parentPort: {
+        postMessage: (message: MessageFromWorker) => void
+    };
+    Worker: NodeWorkerConstructorType;
+}
+
 type NodeKeyPressType = {
     sequence: string;
     name: string;
@@ -36,8 +46,9 @@ type NodeKeyPressType = {
     shift: boolean;
 }
 
-declare function require(name: string): NodeFs | NodeHttps | NodeModule | NodePath | NodeReadline | NodeVm;
+declare function require(name: string): NodeFs | NodeHttps | NodeModule | NodePath | NodeReadline | NodeVm | NodeWorkerThreads;
 
+/*
 interface DummyVm extends IVm {
     _snippetData: SnippetDataType;
     debug(...args: (string | number | boolean)[]): void;
@@ -46,7 +57,7 @@ interface DummyVm extends IVm {
 // The functions from dummyVm will be stringified in the putScriptInFrame function
 const dummyVm: DummyVm = {
     _snippetData: {} as SnippetDataType,
-    debug(..._args: (string | number)[]) { /* console.debug(...args); */ }, // eslint-disable-line @typescript-eslint/no-unused-vars
+    debug(..._args: (string | number)[]) { / * console.debug(...args); * / }, // eslint-disable-line @typescript-eslint/no-unused-vars
     cls() { },
     drawMovePlot(type: string, x: number, y: number, pen?: number) { this.debug("drawMovePlot:", type, x, y, pen !== undefined ? pen : ""); },
     escapeText(str: string, isGraphics?: boolean) { return isGraphics ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;") : str; },
@@ -67,27 +78,59 @@ const dummyVm: DummyVm = {
     getEscape() { return false; },
     getSnippetData() { return this._snippetData; }
 };
+*/
 
 function isUrl(s: string) {
     return s.startsWith("http"); // http or https
 }
 
 export class NodeParts implements INodeParts {
-    private nodePath?: NodePath;
+    private nodeVmMain: NodeVmMain;
+
     private nodeFs?: NodeFs;
     private nodeHttps?: NodeHttps;
+    private nodePath?: NodePath;
+    private nodeWorkerThreads?: NodeWorkerThreads;
     private modulePath = "";
-    private nodeVm?: NodeVm;
     private nodeReadline?: NodeReadline;
     private readonly keyBuffer: string[] = []; // buffered pressed keys
     private escape = false;
     private fnOnKeyPressHandler?: (chunk: string, key: NodeKeyPressType) => void;
 
-    private nodeGetAbsolutePath(name: string) {
+    constructor() {
+        this.nodeVmMain = new NodeVmMain(this, "locoVmWorker.js");
+    }
+
+    private getNodeFs() {
+        if (!this.nodeFs) {
+            this.nodeFs = require("fs") as NodeFs;
+        }
+        return this.nodeFs;
+    }
+
+    private getNodeHttps() {
+        if (!this.nodeHttps) {
+            this.nodeHttps = require("https") as NodeHttps;
+        }
+        return this.nodeHttps;
+    }
+
+    private getNodePath() {
         if (!this.nodePath) {
             this.nodePath = require("path") as NodePath;
         }
-        const path = this.nodePath;
+        return this.nodePath;
+    }
+
+    private getNodeWorkerConstructor() {
+        if (!this.nodeWorkerThreads) {
+            this.nodeWorkerThreads = require('worker_threads') as NodeWorkerThreads;
+        }
+        return this.nodeWorkerThreads;
+    }
+
+    private nodeGetAbsolutePath(name: string) {
+        const path = this.getNodePath();
 
         // https://stackoverflow.com/questions/8817423/why-is-dirname-not-defined-in-node-repl
         const dirname = __dirname || path.dirname(__filename);
@@ -97,9 +140,7 @@ export class NodeParts implements INodeParts {
     }
 
     private async nodeReadFile(name: string): Promise<string> {
-        if (!this.nodeFs) {
-            this.nodeFs = require("fs") as NodeFs;
-        }
+        const nodeFs = this.getNodeFs();
 
         if (!module) {
             const module = require("module") as NodeModule;
@@ -110,7 +151,7 @@ export class NodeParts implements INodeParts {
             }
         }
         try {
-            return await this.nodeFs.promises.readFile(name, "utf8");
+            return await nodeFs.promises.readFile(name, "utf8");
         } catch (error) {
             console.error(`Error reading file ${name}:`, String(error));
             throw error;
@@ -118,10 +159,7 @@ export class NodeParts implements INodeParts {
     }
 
     private async nodeReadUrl(url: string): Promise<string> {
-        if (!this.nodeHttps) {
-            this.nodeHttps = require("https") as NodeHttps;
-        }
-        const nodeHttps = this.nodeHttps;
+        const nodeHttps = this.getNodeHttps();
 
         return new Promise((resolve, reject) => {
             nodeHttps.get(url, (resp) => {
@@ -141,6 +179,14 @@ export class NodeParts implements INodeParts {
         });
     }
 
+    public createNodeWorker(workerFile: string): NodeWorkerType {
+        const nodeWorkerThreads = this.getNodeWorkerConstructor() as NodeWorkerThreads;
+        const path = this.getNodePath();
+
+        const worker = new nodeWorkerThreads.Worker(path.resolve(__dirname, workerFile));
+        return worker;
+    }
+
     private loadScript(fileOrUrl: string): Promise<string> {
         if (isUrl(fileOrUrl)) {
             return this.nodeReadUrl(fileOrUrl);
@@ -158,6 +204,7 @@ export class NodeParts implements INodeParts {
     }
 
     private putScriptInFrame(script: string): string {
+        const dummyVm = {}; //"TODO"; //TTT
         const dummyVmString = Object.entries(dummyVm).map(([key, value]) => {
             if (typeof value === "function") {
                 return `${value}`;
@@ -176,6 +223,7 @@ export class NodeParts implements INodeParts {
         return result;
     }
 
+    /* TODO
     private nodeCheckSyntax(script: string): string {
         if (!this.nodeVm) {
             this.nodeVm = require("vm") as NodeVm;
@@ -204,6 +252,7 @@ export class NodeParts implements INodeParts {
         }
         return output;
     }
+    */
 
     private putKeyInBuffer(key: string): void {
         this.keyBuffer.push(key);
@@ -257,10 +306,10 @@ export class NodeParts implements INodeParts {
         console.log(msg);
     }
 
-    private start(core: ICore, vm: IVmAdmin, input: string): Promise<void> | undefined {
+    private start(core: ICore, input: string): Promise<void> | undefined {
         const actionConfig = core.getConfigMap().action;
         if (input !== "") {
-            core.setOnCheckSyntax((s: string) => Promise.resolve(this.nodeCheckSyntax(s)));
+            //core.setOnCheckSyntax((s: string) => Promise.resolve(this.nodeCheckSyntax(s)));
 
             const compiledScript = actionConfig.includes("compile") ? core.compileScript(input) : input;
 
@@ -271,8 +320,13 @@ export class NodeParts implements INodeParts {
 
             if (actionConfig.includes("run")) {
                 return this.keepRunning(async () => {
-                    const output = await core.executeScript(compiledScript, vm);
+                    //await core.executeScript(compiledScript, vm);
+                    if (core.getConfigMap().debug) {
+                        console.log("DEBUG: running compiled script...");
+                    }
+                    const output = await this.nodeVmMain.run(compiledScript);
                     console.log(output.replace(/\n$/, ""));
+                    this.nodeVmMain.reset(); // terminate worker
                     if (this.fnOnKeyPressHandler) {
                         process.stdin.off('keypress', this.fnOnKeyPressHandler);
                         process.stdin.setRawMode(false);
@@ -332,20 +386,19 @@ export class NodeParts implements INodeParts {
     }
 
     public async nodeMain(core: ICore): Promise<void> {
-        const vm = new BasicVmNode(this);
         const config = core.getConfigMap();
         core.parseArgs(global.process.argv.slice(2), config);
 
         if (config.input) {
             return this.keepRunning(async () => {
-                this.start(core, vm, config.input);
+                this.start(core, config.input);
             }, 5000);
         }
 
         if (config.fileName) {
             return this.keepRunning(async () => {
                 const inputFromFile = await this.nodeReadFile(config.fileName);
-                this.start(core, vm, inputFromFile);
+                this.start(core, inputFromFile);
             }, 5000);
         }
 
@@ -369,7 +422,7 @@ export class NodeParts implements INodeParts {
                 const example = core.getExample(exampleName);
                 if (example) {
                     const script = await this.getExampleScript(example, core);
-                    this.start(core, vm, script);
+                    this.start(core, script);
                 } else {
                     console.error(`Error: Example not found: ${exampleName}`);
                 }
@@ -399,6 +452,7 @@ node dist/locobasic.js input='PRINT "Hello!"'
 npx ts-node dist/locobasic.js input='PRINT "Hello!"'
 node dist/locobasic.js input='?3 + 5 * (2 - 8)' example=''
 node dist/locobasic.js example=euler
+node dist/locobasic.js example=abelian
 node dist/locobasic.js example=archidr0 > test1.svg
 node dist/locobasic.js example=binary database=rosetta databaseDirs=examples,https://benchmarko.github.io/CPCBasicApps/apps,https://benchmarko.github.io/CPCBasicApps/rosetta
 node dist/locobasic.js grammar='strict' input='a$="Bob":PRINT "Hello ";a$;"!"'

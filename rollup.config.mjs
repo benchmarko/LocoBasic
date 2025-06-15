@@ -28,5 +28,19 @@ export default [
       tsconfig: "./src/UI/tsconfig.json"
     })
   ]
+},
+{
+  input: "./src/vm/VmWorker.ts", // main entry
+  output: {
+    file: "dist/locoVmWorker.js",
+    format: "umd",
+    sourcemap: true,
+    name: "locoVmWorker"
+  },
+  plugins: [
+    typescript({
+      tsconfig: "./src/vm/tsconfig.json"
+    })
+  ]
 }
 ];

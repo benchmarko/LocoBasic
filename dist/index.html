@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="locobasic.css">
-  <title>LocoBasic v0.3.27</title>
+  <title>LocoBasic v0.4.0</title>
 </head>
 
 <body>
@@ -37,6 +37,7 @@
           <button id="executeButton" title="Execute JavaScript">Execute</button>
         </span>
         <button id="stopButton" title="Stop Execution" disabled>Stop</button>
+        <button id="resetButton" title="Terminate Execution">Reset</button>
         <span>
           <!-- <input id="inputInput" title="Input" type="text" placeholder="input" autocomplete="off"> -->
           <button id="enterButton" title="Enter" disabled>Enter</button>
@@ -128,6 +129,7 @@
     window.ohmJs = window.ohm;
   </script>
 
+  <script src="locoVmWorker.js"></script>
   <script src="locobasicUI.js"></script>
   <script src="locobasic.js"></script>
 </body>

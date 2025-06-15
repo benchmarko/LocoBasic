@@ -3,6 +3,7 @@ tmp/
 dist/src/
 dist/types/
 dist/UI/
+dist/vm/
 dist/*.js
 dist/*.ts
 dist/*.map

@@ -35,55 +35,6 @@ export type ConfigType = {
     showOutput: boolean;
 };
 
-export type SnippetDataType = {
-    data: (string | number)[];
-    dataPtr: number;
-    restoreMap: Record<string, number>;
-    startTime: number;
-    timerMap: Record<number, number | NodeJS.Timeout | undefined>;
-    output: string;
-    paperSpanPos: number;
-    paperValue: number;
-    penSpanPos: number;
-    penValue: number;
-    pos: number;
-    tag: boolean;
-    vpos: number;
-    zone: number;
-}
-
-export interface IVm {
-    cls(): void;
-    drawMovePlot(type: string, x: number, y: number, pen?: number): void;
-    escapeText(str: string, isGraphics?: boolean): string;
-    flush(): void;
-    graphicsPen(num: number): void;
-    ink(num: number, col: number): void;
-    inkey$(): Promise<string>;
-    input(msg: string): Promise<string | null>;
-    keyDef(num: number, repeat: number, ...codes: number[]): void;
-    mode(num: number): void;
-    paper(num: number): void;
-    pen(num: number): void;
-    origin(x: number, y: number): void;
-    printGraphicsText(text: string): void;
-    rsx(cmd: string, args: (string | number)[]): Promise<(number | string)[]>;
-    xpos(): number;
-    ypos(): number;
-    getEscape(): boolean;
-    getSnippetData(): SnippetDataType;
-}
-
-export interface IVmAdmin extends IVm {
-    reset(): void;
-}
-
-export interface IVmRsxApi {
-    addGraphicsElement(element: string): void;
-    getGraphicsPen(): number;
-    getRgbColorStringForPen(pen: number): string;
-}
-
 // Type definition for a defined label entry (line label)
 export type DefinedLabelEntryType = {
     label: string,
@@ -112,29 +63,44 @@ export interface ICore {
     getExample(name: string): ExampleType;
     getSemantics(): ISemantics;
     compileScript(script: string): string;
-    executeScript(compiledScript: string, vm: IVmAdmin): Promise<string>;
-    setOnCheckSyntax(fn: (s: string) => Promise<string>): void;
     addIndex: (dir: string, input: Record<string, ExampleType[]> | (() => void)) => void;
     addItem(key: string, input: string | (() => void)): void;
     parseArgs(args: string[], config: Record<string, ConfigEntryType>): void;
 }
 
+
+export type MessageToWorker =
+    | { type: 'config'; isTerminal: boolean }
+    | { type: 'continue' }
+    | { type: 'input'; prompt: string }
+    | { type: 'putKeys'; keys: string }
+    | { type: 'run'; code: string }
+    | { type: 'stop' };
+
+export type MessageFromWorker =
+    | { type: 'frame'; message: string; needCls?: boolean }
+    | { type: 'input'; prompt: string }
+    | { type: 'keyDef'; codes: number[] }
+    | { type: 'result'; result: string }
+    | { type: 'speak'; message: string; pitch: number };
+
+export interface NodeWorkerType {
+    on: (event: string, listener: (data: MessageFromWorker) => void) => void;
+    postMessage: (message: MessageToWorker) => void;
+    terminate: () => void;
+}
 export interface INodeParts {
     getEscape(): boolean;
     getKeyFromBuffer(): string;
+    createNodeWorker(workerFile: string): NodeWorkerType;
     consoleClear(): void;
     consolePrint(msg: string): void;
 }
 
 export interface IUI {
     addOutputText(value: string, hasGraphics?: boolean): void;
-    checkSyntax(str: string): Promise<string>;
     getCurrentDataKey(): string;
-    getEscape(): boolean;
-    getKeyFromBuffer(): string;
-    onWindowLoadContinue(core: ICore, vm: IVmAdmin): void;
+    onWindowLoadContinue(core: ICore, workerFn: () => unknown): void;
     setOutputText(value: string): void;
-    setUiKeys(codes: number[]): void;
     prompt(msg: string): string | null;
-    speak(text: string, pitch: number): Promise<void>;
 }

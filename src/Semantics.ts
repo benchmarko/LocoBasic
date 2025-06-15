@@ -1,277 +1,9 @@
 import type { ActionDict, Node } from "ohm-js";
-import type { IVm, DefinedLabelEntryType, ISemantics, SnippetDataType, UsedLabelEntryType } from "./Interfaces";
+import type { DefinedLabelEntryType, ISemantics, UsedLabelEntryType } from "./Interfaces";
 import { SemanticsHelper } from "./SemanticsHelper";
-
-type RecursiveArray<T> = T | RecursiveArray<T>[];
 
 export const CommaOpChar = "\u2192"; // Unicode arrow right
 export const TabOpChar = "\u21d2"; // Unicode double arrow right
-
-const codeSnippetsData = {
-	_o: {} as IVm,
-	_d: {} as SnippetDataType,
-	cls() { }, // dummy
-	async frame() { }, // dummy
-	printText(_text: string) { }, // eslint-disable-line @typescript-eslint/no-unused-vars
-	remain(timer: number) { return timer; }, // dummy
-	resetText() { }, // dummy
-};
-
-function getCodeSnippets(snippetsData: typeof codeSnippetsData) {
-	const { _o, _d, cls, frame, printText, remain, resetText } = snippetsData;
-
-	// We grab functions as Strings from the codeSnippets object so we need function names.
-	const codeSnippets = {
-		resetText: function resetText() {
-			Object.assign(_d, {
-				output: "",
-				paperSpanPos: -1,
-				paperValue: -1,
-				penSpanPos: -1,
-				penValue: -1,
-				pos: 0,
-				tag: false,
-				vpos: 0,
-				zone: 13
-			});
-		},
-		after: function after(timeout: number, timer: number, fn: () => void) {
-			remain(timer);
-			_d.timerMap[timer] = setTimeout(() => fn(), timeout * 20);
-		},
-		bin$: function bin$(num: number, pad: number = 0): string {
-			return num.toString(2).toUpperCase().padStart(pad, "0");
-		},
-		cls: function cls() {
-			resetText();
-			_o.cls();
-		},
-		dec$: function dec$(num: number, format: string) {
-			const decimals = (format.split(".")[1] || "").length;
-			const str = num.toFixed(decimals);
-			const pad = " ".repeat(Math.max(0, format.length - str.length));
-			return pad + str;
-		},
-		dim: function dim(dims: number[], value: string | number = 0) {
-			const createRecursiveArray = (depth: number): RecursiveArray<string | number> => {
-				const length = dims[depth] + 1;
-				const array: RecursiveArray<string | number> = new Array(length);
-				depth += 1;
-				if (depth < dims.length) {
-					for (let i = 0; i < length; i += 1) {
-						array[i] = createRecursiveArray(depth);
-					}
-				} else {
-					array.fill(value);
-				}
-				return array;
-			};
-			return createRecursiveArray(0);
-		},
-		dim1: function dim1(dim: number, value: string | number = 0) {
-			return new Array(dim + 1).fill(value);
-		},
-		draw: function draw(x: number, y: number, pen?: number) {
-			_o.drawMovePlot("L", x, y, pen);
-		},
-		drawr: function drawr(x: number, y: number, pen?: number) {
-			_o.drawMovePlot("l", x, y, pen);
-		},
-		end: function end() {
-			_o.flush();
-			return "end";
-		},
-		every: function every(timeout: number, timer: number, fn: () => void) {
-			remain(timer);
-			_d.timerMap[timer] = setInterval(() => fn(), timeout * 20);
-		},
-		frame: async function frame() {
-			_o.flush();
-			if (_o.getEscape()) {
-				throw new Error("INFO: Program stopped");
-			}
-			return new Promise<void>(resolve => setTimeout(() => resolve(), Date.now() % 50));
-		},
-		graphicsPen: function graphicsPen(num: number) {
-			_o.graphicsPen(num);
-		},
-		hex$: function hex$(num: number, pad?: number) {
-			return num.toString(16).toUpperCase().padStart(pad || 0, "0");
-		},
-		ink: function ink(num: number, col: number) {
-			_o.ink(num, col);
-		},
-		inkey$: async function inkey$() {
-			await frame();
-			return await _o.inkey$();
-		},
-		input: async function input(msg: string, isNum: boolean) {
-			const input = await _o.input(msg);
-			if (input === null) {
-				throw new Error("INFO: Input canceled");
-			} else if (isNum && isNaN(Number(input))) {
-				throw new Error("Invalid number input");
-			} else {
-				return isNum ? Number(input) : input;
-			}
-		},
-		instr: function instr(str: string, find: string, len: number) {
-			return str.indexOf(find, len !== undefined ? len - 1 : len) + 1;
-		},
-		left$: function left$(str: string, num: number) {
-			return str.slice(0, num);
-		},
-		mid$: function mid$(str: string, pos: number, len?: number) {
-			return str.substr(pos - 1, len);
-		},
-		mid$Assign: function mid$Assign(s: string, start: number, newString: string, len?: number) {
-			start -= 1;
-			len = Math.min(len ?? newString.length, newString.length, s.length - start);
-			return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
-		},
-		mode: function mode(num: number) {
-			_o.mode(num);
-			cls();
-		},
-		move: function move(x: number, y: number, pen?: number) {
-			_o.drawMovePlot("M", x, y, pen);
-		},
-		mover: function mover(x: number, y: number, pen?: number) {
-			_o.drawMovePlot("m", x, y, pen);
-		},
-		origin: function origin(x: number, y: number) {
-			_o.origin(x, y);
-		},
-		paper: function paper(n: number) {
-			_o.paper(n);
-		},
-		pen: function pen(n: number) {
-			_o.pen(n);
-		},
-		plot: function plot(x: number, y: number, pen?: number) {
-			_o.drawMovePlot("P", x, y, pen);
-		},
-		plotr: function plotr(x: number, y: number, pen?: number) {
-			_o.drawMovePlot("p", x, y, pen);
-		},
-		pos: function pos() {
-			return _d.pos + 1;
-		},
-		printText: function printText(text: string) {
-			_d.output += _o.escapeText(text);
-			const lines = text.split("\n");
-			if (lines.length > 1) {
-				_d.vpos += lines.length - 1;
-				_d.pos = lines[lines.length - 1].length;
-			} else {
-				_d.pos += text.length;
-			}
-		},
-		print: function print(...args: (string | number)[]) {
-			const formatNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
-			const text = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg).join("");
-			if (_d.tag) {
-				return _o.printGraphicsText(_o.escapeText(text, true));
-			}
-			printText(text);
-		},
-		// printTab: print with commaOp or tabOp
-		// For graphics output the text position does not change, so we can output all at once.
-		printTab: function printTab(...args: (string | number)[]) {
-			const formatNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
-			const strArgs = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg);
-			const formatCommaOrTab = (str: string) => {
-				if (str === CommaOpChar) {
-					return " ".repeat(_d.zone - (_d.pos % _d.zone));
-				} else if (str.charAt(0) === TabOpChar) {
-					const tabSize = Number(str.substring(1));
-					return " ".repeat(tabSize - 1 - _d.pos);
-				}
-				return str;
-			};
-			if (_d.tag) {
-				return _o.printGraphicsText(_o.escapeText(strArgs.map(arg => formatCommaOrTab(arg)).join(""), true));
-			}
-			for (const str of strArgs) {
-				printText(formatCommaOrTab(str));
-			}
-		},
-		read: function read() {
-			return _d.data[_d.dataPtr++];
-		},
-		// remain: the return value is not really the remaining time
-		remain: function remain(timer: number) {
-			const value = _d.timerMap[timer];
-			if (value !== undefined) {
-				clearTimeout(value);
-				clearInterval(value);
-				delete _d.timerMap[timer];
-			}
-			return value;
-		},
-		restore: function restore(label: string) {
-			_d.dataPtr = _d.restoreMap[label];
-		},
-		right$: function right$(str: string, num: number) {
-			return str.substring(str.length - num);
-		},
-		round: function round(num: number, dec: number) {
-			return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
-		},
-		rsxCall: async function rsxCall(cmd: string, ...args: (string | number)[]) {
-			return _o.rsx(cmd, args);
-		},
-		stop: function stop() {
-			_o.flush();
-			return "stop";
-		},
-		str$: function str$(num: number) {
-			return num >= 0 ? ` ${num}` : String(num);
-		},
-		tag: function tag(active: boolean) {
-			_d.tag = active;
-		},
-		time: function time() {
-			return ((Date.now() - _d.startTime) * 3 / 10) | 0;
-		},
-		val: function val(str: string) {
-			return Number(str.replace("&x", "0b").replace("&", "0x"));
-		},
-		vpos: function vpos() {
-			return _d.vpos + 1;
-		},
-		write: function write(...args: (string | number)[]) {
-			const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
-			if (_d.tag) {
-				return _o.printGraphicsText(_o.escapeText(text, true));
-			}
-			printText(text);
-		},
-		xpos: function xpos() {
-			return _o.xpos();
-		},
-		ypos: function ypos() {
-			return _o.ypos();
-		},
-		zone: function zone(num: number) {
-			_d.zone = num;
-		},
-	};
-	return codeSnippets;
-}
-
-function trimIndent(code: string): string {
-	const lines = code.split("\n");
-	const lastLine = lines[lines.length - 1];
-
-	const match = lastLine.match(/^(\s+)}$/);
-	if (match) {
-		const indent = match[1];
-		const trimmedLines = lines.map((line) => line.startsWith(indent) ? line.slice(indent.length) : line);
-		return trimmedLines.join("\n");
-	}
-	return code;
-}
 
 function evalChildren(children: Node[]): string[] {
 	return children.map(child => child.eval());
@@ -391,7 +123,6 @@ function getSemanticsActions(semanticsHelper: SemanticsHelper) {
 			const awaitLabels = processSubroutines(lineList, definedLabels);
 
 			const instrMap = semanticsHelper.getInstrMap();
-			semanticsHelper.addInstr("resetText");
 			const dataList = semanticsHelper.getDataList();
 
 			// Prepare data definition snippet if needed
@@ -412,47 +143,40 @@ function getSemanticsActions(semanticsHelper: SemanticsHelper) {
 
 				dataListSnippet = `
 function _defineData() {
-	_d.data = [
+	_o._data = [
 ${dataList.join(",\n")}
 	];
-	_d.restoreMap = ${JSON.stringify(restoreMap)};
-	_d.dataPtr = 0;
+	_o._restoreMap = ${JSON.stringify(restoreMap)};
 }
 `;
 			}
 
-			const codeSnippets = getCodeSnippets(codeSnippetsData);
+			const endingFrame = !instrMap["end"] ? `return frame();` : "";
 
-			const librarySnippet = Object.keys(codeSnippets)
-				.filter(key => instrMap[key])
-				.map(key => trimIndent(String(codeSnippets[key as keyof typeof codeSnippets])))
-				.join('\n');
+			if (endingFrame) {
+				semanticsHelper.addInstr("frame");
+			}
 
-			const needsAsync = Object.keys(codeSnippets).some(key =>
-				instrMap[key] && trimIndent(String(codeSnippets[key as keyof typeof codeSnippets])).startsWith("async ")
-			);
+			const libraryFunctions = Object.keys(instrMap).sort();
 
-			const needsTimerMap = instrMap["after"] || instrMap["every"] || instrMap["remain"];
 			const needsCommaOrTabOpChar = instrMap["printTab"];
 
 			// Assemble code lines
 			const codeLines = [
-				needsAsync ? 'return async function() {' : '',
 				'"use strict";',
-				`const _d = _o.getSnippetData(); resetText();${dataList.length ? ' _defineData();' : ''}`,
-				instrMap["time"] ? '_d.startTime = Date.now();' : '',
-				needsTimerMap ? '_d.timerMap = {};' : '',
+				libraryFunctions ? `const {${libraryFunctions.join(", ")}} = _o;` : '',
+				dataList.length ? '_defineData();' : '',
 				needsCommaOrTabOpChar ? `const CommaOpChar = "${CommaOpChar}", TabOpChar = "${TabOpChar}";` : '',
 				variableDeclarations,
 				...lineList.filter(line => line.trimEnd() !== ''),
-				!instrMap["end"] ? `return _o.flush();` : "",
-				dataListSnippet,
-				'// library',
-				librarySnippet,
-				needsAsync ? '}();' : ''
+				endingFrame,
+				dataListSnippet
 			].filter(Boolean);
 
 			let lineStr = codeLines.join('\n');
+			if (!lineStr.endsWith("\n")) {
+				lineStr += "\n";
+			}
 			if (awaitLabels.length) {
 				for (const label of awaitLabels) {
 					const regEx = new RegExp(`_${label}\\(\\);`, "g");
@@ -542,7 +266,6 @@ ${dataList.join(",\n")}
 
 		After(_afterLit: Node, e1: Node, _comma1: Node, e2: Node, _gosubLit: Node, label: Node) {
 			semanticsHelper.addInstr("after");
-			semanticsHelper.addInstr("remain"); // we also call "remain"
 			const timeout = e1.eval();
 			const timer = e2.child(0)?.eval() || 0;
 			const labelString = label.sourceString;
@@ -760,7 +483,6 @@ ${dataList.join(",\n")}
 
 		Every(_everyLit: Node, e1: Node, _comma1: Node, e2: Node, _gosubLit: Node, label: Node) {
 			semanticsHelper.addInstr("every");
-			semanticsHelper.addInstr("remain"); // we also call this
 			const timeout = e1.eval();
 			const timer = e2.child(0)?.eval() || 0;
 			const labelString = label.sourceString;
@@ -897,7 +619,6 @@ ${dataList.join(",\n")}
 
 		InkeyS(_inkeySLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.addInstr("inkey$");
-			semanticsHelper.addInstr("frame");
 			return `await inkey$()`;
 		},
 
@@ -945,7 +666,8 @@ ${dataList.join(",\n")}
 		Key_def(lit: Node, defLit: Node, num: Node, comma: Node, repeat: Node, comma2: Node, codes: Node) {
 			if (num.sourceString === "78" && repeat.sourceString === "1") {
 				const codeList = evalChildren(codes.asIteration().children);
-				return `_o.keyDef(${num.eval()}, ${repeat.eval()}, ${codeList.join(", ")})`;
+				semanticsHelper.addInstr("keyDef");
+				return `keyDef(${num.eval()}, ${repeat.eval()}, ${codeList.join(", ")})`;
 			}
 			return notSupported(lit, defLit, num, comma, repeat, comma2, codes.asIteration());
 		},
@@ -1024,7 +746,7 @@ ${dataList.join(",\n")}
 
 		Mode(_modeLit: Node, num: Node) {
 			semanticsHelper.addInstr("mode");
-			semanticsHelper.addInstr("cls");
+			//semanticsHelper.addInstr("cls");
 			return `mode(${num.eval()})`;
 		},
 
@@ -1149,7 +871,7 @@ ${dataList.join(",\n")}
 		},
 
 		Print(_printLit: Node, stream: Node, _comma: Node, args: Node, semi: Node) {
-			semanticsHelper.addInstr("printText");
+			//semanticsHelper.addInstr("printText");
 			const streamStr = stream.child(0)?.eval() || "";
 			const argumentList = evalChildren(args.asIteration().children);
 			const parameterString = argumentList.join(', ') || "";
@@ -1450,7 +1172,7 @@ ${dataList.join(",\n")}
 
 		Write(_printLit: Node, stream: Node, _comma: Node, args: Node) {
 			semanticsHelper.addInstr("write");
-			semanticsHelper.addInstr("printText");
+			//semanticsHelper.addInstr("printText");
 			const streamStr = stream.child(0)?.eval() || "";
 			const parameterString = evalChildren(args.asIteration().children).join(', ');
 			return `write(${streamStr}${parameterString})`;
@@ -1687,9 +1409,5 @@ export class Semantics implements ISemantics {
 
 	public getHelper(): SemanticsHelper {
 		return this.helper;
-	}
-
-	public getCodeSnippets4Test(data: Partial<typeof codeSnippetsData>) {
-		return getCodeSnippets(data as typeof codeSnippetsData);
 	}
 }

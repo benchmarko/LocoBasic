@@ -92,7 +92,7 @@ LocoBasic can be run in a browser or as a Node.js application.
 ### Special Notes
 
 - **Endless Loops**
-  - Endless loops are not trapped automatically. You may need to reload the page or restart the browser window to recover."
+  - The compiled code runs in a Web Worker or Worker Thread. The "Reset" button terminates the Web Worker and also an endless loop.
 - **STOP and END**
   - these commands stop execution, but only at the top level. Within subroutines, they simply return.
   - During *FRAME*, *INKEY$* or *INPUT*, the "Stop" button gets active. It allows you to terminate the running program. It is not possible to continue a terminated program.
@@ -157,7 +157,6 @@ LocoBasic can be run in a browser or as a Node.js application.
 - `FIX(number)` Truncates *number*.
 - `FOR variable = start to end [STEP increment]` Control structure.
   - *increment* can also be negative, in which case *start* must be greater than *end*.
-  - **Endless Loops:** Not trapped.
 - `FRAME` Pauses execution for ~50ms intervals for synchronization.
   - This command will also flush text and graphical output.
 - `GOSUB line` Calls subroutine starting at *line*.

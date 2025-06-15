@@ -1,7 +1,6 @@
 import type { ExampleType, ICore, IUI } from "./Interfaces";
 import { Core } from "./Core";
 import { NodeParts } from "./NodeParts";
-import { BasicVmBrowser } from "./BasicVmBrowser";
 
 interface WindowProperties {
     cpcBasic: {
@@ -13,6 +12,9 @@ interface WindowProperties {
             new(): IUI
         }
     };
+    locoVmWorker: {
+        workerFn: () => unknown
+    }
     onload: (event: Event) => void;
 }
 
@@ -23,7 +25,7 @@ const core: ICore = new Core({
     autoCompile: true,
     autoExecute: true,
     databaseDirs: "examples", // example base directories (comma separated)
-	database: "examples", // examples, apps, saved
+    database: "examples", // examples, apps, saved
     debounceCompile: 800,
     debounceExecute: 400,
     debug: 0,
@@ -39,6 +41,7 @@ const core: ICore = new Core({
 if (typeof window !== "undefined") {
     window.onload = () => {
         const UI = window.locobasicUI.UI; // we expect that it is already loaded in the HTML page
+        const workerFn = window.locoVmWorker.workerFn; // we expect that it is already loaded in the HTML page
         const ui = new UI();
         window.cpcBasic = {
             addIndex: core.addIndex,
@@ -49,7 +52,7 @@ if (typeof window !== "undefined") {
                 core.addItem(key, input);
             }
         };
-        ui.onWindowLoadContinue(core, new BasicVmBrowser(ui));
+        ui.onWindowLoadContinue(core, workerFn);
     };
 } else { // node.js
     new NodeParts().nodeMain(core);
