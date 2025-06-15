@@ -9,14 +9,7 @@ interface NodeWorkerThreads {
 
 declare function require(name: string): NodeWorkerThreads;
 
-export const workerFn = (isNode?: boolean) => {
-
-    const getNodeParentPort = () => {
-        const { parentPort } = require('worker_threads');
-        return parentPort;
-    };
-
-    const parentPort = isNode ? getNodeParentPort() : undefined;
+export const workerFn = (parentPort?: NodeWorkerThreads["parentPort"]) => {
 
     const postMessage = (message: MessageFromWorker) => {
         (parentPort || self).postMessage(message);
@@ -341,9 +334,9 @@ ${content}
         _waitResolvedFn: null as (() => void) | null,
         _isTerminal: false, // output for terminal
 
-        _data: [],
+        _data: [] as (string | number)[],
         _dataPtr: 0,
-        _keyBuffer: "",
+        _keyCharBufferString: "",
         _needCls: false,
         _output: "",
         _paperSpanPos: -1,
@@ -364,7 +357,7 @@ ${content}
             vm.cls();
             vm._data.length = 0;
             vm._dataPtr = 0;
-            vm._keyBuffer = "";
+            vm._keyCharBufferString = "";
             deleteAllItems(vm._restoreMap);
             vm._startTime = Date.now();
             vm._stopRequested = false;
@@ -491,15 +484,16 @@ ${content}
             //return Promise.resolve(""); //TTT
 
             //const key = vm._keyBuffer.length ? vm._keyBuffer.shift() as string : "";
-            if (!vm._keyBuffer.length) {
+            if (!vm._keyCharBufferString.length) {
                 return "";
             }
-            const key = vm._keyBuffer.charAt(0);
-            vm._keyBuffer = vm._keyBuffer.substring(1);
+            const key = vm._keyCharBufferString.charAt(0);
+            vm._keyCharBufferString = vm._keyCharBufferString.substring(1);
 
             return key;
         },
 
+        /*
         input: async (prompt: string, isNum: boolean): Promise<string | number> => { // TODO: isNum
             await vm.frame();
             // Forward input request to main thread
@@ -517,6 +511,24 @@ ${content}
                 return isNum ? Number(input) : input;
             });
             return inputPromise;
+        },
+        */
+        input: async (prompt: string, isNum: boolean): Promise<string | number> => { // TODO: isNum
+            const inputPromise = new Promise<string>((resolve) => {
+                // Store the resolve function to be called later
+                vm._inputResolvedFn = resolve;
+            });
+            await vm.frame();
+            // Forward input request to main thread
+            postMessage({ type: 'input', prompt });
+
+            const input = await inputPromise;
+            if (input === null) {
+                throw new Error("INFO: Input canceled");
+            } else if (isNum && isNaN(Number(input))) {
+                throw new Error("Invalid number input");
+            }
+            return isNum ? Number(input) : input;
         },
 
         instr: function instr(str: string, find: string, len: number) {
@@ -762,7 +774,6 @@ ${content}
         },
     };
 
-
     const errorEventHandler = (errorEvent: ErrorEvent) => {
         errorEvent.preventDefault();
         const { lineno, colno, message } = errorEvent;
@@ -799,18 +810,18 @@ ${content}
                 break;
 
             case 'putKeys':
-                vm._keyBuffer += data.keys;
+                vm._keyCharBufferString += data.keys;
                 break;
 
             case 'run': {
                 vm.resetAll();
                 vm._stopRequested = false;
 
-                if (!isNode) {
+                if (!parentPort) {
                     self.addEventListener("error", errorEventHandler, { once: true });
                 }
                 const fnScript = new Function("_o", `"use strict"; return (async () => { ${data.code} })();`); // compile
-                if (!isNode) {
+                if (!parentPort) {
                     self.removeEventListener("error", errorEventHandler);
                 }
 
@@ -839,8 +850,8 @@ ${content}
         }
     };
 
-    if (isNode) {
-        parentPort?.on('message', onMessageHandler);
+    if (parentPort) {
+        parentPort.on('message', onMessageHandler);
     } else {
         self.onmessage = (event) => {
             const data = event.data as MessageToWorker;
@@ -851,5 +862,10 @@ ${content}
 };
 
 if (typeof require !== "undefined") { // node.js?
-    workerFn(true);
+    (function callWithParentPort() {
+        const { parentPort } = require('worker_threads') as NodeWorkerThreads;
+        if (parentPort) { // is null in test environment
+            workerFn(parentPort);
+        }
+    })();
 }
