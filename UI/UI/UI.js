@@ -1,73 +1,57 @@
 import { LocoBasicMode } from "./LocoBasicMode";
-// Worker function to handle JavaScript evaluation and error reporting
-const workerFn = () => {
-    const doEvalAndReply = (jsText) => {
-        self.addEventListener("error", (errorEvent) => {
-            errorEvent.preventDefault();
-            const { lineno, colno, message } = errorEvent;
-            const plainErrorEventObj = { lineno, colno, message };
-            self.postMessage(JSON.stringify(plainErrorEventObj));
-        }, { once: true });
-        new Function("_o", jsText);
-        const plainErrorEventObj = {
-            lineno: -1,
-            colno: -1,
-            message: "No Error: Parsing successful!"
-        };
-        self.postMessage(JSON.stringify(plainErrorEventObj));
-    };
-    self.addEventListener("message", (e) => {
-        doEvalAndReply(e.data);
-    });
-};
+import { VmMain } from "./VmMain";
 export class UI {
     constructor() {
-        this.keyBuffer = []; // buffered pressed keys
         this.escape = false;
         this.initialUserAction = false;
+        this.onSetUiKeys = (codes) => {
+            if (codes.length) {
+                const code = codes[0];
+                const userKeys = document.getElementById("userKeys");
+                if (code) {
+                    const char = String.fromCharCode(code);
+                    const buttonStr = `<button data-key="${code}" title="${char}">${char}</button>`;
+                    userKeys.innerHTML += buttonStr;
+                }
+                else {
+                    userKeys.innerHTML = "";
+                }
+            }
+        };
+        this.onSpeak = async (text, pitch) => {
+            const msg = await this.getSpeechSynthesisUtterance();
+            if (this.getEscape()) { // program already escaped?
+                return Promise.reject("Speech canceled.");
+            }
+            msg.text = text;
+            msg.pitch = pitch; // 0 to 2
+            return new Promise((resolve, reject) => {
+                msg.onend = () => resolve();
+                msg.onerror = (event) => {
+                    reject(new Error(`Speech synthesis: ${event.error}`));
+                };
+                window.speechSynthesis.speak(msg);
+            });
+        };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onExecuteButtonClick = async (_event) => {
-            var _a;
-            const core = this.getCore();
+            var _a, _b;
+            if (this.hasCompiledError()) {
+                return;
+            }
+            //const core = this.getCore();
+            /*
             if (!this.vm || this.hasCompiledError()) {
                 return;
             }
-            this.setElementHidden("convertArea");
-            const buttonStates = {
-                enterButton: false,
-                executeButton: true,
-                stopButton: false,
-                convertButton: true,
-                databaseSelect: true,
-                exampleSelect: true
-            };
-            this.updateButtonStates(buttonStates);
-            this.setEscape(false);
-            this.keyBuffer.length = 0;
-            const outputText = document.getElementById("outputText");
-            outputText.setAttribute("contenteditable", "false");
-            outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
-            outputText.addEventListener("click", this.fnOnClickHandler, false);
-            const userKeys = document.getElementById("userKeys");
-            userKeys.addEventListener("click", this.fnOnUserKeyClickHandler, false);
-            // Execute the compiled script
-            const compiledScript = ((_a = this.compiledCm) === null || _a === void 0 ? void 0 : _a.getValue()) || "";
-            const output = await core.executeScript(compiledScript, this.vm) || "";
+            */
+            this.beforeExecute();
+            const compiledScript = ((_a = this.compiledCm) === null || _a === void 0 ? void 0 : _a.getValue()) || ""; // Execute the compiled script
+            const output = await ((_b = this.vmMain) === null || _b === void 0 ? void 0 : _b.run(compiledScript));
             if (output) {
                 this.addOutputText(output);
             }
-            outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
-            outputText.removeEventListener("click", this.fnOnClickHandler, false);
-            outputText.setAttribute("contenteditable", "true");
-            this.setUiKeys([0]); // remove user keys 
-            this.updateButtonStates({
-                enterButton: true,
-                executeButton: false,
-                stopButton: true,
-                convertButton: false,
-                databaseSelect: false,
-                exampleSelect: false
-            });
+            this.afterExecute();
         };
         this.onCompiledTextChange = () => {
             if (this.hasCompiledError()) {
@@ -99,7 +83,7 @@ export class UI {
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onEnterButtonClick = (_event) => {
-            this.putKeyInBuffer("\x0d");
+            this.putKeysInBuffer("\x0d");
         };
         this.onAutoCompileInputChange = (event) => {
             const autoCompileInput = event.target;
@@ -126,12 +110,21 @@ export class UI {
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onStopButtonClick = (_event) => {
+            var _a;
             this.setEscape(true);
             this.setButtonOrSelectDisabled("stopButton", true);
-            const startSpeechButton = window.document.getElementById("startSpeechButton");
+            /*
+            const startSpeechButton = window.document.getElementById("startSpeechButton") as HTMLButtonElement;
             if (!startSpeechButton.hidden) {
                 startSpeechButton.dispatchEvent(new Event("click"));
             }
+            */
+            (_a = this.vmMain) === null || _a === void 0 ? void 0 : _a.stop();
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onResetButtonClick = (_event) => {
+            var _a;
+            (_a = this.vmMain) === null || _a === void 0 ? void 0 : _a.reset();
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onConvertButtonClick = (_event) => {
@@ -336,21 +329,7 @@ export class UI {
     onUserKeyClick(event) {
         const target = event.target;
         const dataKey = target.getAttribute("data-key");
-        this.putKeyInBuffer(String.fromCharCode(Number(dataKey)));
-    }
-    setUiKeys(codes) {
-        if (codes.length) {
-            const code = codes[0];
-            const userKeys = document.getElementById("userKeys");
-            if (code) {
-                const char = String.fromCharCode(code);
-                const buttonStr = `<button data-key="${code}" title="${char}">${char}</button>`;
-                userKeys.innerHTML += buttonStr;
-            }
-            else {
-                userKeys.innerHTML = "";
-            }
-        }
+        this.putKeysInBuffer(String.fromCharCode(Number(dataKey)));
     }
     /**
      * Prompts the user with a message and returns the input.
@@ -421,21 +400,6 @@ export class UI {
         }
         return utterance;
     }
-    async speak(text, pitch) {
-        const msg = await this.getSpeechSynthesisUtterance();
-        if (this.getEscape()) { // program already escaped? 
-            return Promise.reject("Speech canceled.");
-        }
-        msg.text = text;
-        msg.pitch = pitch; // 0 to 2
-        return new Promise((resolve, reject) => {
-            msg.onend = () => resolve();
-            msg.onerror = (event) => {
-                reject(new Error(`Speech synthesis: ${event.error}`));
-            };
-            window.speechSynthesis.speak(msg);
-        });
-    }
     updateConfigParameter(name, value) {
         const core = this.getCore();
         const configAsRecord = core.getConfigMap();
@@ -460,6 +424,40 @@ export class UI {
     updateButtonStates(states) {
         Object.entries(states).forEach(([id, disabled]) => {
             this.setButtonOrSelectDisabled(id, disabled);
+        });
+    }
+    beforeExecute() {
+        this.setElementHidden("convertArea");
+        const buttonStates = {
+            enterButton: false,
+            executeButton: true,
+            stopButton: false,
+            convertButton: true,
+            databaseSelect: true,
+            exampleSelect: true
+        };
+        this.updateButtonStates(buttonStates);
+        this.setEscape(false);
+        const outputText = document.getElementById("outputText");
+        outputText.setAttribute("contenteditable", "false");
+        outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
+        outputText.addEventListener("click", this.fnOnClickHandler, false);
+        const userKeys = document.getElementById("userKeys");
+        userKeys.addEventListener("click", this.fnOnUserKeyClickHandler, false);
+    }
+    afterExecute() {
+        const outputText = document.getElementById("outputText");
+        outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
+        outputText.removeEventListener("click", this.fnOnClickHandler, false);
+        outputText.setAttribute("contenteditable", "true");
+        this.onSetUiKeys([0]); // remove user keys
+        this.updateButtonStates({
+            enterButton: true,
+            executeButton: false,
+            stopButton: true,
+            convertButton: false,
+            databaseSelect: false,
+            exampleSelect: false
         });
     }
     static addLabels(input) {
@@ -566,12 +564,9 @@ export class UI {
         const name = matches ? matches[1] : this.getCore().getConfigMap().example || "locobasic";
         return name;
     }
-    getKeyFromBuffer() {
-        const key = this.keyBuffer.length ? this.keyBuffer.shift() : "";
-        return key;
-    }
-    putKeyInBuffer(key) {
-        this.keyBuffer.push(key);
+    putKeysInBuffer(keys) {
+        var _a;
+        (_a = this.vmMain) === null || _a === void 0 ? void 0 : _a.putKeys(keys);
     }
     onOutputTextKeydown(event) {
         const key = event.key;
@@ -579,11 +574,11 @@ export class UI {
             this.setEscape(true);
         }
         else if (key === "Enter") {
-            this.putKeyInBuffer("\x0d");
+            this.putKeysInBuffer("\x0d");
             event.preventDefault();
         }
         else if (key.length === 1 && event.ctrlKey === false && event.altKey === false) {
-            this.putKeyInBuffer(key);
+            this.putKeysInBuffer(key);
             event.preventDefault();
         }
     }
@@ -618,59 +613,9 @@ export class UI {
     onOutputTextClick(event) {
         const key = this.getClickedKey(event);
         if (key) {
-            this.putKeyInBuffer(key);
+            this.putKeysInBuffer(key);
             event.preventDefault(); // Prevent default action if needed
         }
-    }
-    static getErrorEventFn() {
-        if (UI.getErrorEvent) {
-            return UI.getErrorEvent;
-        }
-        const blob = new Blob([`(${workerFn})();`], { type: "text/javascript" });
-        const worker = new Worker(window.URL.createObjectURL(blob));
-        const processingQueue = [];
-        let isProcessing = false;
-        const processNext = () => {
-            isProcessing = true;
-            const { resolve, jsText } = processingQueue.shift();
-            worker.addEventListener("message", ({ data }) => {
-                resolve(JSON.parse(data));
-                if (processingQueue.length) {
-                    processNext();
-                }
-                else {
-                    isProcessing = false;
-                }
-            }, { once: true });
-            worker.postMessage(jsText);
-        };
-        const getErrorEvent = (jsText) => {
-            return new Promise((resolve) => {
-                processingQueue.push({ resolve, jsText });
-                if (!isProcessing) {
-                    processNext();
-                }
-            });
-        };
-        UI.getErrorEvent = getErrorEvent;
-        return getErrorEvent;
-    }
-    static describeError(stringToEval, lineno, colno) {
-        const lines = stringToEval.split("\n");
-        const line = lines[lineno - 1];
-        return `${line}\n${" ".repeat(colno - 1) + "^"}`;
-    }
-    async checkSyntax(str) {
-        const getErrorEvent = UI.getErrorEventFn();
-        let output = "";
-        const { lineno, colno, message } = await getErrorEvent(str);
-        if (message === "No Error: Parsing successful!") {
-            return "";
-        }
-        output += `Syntax error thrown at: Line ${lineno - 2}, col: ${colno}\n`;
-        output += UI.describeError(str, lineno - 2, colno) + "\n";
-        output += message;
-        return output;
     }
     fnDecodeUri(s) {
         let decoded = "";
@@ -715,19 +660,20 @@ export class UI {
             input.dispatchEvent(new Event("change"));
         }
     }
-    onWindowLoadContinue(core, vm) {
+    onWindowLoadContinue(core, workerFn) {
         this.core = core;
-        this.vm = vm;
+        //this.vm = vm;
         const config = core.getConfigMap();
         const args = this.parseUri(config);
         core.parseArgs(args, config);
-        core.setOnCheckSyntax((s) => Promise.resolve(this.checkSyntax(s)));
+        //core.setOnCheckSyntax((s: string) => Promise.resolve(this.checkSyntax(s)));
         // Map of element IDs to event handlers
         const buttonHandlers = {
             compileButton: this.onCompileButtonClick,
             enterButton: this.onEnterButtonClick,
             executeButton: this.onExecuteButtonClick,
             stopButton: this.onStopButtonClick,
+            resetButton: this.onResetButtonClick,
             convertButton: this.onConvertButtonClick,
             labelAddButton: this.onLabelAddButtonClick,
             labelRemoveButton: this.onLabelRemoveButtonClick,
@@ -780,6 +726,9 @@ export class UI {
         window.document.addEventListener("click", () => {
             this.initialUserAction = true;
         }, { once: true });
+        //const workerFn = (window as any).locoVmWorker.workerFn;
+        const workerScript = `(${workerFn})();`;
+        this.vmMain = new VmMain(workerScript, this.onSetUiKeys, this.onSpeak);
         // Initialize database and examples
         UI.asyncDelay(() => {
             const databaseMap = core.initDatabaseMap();

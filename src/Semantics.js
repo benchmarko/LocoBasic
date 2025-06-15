@@ -1,272 +1,6 @@
 import { SemanticsHelper } from "./SemanticsHelper";
 export const CommaOpChar = "\u2192"; // Unicode arrow right
 export const TabOpChar = "\u21d2"; // Unicode double arrow right
-const codeSnippetsData = {
-    _o: {},
-    _d: {},
-    cls() { }, // dummy
-    async frame() { }, // dummy
-    printText(_text) { }, // eslint-disable-line @typescript-eslint/no-unused-vars
-    remain(timer) { return timer; }, // dummy
-    resetText() { }, // dummy
-};
-function getCodeSnippets(snippetsData) {
-    const { _o, _d, cls, frame, printText, remain, resetText } = snippetsData;
-    // We grab functions as Strings from the codeSnippets object so we need function names.
-    const codeSnippets = {
-        resetText: function resetText() {
-            Object.assign(_d, {
-                output: "",
-                paperSpanPos: -1,
-                paperValue: -1,
-                penSpanPos: -1,
-                penValue: -1,
-                pos: 0,
-                tag: false,
-                vpos: 0,
-                zone: 13
-            });
-        },
-        after: function after(timeout, timer, fn) {
-            remain(timer);
-            _d.timerMap[timer] = setTimeout(() => fn(), timeout * 20);
-        },
-        bin$: function bin$(num, pad = 0) {
-            return num.toString(2).toUpperCase().padStart(pad, "0");
-        },
-        cls: function cls() {
-            resetText();
-            _o.cls();
-        },
-        dec$: function dec$(num, format) {
-            const decimals = (format.split(".")[1] || "").length;
-            const str = num.toFixed(decimals);
-            const pad = " ".repeat(Math.max(0, format.length - str.length));
-            return pad + str;
-        },
-        dim: function dim(dims, value = 0) {
-            const createRecursiveArray = (depth) => {
-                const length = dims[depth] + 1;
-                const array = new Array(length);
-                depth += 1;
-                if (depth < dims.length) {
-                    for (let i = 0; i < length; i += 1) {
-                        array[i] = createRecursiveArray(depth);
-                    }
-                }
-                else {
-                    array.fill(value);
-                }
-                return array;
-            };
-            return createRecursiveArray(0);
-        },
-        dim1: function dim1(dim, value = 0) {
-            return new Array(dim + 1).fill(value);
-        },
-        draw: function draw(x, y, pen) {
-            _o.drawMovePlot("L", x, y, pen);
-        },
-        drawr: function drawr(x, y, pen) {
-            _o.drawMovePlot("l", x, y, pen);
-        },
-        end: function end() {
-            _o.flush();
-            return "end";
-        },
-        every: function every(timeout, timer, fn) {
-            remain(timer);
-            _d.timerMap[timer] = setInterval(() => fn(), timeout * 20);
-        },
-        frame: async function frame() {
-            _o.flush();
-            if (_o.getEscape()) {
-                throw new Error("INFO: Program stopped");
-            }
-            return new Promise(resolve => setTimeout(() => resolve(), Date.now() % 50));
-        },
-        graphicsPen: function graphicsPen(num) {
-            _o.graphicsPen(num);
-        },
-        hex$: function hex$(num, pad) {
-            return num.toString(16).toUpperCase().padStart(pad || 0, "0");
-        },
-        ink: function ink(num, col) {
-            _o.ink(num, col);
-        },
-        inkey$: async function inkey$() {
-            await frame();
-            return await _o.inkey$();
-        },
-        input: async function input(msg, isNum) {
-            const input = await _o.input(msg);
-            if (input === null) {
-                throw new Error("INFO: Input canceled");
-            }
-            else if (isNum && isNaN(Number(input))) {
-                throw new Error("Invalid number input");
-            }
-            else {
-                return isNum ? Number(input) : input;
-            }
-        },
-        instr: function instr(str, find, len) {
-            return str.indexOf(find, len !== undefined ? len - 1 : len) + 1;
-        },
-        left$: function left$(str, num) {
-            return str.slice(0, num);
-        },
-        mid$: function mid$(str, pos, len) {
-            return str.substr(pos - 1, len);
-        },
-        mid$Assign: function mid$Assign(s, start, newString, len) {
-            start -= 1;
-            len = Math.min(len !== null && len !== void 0 ? len : newString.length, newString.length, s.length - start);
-            return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
-        },
-        mode: function mode(num) {
-            _o.mode(num);
-            cls();
-        },
-        move: function move(x, y, pen) {
-            _o.drawMovePlot("M", x, y, pen);
-        },
-        mover: function mover(x, y, pen) {
-            _o.drawMovePlot("m", x, y, pen);
-        },
-        origin: function origin(x, y) {
-            _o.origin(x, y);
-        },
-        paper: function paper(n) {
-            _o.paper(n);
-        },
-        pen: function pen(n) {
-            _o.pen(n);
-        },
-        plot: function plot(x, y, pen) {
-            _o.drawMovePlot("P", x, y, pen);
-        },
-        plotr: function plotr(x, y, pen) {
-            _o.drawMovePlot("p", x, y, pen);
-        },
-        pos: function pos() {
-            return _d.pos + 1;
-        },
-        printText: function printText(text) {
-            _d.output += _o.escapeText(text);
-            const lines = text.split("\n");
-            if (lines.length > 1) {
-                _d.vpos += lines.length - 1;
-                _d.pos = lines[lines.length - 1].length;
-            }
-            else {
-                _d.pos += text.length;
-            }
-        },
-        print: function print(...args) {
-            const formatNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
-            const text = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg).join("");
-            if (_d.tag) {
-                return _o.printGraphicsText(_o.escapeText(text, true));
-            }
-            printText(text);
-        },
-        // printTab: print with commaOp or tabOp
-        // For graphics output the text position does not change, so we can output all at once.
-        printTab: function printTab(...args) {
-            const formatNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
-            const strArgs = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg);
-            const formatCommaOrTab = (str) => {
-                if (str === CommaOpChar) {
-                    return " ".repeat(_d.zone - (_d.pos % _d.zone));
-                }
-                else if (str.charAt(0) === TabOpChar) {
-                    const tabSize = Number(str.substring(1));
-                    return " ".repeat(tabSize - 1 - _d.pos);
-                }
-                return str;
-            };
-            if (_d.tag) {
-                return _o.printGraphicsText(_o.escapeText(strArgs.map(arg => formatCommaOrTab(arg)).join(""), true));
-            }
-            for (const str of strArgs) {
-                printText(formatCommaOrTab(str));
-            }
-        },
-        read: function read() {
-            return _d.data[_d.dataPtr++];
-        },
-        // remain: the return value is not really the remaining time
-        remain: function remain(timer) {
-            const value = _d.timerMap[timer];
-            if (value !== undefined) {
-                clearTimeout(value);
-                clearInterval(value);
-                delete _d.timerMap[timer];
-            }
-            return value;
-        },
-        restore: function restore(label) {
-            _d.dataPtr = _d.restoreMap[label];
-        },
-        right$: function right$(str, num) {
-            return str.substring(str.length - num);
-        },
-        round: function round(num, dec) {
-            return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
-        },
-        rsxCall: async function rsxCall(cmd, ...args) {
-            return _o.rsx(cmd, args);
-        },
-        stop: function stop() {
-            _o.flush();
-            return "stop";
-        },
-        str$: function str$(num) {
-            return num >= 0 ? ` ${num}` : String(num);
-        },
-        tag: function tag(active) {
-            _d.tag = active;
-        },
-        time: function time() {
-            return ((Date.now() - _d.startTime) * 3 / 10) | 0;
-        },
-        val: function val(str) {
-            return Number(str.replace("&x", "0b").replace("&", "0x"));
-        },
-        vpos: function vpos() {
-            return _d.vpos + 1;
-        },
-        write: function write(...args) {
-            const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
-            if (_d.tag) {
-                return _o.printGraphicsText(_o.escapeText(text, true));
-            }
-            printText(text);
-        },
-        xpos: function xpos() {
-            return _o.xpos();
-        },
-        ypos: function ypos() {
-            return _o.ypos();
-        },
-        zone: function zone(num) {
-            _d.zone = num;
-        },
-    };
-    return codeSnippets;
-}
-function trimIndent(code) {
-    const lines = code.split("\n");
-    const lastLine = lines[lines.length - 1];
-    const match = lastLine.match(/^(\s+)}$/);
-    if (match) {
-        const indent = match[1];
-        const trimmedLines = lines.map((line) => line.startsWith(indent) ? line.slice(indent.length) : line);
-        return trimmedLines.join("\n");
-    }
-    return code;
-}
 function evalChildren(children) {
     return children.map(child => child.eval());
 }
@@ -365,7 +99,6 @@ function getSemanticsActions(semanticsHelper) {
             const definedLabels = semanticsHelper.getDefinedLabels();
             const awaitLabels = processSubroutines(lineList, definedLabels);
             const instrMap = semanticsHelper.getInstrMap();
-            semanticsHelper.addInstr("resetText");
             const dataList = semanticsHelper.getDataList();
             // Prepare data definition snippet if needed
             let dataListSnippet = "";
@@ -383,39 +116,34 @@ function getSemanticsActions(semanticsHelper) {
                 }
                 dataListSnippet = `
 function _defineData() {
-	_d.data = [
+	_o._data = [
 ${dataList.join(",\n")}
 	];
-	_d.restoreMap = ${JSON.stringify(restoreMap)};
-	_d.dataPtr = 0;
+	_o._restoreMap = ${JSON.stringify(restoreMap)};
 }
 `;
             }
-            const codeSnippets = getCodeSnippets(codeSnippetsData);
-            const librarySnippet = Object.keys(codeSnippets)
-                .filter(key => instrMap[key])
-                .map(key => trimIndent(String(codeSnippets[key])))
-                .join('\n');
-            const needsAsync = Object.keys(codeSnippets).some(key => instrMap[key] && trimIndent(String(codeSnippets[key])).startsWith("async "));
-            const needsTimerMap = instrMap["after"] || instrMap["every"] || instrMap["remain"];
+            const endingFrame = !instrMap["end"] ? `return frame();` : "";
+            if (endingFrame) {
+                semanticsHelper.addInstr("frame");
+            }
+            const libraryFunctions = Object.keys(instrMap).sort();
             const needsCommaOrTabOpChar = instrMap["printTab"];
             // Assemble code lines
             const codeLines = [
-                needsAsync ? 'return async function() {' : '',
                 '"use strict";',
-                `const _d = _o.getSnippetData(); resetText();${dataList.length ? ' _defineData();' : ''}`,
-                instrMap["time"] ? '_d.startTime = Date.now();' : '',
-                needsTimerMap ? '_d.timerMap = {};' : '',
+                libraryFunctions ? `const {${libraryFunctions.join(", ")}} = _o;` : '',
+                dataList.length ? '_defineData();' : '',
                 needsCommaOrTabOpChar ? `const CommaOpChar = "${CommaOpChar}", TabOpChar = "${TabOpChar}";` : '',
                 variableDeclarations,
                 ...lineList.filter(line => line.trimEnd() !== ''),
-                !instrMap["end"] ? `return _o.flush();` : "",
-                dataListSnippet,
-                '// library',
-                librarySnippet,
-                needsAsync ? '}();' : ''
+                endingFrame,
+                dataListSnippet
             ].filter(Boolean);
             let lineStr = codeLines.join('\n');
+            if (!lineStr.endsWith("\n")) {
+                lineStr += "\n";
+            }
             if (awaitLabels.length) {
                 for (const label of awaitLabels) {
                     const regEx = new RegExp(`_${label}\\(\\);`, "g");
@@ -486,7 +214,6 @@ ${dataList.join(",\n")}
         After(_afterLit, e1, _comma1, e2, _gosubLit, label) {
             var _a;
             semanticsHelper.addInstr("after");
-            semanticsHelper.addInstr("remain"); // we also call "remain"
             const timeout = e1.eval();
             const timer = ((_a = e2.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || 0;
             const labelString = label.sourceString;
@@ -649,7 +376,6 @@ ${dataList.join(",\n")}
         Every(_everyLit, e1, _comma1, e2, _gosubLit, label) {
             var _a;
             semanticsHelper.addInstr("every");
-            semanticsHelper.addInstr("remain"); // we also call this
             const timeout = e1.eval();
             const timer = ((_a = e2.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || 0;
             const labelString = label.sourceString;
@@ -759,7 +485,6 @@ ${dataList.join(",\n")}
         },
         InkeyS(_inkeySLit) {
             semanticsHelper.addInstr("inkey$");
-            semanticsHelper.addInstr("frame");
             return `await inkey$()`;
         },
         Inp(lit, open, num, close) {
@@ -798,7 +523,8 @@ ${dataList.join(",\n")}
         Key_def(lit, defLit, num, comma, repeat, comma2, codes) {
             if (num.sourceString === "78" && repeat.sourceString === "1") {
                 const codeList = evalChildren(codes.asIteration().children);
-                return `_o.keyDef(${num.eval()}, ${repeat.eval()}, ${codeList.join(", ")})`;
+                semanticsHelper.addInstr("keyDef");
+                return `keyDef(${num.eval()}, ${repeat.eval()}, ${codeList.join(", ")})`;
             }
             return notSupported(lit, defLit, num, comma, repeat, comma2, codes.asIteration());
         },
@@ -859,7 +585,7 @@ ${dataList.join(",\n")}
         },
         Mode(_modeLit, num) {
             semanticsHelper.addInstr("mode");
-            semanticsHelper.addInstr("cls");
+            //semanticsHelper.addInstr("cls");
             return `mode(${num.eval()})`;
         },
         Move: drawMovePlot,
@@ -958,7 +684,7 @@ ${dataList.join(",\n")}
         },
         Print(_printLit, stream, _comma, args, semi) {
             var _a;
-            semanticsHelper.addInstr("printText");
+            //semanticsHelper.addInstr("printText");
             const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
             const argumentList = evalChildren(args.asIteration().children);
             const parameterString = argumentList.join(', ') || "";
@@ -1196,7 +922,7 @@ ${dataList.join(",\n")}
         Write(_printLit, stream, _comma, args) {
             var _a;
             semanticsHelper.addInstr("write");
-            semanticsHelper.addInstr("printText");
+            //semanticsHelper.addInstr("printText");
             const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
             const parameterString = evalChildren(args.asIteration().children).join(', ');
             return `write(${streamStr}${parameterString})`;
@@ -1393,9 +1119,6 @@ export class Semantics {
     }
     getHelper() {
         return this.helper;
-    }
-    getCodeSnippets4Test(data) {
-        return getCodeSnippets(data);
     }
 }
 //# sourceMappingURL=Semantics.js.map

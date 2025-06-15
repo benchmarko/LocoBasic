@@ -1,4 +1,4 @@
-import type { ConfigEntryType, ConfigType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore, IVmAdmin } from "./Interfaces";
+import type { ConfigEntryType, ConfigType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore } from "./Interfaces";
 import { Semantics } from "./Semantics";
 export declare class Core implements ICore {
     private readonly defaultConfig;
@@ -7,7 +7,6 @@ export declare class Core implements ICore {
     private readonly databaseMap;
     private arithmeticParser;
     constructor(defaultConfig: ConfigType);
-    private onCheckSyntax;
     getDefaultConfigMap(): ConfigType;
     getConfigMap(): ConfigType;
     initDatabaseMap(): DatabaseMapType;
@@ -16,9 +15,7 @@ export declare class Core implements ICore {
     getExampleMap(): ExampleMapType;
     setExampleMap(exampleMap: ExampleMapType): void;
     getExample(name: string): ExampleType;
-    setOnCheckSyntax(fn: (s: string) => Promise<string>): void;
     compileScript(script: string): string;
-    executeScript(compiledScript: string, vm: IVmAdmin): Promise<string>;
     getSemantics(): Semantics;
     addIndex: (dir: string, input: Record<string, ExampleType[]> | (() => void)) => void;
     addItem: (key: string, input: string | (() => void)) => void;

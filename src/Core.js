@@ -8,7 +8,6 @@ export class Core {
     constructor(defaultConfig) {
         this.semantics = new Semantics();
         this.databaseMap = {};
-        this.onCheckSyntax = async (_s) => ""; // eslint-disable-line @typescript-eslint/no-unused-vars
         this.addIndex = (dir, input) => {
             if (typeof input === "function") {
                 input = {
@@ -79,9 +78,6 @@ export class Core {
         const exampleMap = this.getExampleMap();
         return exampleMap[name];
     }
-    setOnCheckSyntax(fn) {
-        this.onCheckSyntax = fn;
-    }
     compileScript(script) {
         if (!this.arithmeticParser) {
             const semanticsActionDict = this.semantics.getSemanticsActionDict();
@@ -95,58 +91,6 @@ export class Core {
         }
         this.semantics.resetParser();
         return this.arithmeticParser.parseAndEval(script);
-    }
-    async executeScript(compiledScript, vm) {
-        vm.reset();
-        if (compiledScript.startsWith("ERROR:")) {
-            return "ERROR";
-        }
-        const syntaxError = await this.onCheckSyntax(compiledScript);
-        if (syntaxError) {
-            vm.cls();
-            return "ERROR: " + syntaxError;
-        }
-        let errorStr = "";
-        try {
-            const fnScript = new Function("_o", compiledScript);
-            const result = await fnScript(vm);
-            if (this.config.debug > 0) {
-                console.debug("executeScript: ", result);
-            }
-            vm.flush();
-        }
-        catch (error) {
-            const errorMsg = String(error).replace("Error: INFO: ", "INFO: ");
-            if (this.config.debug > 0) {
-                console.log("DEBUG: executeScript: ", errorMsg);
-            }
-            if (errorMsg !== "INFO: Program stopped") {
-                errorStr += errorMsg;
-                if (error instanceof Error) {
-                    const anyErr = error;
-                    const lineNumber = anyErr.lineNumber; // only on FireFox
-                    const columnNumber = anyErr.columnNumber; // only on FireFox
-                    if (lineNumber || columnNumber) {
-                        const errLine = lineNumber - 2; // lineNumber -2 because of anonymous function added by new Function() constructor
-                        errorStr += ` (Line ${errLine}, column ${columnNumber})`;
-                    }
-                }
-            }
-        }
-        // remain for all timers
-        const snippetData = vm.getSnippetData();
-        const timerMap = snippetData.timerMap;
-        for (const timer in timerMap) {
-            if (timerMap[timer] !== undefined) {
-                const value = timerMap[timer];
-                clearTimeout(value);
-                clearInterval(value);
-                timerMap[timer] = undefined;
-            }
-        }
-        const compileMessages = this.semantics.getHelper().getCompileMessages();
-        const output = [snippetData.output, vm.escapeText(errorStr), vm.escapeText(compileMessages.join("\n"))].join("\n");
-        return output.trim();
     }
     getSemantics() {
         return this.semantics;

@@ -1807,272 +1807,6 @@
 
     const CommaOpChar = "\u2192"; // Unicode arrow right
     const TabOpChar = "\u21d2"; // Unicode double arrow right
-    const codeSnippetsData = {
-        _o: {},
-        _d: {},
-        cls() { }, // dummy
-        async frame() { }, // dummy
-        printText(_text) { }, // eslint-disable-line @typescript-eslint/no-unused-vars
-        remain(timer) { return timer; }, // dummy
-        resetText() { }, // dummy
-    };
-    function getCodeSnippets(snippetsData) {
-        const { _o, _d, cls, frame, printText, remain, resetText } = snippetsData;
-        // We grab functions as Strings from the codeSnippets object so we need function names.
-        const codeSnippets = {
-            resetText: function resetText() {
-                Object.assign(_d, {
-                    output: "",
-                    paperSpanPos: -1,
-                    paperValue: -1,
-                    penSpanPos: -1,
-                    penValue: -1,
-                    pos: 0,
-                    tag: false,
-                    vpos: 0,
-                    zone: 13
-                });
-            },
-            after: function after(timeout, timer, fn) {
-                remain(timer);
-                _d.timerMap[timer] = setTimeout(() => fn(), timeout * 20);
-            },
-            bin$: function bin$(num, pad = 0) {
-                return num.toString(2).toUpperCase().padStart(pad, "0");
-            },
-            cls: function cls() {
-                resetText();
-                _o.cls();
-            },
-            dec$: function dec$(num, format) {
-                const decimals = (format.split(".")[1] || "").length;
-                const str = num.toFixed(decimals);
-                const pad = " ".repeat(Math.max(0, format.length - str.length));
-                return pad + str;
-            },
-            dim: function dim(dims, value = 0) {
-                const createRecursiveArray = (depth) => {
-                    const length = dims[depth] + 1;
-                    const array = new Array(length);
-                    depth += 1;
-                    if (depth < dims.length) {
-                        for (let i = 0; i < length; i += 1) {
-                            array[i] = createRecursiveArray(depth);
-                        }
-                    }
-                    else {
-                        array.fill(value);
-                    }
-                    return array;
-                };
-                return createRecursiveArray(0);
-            },
-            dim1: function dim1(dim, value = 0) {
-                return new Array(dim + 1).fill(value);
-            },
-            draw: function draw(x, y, pen) {
-                _o.drawMovePlot("L", x, y, pen);
-            },
-            drawr: function drawr(x, y, pen) {
-                _o.drawMovePlot("l", x, y, pen);
-            },
-            end: function end() {
-                _o.flush();
-                return "end";
-            },
-            every: function every(timeout, timer, fn) {
-                remain(timer);
-                _d.timerMap[timer] = setInterval(() => fn(), timeout * 20);
-            },
-            frame: async function frame() {
-                _o.flush();
-                if (_o.getEscape()) {
-                    throw new Error("INFO: Program stopped");
-                }
-                return new Promise(resolve => setTimeout(() => resolve(), Date.now() % 50));
-            },
-            graphicsPen: function graphicsPen(num) {
-                _o.graphicsPen(num);
-            },
-            hex$: function hex$(num, pad) {
-                return num.toString(16).toUpperCase().padStart(pad || 0, "0");
-            },
-            ink: function ink(num, col) {
-                _o.ink(num, col);
-            },
-            inkey$: async function inkey$() {
-                await frame();
-                return await _o.inkey$();
-            },
-            input: async function input(msg, isNum) {
-                const input = await _o.input(msg);
-                if (input === null) {
-                    throw new Error("INFO: Input canceled");
-                }
-                else if (isNum && isNaN(Number(input))) {
-                    throw new Error("Invalid number input");
-                }
-                else {
-                    return isNum ? Number(input) : input;
-                }
-            },
-            instr: function instr(str, find, len) {
-                return str.indexOf(find, len !== undefined ? len - 1 : len) + 1;
-            },
-            left$: function left$(str, num) {
-                return str.slice(0, num);
-            },
-            mid$: function mid$(str, pos, len) {
-                return str.substr(pos - 1, len);
-            },
-            mid$Assign: function mid$Assign(s, start, newString, len) {
-                start -= 1;
-                len = Math.min(len !== null && len !== void 0 ? len : newString.length, newString.length, s.length - start);
-                return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
-            },
-            mode: function mode(num) {
-                _o.mode(num);
-                cls();
-            },
-            move: function move(x, y, pen) {
-                _o.drawMovePlot("M", x, y, pen);
-            },
-            mover: function mover(x, y, pen) {
-                _o.drawMovePlot("m", x, y, pen);
-            },
-            origin: function origin(x, y) {
-                _o.origin(x, y);
-            },
-            paper: function paper(n) {
-                _o.paper(n);
-            },
-            pen: function pen(n) {
-                _o.pen(n);
-            },
-            plot: function plot(x, y, pen) {
-                _o.drawMovePlot("P", x, y, pen);
-            },
-            plotr: function plotr(x, y, pen) {
-                _o.drawMovePlot("p", x, y, pen);
-            },
-            pos: function pos() {
-                return _d.pos + 1;
-            },
-            printText: function printText(text) {
-                _d.output += _o.escapeText(text);
-                const lines = text.split("\n");
-                if (lines.length > 1) {
-                    _d.vpos += lines.length - 1;
-                    _d.pos = lines[lines.length - 1].length;
-                }
-                else {
-                    _d.pos += text.length;
-                }
-            },
-            print: function print(...args) {
-                const formatNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
-                const text = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg).join("");
-                if (_d.tag) {
-                    return _o.printGraphicsText(_o.escapeText(text, true));
-                }
-                printText(text);
-            },
-            // printTab: print with commaOp or tabOp
-            // For graphics output the text position does not change, so we can output all at once.
-            printTab: function printTab(...args) {
-                const formatNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
-                const strArgs = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg);
-                const formatCommaOrTab = (str) => {
-                    if (str === CommaOpChar) {
-                        return " ".repeat(_d.zone - (_d.pos % _d.zone));
-                    }
-                    else if (str.charAt(0) === TabOpChar) {
-                        const tabSize = Number(str.substring(1));
-                        return " ".repeat(tabSize - 1 - _d.pos);
-                    }
-                    return str;
-                };
-                if (_d.tag) {
-                    return _o.printGraphicsText(_o.escapeText(strArgs.map(arg => formatCommaOrTab(arg)).join(""), true));
-                }
-                for (const str of strArgs) {
-                    printText(formatCommaOrTab(str));
-                }
-            },
-            read: function read() {
-                return _d.data[_d.dataPtr++];
-            },
-            // remain: the return value is not really the remaining time
-            remain: function remain(timer) {
-                const value = _d.timerMap[timer];
-                if (value !== undefined) {
-                    clearTimeout(value);
-                    clearInterval(value);
-                    delete _d.timerMap[timer];
-                }
-                return value;
-            },
-            restore: function restore(label) {
-                _d.dataPtr = _d.restoreMap[label];
-            },
-            right$: function right$(str, num) {
-                return str.substring(str.length - num);
-            },
-            round: function round(num, dec) {
-                return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
-            },
-            rsxCall: async function rsxCall(cmd, ...args) {
-                return _o.rsx(cmd, args);
-            },
-            stop: function stop() {
-                _o.flush();
-                return "stop";
-            },
-            str$: function str$(num) {
-                return num >= 0 ? ` ${num}` : String(num);
-            },
-            tag: function tag(active) {
-                _d.tag = active;
-            },
-            time: function time() {
-                return ((Date.now() - _d.startTime) * 3 / 10) | 0;
-            },
-            val: function val(str) {
-                return Number(str.replace("&x", "0b").replace("&", "0x"));
-            },
-            vpos: function vpos() {
-                return _d.vpos + 1;
-            },
-            write: function write(...args) {
-                const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
-                if (_d.tag) {
-                    return _o.printGraphicsText(_o.escapeText(text, true));
-                }
-                printText(text);
-            },
-            xpos: function xpos() {
-                return _o.xpos();
-            },
-            ypos: function ypos() {
-                return _o.ypos();
-            },
-            zone: function zone(num) {
-                _d.zone = num;
-            },
-        };
-        return codeSnippets;
-    }
-    function trimIndent(code) {
-        const lines = code.split("\n");
-        const lastLine = lines[lines.length - 1];
-        const match = lastLine.match(/^(\s+)}$/);
-        if (match) {
-            const indent = match[1];
-            const trimmedLines = lines.map((line) => line.startsWith(indent) ? line.slice(indent.length) : line);
-            return trimmedLines.join("\n");
-        }
-        return code;
-    }
     function evalChildren(children) {
         return children.map(child => child.eval());
     }
@@ -2171,7 +1905,6 @@
                 const definedLabels = semanticsHelper.getDefinedLabels();
                 const awaitLabels = processSubroutines(lineList, definedLabels);
                 const instrMap = semanticsHelper.getInstrMap();
-                semanticsHelper.addInstr("resetText");
                 const dataList = semanticsHelper.getDataList();
                 // Prepare data definition snippet if needed
                 let dataListSnippet = "";
@@ -2189,39 +1922,34 @@
                     }
                     dataListSnippet = `
 function _defineData() {
-	_d.data = [
+	_o._data = [
 ${dataList.join(",\n")}
 	];
-	_d.restoreMap = ${JSON.stringify(restoreMap)};
-	_d.dataPtr = 0;
+	_o._restoreMap = ${JSON.stringify(restoreMap)};
 }
 `;
                 }
-                const codeSnippets = getCodeSnippets(codeSnippetsData);
-                const librarySnippet = Object.keys(codeSnippets)
-                    .filter(key => instrMap[key])
-                    .map(key => trimIndent(String(codeSnippets[key])))
-                    .join('\n');
-                const needsAsync = Object.keys(codeSnippets).some(key => instrMap[key] && trimIndent(String(codeSnippets[key])).startsWith("async "));
-                const needsTimerMap = instrMap["after"] || instrMap["every"] || instrMap["remain"];
+                const endingFrame = !instrMap["end"] ? `return frame();` : "";
+                if (endingFrame) {
+                    semanticsHelper.addInstr("frame");
+                }
+                const libraryFunctions = Object.keys(instrMap).sort();
                 const needsCommaOrTabOpChar = instrMap["printTab"];
                 // Assemble code lines
                 const codeLines = [
-                    needsAsync ? 'return async function() {' : '',
                     '"use strict";',
-                    `const _d = _o.getSnippetData(); resetText();${dataList.length ? ' _defineData();' : ''}`,
-                    instrMap["time"] ? '_d.startTime = Date.now();' : '',
-                    needsTimerMap ? '_d.timerMap = {};' : '',
+                    libraryFunctions ? `const {${libraryFunctions.join(", ")}} = _o;` : '',
+                    dataList.length ? '_defineData();' : '',
                     needsCommaOrTabOpChar ? `const CommaOpChar = "${CommaOpChar}", TabOpChar = "${TabOpChar}";` : '',
                     variableDeclarations,
                     ...lineList.filter(line => line.trimEnd() !== ''),
-                    !instrMap["end"] ? `return _o.flush();` : "",
-                    dataListSnippet,
-                    '// library',
-                    librarySnippet,
-                    needsAsync ? '}();' : ''
+                    endingFrame,
+                    dataListSnippet
                 ].filter(Boolean);
                 let lineStr = codeLines.join('\n');
+                if (!lineStr.endsWith("\n")) {
+                    lineStr += "\n";
+                }
                 if (awaitLabels.length) {
                     for (const label of awaitLabels) {
                         const regEx = new RegExp(`_${label}\\(\\);`, "g");
@@ -2292,7 +2020,6 @@ ${dataList.join(",\n")}
             After(_afterLit, e1, _comma1, e2, _gosubLit, label) {
                 var _a;
                 semanticsHelper.addInstr("after");
-                semanticsHelper.addInstr("remain"); // we also call "remain"
                 const timeout = e1.eval();
                 const timer = ((_a = e2.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || 0;
                 const labelString = label.sourceString;
@@ -2455,7 +2182,6 @@ ${dataList.join(",\n")}
             Every(_everyLit, e1, _comma1, e2, _gosubLit, label) {
                 var _a;
                 semanticsHelper.addInstr("every");
-                semanticsHelper.addInstr("remain"); // we also call this
                 const timeout = e1.eval();
                 const timer = ((_a = e2.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || 0;
                 const labelString = label.sourceString;
@@ -2565,7 +2291,6 @@ ${dataList.join(",\n")}
             },
             InkeyS(_inkeySLit) {
                 semanticsHelper.addInstr("inkey$");
-                semanticsHelper.addInstr("frame");
                 return `await inkey$()`;
             },
             Inp(lit, open, num, close) {
@@ -2604,7 +2329,8 @@ ${dataList.join(",\n")}
             Key_def(lit, defLit, num, comma, repeat, comma2, codes) {
                 if (num.sourceString === "78" && repeat.sourceString === "1") {
                     const codeList = evalChildren(codes.asIteration().children);
-                    return `_o.keyDef(${num.eval()}, ${repeat.eval()}, ${codeList.join(", ")})`;
+                    semanticsHelper.addInstr("keyDef");
+                    return `keyDef(${num.eval()}, ${repeat.eval()}, ${codeList.join(", ")})`;
                 }
                 return notSupported(lit, defLit, num, comma, repeat, comma2, codes.asIteration());
             },
@@ -2665,7 +2391,7 @@ ${dataList.join(",\n")}
             },
             Mode(_modeLit, num) {
                 semanticsHelper.addInstr("mode");
-                semanticsHelper.addInstr("cls");
+                //semanticsHelper.addInstr("cls");
                 return `mode(${num.eval()})`;
             },
             Move: drawMovePlot,
@@ -2764,7 +2490,7 @@ ${dataList.join(",\n")}
             },
             Print(_printLit, stream, _comma, args, semi) {
                 var _a;
-                semanticsHelper.addInstr("printText");
+                //semanticsHelper.addInstr("printText");
                 const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
                 const argumentList = evalChildren(args.asIteration().children);
                 const parameterString = argumentList.join(', ') || "";
@@ -3002,7 +2728,7 @@ ${dataList.join(",\n")}
             Write(_printLit, stream, _comma, args) {
                 var _a;
                 semanticsHelper.addInstr("write");
-                semanticsHelper.addInstr("printText");
+                //semanticsHelper.addInstr("printText");
                 const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
                 const parameterString = evalChildren(args.asIteration().children).join(', ');
                 return `write(${streamStr}${parameterString})`;
@@ -3200,9 +2926,6 @@ ${dataList.join(",\n")}
         getHelper() {
             return this.helper;
         }
-        getCodeSnippets4Test(data) {
-            return getCodeSnippets(data);
-        }
     }
 
     function fnHereDoc(fn) {
@@ -3212,7 +2935,6 @@ ${dataList.join(",\n")}
         constructor(defaultConfig) {
             this.semantics = new Semantics();
             this.databaseMap = {};
-            this.onCheckSyntax = async (_s) => ""; // eslint-disable-line @typescript-eslint/no-unused-vars
             this.addIndex = (dir, input) => {
                 if (typeof input === "function") {
                     input = {
@@ -3283,9 +3005,6 @@ ${dataList.join(",\n")}
             const exampleMap = this.getExampleMap();
             return exampleMap[name];
         }
-        setOnCheckSyntax(fn) {
-            this.onCheckSyntax = fn;
-        }
         compileScript(script) {
             if (!this.arithmeticParser) {
                 const semanticsActionDict = this.semantics.getSemanticsActionDict();
@@ -3299,58 +3018,6 @@ ${dataList.join(",\n")}
             }
             this.semantics.resetParser();
             return this.arithmeticParser.parseAndEval(script);
-        }
-        async executeScript(compiledScript, vm) {
-            vm.reset();
-            if (compiledScript.startsWith("ERROR:")) {
-                return "ERROR";
-            }
-            const syntaxError = await this.onCheckSyntax(compiledScript);
-            if (syntaxError) {
-                vm.cls();
-                return "ERROR: " + syntaxError;
-            }
-            let errorStr = "";
-            try {
-                const fnScript = new Function("_o", compiledScript);
-                const result = await fnScript(vm);
-                if (this.config.debug > 0) {
-                    console.debug("executeScript: ", result);
-                }
-                vm.flush();
-            }
-            catch (error) {
-                const errorMsg = String(error).replace("Error: INFO: ", "INFO: ");
-                if (this.config.debug > 0) {
-                    console.log("DEBUG: executeScript: ", errorMsg);
-                }
-                if (errorMsg !== "INFO: Program stopped") {
-                    errorStr += errorMsg;
-                    if (error instanceof Error) {
-                        const anyErr = error;
-                        const lineNumber = anyErr.lineNumber; // only on FireFox
-                        const columnNumber = anyErr.columnNumber; // only on FireFox
-                        if (lineNumber || columnNumber) {
-                            const errLine = lineNumber - 2; // lineNumber -2 because of anonymous function added by new Function() constructor
-                            errorStr += ` (Line ${errLine}, column ${columnNumber})`;
-                        }
-                    }
-                }
-            }
-            // remain for all timers
-            const snippetData = vm.getSnippetData();
-            const timerMap = snippetData.timerMap;
-            for (const timer in timerMap) {
-                if (timerMap[timer] !== undefined) {
-                    const value = timerMap[timer];
-                    clearTimeout(value);
-                    clearInterval(value);
-                    timerMap[timer] = undefined;
-                }
-            }
-            const compileMessages = this.semantics.getHelper().getCompileMessages();
-            const output = [snippetData.output, vm.escapeText(errorStr), vm.escapeText(compileMessages.join("\n"))].join("\n");
-            return output.trim();
         }
         getSemantics() {
             return this.semantics;
@@ -3374,479 +3041,146 @@ ${dataList.join(",\n")}
         }
     }
 
-    class BasicVmRsxHandler {
-        constructor(core) {
-            this.pitch = 1;
-            this.fnOnSpeak = () => Promise.resolve();
-            this.rsxArc = (args) => {
-                const [x, y, rx, ry, rotx, long, sweep, endx, endy, fill] = args.map((p) => Math.round(p));
-                const strokeAndFillStr = this.getStrokeAndFillStr(fill);
-                const svgPathCmd = `M${x} ${399 - y} A${rx} ${ry} ${rotx} ${long} ${sweep} ${endx} ${399 - endy}`;
-                this.core.addGraphicsElement(`<path d="${svgPathCmd}"${strokeAndFillStr} />`);
-            };
-            this.rsxCircle = (args) => {
-                const [cx, cy, r, fill] = args.map((p) => Math.round(p));
-                const strokeAndFillStr = this.getStrokeAndFillStr(fill);
-                this.core.addGraphicsElement(`<circle cx="${cx}" cy="${399 - cy}" r="${r}"${strokeAndFillStr} />`);
-            };
-            this.rsxDate = async (args) => {
-                const date = new Date();
-                const dayOfWeek = (date.getDay() + 1) % 7;
-                const day = date.getDate();
-                const month = date.getMonth() + 1;
-                const year = date.getFullYear() % 100;
-                const dateStr = `${String(dayOfWeek).padStart(2, '0')} ${String(day).padStart(2, '0')} ${String(month).padStart(2, '0')} ${String(year).padStart(2, '0')}`;
-                args[0] = dateStr;
-                return Promise.resolve(args);
-            };
-            this.rsxEllipse = (args) => {
-                const [cx, cy, rx, ry, fill] = args.map((p) => Math.round(p));
-                const strokeAndFillStr = this.getStrokeAndFillStr(fill);
-                this.core.addGraphicsElement(`<ellipse cx="${cx}" cy="${399 - cy}" rx="${rx}" ry="${ry}"${strokeAndFillStr} />`);
-            };
-            this.rsxRect = (args) => {
-                const [x1, y1, x2, y2, fill] = args.map((p) => Math.round(p));
-                const x = Math.min(x1, x2);
-                const y = Math.max(y1, y2);
-                const width = Math.abs(x2 - x1);
-                const height = Math.abs(y2 - y1);
-                const strokeAndFillStr = this.getStrokeAndFillStr(fill);
-                this.core.addGraphicsElement(`<rect x="${x}" y="${399 - y}" width="${width}" height="${height}"${strokeAndFillStr} />`);
-            };
-            this.rsxPitch = (args) => {
-                this.pitch = args[0] / 10;
-            };
-            this.rsxSay = async (args) => {
-                const text = args[0];
-                return this.fnOnSpeak(text, this.pitch).then(() => args);
-            };
-            this.rsxTime = async (args) => {
-                const date = new Date();
-                const hours = date.getHours();
-                const minutes = date.getMinutes();
-                const seconds = date.getSeconds();
-                const timeStr = `${String(hours).padStart(2, '0')} ${String(minutes).padStart(2, '0')} ${String(seconds).padStart(2, '0')}`;
-                args[0] = timeStr;
-                return Promise.resolve(args);
-            };
-            this.rsxMap = {
-                arc: {
-                    argTypes: ["number", "number", "number", "number", "number", "number", "number", "number", "number", "number?"],
-                    fn: this.rsxArc
-                },
-                circle: {
-                    argTypes: ["number", "number", "number", "number?"],
-                    fn: this.rsxCircle
-                },
-                date: {
-                    argTypes: ["string"],
-                    fn: this.rsxDate
-                },
-                ellipse: {
-                    argTypes: ["number", "number", "number", "number", "number?"],
-                    fn: this.rsxEllipse
-                },
-                pitch: {
-                    argTypes: ["number"],
-                    fn: this.rsxPitch
-                },
-                rect: {
-                    argTypes: ["number", "number", "number", "number", "number?"],
-                    fn: this.rsxRect
-                },
-                say: {
-                    argTypes: ["string"],
-                    fn: this.rsxSay
-                },
-                time: {
-                    argTypes: ["string"],
-                    fn: this.rsxTime
+    class NodeVmMain {
+        constructor(nodeParts, workerFile) {
+            this.code = "";
+            this.workerOnMessageHandler = (data) => {
+                switch (data.type) {
+                    case 'frame':
+                        if (data.needCls) {
+                            this.nodeParts.consoleClear();
+                        }
+                        this.nodeParts.consolePrint(data.message);
+                        break;
+                    case 'input':
+                        setTimeout(() => {
+                            this.nodeParts.consolePrint(data.prompt);
+                            const userInput = ""; //TODO
+                            if (this.worker) {
+                                this.worker.postMessage({ type: 'input', prompt: userInput });
+                            }
+                        }, 50); // 50ms delay to allow UI update
+                        break;
+                    case 'keyDef':
+                        //sthis.setUiKeysFn(data.codes);
+                        break;
+                    case 'result': {
+                        let res = data.result || "";
+                        if (res.startsWith("{")) {
+                            const json = JSON.parse(res);
+                            const { lineno, colno, message } = json;
+                            if (message === "No Error: Parsing successful!") {
+                                res = "";
+                            }
+                            else {
+                                res = `Syntax error thrown at: Line ${lineno - 2}, col: ${colno}\n`
+                                    + NodeVmMain.describeError(this.code, lineno - 2, colno) + "\n"
+                                    + message;
+                            }
+                        }
+                        else if (res === "Error: INFO: Program stopped") {
+                            res = "";
+                        }
+                        if (this.finishedResolverFn) {
+                            this.finishedResolverFn(res);
+                            this.finishedResolverFn = undefined;
+                        }
+                        break;
+                    }
+                    case 'speak': {
+                        // TODO
+                        if (this.worker) {
+                            this.worker.postMessage({ type: 'continue' });
+                        }
+                        break;
+                    }
                 }
             };
-            this.core = core;
-        }
-        reset() {
-            this.pitch = 1;
-        }
-        setOnSpeak(fn) {
-            this.fnOnSpeak = fn;
-        }
-        getStrokeAndFillStr(fill) {
-            const currGraphicsPen = this.core.getGraphicsPen();
-            const strokeStr = currGraphicsPen >= 0 ? ` stroke="${this.core.getRgbColorStringForPen(currGraphicsPen)}"` : "";
-            const fillStr = fill >= 0 ? ` fill="${this.core.getRgbColorStringForPen(fill)}"` : "";
-            return `${strokeStr}${fillStr}`;
-        }
-        async rsx(cmd, args) {
-            if (!this.rsxMap[cmd]) {
-                throw new Error(`Unknown RSX command: |${cmd.toUpperCase()}`);
-            }
-            const rsxInfo = this.rsxMap[cmd];
-            const expectedArgs = rsxInfo.argTypes.length;
-            const optionalArgs = rsxInfo.argTypes.filter((type) => type.endsWith("?")).length;
-            if (args.length < expectedArgs - optionalArgs) {
-                throw new Error(`|${cmd.toUpperCase()}: Wrong number of arguments: ${args.length} < ${expectedArgs - optionalArgs}`);
-            }
-            if (args.length > expectedArgs) {
-                throw new Error(`|${cmd.toUpperCase()}: Wrong number of arguments: ${args.length} > ${expectedArgs}`);
-            }
-            for (let i = 0; i < args.length; i += 1) {
-                const expectedType = rsxInfo.argTypes[i].replace("?", "");
-                const arg = args[i];
-                if (typeof arg !== expectedType) {
-                    throw new Error(`|${cmd.toUpperCase()}: Wrong argument type (pos ${i}): ${typeof arg}`);
-                }
-            }
-            const result = rsxInfo.fn(args);
-            if (result instanceof Promise) {
-                return result;
-            }
-            else {
-                return args;
-            }
-        }
-    }
-
-    const strokeWidthForMode = [4, 2, 1, 1];
-    class BasicVmCore {
-        constructor() {
-            this.currMode = 2;
-            this.graphicsBuffer = [];
-            this.graphicsPathBuffer = [];
-            this.currGraphicsPen = -1;
-            this.originX = 0;
-            this.originY = 0;
-            this.graphicsX = 0;
-            this.graphicsY = 0;
-            this.colorsForPens = [];
-            this.backgroundColor = "";
-            this.snippetData = {};
-            this.outputGraphicsIndex = -1;
-            this.defaultColorsForPens = [
-                1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
-            ];
-            this.rsxHandler = new BasicVmRsxHandler(this);
-            this.reset();
-        }
-        static getCpcColors() {
-            return BasicVmCore.cpcColors;
-        }
-        static deleteAllItems(items) {
-            Object.keys(items).forEach(key => delete items[key]);
-        }
-        reset() {
-            this.colorsForPens.splice(0, this.colorsForPens.length, ...this.defaultColorsForPens);
-            BasicVmCore.deleteAllItems(this.snippetData);
-            this.snippetData.output = "";
-            this.backgroundColor = "";
-            this.mode(1);
-            this.cls();
-        }
-        cls() {
-            this.graphicsBuffer.length = 0;
-            this.graphicsPathBuffer.length = 0;
-            this.currGraphicsPen = -1;
-            this.graphicsX = 0;
-            this.graphicsY = 0;
-            this.outputGraphicsIndex = -1;
-        }
-        mode(num) {
-            this.currMode = num;
-            this.origin(0, 0);
-        }
-        setOutputGraphicsIndex() {
-            if (this.outputGraphicsIndex < 0) {
-                this.outputGraphicsIndex = this.getSnippetData().output.length;
-            }
-        }
-        getOutputGraphicsIndex() {
-            return this.outputGraphicsIndex;
-        }
-        // type: M | m | P | p | L | l
-        drawMovePlot(type, x, y, pen) {
-            this.setOutputGraphicsIndex();
-            if (pen !== undefined) {
-                this.graphicsPen(pen);
-            }
-            x = Math.round(x);
-            y = Math.round(y);
-            if (!this.graphicsPathBuffer.length && type !== "M" && type !== "P") { // path must start with an absolute move
-                this.graphicsPathBuffer.push(`M${this.graphicsX + this.originX} ${399 - this.graphicsY - this.originY}`);
-            }
-            const isAbsolute = type === type.toUpperCase();
-            if (isAbsolute) {
-                this.graphicsX = x;
-                this.graphicsY = y;
-                x = this.graphicsX + this.originX;
-                y = 399 - this.graphicsY - this.originY;
-            }
-            else {
-                this.graphicsX += x;
-                this.graphicsY += y;
-                y = -y;
-            }
-            const svgPathCmd = (type === "P" || type === "p")
-                ? `${isAbsolute ? "M" : "m"}${x} ${y}h1v1h-1v-1`
-                : `${type}${x} ${y}`;
-            this.graphicsPathBuffer.push(svgPathCmd);
-        }
-        getGraphicsPen() {
-            return this.currGraphicsPen;
-        }
-        getRgbColorStringForPen(pen) {
-            return BasicVmCore.cpcColors[this.colorsForPens[pen]];
-        }
-        flushGraphicsPath() {
-            if (this.graphicsPathBuffer.length) {
-                const strokeStr = this.currGraphicsPen >= 0 ? `stroke="${this.getRgbColorStringForPen(this.currGraphicsPen)}" ` : "";
-                this.graphicsBuffer.push(`<path ${strokeStr}d="${this.graphicsPathBuffer.join("")}" />`);
-                this.graphicsPathBuffer.length = 0;
-            }
-        }
-        addGraphicsElement(element) {
-            this.setOutputGraphicsIndex();
-            this.flushGraphicsPath(); // maybe a path is open
-            this.graphicsBuffer.push(element);
-        }
-        static getTagInSvg(content, strokeWidth, backgroundColor) {
-            const backgroundColorStr = backgroundColor !== "" ? ` style="background-color:${backgroundColor}"` : '';
-            return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" shape-rendering="optimizeSpeed" stroke="currentColor" stroke-width="${strokeWidth}"${backgroundColorStr}>
-${content}
-</svg>
-`;
-        }
-        flushGraphics() {
-            this.flushGraphicsPath();
-            if (this.graphicsBuffer.length) {
-                const graphicsBufferStr = this.graphicsBuffer.join("\n");
-                const strokeWith = strokeWidthForMode[this.currMode] + "px";
-                this.graphicsBuffer.length = 0;
-                return BasicVmCore.getTagInSvg(graphicsBufferStr, strokeWith, this.backgroundColor);
-            }
-            return "";
-        }
-        flushText() {
-            const snippetData = this.getSnippetData();
-            const output = snippetData.output; // text output
-            snippetData.output = "";
-            return output;
-        }
-        graphicsPen(num) {
-            if (num !== this.currGraphicsPen) {
-                this.flushGraphicsPath();
-                this.currGraphicsPen = num;
-            }
-        }
-        ink(num, col) {
-            this.colorsForPens[num] = col;
-            // we modify inks, so set default pens and papers
-            if (this.currGraphicsPen < 0) {
-                this.graphicsPen(1);
-            }
-            if (num === 0) {
-                this.backgroundColor = this.getRgbColorStringForPen(0);
-            }
-        }
-        origin(x, y) {
-            this.originX = x;
-            this.originY = y;
-        }
-        getColorForPen(n) {
-            return this.colorsForPens[n];
-        }
-        printGraphicsText(text) {
-            const yOffset = 16;
-            const colorStyleStr = this.currGraphicsPen >= 0 ? `; color: ${this.getRgbColorStringForPen(this.currGraphicsPen)}` : "";
-            this.addGraphicsElement(`<text x="${this.graphicsX + this.originX}" y="${399 - this.graphicsY - this.originY + yOffset}" style="white-space: pre${colorStyleStr}">${text}</text>`);
-            this.graphicsX += text.length * 8; // assuming 8px width per character
-        }
-        setOnSpeak(fnOnSpeak) {
-            this.rsxHandler.setOnSpeak(fnOnSpeak);
-        }
-        async rsx(cmd, args) {
-            return this.rsxHandler.rsx(cmd, args);
-        }
-        xpos() {
-            return this.graphicsX;
-        }
-        ypos() {
-            return this.graphicsY;
-        }
-        getSnippetData() {
-            return this.snippetData;
-        }
-    }
-    BasicVmCore.cpcColors = [
-        "#000000", //  0 Black
-        "#000080", //  1 Blue
-        "#0000FF", //  2 Bright Blue
-        "#800000", //  3 Red
-        "#800080", //  4 Magenta
-        "#8000FF", //  5 Mauve
-        "#FF0000", //  6 Bright Red
-        "#FF0080", //  7 Purple
-        "#FF00FF", //  8 Bright Magenta
-        "#008000", //  9 Green
-        "#008080", // 10 Cyan
-        "#0080FF", // 11 Sky Blue
-        "#808000", // 12 Yellow
-        "#808080", // 13 White
-        "#8080FF", // 14 Pastel Blue
-        "#FF8000", // 15 Orange
-        "#FF8080", // 16 Pink
-        "#FF80FF", // 17 Pastel Magenta
-        "#00FF00", // 18 Bright Green
-        "#00FF80", // 19 Sea Green
-        "#00FFFF", // 20 Bright Cyan
-        "#80FF00", // 21 Lime
-        "#80FF80", // 22 Pastel Green
-        "#80FFFF", // 23 Pastel Cyan
-        "#FFFF00", // 24 Bright Yellow
-        "#FFFF80", // 25 Pastel Yellow
-        "#FFFFFF", // 26 Bright White
-        "#808080", // 27 White (same as 13)
-        "#FF00FF", // 28 Bright Magenta (same as 8)
-        "#FFFF80", // 29 Pastel Yellow (same as 25)
-        "#000080", // 30 Blue (same as 1)
-        "#00FF80" //  31 Sea Green (same as 19)
-    ];
-
-    function getAnsiColors(background) {
-        const colorCodes = [
-            30, //  0 Black
-            34, //  1 Blue 
-            94, //  2 Bright Blue
-            31, //  3 Red
-            35, //  4 Magenta (Purple?)
-            35, //  5 Mauve ???
-            91, //  6 Bright Red
-            35, //  7 Purple
-            95, //  8 Bright Magenta ?
-            32, //  9 Green
-            36, // 10 Cyan
-            94, // 11 Sky Blue ?
-            33, // 12 Yellow
-            37, // 13 White
-            94, // 14 Pastel Blue ?
-            91, // 15 Orange ?
-            95, // 16 Pink (Bright Magenta?)
-            95, // 17 Pastel Magenta?
-            92, // 18 Bright Green
-            92, // 19 Sea Green
-            96, // 20 Bright Cyan
-            96, // 21 Lime ?
-            92, // 22 Pastel Green (Bright Green)
-            96, // 23 Pastel Cyan ?
-            93, // 24 Bright Yellow
-            93, // 25 Pastel Yellow
-            37, // 26 Bright White
-            37, // 27 White (same as 13)
-            95, // 28 Bright Magenta (same as 8)
-            93, // 29 Pastel Yellow (same as 25)
-            34, // 30 Blue (same as 1)
-            92 //  31 Sea Green (same as 19)
-        ];
-        const add = background ? 10 : 0;
-        return colorCodes.map((code) => `\x1b[${code + add}m`); // e.g. Navy: pen: "\x1b[34m" or paper: "\x1b[44m"
-    }
-    class BasicVmNode {
-        constructor(nodeParts) {
             this.nodeParts = nodeParts;
-            this.penColors = getAnsiColors(false);
-            this.paperColors = getAnsiColors(true);
-            this.vmCore = new BasicVmCore();
-            this.reset = this.vmCore.reset.bind(this.vmCore);
-            this.drawMovePlot = this.vmCore.drawMovePlot.bind(this.vmCore);
-            this.graphicsPen = this.vmCore.graphicsPen.bind(this.vmCore);
-            this.ink = this.vmCore.ink.bind(this.vmCore);
-            this.origin = this.vmCore.origin.bind(this.vmCore);
-            this.printGraphicsText = this.vmCore.printGraphicsText.bind(this.vmCore);
-            this.rsx = this.vmCore.rsx.bind(this.vmCore);
-            this.xpos = this.vmCore.xpos.bind(this.vmCore);
-            this.ypos = this.vmCore.ypos.bind(this.vmCore);
-            this.getSnippetData = this.vmCore.getSnippetData.bind(this.vmCore);
+            this.workerFile = workerFile;
         }
-        cls() {
-            this.vmCore.cls();
-            this.nodeParts.consoleClear();
+        static describeError(stringToEval, lineno, colno) {
+            const lines = stringToEval.split("\n");
+            const line = lines[lineno - 1];
+            return `${line}\n${" ".repeat(colno - 1) + "^"}`;
         }
-        escapeText(str, isGraphics) {
-            // for node we need to escape only graphics text
-            return isGraphics ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;") : str;
+        getOrCreateWorker() {
+            if (!this.worker) {
+                this.worker = this.nodeParts.createNodeWorker(this.workerFile);
+                this.worker.on('message', this.workerOnMessageHandler);
+                this.worker.postMessage({ type: 'config', isTerminal: true });
+                // "locoVmWorker.js",
+            }
+            return this.worker;
         }
-        flush() {
-            const textOutput = this.vmCore.flushText().replace(/\n$/, "");
-            const graphicsOutput = this.vmCore.flushGraphics().replace(/\n$/, "");
-            const outputGraphicsIndex = this.vmCore.getOutputGraphicsIndex();
-            const output = outputGraphicsIndex >= 0 ? textOutput.substring(0, outputGraphicsIndex) + graphicsOutput + textOutput.substring(outputGraphicsIndex) : textOutput;
-            if (output !== "") {
-                this.nodeParts.consolePrint(output);
+        run(code) {
+            if (!code.endsWith("\n")) {
+                code += "\n"; // make sure the script end with a new line (needed for line comment in las line)
+            }
+            this.code = code; // for error message
+            const worker = this.getOrCreateWorker();
+            const finishedPromise = new Promise((resolve) => {
+                this.finishedResolverFn = resolve;
+            });
+            worker.postMessage({ type: 'run', code });
+            return finishedPromise;
+        }
+        stop() {
+            if (this.worker) {
+                console.log("stop: Stop requested.");
+                this.worker.postMessage({ type: 'stop' });
             }
         }
-        inkey$() {
-            const key = this.nodeParts.getKeyFromBuffer();
-            return Promise.resolve(key);
-        }
-        async fnOnInput(msg) {
-            console.log(msg);
-            return Promise.resolve("");
-        }
-        input(msg) {
-            this.flush();
-            return this.fnOnInput(msg);
-        }
-        keyDef(_num, _repeat, ..._codes) {
-            // empty
-        }
-        mode(num) {
-            this.vmCore.mode(num);
-        }
-        paper(n) {
-            const snippetData = this.vmCore.getSnippetData();
-            if (n !== snippetData.paperValue) {
-                snippetData.paperValue = n;
-                snippetData.output += this.paperColors[this.vmCore.getColorForPen(n)];
+        reset() {
+            if (this.worker) {
+                this.worker.terminate();
+                this.worker = undefined;
+                //console.log("reset: Worker terminated.");
+            }
+            if (this.finishedResolverFn) {
+                this.finishedResolverFn("terminated.");
+                this.finishedResolverFn = undefined;
             }
         }
-        pen(n) {
-            const snippetData = this.vmCore.getSnippetData();
-            if (n !== snippetData.penValue) {
-                snippetData.penValue = n;
-                snippetData.output += this.penColors[this.vmCore.getColorForPen(n)];
+        putKeys(keys) {
+            if (this.worker) {
+                console.log("putKeys: key:", keys);
+                this.worker.postMessage({ type: 'putKeys', keys });
             }
         }
-        getEscape() {
-            return this.nodeParts.getEscape();
-        }
+    }
+
+    /*
+    interface DummyVm extends IVm {
+        _snippetData: SnippetDataType;
+        debug(...args: (string | number | boolean)[]): void;
     }
 
     // The functions from dummyVm will be stringified in the putScriptInFrame function
-    const dummyVm = {
-        _snippetData: {},
-        debug(..._args) { }, // eslint-disable-line @typescript-eslint/no-unused-vars
+    const dummyVm: DummyVm = {
+        _snippetData: {} as SnippetDataType,
+        debug(..._args: (string | number)[]) { / * console.debug(...args); * / }, // eslint-disable-line @typescript-eslint/no-unused-vars
         cls() { },
-        drawMovePlot(type, x, y, pen) { this.debug("drawMovePlot:", type, x, y, pen !== undefined ? pen : ""); },
-        escapeText(str, isGraphics) { return isGraphics ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;") : str; },
-        flush() { if (this._snippetData.output) {
-            console.log(this._snippetData.output);
-            this._snippetData.output = "";
-        } },
-        graphicsPen(num) { this.debug("graphicsPen:", num); },
-        ink(num, col) { this.debug("ink:", num, col); },
+        drawMovePlot(type: string, x: number, y: number, pen?: number) { this.debug("drawMovePlot:", type, x, y, pen !== undefined ? pen : ""); },
+        escapeText(str: string, isGraphics?: boolean) { return isGraphics ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;") : str; },
+        flush() { if (this._snippetData.output) { console.log(this._snippetData.output); this._snippetData.output = ""; } },
+        graphicsPen(num: number) { this.debug("graphicsPen:", num); },
+        ink(num: number, col: number) { this.debug("ink:", num, col); },
         async inkey$() { return Promise.resolve(""); },
-        async input(msg) { console.log(msg); return ""; },
-        keyDef(num, repeat, ...codes) { this.debug("keyDef:", num, repeat, codes.join(", ")); },
-        mode(num) { this.debug("mode:", num); },
-        origin(x, y) { this.debug("origin:", x, y); },
-        paper(num) { this.debug("paper:", num); },
-        pen(num) { this.debug("pen:", num); },
-        printGraphicsText(text) { this.debug("printGraphicsText:", text); },
-        rsx(cmd, args) { this._snippetData.output += cmd + "," + args.join(''); return Promise.resolve([]); },
+        async input(msg: string) { console.log(msg); return ""; },
+        keyDef(num: number, repeat: number, ...codes: number[]) { this.debug("keyDef:", num, repeat, codes.join(", ")); },
+        mode(num: number) { this.debug("mode:", num); },
+        origin(x: number, y: number) { this.debug("origin:", x, y); },
+        paper(num: number) { this.debug("paper:", num); },
+        pen(num: number) { this.debug("pen:", num); },
+        printGraphicsText(text: string) { this.debug("printGraphicsText:", text); },
+        rsx(cmd: string, args: (string | number)[]): Promise<(number | string)[]> { this._snippetData.output += cmd + "," + args.join(''); return Promise.resolve([]); },
         xpos() { this.debug("xpos:"); return 0; },
         ypos() { this.debug("ypos:"); return 0; },
         getEscape() { return false; },
         getSnippetData() { return this._snippetData; }
     };
+    */
     function isUrl(s) {
         return s.startsWith("http"); // http or https
     }
@@ -3855,21 +3189,41 @@ ${content}
             this.modulePath = "";
             this.keyBuffer = []; // buffered pressed keys
             this.escape = false;
+            this.nodeVmMain = new NodeVmMain(this, "locoVmWorker.js");
         }
-        nodeGetAbsolutePath(name) {
+        getNodeFs() {
+            if (!this.nodeFs) {
+                this.nodeFs = require("fs");
+            }
+            return this.nodeFs;
+        }
+        getNodeHttps() {
+            if (!this.nodeHttps) {
+                this.nodeHttps = require("https");
+            }
+            return this.nodeHttps;
+        }
+        getNodePath() {
             if (!this.nodePath) {
                 this.nodePath = require("path");
             }
-            const path = this.nodePath;
+            return this.nodePath;
+        }
+        getNodeWorkerConstructor() {
+            if (!this.nodeWorkerThreads) {
+                this.nodeWorkerThreads = require('worker_threads');
+            }
+            return this.nodeWorkerThreads;
+        }
+        nodeGetAbsolutePath(name) {
+            const path = this.getNodePath();
             // https://stackoverflow.com/questions/8817423/why-is-dirname-not-defined-in-node-repl
             const dirname = __dirname || path.dirname(__filename);
             const absolutePath = path.resolve(dirname, name);
             return absolutePath;
         }
         async nodeReadFile(name) {
-            if (!this.nodeFs) {
-                this.nodeFs = require("fs");
-            }
+            const nodeFs = this.getNodeFs();
             if (!module) {
                 const module = require("module");
                 this.modulePath = module.path || "";
@@ -3878,7 +3232,7 @@ ${content}
                 }
             }
             try {
-                return await this.nodeFs.promises.readFile(name, "utf8");
+                return await nodeFs.promises.readFile(name, "utf8");
             }
             catch (error) {
                 console.error(`Error reading file ${name}:`, String(error));
@@ -3886,10 +3240,7 @@ ${content}
             }
         }
         async nodeReadUrl(url) {
-            if (!this.nodeHttps) {
-                this.nodeHttps = require("https");
-            }
-            const nodeHttps = this.nodeHttps;
+            const nodeHttps = this.getNodeHttps();
             return new Promise((resolve, reject) => {
                 nodeHttps.get(url, (resp) => {
                     let data = "";
@@ -3904,6 +3255,12 @@ ${content}
                     reject(err);
                 });
             });
+        }
+        createNodeWorker(workerFile) {
+            const nodeWorkerThreads = this.getNodeWorkerConstructor();
+            const path = this.getNodePath();
+            const worker = new nodeWorkerThreads.Worker(path.resolve(__dirname, workerFile));
+            return worker;
         }
         loadScript(fileOrUrl) {
             if (isUrl(fileOrUrl)) {
@@ -3922,6 +3279,7 @@ ${content}
             })();
         }
         putScriptInFrame(script) {
+            const dummyVm = {}; //"TODO"; //TTT
             const dummyVmString = Object.entries(dummyVm).map(([key, value]) => {
                 if (typeof value === "function") {
                     return `${value}`;
@@ -3940,11 +3298,13 @@ ${content}
 });`;
             return result;
         }
-        nodeCheckSyntax(script) {
+        /* TODO
+        private nodeCheckSyntax(script: string): string {
             if (!this.nodeVm) {
-                this.nodeVm = require("vm");
+                this.nodeVm = require("vm") as NodeVm;
             }
-            const describeError = (stack) => {
+
+            const describeError = (stack: string): string => {
                 const match = stack.match(/^\D+(\d+)\n(.+\n( *)\^+)\n\n(SyntaxError.+)/);
                 if (!match) {
                     return ""; // parse successful?
@@ -3955,18 +3315,19 @@ ${content}
                 return `Syntax error thrown at: Line ${lineno}, col: ${colno}\n${caretString}\n${message}`;
             };
             let output = "";
+
             try {
                 const scriptInFrame = this.putScriptInFrame(script);
                 this.nodeVm.runInNewContext(`throw new Error();\n${scriptInFrame}`);
-            }
-            catch (err) { // Error-like object
-                const stack = err.stack;
+            } catch (err) { // Error-like object
+                const stack = (err as Error).stack;
                 if (stack) {
                     output = describeError(stack);
                 }
             }
             return output;
         }
+        */
         putKeyInBuffer(key) {
             this.keyBuffer.push(key);
         }
@@ -4013,10 +3374,10 @@ ${content}
         consolePrint(msg) {
             console.log(msg);
         }
-        start(core, vm, input) {
+        start(core, input) {
             const actionConfig = core.getConfigMap().action;
             if (input !== "") {
-                core.setOnCheckSyntax((s) => Promise.resolve(this.nodeCheckSyntax(s)));
+                //core.setOnCheckSyntax((s: string) => Promise.resolve(this.nodeCheckSyntax(s)));
                 const compiledScript = actionConfig.includes("compile") ? core.compileScript(input) : input;
                 if (compiledScript.startsWith("ERROR:")) {
                     console.error(compiledScript);
@@ -4024,8 +3385,13 @@ ${content}
                 }
                 if (actionConfig.includes("run")) {
                     return this.keepRunning(async () => {
-                        const output = await core.executeScript(compiledScript, vm);
+                        //await core.executeScript(compiledScript, vm);
+                        if (core.getConfigMap().debug) {
+                            console.log("DEBUG: running compiled script...");
+                        }
+                        const output = await this.nodeVmMain.run(compiledScript);
                         console.log(output.replace(/\n$/, ""));
+                        this.nodeVmMain.reset(); // terminate worker
                         if (this.fnOnKeyPressHandler) {
                             process.stdin.off('keypress', this.fnOnKeyPressHandler);
                             process.stdin.setRawMode(false);
@@ -4085,18 +3451,17 @@ ${content}
             return example.script || ""; //TTT
         }
         async nodeMain(core) {
-            const vm = new BasicVmNode(this);
             const config = core.getConfigMap();
             core.parseArgs(global.process.argv.slice(2), config);
             if (config.input) {
                 return this.keepRunning(async () => {
-                    this.start(core, vm, config.input);
+                    this.start(core, config.input);
                 }, 5000);
             }
             if (config.fileName) {
                 return this.keepRunning(async () => {
                     const inputFromFile = await this.nodeReadFile(config.fileName);
-                    this.start(core, vm, inputFromFile);
+                    this.start(core, inputFromFile);
                 }, 5000);
             }
             if (config.example) {
@@ -4116,7 +3481,7 @@ ${content}
                     const example = core.getExample(exampleName);
                     if (example) {
                         const script = await this.getExampleScript(example, core);
-                        this.start(core, vm, script);
+                        this.start(core, script);
                     }
                     else {
                         console.error(`Error: Example not found: ${exampleName}`);
@@ -4146,6 +3511,7 @@ node dist/locobasic.js input='PRINT "Hello!"'
 npx ts-node dist/locobasic.js input='PRINT "Hello!"'
 node dist/locobasic.js input='?3 + 5 * (2 - 8)' example=''
 node dist/locobasic.js example=euler
+node dist/locobasic.js example=abelian
 node dist/locobasic.js example=archidr0 > test1.svg
 node dist/locobasic.js example=binary database=rosetta databaseDirs=examples,https://benchmarko.github.io/CPCBasicApps/apps,https://benchmarko.github.io/CPCBasicApps/rosetta
 node dist/locobasic.js grammar='strict' input='a$="Bob":PRINT "Hello ";a$;"!"'
@@ -4157,123 +3523,6 @@ node dist/locobasic.js action='compile' input='PRINT "Hello!"' > hello1.js
 node hello1.js
 [When using async functions like FRAME or INPUT, redirect to hello1.mjs]
 `;
-        }
-    }
-
-    class BasicVmBrowser {
-        constructor(ui) {
-            this.ui = ui;
-            this.vmCore = new BasicVmCore();
-            this.vmCore.setOnSpeak(this.fnOnSpeak.bind(this));
-            this.reset = this.vmCore.reset.bind(this.vmCore);
-            this.drawMovePlot = this.vmCore.drawMovePlot.bind(this.vmCore);
-            this.graphicsPen = this.vmCore.graphicsPen.bind(this.vmCore);
-            this.ink = this.vmCore.ink.bind(this.vmCore);
-            this.origin = this.vmCore.origin.bind(this.vmCore);
-            this.printGraphicsText = this.vmCore.printGraphicsText.bind(this.vmCore);
-            this.rsx = this.vmCore.rsx.bind(this.vmCore);
-            this.xpos = this.vmCore.xpos.bind(this.vmCore);
-            this.ypos = this.vmCore.ypos.bind(this.vmCore);
-            this.getSnippetData = this.vmCore.getSnippetData.bind(this.vmCore);
-        }
-        cls() {
-            this.vmCore.cls();
-            this.ui.setOutputText("");
-        }
-        escapeText(str, _isGraphics) {
-            // for a browser, we need to escape text and graphics text
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-        }
-        flush() {
-            const textOutput = this.vmCore.flushText();
-            const graphicsOutput = this.vmCore.flushGraphics();
-            const outputGraphicsIndex = this.vmCore.getOutputGraphicsIndex();
-            const hasGraphics = outputGraphicsIndex >= 0;
-            const output = hasGraphics ? textOutput.substring(0, outputGraphicsIndex) + graphicsOutput + textOutput.substring(outputGraphicsIndex) : textOutput;
-            if (output !== "") {
-                this.ui.addOutputText(output, hasGraphics);
-            }
-        }
-        inkey$() {
-            const key = this.ui.getKeyFromBuffer();
-            return Promise.resolve(key);
-        }
-        /**
-         * Prompts the user with a message and returns the input.
-         * @param msg - The message to prompt.
-         * @returns A promise that resolves to the user input or null if canceled.
-         */
-        async fnOnInput(msg) {
-            await new Promise(resolve => setTimeout(resolve, 50)); // 50 ms delay to allow UI to update
-            const input = this.ui.prompt(msg);
-            return Promise.resolve(input);
-        }
-        async input(msg) {
-            this.flush();
-            return this.fnOnInput(msg);
-        }
-        keyDef(num, repeat, ...codes) {
-            if (num === 78 && repeat === 1) {
-                this.ui.setUiKeys(codes);
-            }
-        }
-        mode(num) {
-            this.vmCore.mode(num);
-        }
-        // Use a virtual stack to handle paper and pen spans
-        paper(n) {
-            const snippetData = this.vmCore.getSnippetData();
-            if (n !== snippetData.paperValue) {
-                // close open paper first
-                if (snippetData.paperSpanPos >= 0) {
-                    if (snippetData.penSpanPos > snippetData.paperSpanPos) { // if pen inside paper is open, close it
-                        snippetData.output += "</span>";
-                        snippetData.penSpanPos = -1;
-                    }
-                    snippetData.output += "</span>";
-                    snippetData.paperSpanPos = -1;
-                }
-                // Open new paper span
-                snippetData.paperValue = n;
-                snippetData.paperSpanPos = snippetData.penSpanPos + 1;
-                const cpcColors = BasicVmCore.getCpcColors();
-                snippetData.output += `<span style="background-color: ${cpcColors[this.vmCore.getColorForPen(n)]}">`;
-                // If pen was open before, reopen it inside
-                if (snippetData.penValue >= 0 && snippetData.penSpanPos === -1) {
-                    snippetData.penSpanPos = snippetData.paperSpanPos + 1;
-                    snippetData.output += `<span style="color: ${cpcColors[this.vmCore.getColorForPen(snippetData.penValue)]}">`;
-                }
-            }
-        }
-        pen(n) {
-            const snippetData = this.vmCore.getSnippetData();
-            if (n !== snippetData.penValue) {
-                // close open pen first
-                if (snippetData.penSpanPos >= 0) {
-                    if (snippetData.paperSpanPos > snippetData.penSpanPos) { // if paper inside pen is open, close it
-                        snippetData.output += "</span>";
-                        snippetData.paperSpanPos = -1;
-                    }
-                    snippetData.output += "</span>";
-                    snippetData.penSpanPos = -1;
-                }
-                // Open new pen span
-                snippetData.penValue = n;
-                snippetData.penSpanPos = snippetData.paperSpanPos + 1;
-                const cpcColors = BasicVmCore.getCpcColors();
-                snippetData.output += `<span style="color: ${cpcColors[this.vmCore.getColorForPen(n)]}">`;
-                // If paper was open before, reopen it inside
-                if (snippetData.paperValue >= 0 && snippetData.paperSpanPos === -1) {
-                    snippetData.paperSpanPos = snippetData.penSpanPos + 1;
-                    snippetData.output += `<span style="background-color: ${cpcColors[this.vmCore.getColorForPen(snippetData.paperValue)]}">`;
-                }
-            }
-        }
-        async fnOnSpeak(text, pitch) {
-            return this.ui.speak(text, pitch);
-        }
-        getEscape() {
-            return this.ui.getEscape();
         }
     }
 
@@ -4297,6 +3546,7 @@ node hello1.js
     if (typeof window !== "undefined") {
         window.onload = () => {
             const UI = window.locobasicUI.UI; // we expect that it is already loaded in the HTML page
+            const workerFn = window.locoVmWorker.workerFn; // we expect that it is already loaded in the HTML page
             const ui = new UI();
             window.cpcBasic = {
                 addIndex: core.addIndex,
@@ -4307,7 +3557,7 @@ node hello1.js
                     core.addItem(key, input);
                 }
             };
-            ui.onWindowLoadContinue(core, new BasicVmBrowser(ui));
+            ui.onWindowLoadContinue(core, workerFn);
         };
     }
     else { // node.js

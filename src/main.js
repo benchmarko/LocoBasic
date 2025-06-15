@@ -1,6 +1,5 @@
 import { Core } from "./Core";
 import { NodeParts } from "./NodeParts";
-import { BasicVmBrowser } from "./BasicVmBrowser";
 const core = new Core({
     action: "compile,run",
     autoCompile: true,
@@ -21,6 +20,7 @@ const core = new Core({
 if (typeof window !== "undefined") {
     window.onload = () => {
         const UI = window.locobasicUI.UI; // we expect that it is already loaded in the HTML page
+        const workerFn = window.locoVmWorker.workerFn; // we expect that it is already loaded in the HTML page
         const ui = new UI();
         window.cpcBasic = {
             addIndex: core.addIndex,
@@ -31,7 +31,7 @@ if (typeof window !== "undefined") {
                 core.addItem(key, input);
             }
         };
-        ui.onWindowLoadContinue(core, new BasicVmBrowser(ui));
+        ui.onWindowLoadContinue(core, workerFn);
     };
 }
 else { // node.js

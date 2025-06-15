@@ -3,10 +3,18 @@
 "use strict";
 
 cpcBasic.addItem("", `
-10 REM testinpu - Test Input
-20 CLS
-30 PRINT "Name"
-40 INPUT n$
-50 PRINT "Name is: ";n$
-60 END
+REM testinpu - Test Input
+CLS
+PRINT "Test Input"
+PRINT
+'
+PRINT "Input string: "; 
+INPUT n$
+PRINT
+PRINT "Input was: ";n$
+'
+INPUT "string,number:"; n$, n
+PRINT "Input was: ";n$, n
+'
+END
 `);

@@ -1,31 +1,35 @@
-import { BasicVmNode } from "./BasicVmNode";
+import { NodeVmMain } from "./NodeVmMain";
+/*
+interface DummyVm extends IVm {
+    _snippetData: SnippetDataType;
+    debug(...args: (string | number | boolean)[]): void;
+}
+
 // The functions from dummyVm will be stringified in the putScriptInFrame function
-const dummyVm = {
-    _snippetData: {},
-    debug(..._args) { }, // eslint-disable-line @typescript-eslint/no-unused-vars
+const dummyVm: DummyVm = {
+    _snippetData: {} as SnippetDataType,
+    debug(..._args: (string | number)[]) { / * console.debug(...args); * / }, // eslint-disable-line @typescript-eslint/no-unused-vars
     cls() { },
-    drawMovePlot(type, x, y, pen) { this.debug("drawMovePlot:", type, x, y, pen !== undefined ? pen : ""); },
-    escapeText(str, isGraphics) { return isGraphics ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;") : str; },
-    flush() { if (this._snippetData.output) {
-        console.log(this._snippetData.output);
-        this._snippetData.output = "";
-    } },
-    graphicsPen(num) { this.debug("graphicsPen:", num); },
-    ink(num, col) { this.debug("ink:", num, col); },
+    drawMovePlot(type: string, x: number, y: number, pen?: number) { this.debug("drawMovePlot:", type, x, y, pen !== undefined ? pen : ""); },
+    escapeText(str: string, isGraphics?: boolean) { return isGraphics ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;") : str; },
+    flush() { if (this._snippetData.output) { console.log(this._snippetData.output); this._snippetData.output = ""; } },
+    graphicsPen(num: number) { this.debug("graphicsPen:", num); },
+    ink(num: number, col: number) { this.debug("ink:", num, col); },
     async inkey$() { return Promise.resolve(""); },
-    async input(msg) { console.log(msg); return ""; },
-    keyDef(num, repeat, ...codes) { this.debug("keyDef:", num, repeat, codes.join(", ")); },
-    mode(num) { this.debug("mode:", num); },
-    origin(x, y) { this.debug("origin:", x, y); },
-    paper(num) { this.debug("paper:", num); },
-    pen(num) { this.debug("pen:", num); },
-    printGraphicsText(text) { this.debug("printGraphicsText:", text); },
-    rsx(cmd, args) { this._snippetData.output += cmd + "," + args.join(''); return Promise.resolve([]); },
+    async input(msg: string) { console.log(msg); return ""; },
+    keyDef(num: number, repeat: number, ...codes: number[]) { this.debug("keyDef:", num, repeat, codes.join(", ")); },
+    mode(num: number) { this.debug("mode:", num); },
+    origin(x: number, y: number) { this.debug("origin:", x, y); },
+    paper(num: number) { this.debug("paper:", num); },
+    pen(num: number) { this.debug("pen:", num); },
+    printGraphicsText(text: string) { this.debug("printGraphicsText:", text); },
+    rsx(cmd: string, args: (string | number)[]): Promise<(number | string)[]> { this._snippetData.output += cmd + "," + args.join(''); return Promise.resolve([]); },
     xpos() { this.debug("xpos:"); return 0; },
     ypos() { this.debug("ypos:"); return 0; },
     getEscape() { return false; },
     getSnippetData() { return this._snippetData; }
 };
+*/
 function isUrl(s) {
     return s.startsWith("http"); // http or https
 }
@@ -34,21 +38,41 @@ export class NodeParts {
         this.modulePath = "";
         this.keyBuffer = []; // buffered pressed keys
         this.escape = false;
+        this.nodeVmMain = new NodeVmMain(this, "locoVmWorker.js");
     }
-    nodeGetAbsolutePath(name) {
+    getNodeFs() {
+        if (!this.nodeFs) {
+            this.nodeFs = require("fs");
+        }
+        return this.nodeFs;
+    }
+    getNodeHttps() {
+        if (!this.nodeHttps) {
+            this.nodeHttps = require("https");
+        }
+        return this.nodeHttps;
+    }
+    getNodePath() {
         if (!this.nodePath) {
             this.nodePath = require("path");
         }
-        const path = this.nodePath;
+        return this.nodePath;
+    }
+    getNodeWorkerConstructor() {
+        if (!this.nodeWorkerThreads) {
+            this.nodeWorkerThreads = require('worker_threads');
+        }
+        return this.nodeWorkerThreads;
+    }
+    nodeGetAbsolutePath(name) {
+        const path = this.getNodePath();
         // https://stackoverflow.com/questions/8817423/why-is-dirname-not-defined-in-node-repl
         const dirname = __dirname || path.dirname(__filename);
         const absolutePath = path.resolve(dirname, name);
         return absolutePath;
     }
     async nodeReadFile(name) {
-        if (!this.nodeFs) {
-            this.nodeFs = require("fs");
-        }
+        const nodeFs = this.getNodeFs();
         if (!module) {
             const module = require("module");
             this.modulePath = module.path || "";
@@ -57,7 +81,7 @@ export class NodeParts {
             }
         }
         try {
-            return await this.nodeFs.promises.readFile(name, "utf8");
+            return await nodeFs.promises.readFile(name, "utf8");
         }
         catch (error) {
             console.error(`Error reading file ${name}:`, String(error));
@@ -65,10 +89,7 @@ export class NodeParts {
         }
     }
     async nodeReadUrl(url) {
-        if (!this.nodeHttps) {
-            this.nodeHttps = require("https");
-        }
-        const nodeHttps = this.nodeHttps;
+        const nodeHttps = this.getNodeHttps();
         return new Promise((resolve, reject) => {
             nodeHttps.get(url, (resp) => {
                 let data = "";
@@ -83,6 +104,12 @@ export class NodeParts {
                 reject(err);
             });
         });
+    }
+    createNodeWorker(workerFile) {
+        const nodeWorkerThreads = this.getNodeWorkerConstructor();
+        const path = this.getNodePath();
+        const worker = new nodeWorkerThreads.Worker(path.resolve(__dirname, workerFile));
+        return worker;
     }
     loadScript(fileOrUrl) {
         if (isUrl(fileOrUrl)) {
@@ -101,6 +128,7 @@ export class NodeParts {
         })();
     }
     putScriptInFrame(script) {
+        const dummyVm = {}; //"TODO"; //TTT
         const dummyVmString = Object.entries(dummyVm).map(([key, value]) => {
             if (typeof value === "function") {
                 return `${value}`;
@@ -119,11 +147,13 @@ export class NodeParts {
 });`;
         return result;
     }
-    nodeCheckSyntax(script) {
+    /* TODO
+    private nodeCheckSyntax(script: string): string {
         if (!this.nodeVm) {
-            this.nodeVm = require("vm");
+            this.nodeVm = require("vm") as NodeVm;
         }
-        const describeError = (stack) => {
+
+        const describeError = (stack: string): string => {
             const match = stack.match(/^\D+(\d+)\n(.+\n( *)\^+)\n\n(SyntaxError.+)/);
             if (!match) {
                 return ""; // parse successful?
@@ -134,18 +164,19 @@ export class NodeParts {
             return `Syntax error thrown at: Line ${lineno}, col: ${colno}\n${caretString}\n${message}`;
         };
         let output = "";
+
         try {
             const scriptInFrame = this.putScriptInFrame(script);
             this.nodeVm.runInNewContext(`throw new Error();\n${scriptInFrame}`);
-        }
-        catch (err) { // Error-like object
-            const stack = err.stack;
+        } catch (err) { // Error-like object
+            const stack = (err as Error).stack;
             if (stack) {
                 output = describeError(stack);
             }
         }
         return output;
     }
+    */
     putKeyInBuffer(key) {
         this.keyBuffer.push(key);
     }
@@ -192,10 +223,10 @@ export class NodeParts {
     consolePrint(msg) {
         console.log(msg);
     }
-    start(core, vm, input) {
+    start(core, input) {
         const actionConfig = core.getConfigMap().action;
         if (input !== "") {
-            core.setOnCheckSyntax((s) => Promise.resolve(this.nodeCheckSyntax(s)));
+            //core.setOnCheckSyntax((s: string) => Promise.resolve(this.nodeCheckSyntax(s)));
             const compiledScript = actionConfig.includes("compile") ? core.compileScript(input) : input;
             if (compiledScript.startsWith("ERROR:")) {
                 console.error(compiledScript);
@@ -203,8 +234,13 @@ export class NodeParts {
             }
             if (actionConfig.includes("run")) {
                 return this.keepRunning(async () => {
-                    const output = await core.executeScript(compiledScript, vm);
+                    //await core.executeScript(compiledScript, vm);
+                    if (core.getConfigMap().debug) {
+                        console.log("DEBUG: running compiled script...");
+                    }
+                    const output = await this.nodeVmMain.run(compiledScript);
                     console.log(output.replace(/\n$/, ""));
+                    this.nodeVmMain.reset(); // terminate worker
                     if (this.fnOnKeyPressHandler) {
                         process.stdin.off('keypress', this.fnOnKeyPressHandler);
                         process.stdin.setRawMode(false);
@@ -264,18 +300,17 @@ export class NodeParts {
         return example.script || ""; //TTT
     }
     async nodeMain(core) {
-        const vm = new BasicVmNode(this);
         const config = core.getConfigMap();
         core.parseArgs(global.process.argv.slice(2), config);
         if (config.input) {
             return this.keepRunning(async () => {
-                this.start(core, vm, config.input);
+                this.start(core, config.input);
             }, 5000);
         }
         if (config.fileName) {
             return this.keepRunning(async () => {
                 const inputFromFile = await this.nodeReadFile(config.fileName);
-                this.start(core, vm, inputFromFile);
+                this.start(core, inputFromFile);
             }, 5000);
         }
         if (config.example) {
@@ -295,7 +330,7 @@ export class NodeParts {
                 const example = core.getExample(exampleName);
                 if (example) {
                     const script = await this.getExampleScript(example, core);
-                    this.start(core, vm, script);
+                    this.start(core, script);
                 }
                 else {
                     console.error(`Error: Example not found: ${exampleName}`);
@@ -325,6 +360,7 @@ node dist/locobasic.js input='PRINT "Hello!"'
 npx ts-node dist/locobasic.js input='PRINT "Hello!"'
 node dist/locobasic.js input='?3 + 5 * (2 - 8)' example=''
 node dist/locobasic.js example=euler
+node dist/locobasic.js example=abelian
 node dist/locobasic.js example=archidr0 > test1.svg
 node dist/locobasic.js example=binary database=rosetta databaseDirs=examples,https://benchmarko.github.io/CPCBasicApps/apps,https://benchmarko.github.io/CPCBasicApps/rosetta
 node dist/locobasic.js grammar='strict' input='a$="Bob":PRINT "Hello ";a$;"!"'

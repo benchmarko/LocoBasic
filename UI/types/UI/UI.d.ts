@@ -1,23 +1,21 @@
-import type { ICore, IUI, IVmAdmin } from "../Interfaces";
+import type { ICore, IUI } from "../Interfaces";
 export declare class UI implements IUI {
     private core?;
-    private vm?;
+    private vmMain?;
     private basicCm?;
     private compiledCm?;
-    private readonly keyBuffer;
     private escape;
     private initialUserAction;
     private fnOnKeyPressHandler;
     private fnOnClickHandler;
     private fnOnUserKeyClickHandler;
     private speechSynthesisUtterance?;
-    private static getErrorEvent?;
     constructor();
     private debounce;
     private static asyncDelay;
     private getCore;
-    getEscape(): boolean;
-    setEscape(escape: boolean): void;
+    private getEscape;
+    private setEscape;
     private toggleElementHidden;
     private setElementHidden;
     private setButtonOrSelectDisabled;
@@ -28,7 +26,7 @@ export declare class UI implements IUI {
     addOutputText(value: string, hasGraphics?: boolean): void;
     setOutputText(value: string): void;
     private onUserKeyClick;
-    setUiKeys(codes: number[]): void;
+    private onSetUiKeys;
     /**
      * Prompts the user with a message and returns the input.
      * @param msg - The message to prompt.
@@ -39,10 +37,12 @@ export declare class UI implements IUI {
     private waitForUserInteraction;
     private logVoiceDebugInfo;
     private getSpeechSynthesisUtterance;
-    speak(text: string, pitch: number): Promise<void>;
+    private onSpeak;
     private updateConfigParameter;
     private hasCompiledError;
     private updateButtonStates;
+    private beforeExecute;
+    private afterExecute;
     private onExecuteButtonClick;
     private onCompiledTextChange;
     private onCompileButtonClick;
@@ -53,6 +53,7 @@ export declare class UI implements IUI {
     private onShowBasicInputChange;
     private onShowCompiledInputChange;
     private onStopButtonClick;
+    private onResetButtonClick;
     private onConvertButtonClick;
     private static addLabels;
     private static removeUnusedLabels;
@@ -69,18 +70,14 @@ export declare class UI implements IUI {
     private static fnDownloadBlob;
     private getExampleName;
     private onExportSvgButtonClick;
-    getKeyFromBuffer(): string;
-    private putKeyInBuffer;
+    private putKeysInBuffer;
     private onOutputTextKeydown;
     private getClickedKey;
     private onOutputTextClick;
-    private static getErrorEventFn;
-    private static describeError;
-    checkSyntax(str: string): Promise<string>;
     private fnDecodeUri;
     private parseUri;
     private initializeEditor;
     private syncInputState;
-    onWindowLoadContinue(core: ICore, vm: IVmAdmin): void;
+    onWindowLoadContinue(core: ICore, workerFn: () => unknown): void;
 }
 //# sourceMappingURL=UI.d.ts.map

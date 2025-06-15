@@ -1,18 +1,8 @@
 import type { ActionDict, Node } from "ohm-js";
-import type { IVm, ISemantics, SnippetDataType, UsedLabelEntryType } from "./Interfaces";
+import type { ISemantics, UsedLabelEntryType } from "./Interfaces";
 import { SemanticsHelper } from "./SemanticsHelper";
-type RecursiveArray<T> = T | RecursiveArray<T>[];
 export declare const CommaOpChar = "\u2192";
 export declare const TabOpChar = "\u21D2";
-declare const codeSnippetsData: {
-    _o: IVm;
-    _d: SnippetDataType;
-    cls(): void;
-    frame(): Promise<void>;
-    printText(_text: string): void;
-    remain(timer: number): number;
-    resetText(): void;
-};
 export declare class Semantics implements ISemantics {
     private readonly helper;
     constructor();
@@ -258,57 +248,5 @@ export declare class Semantics implements ISemantics {
     };
     getSemanticsActionDict(): ActionDict<string>;
     getHelper(): SemanticsHelper;
-    getCodeSnippets4Test(data: Partial<typeof codeSnippetsData>): {
-        resetText: () => void;
-        after: (timeout: number, timer: number, fn: () => void) => void;
-        bin$: (num: number, pad?: number) => string;
-        cls: () => void;
-        dec$: (num: number, format: string) => string;
-        dim: (dims: number[], value?: string | number) => RecursiveArray<string | number>;
-        dim1: (dim: number, value?: string | number) => any[];
-        draw: (x: number, y: number, pen?: number) => void;
-        drawr: (x: number, y: number, pen?: number) => void;
-        end: () => string;
-        every: (timeout: number, timer: number, fn: () => void) => void;
-        frame: () => Promise<void>;
-        graphicsPen: (num: number) => void;
-        hex$: (num: number, pad?: number) => string;
-        ink: (num: number, col: number) => void;
-        inkey$: () => Promise<string>;
-        input: (msg: string, isNum: boolean) => Promise<string | number>;
-        instr: (str: string, find: string, len: number) => number;
-        left$: (str: string, num: number) => string;
-        mid$: (str: string, pos: number, len?: number) => string;
-        mid$Assign: (s: string, start: number, newString: string, len?: number) => string;
-        mode: (num: number) => void;
-        move: (x: number, y: number, pen?: number) => void;
-        mover: (x: number, y: number, pen?: number) => void;
-        origin: (x: number, y: number) => void;
-        paper: (n: number) => void;
-        pen: (n: number) => void;
-        plot: (x: number, y: number, pen?: number) => void;
-        plotr: (x: number, y: number, pen?: number) => void;
-        pos: () => number;
-        printText: (text: string) => void;
-        print: (...args: (string | number)[]) => void;
-        printTab: (...args: (string | number)[]) => void;
-        read: () => string | number;
-        remain: (timer: number) => number | NodeJS.Timeout | undefined;
-        restore: (label: string) => void;
-        right$: (str: string, num: number) => string;
-        round: (num: number, dec: number) => number;
-        rsxCall: (cmd: string, ...args: (string | number)[]) => Promise<(string | number)[]>;
-        stop: () => string;
-        str$: (num: number) => string;
-        tag: (active: boolean) => void;
-        time: () => number;
-        val: (str: string) => number;
-        vpos: () => number;
-        write: (...args: (string | number)[]) => void;
-        xpos: () => number;
-        ypos: () => number;
-        zone: (num: number) => void;
-    };
 }
-export {};
 //# sourceMappingURL=Semantics.d.ts.map
