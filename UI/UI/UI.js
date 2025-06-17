@@ -2,7 +2,6 @@ import { LocoBasicMode } from "./LocoBasicMode";
 import { VmMain } from "./VmMain";
 export class UI {
     constructor() {
-        this.escape = false;
         this.initialUserAction = false;
         this.onSetUiKeys = (codes) => {
             if (codes.length) {
@@ -19,8 +18,13 @@ export class UI {
             }
         };
         this.onSpeak = async (text, pitch) => {
+            const debug = this.getCore().getConfigMap().debug;
+            if (debug) {
+                console.log("onSpeak: ", text, pitch);
+            }
             const msg = await this.getSpeechSynthesisUtterance();
-            if (this.getEscape()) { // program already escaped?
+            const stopButton = window.document.getElementById("stopButton");
+            if (stopButton.disabled) { // Stop button inactive, program already stopped?
                 return Promise.reject("Speech canceled.");
             }
             msg.text = text;
@@ -39,12 +43,6 @@ export class UI {
             if (this.hasCompiledError()) {
                 return;
             }
-            //const core = this.getCore();
-            /*
-            if (!this.vm || this.hasCompiledError()) {
-                return;
-            }
-            */
             this.beforeExecute();
             const compiledScript = ((_a = this.compiledCm) === null || _a === void 0 ? void 0 : _a.getValue()) || ""; // Execute the compiled script
             const output = await ((_b = this.vmMain) === null || _b === void 0 ? void 0 : _b.run(compiledScript));
@@ -84,6 +82,7 @@ export class UI {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onEnterButtonClick = (_event) => {
             this.putKeysInBuffer("\x0d");
+            this.clickStartSpeechButton(); // we just did a user interaction
         };
         this.onAutoCompileInputChange = (event) => {
             const autoCompileInput = event.target;
@@ -111,19 +110,16 @@ export class UI {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onStopButtonClick = (_event) => {
             var _a;
-            this.setEscape(true);
+            this.cancelSpeech(); // maybe a speech was waiting
+            this.clickStartSpeechButton(); // we just did a user interaction
             this.setButtonOrSelectDisabled("stopButton", true);
-            /*
-            const startSpeechButton = window.document.getElementById("startSpeechButton") as HTMLButtonElement;
-            if (!startSpeechButton.hidden) {
-                startSpeechButton.dispatchEvent(new Event("click"));
-            }
-            */
             (_a = this.vmMain) === null || _a === void 0 ? void 0 : _a.stop();
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onResetButtonClick = (_event) => {
             var _a;
+            this.cancelSpeech();
+            this.clickStartSpeechButton(); // we just did a user interaction
             (_a = this.vmMain) === null || _a === void 0 ? void 0 : _a.reset();
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -246,15 +242,9 @@ export class UI {
         }
         return this.core;
     }
-    getEscape() {
-        return this.escape;
-    }
-    setEscape(escape) {
-        this.escape = escape;
-        if (escape) {
-            if (this.speechSynthesisUtterance && this.speechSynthesisUtterance.text) {
-                window.speechSynthesis.cancel();
-            }
+    cancelSpeech() {
+        if (this.speechSynthesisUtterance && this.speechSynthesisUtterance.text) {
+            window.speechSynthesis.cancel();
         }
     }
     toggleElementHidden(id, editor) {
@@ -437,7 +427,6 @@ export class UI {
             exampleSelect: true
         };
         this.updateButtonStates(buttonStates);
-        this.setEscape(false);
         const outputText = document.getElementById("outputText");
         outputText.setAttribute("contenteditable", "false");
         outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
@@ -459,6 +448,12 @@ export class UI {
             databaseSelect: false,
             exampleSelect: false
         });
+    }
+    clickStartSpeechButton() {
+        const startSpeechButton = window.document.getElementById("startSpeechButton");
+        if (!startSpeechButton.hidden) { // if the startSpeech button is visible, activate it to allow speech
+            startSpeechButton.dispatchEvent(new Event("click"));
+        }
     }
     static addLabels(input) {
         const lineParts = input.split("\n");
@@ -569,9 +564,11 @@ export class UI {
         (_a = this.vmMain) === null || _a === void 0 ? void 0 : _a.putKeys(keys);
     }
     onOutputTextKeydown(event) {
+        var _a;
         const key = event.key;
         if (key === "Escape") {
-            this.setEscape(true);
+            this.cancelSpeech();
+            (_a = this.vmMain) === null || _a === void 0 ? void 0 : _a.stop(); // request stop
         }
         else if (key === "Enter") {
             this.putKeysInBuffer("\x0d");
@@ -662,11 +659,9 @@ export class UI {
     }
     onWindowLoadContinue(core, workerFn) {
         this.core = core;
-        //this.vm = vm;
         const config = core.getConfigMap();
         const args = this.parseUri(config);
         core.parseArgs(args, config);
-        //core.setOnCheckSyntax((s: string) => Promise.resolve(this.checkSyntax(s)));
         // Map of element IDs to event handlers
         const buttonHandlers = {
             compileButton: this.onCompileButtonClick,
@@ -726,7 +721,6 @@ export class UI {
         window.document.addEventListener("click", () => {
             this.initialUserAction = true;
         }, { once: true });
-        //const workerFn = (window as any).locoVmWorker.workerFn;
         const workerScript = `(${workerFn})();`;
         this.vmMain = new VmMain(workerScript, this.onSetUiKeys, this.onSpeak);
         // Initialize database and examples

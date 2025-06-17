@@ -170,9 +170,14 @@
                     }
                 }
             };
+            this.handleBeforeUnload = () => {
+                var _a;
+                (_a = this.worker) === null || _a === void 0 ? void 0 : _a.terminate();
+            };
             this.workerScript = workerScript;
             this.setUiKeysFn = setUiKeysFn;
             this.onSpeakFn = onSpeakFn;
+            window.addEventListener('beforeunload', this.handleBeforeUnload, { once: true });
         }
         static describeError(stringToEval, lineno, colno) {
             const lines = stringToEval.split("\n");
@@ -181,24 +186,20 @@
         }
         getOrCreateWorker() {
             if (!this.worker) {
-                //const workerFn = (window as any).locoVmWorker.workerFn; const workerScript = `(${workerFn})();`;
                 const blob = new Blob([this.workerScript], { type: "text/javascript" });
-                this.worker = new Worker(window.URL.createObjectURL(blob));
+                const objectURL = window.URL.createObjectURL(blob);
+                this.worker = new Worker(objectURL);
+                window.URL.revokeObjectURL(objectURL);
                 this.worker.onmessage = this.workerOnMessageHandler;
             }
             return this.worker;
         }
         run(code) {
             if (!code.endsWith("\n")) {
-                code += "\n"; // make sure the script end with a new line (needed for line comment in las line)
+                code += "\n"; // make sure the script end with a new line (needed for line comment in last line)
             }
             this.code = code; // for error message
             const worker = this.getOrCreateWorker();
-            /*
-            const result = document.getElementById('outputText') as HTMLPreElement; //TTT
-            result.innerHTML = ""; // Clear previous results
-            console.log('run: sending code to worker...');
-            s*/
             const finishedPromise = new Promise((resolve) => {
                 this.finishedResolverFn = resolve;
             });
@@ -232,7 +233,6 @@
 
     class UI {
         constructor() {
-            this.escape = false;
             this.initialUserAction = false;
             this.onSetUiKeys = (codes) => {
                 if (codes.length) {
@@ -249,8 +249,13 @@
                 }
             };
             this.onSpeak = async (text, pitch) => {
+                const debug = this.getCore().getConfigMap().debug;
+                if (debug) {
+                    console.log("onSpeak: ", text, pitch);
+                }
                 const msg = await this.getSpeechSynthesisUtterance();
-                if (this.getEscape()) { // program already escaped?
+                const stopButton = window.document.getElementById("stopButton");
+                if (stopButton.disabled) { // Stop button inactive, program already stopped?
                     return Promise.reject("Speech canceled.");
                 }
                 msg.text = text;
@@ -269,12 +274,6 @@
                 if (this.hasCompiledError()) {
                     return;
                 }
-                //const core = this.getCore();
-                /*
-                if (!this.vm || this.hasCompiledError()) {
-                    return;
-                }
-                */
                 this.beforeExecute();
                 const compiledScript = ((_a = this.compiledCm) === null || _a === void 0 ? void 0 : _a.getValue()) || ""; // Execute the compiled script
                 const output = await ((_b = this.vmMain) === null || _b === void 0 ? void 0 : _b.run(compiledScript));
@@ -314,6 +313,7 @@
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onEnterButtonClick = (_event) => {
                 this.putKeysInBuffer("\x0d");
+                this.clickStartSpeechButton(); // we just did a user interaction
             };
             this.onAutoCompileInputChange = (event) => {
                 const autoCompileInput = event.target;
@@ -341,19 +341,16 @@
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onStopButtonClick = (_event) => {
                 var _a;
-                this.setEscape(true);
+                this.cancelSpeech(); // maybe a speech was waiting
+                this.clickStartSpeechButton(); // we just did a user interaction
                 this.setButtonOrSelectDisabled("stopButton", true);
-                /*
-                const startSpeechButton = window.document.getElementById("startSpeechButton") as HTMLButtonElement;
-                if (!startSpeechButton.hidden) {
-                    startSpeechButton.dispatchEvent(new Event("click"));
-                }
-                */
                 (_a = this.vmMain) === null || _a === void 0 ? void 0 : _a.stop();
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onResetButtonClick = (_event) => {
                 var _a;
+                this.cancelSpeech();
+                this.clickStartSpeechButton(); // we just did a user interaction
                 (_a = this.vmMain) === null || _a === void 0 ? void 0 : _a.reset();
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -476,15 +473,9 @@
             }
             return this.core;
         }
-        getEscape() {
-            return this.escape;
-        }
-        setEscape(escape) {
-            this.escape = escape;
-            if (escape) {
-                if (this.speechSynthesisUtterance && this.speechSynthesisUtterance.text) {
-                    window.speechSynthesis.cancel();
-                }
+        cancelSpeech() {
+            if (this.speechSynthesisUtterance && this.speechSynthesisUtterance.text) {
+                window.speechSynthesis.cancel();
             }
         }
         toggleElementHidden(id, editor) {
@@ -667,7 +658,6 @@
                 exampleSelect: true
             };
             this.updateButtonStates(buttonStates);
-            this.setEscape(false);
             const outputText = document.getElementById("outputText");
             outputText.setAttribute("contenteditable", "false");
             outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
@@ -689,6 +679,12 @@
                 databaseSelect: false,
                 exampleSelect: false
             });
+        }
+        clickStartSpeechButton() {
+            const startSpeechButton = window.document.getElementById("startSpeechButton");
+            if (!startSpeechButton.hidden) { // if the startSpeech button is visible, activate it to allow speech
+                startSpeechButton.dispatchEvent(new Event("click"));
+            }
         }
         static addLabels(input) {
             const lineParts = input.split("\n");
@@ -799,9 +795,11 @@
             (_a = this.vmMain) === null || _a === void 0 ? void 0 : _a.putKeys(keys);
         }
         onOutputTextKeydown(event) {
+            var _a;
             const key = event.key;
             if (key === "Escape") {
-                this.setEscape(true);
+                this.cancelSpeech();
+                (_a = this.vmMain) === null || _a === void 0 ? void 0 : _a.stop(); // request stop
             }
             else if (key === "Enter") {
                 this.putKeysInBuffer("\x0d");
@@ -892,11 +890,9 @@
         }
         onWindowLoadContinue(core, workerFn) {
             this.core = core;
-            //this.vm = vm;
             const config = core.getConfigMap();
             const args = this.parseUri(config);
             core.parseArgs(args, config);
-            //core.setOnCheckSyntax((s: string) => Promise.resolve(this.checkSyntax(s)));
             // Map of element IDs to event handlers
             const buttonHandlers = {
                 compileButton: this.onCompileButtonClick,
@@ -956,7 +952,6 @@
             window.document.addEventListener("click", () => {
                 this.initialUserAction = true;
             }, { once: true });
-            //const workerFn = (window as any).locoVmWorker.workerFn;
             const workerScript = `(${workerFn})();`;
             this.vmMain = new VmMain(workerScript, this.onSetUiKeys, this.onSpeak);
             // Initialize database and examples

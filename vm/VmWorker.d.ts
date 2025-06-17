@@ -41,6 +41,7 @@ export declare const workerFn: (parentPort?: NodeWorkerThreads["parentPort"]) =>
     };
     _rsx: {
         _pitch: number;
+        resetRsx: () => void;
         rsxDate: (args: (number | string)[]) => Promise<(string | number)[]>;
         rsxPitch: (args: (number | string)[]) => void;
         rsxSay: (args: (number | string)[]) => void;

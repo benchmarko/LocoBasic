@@ -4,7 +4,6 @@ export declare class UI implements IUI {
     private vmMain?;
     private basicCm?;
     private compiledCm?;
-    private escape;
     private initialUserAction;
     private fnOnKeyPressHandler;
     private fnOnClickHandler;
@@ -14,8 +13,7 @@ export declare class UI implements IUI {
     private debounce;
     private static asyncDelay;
     private getCore;
-    private getEscape;
-    private setEscape;
+    private cancelSpeech;
     private toggleElementHidden;
     private setElementHidden;
     private setButtonOrSelectDisabled;
@@ -52,6 +50,7 @@ export declare class UI implements IUI {
     private onShowOutputInputChange;
     private onShowBasicInputChange;
     private onShowCompiledInputChange;
+    private clickStartSpeechButton;
     private onStopButtonClick;
     private onResetButtonClick;
     private onConvertButtonClick;

@@ -8,6 +8,7 @@ export declare class VmMain {
     constructor(workerScript: string, setUiKeysFn: (codes: number[]) => void, onSpeakFn: (text: string, pitch: number) => Promise<void>);
     private static describeError;
     workerOnMessageHandler: (event: MessageEvent) => void;
+    private handleBeforeUnload;
     private getOrCreateWorker;
     run(code: string): Promise<string>;
     stop(): void;

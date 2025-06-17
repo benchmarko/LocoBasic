@@ -95,6 +95,9 @@ ${content}
         };
         const vmRsx = {
             _pitch: 1,
+            resetRsx: () => {
+                vmRsx._pitch = 1;
+            },
             rsxDate: async (args) => {
                 const date = new Date();
                 const dayOfWeek = (date.getDay() + 1) % 7;
@@ -110,7 +113,6 @@ ${content}
             },
             rsxSay: (args) => {
                 const message = args[0];
-                console.log("|say: ", message);
                 postMessage({ type: 'speak', message, pitch: vmRsx._pitch });
             },
             rsxTime: async (args) => {
@@ -303,6 +305,7 @@ ${content}
             _vpos: 0,
             _zone: 13,
             resetAll: () => {
+                vm._rsx.resetRsx();
                 vm._gra.resetGra();
                 vm.cls();
                 vm._data.length = 0;
@@ -425,29 +428,9 @@ ${content}
                 vm._keyCharBufferString = vm._keyCharBufferString.substring(1);
                 return key;
             },
-            /*
-            input: async (prompt: string, isNum: boolean): Promise<string | number> => { // TODO: isNum
-                await vm.frame();
-                // Forward input request to main thread
-                const inputPromise = new Promise<string>((resolve) => {
-                    // Store the resolve function to be called later
-                    vm._inputResolvedFn = resolve;
-                    //vm._inputRejectFn = reject;
-                    postMessage({ type: 'input', prompt });
-                }).then((input: string) => {
-                    if (input === null) {
-                        throw new Error("INFO: Input canceled");
-                    } else if (isNum && isNaN(Number(input))) {
-                        throw new Error("Invalid number input");
-                    }
-                    return isNum ? Number(input) : input;
-                });
-                return inputPromise;
-            },
-            */
             input: async (prompt, isNum) => {
                 const inputPromise = new Promise((resolve) => {
-                    // Store the resolve function to be called later
+                    // Store early: The resolve function to be called later
                     vm._inputResolvedFn = resolve;
                 });
                 await vm.frame();
@@ -467,7 +450,6 @@ ${content}
             },
             keyDef(num, repeat, ...codes) {
                 if (num === 78 && repeat === 1) {
-                    //this.ui.setUiKeys(codes);
                     postMessage({ type: 'keyDef', codes });
                 }
             },
@@ -725,8 +707,7 @@ ${content}
                     break;
                 case 'run': {
                     vm.resetAll();
-                    vm._stopRequested = false;
-                    if (!parentPort) {
+                    if (!parentPort) { // not for node.js
                         self.addEventListener("error", errorEventHandler, { once: true });
                     }
                     const fnScript = new Function("_o", `"use strict"; return (async () => { ${data.code} })();`); // compile

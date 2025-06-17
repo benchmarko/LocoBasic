@@ -67,9 +67,14 @@ export class VmMain {
                     break;
             }
         };
+        this.handleBeforeUnload = () => {
+            var _a;
+            (_a = this.worker) === null || _a === void 0 ? void 0 : _a.terminate();
+        };
         this.workerScript = workerScript;
         this.setUiKeysFn = setUiKeysFn;
         this.onSpeakFn = onSpeakFn;
+        window.addEventListener('beforeunload', this.handleBeforeUnload, { once: true });
     }
     static describeError(stringToEval, lineno, colno) {
         const lines = stringToEval.split("\n");
@@ -78,24 +83,20 @@ export class VmMain {
     }
     getOrCreateWorker() {
         if (!this.worker) {
-            //const workerFn = (window as any).locoVmWorker.workerFn; const workerScript = `(${workerFn})();`;
             const blob = new Blob([this.workerScript], { type: "text/javascript" });
-            this.worker = new Worker(window.URL.createObjectURL(blob));
+            const objectURL = window.URL.createObjectURL(blob);
+            this.worker = new Worker(objectURL);
+            window.URL.revokeObjectURL(objectURL);
             this.worker.onmessage = this.workerOnMessageHandler;
         }
         return this.worker;
     }
     run(code) {
         if (!code.endsWith("\n")) {
-            code += "\n"; // make sure the script end with a new line (needed for line comment in las line)
+            code += "\n"; // make sure the script end with a new line (needed for line comment in last line)
         }
         this.code = code; // for error message
         const worker = this.getOrCreateWorker();
-        /*
-        const result = document.getElementById('outputText') as HTMLPreElement; //TTT
-        result.innerHTML = ""; // Clear previous results
-        console.log('run: sending code to worker...');
-        s*/
         const finishedPromise = new Promise((resolve) => {
             this.finishedResolverFn = resolve;
         });
