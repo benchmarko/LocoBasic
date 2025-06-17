@@ -1828,7 +1828,13 @@
         };
         const cosSinTan = (lit, _open, num, _close) => {
             const func = lit.sourceString.toLowerCase();
-            return semanticsHelper.getDeg() ? `Math.${func}((${num.eval()}) * Math.PI / 180)` : `Math.${func}(${num.eval()})`;
+            semanticsHelper.addInstr(func);
+            if (!semanticsHelper.getDeg()) {
+                return `${func}(${num.eval()})`;
+            }
+            semanticsHelper.addInstr("toRad");
+            return `${func}(toRad(${num.eval()}))`;
+            //or inline: semanticsHelper.getDeg() ? `Math.${func}((${num.eval()}) * Math.PI / 180)` : `Math.${func}(${num.eval()})`
         };
         const loopBlock = (startNode, content, separator, endNode) => {
             const startStr = startNode.eval();
@@ -1897,6 +1903,9 @@
             }
             return awaitLabels;
         }
+        const addSemicolon = (str) => {
+            return str.endsWith("}") ? str : str + ";"; // add semicolon, but not for closing bracket
+        };
         const semantics = {
             Program(lines) {
                 const lineList = evalChildren(lines.children);
@@ -2012,7 +2021,8 @@ ${dataList.join(",\n")}
                 return `${commentStr}${eolStr}`;
             },
             Abs(_absLit, _open, e, _close) {
-                return `Math.abs(${e.eval()})`;
+                semanticsHelper.addInstr("abs");
+                return `abs(${e.eval()})`; // or inline:`Math.abs(${e.eval()})`
             },
             AddressOf(op, ident) {
                 return notSupported(op, ident) + "0";
@@ -2027,10 +2037,17 @@ ${dataList.join(",\n")}
                 return `after(${timeout}, ${timer}, _${labelString})`;
             },
             Asc(_ascLit, _open, str, _close) {
-                return `(${str.eval()}).charCodeAt(0)`;
+                semanticsHelper.addInstr("asc");
+                return `asc(${str.eval()})`; // or inline: `(${str.eval()}).charCodeAt(0)`
             },
             Atn(_atnLit, _open, num, _close) {
-                return semanticsHelper.getDeg() ? `(Math.atan(${num.eval()}) * 180 / Math.PI)` : `Math.atan(${num.eval()})`;
+                semanticsHelper.addInstr("atn");
+                if (!semanticsHelper.getDeg()) {
+                    return `atn(${num.eval()})`;
+                }
+                semanticsHelper.addInstr("toDeg");
+                return `toDeg(atn(${num.eval()}))`;
+                // or inline: semanticsHelper.getDeg() ? `(Math.atan(${num.eval()}) * 180 / Math.PI)` : `Math.atan(${num.eval()})`
             },
             Auto(lit, label, comma, step) {
                 return notSupported(lit, label, comma, step);
@@ -2050,10 +2067,12 @@ ${dataList.join(",\n")}
                 return notSupported(lit, merge, file, comma, num, comma2, del);
             },
             ChrS(_chrLit, _open, e, _close) {
-                return `String.fromCharCode(${e.eval()})`;
+                semanticsHelper.addInstr("chr$");
+                return `chr$(${e.eval()})`; // or inline: `String.fromCharCode(${e.eval()})`
             },
             Cint(_cintLit, _open, e, _close) {
-                return `Math.round(${e.eval()})`;
+                semanticsHelper.addInstr("cint");
+                return `cint(${e.eval()})`; // or inline: `Math.round(${e.eval()})`
             },
             Clear: notSupported,
             Clear_input(lit, inputLit) {
@@ -2079,7 +2098,8 @@ ${dataList.join(",\n")}
             },
             Cos: cosSinTan,
             Creal(_lit, _open, num, _close) {
-                return `${num.eval()}`;
+                semanticsHelper.addInstr("creal");
+                return `creal(${num.eval()})`; // or inline: `${num.eval()}`;
             },
             Cursor(lit, num, comma, num2) {
                 return notSupported(lit, num, comma, num2);
@@ -2129,7 +2149,7 @@ ${dataList.join(",\n")}
             },
             Deg(_degLit) {
                 semanticsHelper.setDeg(true);
-                return `/* deg active */`;
+                return `/* deg */`; // we assume to check it at compile time 
             },
             Delete(lit, labelRange) {
                 return notSupported(lit, labelRange);
@@ -2188,14 +2208,16 @@ ${dataList.join(",\n")}
                 semanticsHelper.addUsedLabel(labelString, "gosub");
                 return `every(${timeout}, ${timer}, _${labelString})`;
             },
-            Exp(_expLit, _open, e, _close) {
-                return `Math.exp(${e.eval()})`;
+            Exp(_expLit, _open, num, _close) {
+                semanticsHelper.addInstr("exp");
+                return `exp(${num.eval()})`; // or inline: `Math.exp(${e.eval()})`
             },
             Fill(lit, num) {
                 return notSupported(lit, num);
             },
             Fix(_fixLit, _open, num, _close) {
-                return `Math.trunc(${num.eval()})`;
+                semanticsHelper.addInstr("fix");
+                return `fix(${num.eval()})`; // or inline: `Math.trunc(${num.eval()})`
             },
             Fre(lit, open, e, close) {
                 return notSupported(lit, open, e, close) + "0";
@@ -2272,10 +2294,10 @@ ${dataList.join(",\n")}
                 semanticsHelper.addIndent(2);
                 const increasedIndent = semanticsHelper.getIndentStr();
                 const condition = condExp.eval();
-                const thenStatement = thenStat.eval();
+                const thenStatement = addSemicolon(thenStat.eval());
                 let result = `if (${condition}) {\n${increasedIndent}${thenStatement}\n${initialIndent}}`; // put in newlines to also allow line comments
                 if (elseLit.sourceString) {
-                    const elseStatement = evalChildren(elseStat.children).join('; ');
+                    const elseStatement = addSemicolon(evalChildren(elseStat.children).join('; '));
                     result += ` else {\n${increasedIndent}${elseStatement}\n${initialIndent}}`;
                 }
                 semanticsHelper.addIndent(-2);
@@ -2318,7 +2340,8 @@ ${dataList.join(",\n")}
                 return `instr(${e1.eval()}, ${e2.eval()}, ${len.eval()})`;
             },
             Int(_intLit, _open, num, _close) {
-                return `Math.floor(${num.eval()})`;
+                semanticsHelper.addInstr("int");
+                return `int(${num.eval()})`; // or inline: `Math.floor(${num.eval()})`
             },
             Joy(lit, open, num, close) {
                 return notSupported(lit, open, num, close) + "0";
@@ -2339,7 +2362,8 @@ ${dataList.join(",\n")}
                 return `left$(${pos.eval()}, ${len.eval()})`;
             },
             Len(_lenLit, _open, str, _close) {
-                return `(${str.eval()}).length`;
+                semanticsHelper.addInstr("len");
+                return `len(${str.eval()})`; // or inline: `(${str.eval()}).length`
             },
             Let(_letLit, assign) {
                 return `${assign.eval()}`;
@@ -2357,19 +2381,23 @@ ${dataList.join(",\n")}
                 return notSupported(lit, stream, comma, x, comma2, y);
             },
             Log(_logLit, _open, num, _close) {
-                return `Math.log(${num.eval()})`;
+                semanticsHelper.addInstr("log");
+                return `log(${num.eval()})`; // or inline: `Math.log(${num.eval()})`
             },
             Log10(_log10Lit, _open, num, _close) {
-                return `Math.log10(${num.eval()})`;
+                semanticsHelper.addInstr("log10");
+                return `log10(${num.eval()})`; // or inline: `Math.log10(${num.eval()})`
             },
             LowerS(_lowerLit, _open, str, _close) {
-                return `(${str.eval()}).toLowerCase()`;
+                semanticsHelper.addInstr("lower$");
+                return `lower$(${str.eval()})`; // or inline: `(${str.eval()}).toLowerCase()`
             },
             Mask(lit, num, comma, num2, comma2, num3) {
                 return notSupported(lit, num, comma, num2, comma2, num3);
             },
             Max(_maxLit, _open, args, _close) {
-                return `Math.max(${evalChildren(args.asIteration().children)})`;
+                semanticsHelper.addInstr("max");
+                return `max(${evalChildren(args.asIteration().children)})`; // or inline: return `Math.max(${evalChildren(args.asIteration().children)})`;
             },
             Memory(lit, num) {
                 return notSupported(lit, num);
@@ -2387,7 +2415,8 @@ ${dataList.join(",\n")}
                 return `${variableName} = mid$Assign(${variableName}, ${start.eval()}, ${newStr.eval()}${evalOptionalArg(len)})`;
             },
             Min(_minLit, _open, args, _close) {
-                return `Math.min(${evalChildren(args.asIteration().children)})`;
+                semanticsHelper.addInstr("min");
+                return `min(${evalChildren(args.asIteration().children)})`; // or inline: return `Math.max(${evalChildren(args.asIteration().children)})`;
             },
             Mode(_modeLit, num) {
                 semanticsHelper.addInstr("mode");
@@ -2457,7 +2486,8 @@ ${dataList.join(",\n")}
                 return `pen(${streamStr}${e.eval()}${modeStr})`;
             },
             Pi(_piLit) {
-                return "Math.PI";
+                semanticsHelper.addInstr("pi");
+                return `pi`; // or inline: "Math.PI";
             },
             Plot: drawMovePlot,
             Plotr: drawMovePlot,
@@ -2476,11 +2506,12 @@ ${dataList.join(",\n")}
                 return parameterString;
             },
             PrintArg_usingNum(_printLit, format, _semi, numArgs) {
-                semanticsHelper.addInstr("dec$");
+                semanticsHelper.addInstr("using");
                 const formatString = format.eval();
                 const argumentList = evalChildren(numArgs.asIteration().children);
-                const parameterString = argumentList.map((arg) => `dec$(${arg}, ${formatString})`).join(', ');
-                return parameterString;
+                //const parameterString = argumentList.map((arg) => `dec$(${arg}, ${formatString})`).join(', ');
+                const parameterString = argumentList.join(', ');
+                return `using(${formatString}, ${parameterString})`;
             },
             PrintArg_commaOp(_comma) {
                 return `"${CommaOpChar}"`; // Unicode arrow right
@@ -2509,7 +2540,7 @@ ${dataList.join(",\n")}
             },
             Rad(_radLit) {
                 semanticsHelper.setDeg(false);
-                return `/* rad active */`;
+                return `/* rad */`; // we assume to check it at compile time
             },
             Randomize(lit, num) {
                 return notSupported(lit, num);
@@ -2550,9 +2581,11 @@ ${dataList.join(",\n")}
                 semanticsHelper.addInstr("right$");
                 return `right$(${str.eval()}, ${len.eval()})`;
             },
-            Rnd(_rndLit, _open, _e, _close) {
-                // args are ignored
-                return `Math.random()`;
+            Rnd(_rndLit, _open, e, _close) {
+                var _a, _b;
+                semanticsHelper.addInstr("rnd");
+                const arg = (_b = (_a = e.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) !== null && _b !== void 0 ? _b : ""; // we ignore arg, but...
+                return `rnd(${arg})`; // or inline: `Math.random()`
             },
             Round(_roundLit, _open, num, _comma, decimals, _close) {
                 const decimalPlaces = evalOptionalArg(decimals);
@@ -2560,7 +2593,9 @@ ${dataList.join(",\n")}
                     semanticsHelper.addInstr("round");
                     return `round(${num.eval()}${decimalPlaces})`;
                 }
-                return `Math.round(${num.eval()})`; // common round without decimals places
+                semanticsHelper.addInstr("round1");
+                return `round1(${num.eval()})`;
+                // or inline: `Math.round(${num.eval()})`; // common round without decimals places
                 // A better way to avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
             },
             Rsx(_rsxLit, cmd, e) {
@@ -2600,17 +2635,20 @@ ${dataList.join(",\n")}
                 return notSupported(lit, file, comma, type, comma2, num, comma3, num2, comma4, num3);
             },
             Sgn(_sgnLit, _open, num, _close) {
-                return `Math.sign(${num.eval()})`;
+                semanticsHelper.addInstr("sgn");
+                return `sgn(${num.eval()})`; // or inline: `Math.sign(${num.eval()})`
             },
             Sin: cosSinTan,
             Sound(lit, args) {
                 return notSupported(lit, args.asIteration());
             },
-            SpaceS(_stringLit, _open, len, _close) {
-                return `" ".repeat(${len.eval()})`;
+            SpaceS(_stringLit, _open, num, _close) {
+                semanticsHelper.addInstr("space$");
+                return `space$(${num.eval()})`; // or inline: `" ".repeat(${num.eval()})`
             },
-            Spc(_lit, _open, len, _close) {
-                return `" ".repeat(${len.eval()})`;
+            Spc(_lit, _open, num, _close) {
+                semanticsHelper.addInstr("spc");
+                return `spc(${num.eval()})`; // or inline: `" ".repeat(${num.eval()})`
             },
             Speed_ink(lit, inkLit, num, comma, num2) {
                 return notSupported(lit, inkLit, num, comma, num2);
@@ -2624,28 +2662,26 @@ ${dataList.join(",\n")}
             Sq(lit, open, num, close) {
                 return notSupported(lit, open, num, close) + "0";
             },
-            Sqr(_sqrLit, _open, e, _close) {
-                return `Math.sqrt(${e.eval()})`;
+            Sqr(_sqrLit, _open, num, _close) {
+                semanticsHelper.addInstr("sqr");
+                return `sqr(${num.eval()})`; // or inline: `Math.sqrt(${e.eval()})`;
             },
             Stop(_stopLit) {
                 semanticsHelper.addInstr("stop");
                 return `return stop()`;
             },
             StrS(_strLit, _open, num, _close) {
-                const argument = num.eval();
-                if (isNaN(Number(argument))) {
-                    semanticsHelper.addInstr("str$");
-                    return `str$(${argument})`;
-                }
-                // simplify if we know at compile time that arg is a positive number
-                return argument >= 0 ? `(" " + String(${argument}))` : `String(${argument})`;
+                semanticsHelper.addInstr("str$");
+                return `str$(${num.eval()})`;
             },
             StringS_str(_stringLit, _open, len, _commaLit, chr, _close) {
                 // Note: we do not use charAt(0) to get just one char
-                return `(${chr.eval()}).repeat(${len.eval()})`;
+                semanticsHelper.addInstr("string$Str");
+                return `string$Str(${len.eval()}, ${chr.eval()})`; // or inline: `(${chr.eval()}).repeat(${len.eval()})`
             },
             StringS_num(_stringLit, _open, len, _commaLit, num, _close) {
-                return `String.fromCharCode(${num.eval()}).repeat(${len.eval()})`;
+                semanticsHelper.addInstr("string$Num");
+                return `string$Num(${len.eval()}, ${num.eval()})`; // or inline: `String.fromCharCode(${num.eval()}).repeat(${len.eval()})`
             },
             Symbol_def(lit, args) {
                 return notSupported(lit, args.asIteration());
@@ -2660,13 +2696,13 @@ ${dataList.join(",\n")}
                 var _a;
                 semanticsHelper.addInstr("tag");
                 const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
-                return `tag(true${streamStr})`;
+                return `tag(${streamStr})`;
             },
             Tagoff(_tagoffLit, stream) {
                 var _a;
-                semanticsHelper.addInstr("tag");
+                semanticsHelper.addInstr("tagoff");
                 const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
-                return `tag(false${streamStr})`;
+                return `tagoff(${streamStr})`;
             },
             Tan: cosSinTan,
             Test(lit, open, num, comma, num2, close) {
@@ -2682,16 +2718,19 @@ ${dataList.join(",\n")}
             Troff: notSupported,
             Tron: notSupported,
             Unt(_lit, _open, num, _close) {
-                return `${num.eval()}`;
+                semanticsHelper.addInstr("unt");
+                return `unt(${num})`; // or inline: `${num.eval()}`
             },
             UpperS(_upperLit, _open, str, _close) {
-                return `(${str.eval()}).toUpperCase()`;
+                semanticsHelper.addInstr("upper$");
+                return `upper$(${str.eval()})`; // or inline: `(${str.eval()}).toUpperCase()`
             },
             Val(_upperLit, _open, e, _close) {
                 const numPattern = /^"[\\+\\-]?\d*\.?\d+(?:[Ee][\\+\\-]?\d+)?"$/;
                 const numStr = String(e.eval());
-                if (numPattern.test(numStr)) {
-                    return `Number(${numStr})`; // for non-hex/bin number strings we can use this simple version
+                if (numPattern.test(numStr)) { // for non-hex/bin number strings we can use this simple version
+                    semanticsHelper.addInstr("val1");
+                    return `val1(${numStr})`; // or inline: `Number(${numStr})`;
                 }
                 semanticsHelper.addInstr("val");
                 return `val(${numStr})`;
@@ -2728,7 +2767,6 @@ ${dataList.join(",\n")}
             Write(_printLit, stream, _comma, args) {
                 var _a;
                 semanticsHelper.addInstr("write");
-                //semanticsHelper.addInstr("printText");
                 const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
                 const parameterString = evalChildren(args.asIteration().children).join(', ');
                 return `write(${streamStr}${parameterString})`;

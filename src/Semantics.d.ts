@@ -70,7 +70,7 @@ export declare class Semantics implements ISemantics {
         Err(lit: Node): string;
         Error(_errorLit: Node, e: Node): string;
         Every(_everyLit: Node, e1: Node, _comma1: Node, e2: Node, _gosubLit: Node, label: Node): string;
-        Exp(_expLit: Node, _open: Node, e: Node, _close: Node): string;
+        Exp(_expLit: Node, _open: Node, num: Node, _close: Node): string;
         Fill(lit: Node, num: Node): string;
         Fix(_fixLit: Node, _open: Node, num: Node, _close: Node): string;
         Fre(lit: Node, open: Node, e: Node, close: Node): string;
@@ -156,7 +156,7 @@ export declare class Semantics implements ISemantics {
         Resume(lit: Node, labelOrNext: Node): string;
         Return(_returnLit: Node): string;
         RightS(_rightLit: Node, _open: Node, str: Node, _comma: Node, len: Node, _close: Node): string;
-        Rnd(_rndLit: Node, _open: Node, _e: Node, _close: Node): string;
+        Rnd(_rndLit: Node, _open: Node, e: Node, _close: Node): string;
         Round(_roundLit: Node, _open: Node, num: Node, _comma: Node, decimals: Node, _close: Node): string;
         Rsx(_rsxLit: Node, cmd: Node, e: Node): string;
         RsxAddressOf(_adressOfLit: Node, ident: Node): string;
@@ -166,13 +166,13 @@ export declare class Semantics implements ISemantics {
         Sgn(_sgnLit: Node, _open: Node, num: Node, _close: Node): string;
         Sin: (lit: Node, _open: Node, num: Node, _close: Node) => string;
         Sound(lit: Node, args: Node): string;
-        SpaceS(_stringLit: Node, _open: Node, len: Node, _close: Node): string;
-        Spc(_lit: Node, _open: Node, len: Node, _close: Node): string;
+        SpaceS(_stringLit: Node, _open: Node, num: Node, _close: Node): string;
+        Spc(_lit: Node, _open: Node, num: Node, _close: Node): string;
         Speed_ink(lit: Node, inkLit: Node, num: Node, comma: Node, num2: Node): string;
         Speed_key(lit: Node, keyLit: Node, num: Node, comma: Node, num2: Node): string;
         Speed_write(lit: Node, writeLit: Node, num: Node): string;
         Sq(lit: Node, open: Node, num: Node, close: Node): string;
-        Sqr(_sqrLit: Node, _open: Node, e: Node, _close: Node): string;
+        Sqr(_sqrLit: Node, _open: Node, num: Node, _close: Node): string;
         Stop(_stopLit: Node): string;
         StrS(_strLit: Node, _open: Node, num: Node, _close: Node): string;
         StringS_str(_stringLit: Node, _open: Node, len: Node, _commaLit: Node, chr: Node, _close: Node): string;
