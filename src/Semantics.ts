@@ -30,7 +30,14 @@ function getSemanticsActions(semanticsHelper: SemanticsHelper) {
 
 	const cosSinTan = (lit: Node, _open: Node, num: Node, _close: Node) => { // eslint-disable-line @typescript-eslint/no-unused-vars
 		const func = lit.sourceString.toLowerCase();
-		return semanticsHelper.getDeg() ? `Math.${func}((${num.eval()}) * Math.PI / 180)` : `Math.${func}(${num.eval()})`;
+		semanticsHelper.addInstr(func);
+
+		if (!semanticsHelper.getDeg()) {
+			return `${func}(${num.eval()})`;
+		}
+		semanticsHelper.addInstr("toRad");
+		return `${func}(toRad(${num.eval()}))`;
+		//or inline: semanticsHelper.getDeg() ? `Math.${func}((${num.eval()}) * Math.PI / 180)` : `Math.${func}(${num.eval()})`
 	};
 
 	const loopBlock = (startNode: Node, content: Node, separator: Node, endNode: Node) => {
@@ -111,6 +118,10 @@ function getSemanticsActions(semanticsHelper: SemanticsHelper) {
 			}
 		}
 		return awaitLabels;
+	}
+
+	const addSemicolon = (str: string) => {
+		return str.endsWith("}") ? str : str + ";" // add semicolon, but not for closing bracket
 	}
 
 	const semantics = {
@@ -257,7 +268,8 @@ ${dataList.join(",\n")}
 		},
 
 		Abs(_absLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.abs(${e.eval()})`;
+			semanticsHelper.addInstr("abs");
+			return `abs(${e.eval()})`; // or inline:`Math.abs(${e.eval()})`
 		},
 
 		AddressOf(op: Node, ident: Node) {
@@ -274,11 +286,19 @@ ${dataList.join(",\n")}
 		},
 
 		Asc(_ascLit: Node, _open: Node, str: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `(${str.eval()}).charCodeAt(0)`;
+			semanticsHelper.addInstr("asc");
+			return `asc(${str.eval()})`; // or inline: `(${str.eval()}).charCodeAt(0)`
 		},
 
 		Atn(_atnLit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return semanticsHelper.getDeg() ? `(Math.atan(${num.eval()}) * 180 / Math.PI)` : `Math.atan(${num.eval()})`;
+			semanticsHelper.addInstr("atn");
+
+			if (!semanticsHelper.getDeg()) {
+				return `atn(${num.eval()})`;
+			}
+			semanticsHelper.addInstr("toDeg");
+			return `toDeg(atn(${num.eval()}))`;
+			// or inline: semanticsHelper.getDeg() ? `(Math.atan(${num.eval()}) * 180 / Math.PI)` : `Math.atan(${num.eval()})`
 		},
 
 		Auto(lit: Node, label: Node, comma: Node, step: Node) {
@@ -305,11 +325,13 @@ ${dataList.join(",\n")}
 		},
 
 		ChrS(_chrLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `String.fromCharCode(${e.eval()})`;
+			semanticsHelper.addInstr("chr$");
+			return `chr$(${e.eval()})`; // or inline: `String.fromCharCode(${e.eval()})`
 		},
 
 		Cint(_cintLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.round(${e.eval()})`;
+			semanticsHelper.addInstr("cint");
+			return `cint(${e.eval()})`; // or inline: `Math.round(${e.eval()})`
 		},
 
 		Clear: notSupported,
@@ -345,7 +367,8 @@ ${dataList.join(",\n")}
 		Cos: cosSinTan,
 
 		Creal(_lit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `${num.eval()}`;
+			semanticsHelper.addInstr("creal");
+			return `creal(${num.eval()})`; // or inline: `${num.eval()}`;
 		},
 
 		Cursor(lit: Node, num: Node, comma: Node, num2: Node) {
@@ -412,7 +435,7 @@ ${dataList.join(",\n")}
 
 		Deg(_degLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.setDeg(true);
-			return `/* deg active */`;
+			return `/* deg */`; // we assume to check it at compile time 
 		},
 
 		Delete(lit: Node, labelRange: Node) {
@@ -490,8 +513,9 @@ ${dataList.join(",\n")}
 			return `every(${timeout}, ${timer}, _${labelString})`;
 		},
 
-		Exp(_expLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.exp(${e.eval()})`;
+		Exp(_expLit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addInstr("exp");
+			return `exp(${num.eval()})`; // or inline: `Math.exp(${e.eval()})`
 		},
 
 		Fill(lit: Node, num: Node) {
@@ -499,7 +523,8 @@ ${dataList.join(",\n")}
 		},
 
 		Fix(_fixLit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.trunc(${num.eval()})`;
+			semanticsHelper.addInstr("fix");
+			return `fix(${num.eval()})`; // or inline: `Math.trunc(${num.eval()})`
 		},
 
 		Fre(lit: Node, open: Node, e: Node, close: Node) {
@@ -595,11 +620,11 @@ ${dataList.join(",\n")}
 			const increasedIndent = semanticsHelper.getIndentStr();
 
 			const condition = condExp.eval();
-			const thenStatement = thenStat.eval();
+			const thenStatement = addSemicolon(thenStat.eval());
 
 			let result = `if (${condition}) {\n${increasedIndent}${thenStatement}\n${initialIndent}}`; // put in newlines to also allow line comments
 			if (elseLit.sourceString) {
-				const elseStatement = evalChildren(elseStat.children).join('; ');
+				const elseStatement = addSemicolon(evalChildren(elseStat.children).join('; '));
 				result += ` else {\n${increasedIndent}${elseStatement}\n${initialIndent}}`;
 			}
 
@@ -652,7 +677,8 @@ ${dataList.join(",\n")}
 		},
 
 		Int(_intLit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.floor(${num.eval()})`;
+			semanticsHelper.addInstr("int");
+			return `int(${num.eval()})`; // or inline: `Math.floor(${num.eval()})`
 		},
 
 		Joy(lit: Node, open: Node, num: Node, close: Node) {
@@ -678,7 +704,8 @@ ${dataList.join(",\n")}
 		},
 
 		Len(_lenLit: Node, _open: Node, str: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `(${str.eval()}).length`;
+			semanticsHelper.addInstr("len");
+			return `len(${str.eval()})`; // or inline: `(${str.eval()}).length`
 		},
 
 		Let(_letLit: Node, assign: Node) {
@@ -702,15 +729,18 @@ ${dataList.join(",\n")}
 		},
 
 		Log(_logLit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.log(${num.eval()})`;
+			semanticsHelper.addInstr("log");
+			return `log(${num.eval()})`; // or inline: `Math.log(${num.eval()})`
 		},
 
 		Log10(_log10Lit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.log10(${num.eval()})`;
+			semanticsHelper.addInstr("log10");
+			return `log10(${num.eval()})`; // or inline: `Math.log10(${num.eval()})`
 		},
 
 		LowerS(_lowerLit: Node, _open: Node, str: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `(${str.eval()}).toLowerCase()`;
+			semanticsHelper.addInstr("lower$");
+			return `lower$(${str.eval()})`; // or inline: `(${str.eval()}).toLowerCase()`
 		},
 
 		Mask(lit: Node, num: Node, comma: Node, num2: Node, comma2: Node, num3: Node) {
@@ -718,7 +748,8 @@ ${dataList.join(",\n")}
 		},
 
 		Max(_maxLit: Node, _open: Node, args: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.max(${evalChildren(args.asIteration().children)})`;
+			semanticsHelper.addInstr("max");
+			return `max(${evalChildren(args.asIteration().children)})`; // or inline: return `Math.max(${evalChildren(args.asIteration().children)})`;
 		},
 
 		Memory(lit: Node, num: Node) {
@@ -741,7 +772,8 @@ ${dataList.join(",\n")}
 		},
 
 		Min(_minLit: Node, _open: Node, args: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.min(${evalChildren(args.asIteration().children)})`;
+			semanticsHelper.addInstr("min");
+			return `min(${evalChildren(args.asIteration().children)})`; // or inline: return `Math.max(${evalChildren(args.asIteration().children)})`;
 		},
 
 		Mode(_modeLit: Node, num: Node) {
@@ -830,7 +862,8 @@ ${dataList.join(",\n")}
 		},
 
 		Pi(_piLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return "Math.PI";
+			semanticsHelper.addInstr("pi");
+			return `pi`; // or inline: "Math.PI";
 		},
 
 		Plot: drawMovePlot,
@@ -855,11 +888,12 @@ ${dataList.join(",\n")}
 		},
 
 		PrintArg_usingNum(_printLit: Node, format: Node, _semi: Node, numArgs: Node) {
-			semanticsHelper.addInstr("dec$");
+			semanticsHelper.addInstr("using");
 			const formatString = format.eval();
 			const argumentList = evalChildren(numArgs.asIteration().children);
-			const parameterString = argumentList.map((arg) => `dec$(${arg}, ${formatString})`).join(', ');
-			return parameterString;
+			//const parameterString = argumentList.map((arg) => `dec$(${arg}, ${formatString})`).join(', ');
+			const parameterString = argumentList.join(', ');
+			return `using(${formatString}, ${parameterString})`;
 		},
 
 		PrintArg_commaOp(_comma: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -892,7 +926,7 @@ ${dataList.join(",\n")}
 
 		Rad(_radLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.setDeg(false);
-			return `/* rad active */`;
+			return `/* rad */`; // we assume to check it at compile time
 		},
 
 		Randomize(lit: Node, num: Node) {
@@ -945,9 +979,10 @@ ${dataList.join(",\n")}
 			return `right$(${str.eval()}, ${len.eval()})`;
 		},
 
-		Rnd(_rndLit: Node, _open: Node, _e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			// args are ignored
-			return `Math.random()`;
+		Rnd(_rndLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addInstr("rnd");
+			const arg = e.child(0)?.eval() ?? ""; // we ignore arg, but...
+			return `rnd(${arg})`; // or inline: `Math.random()`
 		},
 
 		Round(_roundLit: Node, _open: Node, num: Node, _comma: Node, decimals: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -956,7 +991,9 @@ ${dataList.join(",\n")}
 				semanticsHelper.addInstr("round");
 				return `round(${num.eval()}${decimalPlaces})`;
 			}
-			return `Math.round(${num.eval()})`; // common round without decimals places
+			semanticsHelper.addInstr("round1");
+			return `round1(${num.eval()})`;
+			// or inline: `Math.round(${num.eval()})`; // common round without decimals places
 			// A better way to avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
 		},
 
@@ -1009,7 +1046,8 @@ ${dataList.join(",\n")}
 		},
 
 		Sgn(_sgnLit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.sign(${num.eval()})`;
+			semanticsHelper.addInstr("sgn");
+			return `sgn(${num.eval()})`; // or inline: `Math.sign(${num.eval()})`
 		},
 
 		Sin: cosSinTan,
@@ -1018,12 +1056,14 @@ ${dataList.join(",\n")}
 			return notSupported(lit, args.asIteration());
 		},
 
-		SpaceS(_stringLit: Node, _open: Node, len: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `" ".repeat(${len.eval()})`;
+		SpaceS(_stringLit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addInstr("space$");
+			return `space$(${num.eval()})`; // or inline: `" ".repeat(${num.eval()})`
 		},
 
-		Spc(_lit: Node, _open: Node, len: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `" ".repeat(${len.eval()})`;
+		Spc(_lit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addInstr("spc");
+			return `spc(${num.eval()})`; // or inline: `" ".repeat(${num.eval()})`
 		},
 
 		Speed_ink(lit: Node, inkLit: Node, num: Node, comma: Node, num2: Node) {
@@ -1042,8 +1082,9 @@ ${dataList.join(",\n")}
 			return notSupported(lit, open, num, close) + "0";
 		},
 
-		Sqr(_sqrLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `Math.sqrt(${e.eval()})`;
+		Sqr(_sqrLit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addInstr("sqr");
+			return `sqr(${num.eval()})`; // or inline: `Math.sqrt(${e.eval()})`;
 		},
 
 		Stop(_stopLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -1052,23 +1093,19 @@ ${dataList.join(",\n")}
 		},
 
 		StrS(_strLit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			const argument = num.eval();
-
-			if (isNaN(Number(argument))) {
-				semanticsHelper.addInstr("str$");
-				return `str$(${argument})`;
-			}
-			// simplify if we know at compile time that arg is a positive number
-			return argument >= 0 ? `(" " + String(${argument}))` : `String(${argument})`;
+			semanticsHelper.addInstr("str$");
+			return `str$(${num.eval()})`;
 		},
 
 		StringS_str(_stringLit: Node, _open: Node, len: Node, _commaLit: Node, chr: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			// Note: we do not use charAt(0) to get just one char
-			return `(${chr.eval()}).repeat(${len.eval()})`;
+			semanticsHelper.addInstr("string$Str");
+			return `string$Str(${len.eval()}, ${chr.eval()})`; // or inline: `(${chr.eval()}).repeat(${len.eval()})`
 		},
 
 		StringS_num(_stringLit: Node, _open: Node, len: Node, _commaLit: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `String.fromCharCode(${num.eval()}).repeat(${len.eval()})`;
+			semanticsHelper.addInstr("string$Num");
+			return `string$Num(${len.eval()}, ${num.eval()})`; // or inline: `String.fromCharCode(${num.eval()}).repeat(${len.eval()})`
 		},
 
 		Symbol_def(lit: Node, args: Node) {
@@ -1086,13 +1123,13 @@ ${dataList.join(",\n")}
 		Tag(_tagLit: Node, stream: Node) {
 			semanticsHelper.addInstr("tag");
 			const streamStr = stream.child(0)?.eval() || "";
-			return `tag(true${streamStr})`;
+			return `tag(${streamStr})`;
 		},
 
 		Tagoff(_tagoffLit: Node, stream: Node) {
-			semanticsHelper.addInstr("tag");
+			semanticsHelper.addInstr("tagoff");
 			const streamStr = stream.child(0)?.eval() || "";
-			return `tag(false${streamStr})`;
+			return `tagoff(${streamStr})`;
 		},
 
 		Tan: cosSinTan,
@@ -1115,19 +1152,22 @@ ${dataList.join(",\n")}
 		Tron: notSupported,
 
 		Unt(_lit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `${num.eval()}`;
+			semanticsHelper.addInstr("unt");
+			return `unt(${num})`; // or inline: `${num.eval()}`
 		},
 
 		UpperS(_upperLit: Node, _open: Node, str: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `(${str.eval()}).toUpperCase()`;
+			semanticsHelper.addInstr("upper$");
+			return `upper$(${str.eval()})`; // or inline: `(${str.eval()}).toUpperCase()`
 		},
 
 		Val(_upperLit: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			const numPattern = /^"[\\+\\-]?\d*\.?\d+(?:[Ee][\\+\\-]?\d+)?"$/;
 			const numStr = String(e.eval());
 
-			if (numPattern.test(numStr)) {
-				return `Number(${numStr})`; // for non-hex/bin number strings we can use this simple version
+			if (numPattern.test(numStr)) { // for non-hex/bin number strings we can use this simple version
+				semanticsHelper.addInstr("val1");
+				return `val1(${numStr})`; // or inline: `Number(${numStr})`;
 			}
 			semanticsHelper.addInstr("val");
 			return `val(${numStr})`;
@@ -1172,7 +1212,6 @@ ${dataList.join(",\n")}
 
 		Write(_printLit: Node, stream: Node, _comma: Node, args: Node) {
 			semanticsHelper.addInstr("write");
-			//semanticsHelper.addInstr("printText");
 			const streamStr = stream.child(0)?.eval() || "";
 			const parameterString = evalChildren(args.asIteration().children).join(', ');
 			return `write(${streamStr}${parameterString})`;

@@ -367,14 +367,24 @@ ${content}
             vm.remainAll();
         },
 
+        abs: (num: number) => Math.abs(num),
+
         after: (timeout: number, timer: number, fn: () => void) => {
             vm.remain(timer);
             vm._timerMap[timer] = setTimeout(() => fn(), timeout * 20);
         },
 
+        asc: (str: string) => str.charCodeAt(0),
+
+        atn: Math.atan,
+
         bin$: (num: number, pad: number = 0): string => {
             return num.toString(2).toUpperCase().padStart(pad, "0");
         },
+
+        chr$: (num: number) => String.fromCharCode(num),
+
+        cint: (num: number) => Math.round(num),
 
         cls: () => {
             vm._output = "";
@@ -390,6 +400,10 @@ ${content}
             vm._gra.cls();
             vm._needCls = true;
         },
+
+        cos: Math.cos,
+
+        creal: (num: number) => num, // nothing
 
         dec$: (num: number, format: string) => {
             const decimals = (format.split(".")[1] || "").length;
@@ -426,9 +440,16 @@ ${content}
             vm._gra.drawMovePlot("l", x, y, pen);
         },
         end: function end() {
-            vm.frame(); // or flush?
+            vm.frame();
             return ""; //"end";
         },
+
+        /*
+        error: function (num: number) { // not used
+            throw vm.getError(num);
+            //throw err; //throw new Error(String(num));
+        },
+        */
 
         escapeText(str: string, isGraphics?: boolean): string {
             if (vm._isTerminal && !isGraphics) { // for node.js we do not need to escape non-graphics text
@@ -442,6 +463,10 @@ ${content}
             vm._timerMap[timer] = setInterval(() => fn(), timeout * 20);
         },
 
+        exp: (num: number) => Math.exp(num),
+
+        fix: (num: number) => Math.trunc(num),
+
         frame: async () => {
             if (vm._stopRequested) {
                 throw new Error("INFO: Program stopped");
@@ -453,6 +478,8 @@ ${content}
             }
             return new Promise<void>(resolve => setTimeout(() => resolve(), Date.now() % 50));
         },
+
+        //getError: (num: number) => new Error(`${num}: ${basicErrors[num]}`),
 
         getFlushedText: (): string => {
             const output = vm._output;
@@ -483,10 +510,6 @@ ${content}
         },
         inkey$: async function () {
             await vm.frame();
-            //return await vm.inkey$(); // TODO
-            //return Promise.resolve(""); //TTT
-
-            //const key = vm._keyBuffer.length ? vm._keyBuffer.shift() as string : "";
             if (!vm._keyCharBufferString.length) {
                 return "";
             }
@@ -517,6 +540,9 @@ ${content}
         instr: function instr(str: string, find: string, len: number) {
             return str.indexOf(find, len !== undefined ? len - 1 : len) + 1;
         },
+
+        int: (num: number) => Math.floor(num),
+
         keyDef(num: number, repeat: number, ...codes: number[]): void {
             if (num === 78 && repeat === 1) {
                 postMessage({ type: 'keyDef', codes });
@@ -525,6 +551,17 @@ ${content}
         left$: function left$(str: string, num: number) {
             return str.slice(0, num);
         },
+
+        len: (str: string) => str.length,
+
+        log: (num: number) => Math.log(num),
+
+        log10: (num: number) => Math.log10(num),
+
+        lower$: (str: string) => str.toLowerCase(),
+
+        max: Math.max,
+
         mid$: function mid$(str: string, pos: number, len?: number) {
             return str.substr(pos - 1, len);
         },
@@ -533,6 +570,8 @@ ${content}
             len = Math.min(len ?? newString.length, newString.length, s.length - start);
             return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
         },
+
+        min: Math.min,
 
         mode: function mode(num: number) {
             vm._gra.mode(num);
@@ -613,6 +652,8 @@ ${content}
             }
         },
 
+        pi: Math.PI,
+
         plot: function plot(x: number, y: number, pen?: number) {
             vm._gra.drawMovePlot("P", x, y, pen);
         },
@@ -664,7 +705,11 @@ ${content}
             }
         },
         read: function read() {
-            return vm._data[vm._dataPtr++];
+            if (vm._dataPtr < vm._data.length) {
+                return vm._data[vm._dataPtr++];
+            } else {
+                throw new Error("4"); // 4: DATA exhausted
+            }
         },
         // remain: the return value is not really the remaining time
         remain: function remain(timer: number) {
@@ -690,6 +735,11 @@ ${content}
         right$: function right$(str: string, num: number) {
             return str.substring(str.length - num);
         },
+
+        rnd: Math.random,
+
+        round1: Math.round,
+
         round: function round(num: number, dec: number) {
             return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
         },
@@ -721,6 +771,16 @@ ${content}
             }
         },
 
+        sgn: Math.sign,
+
+        sin: Math.sin,
+
+        space$: (num: number) => " ".repeat(num),
+
+        spc: (num: number) => " ".repeat(num), // same as space$
+
+        sqr: Math.sqrt,
+
         stop: function stop() {
             vm.frame();
             return ""; //"stop";
@@ -728,12 +788,39 @@ ${content}
         str$: function str$(num: number) {
             return num >= 0 ? ` ${num}` : String(num);
         },
-        tag: function tag(active: boolean) {
-            vm._tag = active;
+
+        string$Num: (len: number, num: number) => {
+            return String.fromCharCode(num).repeat(len);
         },
+
+        string$Str: (len: number, str: string) => {
+            return str.repeat(len);
+        },
+
+        tag: () => vm._tag = true,
+
+        tagoff: () => vm._tag = false,
+
+        tan: Math.tan,
+
         time: function time() {
             return ((Date.now() - vm._startTime) * 3 / 10) | 0;
         },
+
+        toDeg: (num: number) => num * 180 / Math.PI,
+
+        toRad: (num: number) => num * Math.PI / 180,
+
+        using: (format: string, ...args: number[]) => {
+            return args.map((arg) => vm.dec$(arg, format)).join('');
+        },
+
+        unt: (num: number ) => num,
+
+        upper$: (str: string) => str.toUpperCase(),
+
+        val1: (str: string) => Number(str),
+
         val: function val(str: string) {
             return Number(str.replace("&x", "0b").replace("&", "0x"));
         },
@@ -756,21 +843,18 @@ ${content}
         },
     };
 
+    // Get the error event with line number from an synchronous, uncatched error.
+    // It does not work for async functions with "unhandledrejection" event.
     const errorEventHandler = (errorEvent: ErrorEvent) => {
         errorEvent.preventDefault();
         const { lineno, colno, message } = errorEvent;
         const plainErrorEventObj = { lineno, colno, message };
         const result = JSON.stringify(plainErrorEventObj);
+        vm.remainAll();
         postMessage({ type: 'result', result });
     };
 
-    const asyncDelay = (fn: () => void, timeout: number) => {
-        return (async () => {
-            const timerId = setTimeout(fn, timeout);
-            return timerId;
-        })();
-    };
-
+    // this function must not be async to generate synchronous error
     const onMessageHandler = (data: MessageToWorker) => {
         switch (data.type) {
             case 'config':
@@ -806,16 +890,15 @@ ${content}
                     self.removeEventListener("error", errorEventHandler);
                 }
 
-                asyncDelay(async () => {
-                    let result = "";
-                    try {
-                        result = await fnScript(vm);
-                    } catch (err) {
-                        result = String(err);
-                    }
+                fnScript(vm).then((result: string) => {
                     vm.remainAll();
                     postMessage({ type: 'result', result });
-                }, 2);
+                }).catch((err: unknown) => {
+                    console.warn(err instanceof Error ? err.stack : String(err));
+                    const result = String(err);
+                    vm.remainAll();
+                    postMessage({ type: 'result', result });
+                });
                 break;
             }
 

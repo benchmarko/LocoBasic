@@ -81,11 +81,11 @@ describe('Semantics Class', () => {
             const argNode = getEvalNode('45');
             const dummy = getDummyNode();
             const result = actions.Cos(litNode, dummy, argNode, dummy);
-            expect(result).toBe('Math.cos(45)');
+            expect(result).toBe('cos(45)');
 
             semantics.getHelper().setDeg(true);
             const result2 = actions.Cos(litNode, dummy, argNode, dummy);
-            expect(result2).toBe('Math.cos((45) * Math.PI / 180)');
+            expect(result2).toBe('cos(toRad(45))');
         });
 
         it('should correctly evaluate the "Draw" action', () => {
@@ -142,9 +142,9 @@ describe('Semantics Class', () => {
         it('should correctly evaluate the "Rnd" action', () => {
             const actions = new Semantics().getSemanticsActions();
 
-            const dummy = getDummyNode();
+            const dummy = getChildNode(undefined);
             const result = actions.Rnd(dummy, dummy, dummy, dummy);
-            expect(result).toBe('Math.random()');
+            expect(result).toBe('rnd()');
         });
 
         it('should correctly evaluate the "While" action', () => {
