@@ -7,7 +7,6 @@ export class UI implements IUI {
     private vmMain?: VmMain;
     private basicCm?: Editor;
     private compiledCm?: Editor;
-    private escape = false;
     private initialUserAction = false;
     private fnOnKeyPressHandler: (event: KeyboardEvent) => void;
     private fnOnClickHandler: (event: MouseEvent) => void;
@@ -46,16 +45,9 @@ export class UI implements IUI {
         return this.core;
     }
 
-    private getEscape() {
-        return this.escape;
-    }
-
-    private setEscape(escape: boolean) {
-        this.escape = escape;
-        if (escape) {
-            if (this.speechSynthesisUtterance && this.speechSynthesisUtterance.text) {
-                window.speechSynthesis.cancel();
-            }
+    private cancelSpeech() {
+        if (this.speechSynthesisUtterance && this.speechSynthesisUtterance.text) {
+            window.speechSynthesis.cancel();
         }
     }
 
@@ -244,10 +236,17 @@ export class UI implements IUI {
     }
 
     private onSpeak = async (text: string, pitch: number): Promise<void> => { // bound this
+        const debug = this.getCore().getConfigMap().debug;
+        if (debug) {
+            console.log("onSpeak: ", text, pitch);
+        }
+
         const msg = await this.getSpeechSynthesisUtterance();
-        if (this.getEscape()) { // program already escaped?
+        const stopButton = window.document.getElementById("stopButton") as HTMLButtonElement;
+        if (stopButton.disabled) { // Stop button inactive, program already stopped?
             return Promise.reject("Speech canceled.");
         }
+
         msg.text = text;
         msg.pitch = pitch; // 0 to 2
 
@@ -304,8 +303,6 @@ export class UI implements IUI {
         };
         this.updateButtonStates(buttonStates);
 
-        this.setEscape(false);
-
         const outputText = document.getElementById("outputText") as HTMLPreElement;
         outputText.setAttribute("contenteditable", "false");
         outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
@@ -337,13 +334,6 @@ export class UI implements IUI {
         if (this.hasCompiledError()) {
             return;
         }
-        //const core = this.getCore();
-        /*
-        if (!this.vm || this.hasCompiledError()) {
-            return;
-        }
-        */
-
         this.beforeExecute();
 
         const compiledScript = this.compiledCm?.getValue() || ""; // Execute the compiled script
@@ -388,6 +378,7 @@ export class UI implements IUI {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onEnterButtonClick = (_event: Event): void => { // bound this
         this.putKeysInBuffer("\x0d");
+        this.clickStartSpeechButton(); // we just did a user interaction
     }
 
     private onAutoCompileInputChange = (event: Event): void => { // bound this
@@ -423,21 +414,25 @@ export class UI implements IUI {
         this.updateConfigParameter("showCompiled", showCompiledInput.checked);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    private onStopButtonClick = (_event: Event): void => { // bound this
-        this.setEscape(true);
-        this.setButtonOrSelectDisabled("stopButton", true);
-        /*
+    private clickStartSpeechButton() {
         const startSpeechButton = window.document.getElementById("startSpeechButton") as HTMLButtonElement;
-        if (!startSpeechButton.hidden) {
+        if (!startSpeechButton.hidden) { // if the startSpeech button is visible, activate it to allow speech
             startSpeechButton.dispatchEvent(new Event("click"));
         }
-        */
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onStopButtonClick = (_event: Event): void => { // bound this
+        this.cancelSpeech(); // maybe a speech was waiting
+        this.clickStartSpeechButton(); // we just did a user interaction
+        this.setButtonOrSelectDisabled("stopButton", true);
         this.vmMain?.stop();
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onResetButtonClick = (_event: Event): void => { // bound this
+        this.cancelSpeech();
+        this.clickStartSpeechButton(); // we just did a user interaction
         this.vmMain?.reset();
     }
 
@@ -681,7 +676,8 @@ export class UI implements IUI {
     private onOutputTextKeydown(event: KeyboardEvent): void {
         const key = event.key;
         if (key === "Escape") {
-            this.setEscape(true);
+            this.cancelSpeech();
+            this.vmMain?.stop(); // request stop
         } else if (key === "Enter") {
             this.putKeysInBuffer("\x0d");
             event.preventDefault();
@@ -784,11 +780,9 @@ export class UI implements IUI {
 
     public onWindowLoadContinue(core: ICore, workerFn: () => unknown): void {
         this.core = core;
-        //this.vm = vm;
         const config = core.getConfigMap();
         const args = this.parseUri(config);
         core.parseArgs(args, config);
-        //core.setOnCheckSyntax((s: string) => Promise.resolve(this.checkSyntax(s)));
 
         // Map of element IDs to event handlers
         const buttonHandlers: Record<string, EventListener> = {
@@ -858,7 +852,6 @@ export class UI implements IUI {
             this.initialUserAction = true;
         }, { once: true });
 
-        //const workerFn = (window as any).locoVmWorker.workerFn;
         const workerScript = `(${workerFn})();`;
 
         this.vmMain = new VmMain(workerScript, this.onSetUiKeys, this.onSpeak);
