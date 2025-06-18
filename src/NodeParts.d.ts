@@ -21,7 +21,6 @@ export declare class NodeParts implements INodeParts {
     createNodeWorker(workerFile: string): NodeWorkerType;
     private loadScript;
     private keepRunning;
-    private putScriptInFrame;
     private putKeyInBuffer;
     private fnOnKeypress;
     private initKeyboardInput;
@@ -29,6 +28,7 @@ export declare class NodeParts implements INodeParts {
     getEscape(): boolean;
     consoleClear(): void;
     consolePrint(msg: string): void;
+    private getWorkerAsString;
     private start;
     private getExampleMap;
     private getExampleScript;

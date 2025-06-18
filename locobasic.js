@@ -3222,12 +3222,13 @@ ${dataList.join(",\n")}
     function isUrl(s) {
         return s.startsWith("http"); // http or https
     }
+    const workerFilename = "locoVmWorker.js";
     class NodeParts {
         constructor() {
             this.modulePath = "";
             this.keyBuffer = []; // buffered pressed keys
             this.escape = false;
-            this.nodeVmMain = new NodeVmMain(this, "locoVmWorker.js");
+            this.nodeVmMain = new NodeVmMain(this, workerFilename);
         }
         getNodeFs() {
             if (!this.nodeFs) {
@@ -3316,26 +3317,27 @@ ${dataList.join(",\n")}
                 clearTimeout(timerId);
             })();
         }
-        putScriptInFrame(script) {
-            const dummyVm = {}; //"TODO"; //TTT
+        /*
+        private putScriptInFrame(script: string, workerFn: () => unknown): string {
+            const dummyVm = workerFn; //TTT
             const dummyVmString = Object.entries(dummyVm).map(([key, value]) => {
                 if (typeof value === "function") {
                     return `${value}`;
-                }
-                else if (typeof value === "object") {
+                } else if (typeof value === "object") {
                     return `${key}: ${JSON.stringify(value)}`;
-                }
-                else {
+                } else {
                     return `${key}: "${value}"`;
                 }
             }).join(",\n  ");
-            const result = `(function(_o) {
-    ${script}
-})({
-    ${dummyVmString}
-});`;
+            const result =
+                `(function(_o) {
+        ${script}
+    })({
+        ${dummyVmString}
+    });`
             return result;
         }
+            */
         /* TODO
         private nodeCheckSyntax(script: string): string {
             if (!this.nodeVm) {
@@ -3412,6 +3414,20 @@ ${dataList.join(",\n")}
         consolePrint(msg) {
             console.log(msg);
         }
+        getWorkerAsString(workerFn) {
+            const workerString = Object.entries(workerFn).map(([key, value]) => {
+                if (typeof value === "function") {
+                    return `${value}`;
+                }
+                else if (typeof value === "object") {
+                    return `${key}: ${JSON.stringify(value)}`;
+                }
+                else {
+                    return `${key}: "${value}"`;
+                }
+            }).join(",\n  ");
+            return workerString;
+        }
         start(core, input) {
             const actionConfig = core.getConfigMap().action;
             if (input !== "") {
@@ -3423,7 +3439,6 @@ ${dataList.join(",\n")}
                 }
                 if (actionConfig.includes("run")) {
                     return this.keepRunning(async () => {
-                        //await core.executeScript(compiledScript, vm);
                         if (core.getConfigMap().debug) {
                             console.log("DEBUG: running compiled script...");
                         }
@@ -3438,8 +3453,45 @@ ${dataList.join(",\n")}
                     }, 5000);
                 }
                 else {
-                    const inFrame = this.putScriptInFrame(compiledScript);
-                    console.log(inFrame);
+                    return this.keepRunning(async () => {
+                        const path = this.getNodePath();
+                        const workerFnPath = path.resolve(__dirname, workerFilename);
+                        const workerFn = require(workerFnPath);
+                        const workerString = this.getWorkerAsString(workerFn);
+                        const asyncStr = compiledScript.includes("await ") ? "async " : ""; // fast hack
+                        const inFrame = `(${asyncStr}function(_o) {
+    ${compiledScript}
+})(
+    (${workerString})({
+        on: (...args) => {
+            // on: [ 'message', [Function: onMessageHandler] ]
+            //console.log("on:", args);
+            this.onMessageHandler = args[1];
+            this.onMessageHandler({
+                type: "config",
+                isTerminal: true
+            });
+        },
+        postMessage: (args) => {
+            if (args.type === "frame") {
+                if (args.needCls) {
+                    console.clear();
+                }
+                console.log(args.message);
+            } else if (args.type === "input") {
+                console.log(args.prompt);
+                this.onMessageHandler({
+                    type: "input",
+                    prompt: ""
+                });
+            } else {
+                console.log("postMessage:", args);
+            }
+        }
+    })
+);`;
+                        console.log(inFrame);
+                    }, 5000);
                 }
             }
             else {
