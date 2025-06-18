@@ -84,6 +84,8 @@ function isUrl(s: string) {
     return s.startsWith("http"); // http or https
 }
 
+const workerFilename = "locoVmWorker.js";
+
 export class NodeParts implements INodeParts {
     private nodeVmMain: NodeVmMain;
 
@@ -98,7 +100,7 @@ export class NodeParts implements INodeParts {
     private fnOnKeyPressHandler?: (chunk: string, key: NodeKeyPressType) => void;
 
     constructor() {
-        this.nodeVmMain = new NodeVmMain(this, "locoVmWorker.js");
+        this.nodeVmMain = new NodeVmMain(this, workerFilename);
     }
 
     private getNodeFs() {
@@ -203,8 +205,9 @@ export class NodeParts implements INodeParts {
         })();
     }
 
-    private putScriptInFrame(script: string): string {
-        const dummyVm = {}; //"TODO"; //TTT
+    /*
+    private putScriptInFrame(script: string, workerFn: () => unknown): string {
+        const dummyVm = workerFn; //TTT
         const dummyVmString = Object.entries(dummyVm).map(([key, value]) => {
             if (typeof value === "function") {
                 return `${value}`;
@@ -222,6 +225,7 @@ export class NodeParts implements INodeParts {
 });`
         return result;
     }
+        */
 
     /* TODO
     private nodeCheckSyntax(script: string): string {
@@ -306,6 +310,19 @@ export class NodeParts implements INodeParts {
         console.log(msg);
     }
 
+    private getWorkerAsString(workerFn: () => unknown): string {
+        const workerString = Object.entries(workerFn).map(([key, value]) => {
+            if (typeof value === "function") {
+                return `${value}`;
+            } else if (typeof value === "object") {
+                return `${key}: ${JSON.stringify(value)}`;
+            } else {
+                return `${key}: "${value}"`;
+            }
+        }).join(",\n  ");
+        return workerString;
+    }
+
     private start(core: ICore, input: string): Promise<void> | undefined {
         const actionConfig = core.getConfigMap().action;
         if (input !== "") {
@@ -320,7 +337,6 @@ export class NodeParts implements INodeParts {
 
             if (actionConfig.includes("run")) {
                 return this.keepRunning(async () => {
-                    //await core.executeScript(compiledScript, vm);
                     if (core.getConfigMap().debug) {
                         console.log("DEBUG: running compiled script...");
                     }
@@ -334,8 +350,49 @@ export class NodeParts implements INodeParts {
                     }
                 }, 5000);
             } else {
-                const inFrame = this.putScriptInFrame(compiledScript);
+                return this.keepRunning(async () => {
+                const path = this.getNodePath();
+                const workerFnPath = path.resolve(__dirname, workerFilename);
+                const workerFn = require(workerFnPath) as unknown as () => unknown;
+                const workerString = this.getWorkerAsString(workerFn);
+
+                const asyncStr = compiledScript.includes("await ") ? "async " : ""; // fast hack
+
+                const inFrame = `(${asyncStr}function(_o) {
+    ${compiledScript}
+})(
+    (${workerString})({
+        on: (...args) => {
+            // on: [ 'message', [Function: onMessageHandler] ]
+            //console.log("on:", args);
+            this.onMessageHandler = args[1];
+            this.onMessageHandler({
+                type: "config",
+                isTerminal: true
+            });
+        },
+        postMessage: (args) => {
+            if (args.type === "frame") {
+                if (args.needCls) {
+                    console.clear();
+                }
+                console.log(args.message);
+            } else if (args.type === "input") {
+                console.log(args.prompt);
+                this.onMessageHandler({
+                    type: "input",
+                    prompt: ""
+                });
+            } else {
+                console.log("postMessage:", args);
+            }
+        }
+    })
+);`
+
                 console.log(inFrame);
+            
+                }, 5000);
             }
         } else {
             console.log("No input");

@@ -146,7 +146,7 @@ ${content}
 
     const vmGra = {
         _backgroundColor: "",
-        _colorsForPens: [] as number[],
+        _colorsForPens: [...defaultColorsForPens],
         _currGraphicsPen: -1,
         _currMode: 1,
         _originX: 0,
@@ -159,11 +159,7 @@ ${content}
 
         resetGra: () => {
             vmGra._colorsForPens.splice(0, vmGra._colorsForPens.length, ...defaultColorsForPens);
-            //BasicVmCore.deleteAllItems(this.snippetData);
-            //this.snippetData.output = "";
             vmGra._backgroundColor = "";
-            //this.mode(1);
-            //this.cls();
             vmGra.cls();
         },
 
@@ -444,13 +440,6 @@ ${content}
             return ""; //"end";
         },
 
-        /*
-        error: function (num: number) { // not used
-            throw vm.getError(num);
-            //throw err; //throw new Error(String(num));
-        },
-        */
-
         escapeText(str: string, isGraphics?: boolean): string {
             if (vm._isTerminal && !isGraphics) { // for node.js we do not need to escape non-graphics text
                 return str;
@@ -478,8 +467,6 @@ ${content}
             }
             return new Promise<void>(resolve => setTimeout(() => resolve(), Date.now() % 50));
         },
-
-        //getError: (num: number) => new Error(`${num}: ${basicErrors[num]}`),
 
         getFlushedText: (): string => {
             const output = vm._output;

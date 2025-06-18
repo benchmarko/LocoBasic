@@ -63,13 +63,15 @@ RETURN
 NEXT y
 RETURN
 '
-' Output screen
+' Output screen (stop when first emty line found)
 3000 CLS
-FOR y = 1 TO rows
+y = 1
+WHILE y < rows AND smc(y) > 0
   FOR x = 1 TO smc(y)
     PRINT scr$(x,y);
   NEXT x
   PRINT
-NEXT y
+y = y + 1
+WEND
 RETURN
 `);
