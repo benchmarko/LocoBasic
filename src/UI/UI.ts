@@ -2,11 +2,15 @@ import type { Editor } from "codemirror";
 import type { ConfigEntryType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore, IUI } from "../Interfaces";
 import { LocoBasicMode } from "./LocoBasicMode";
 import { VmMain } from "./VmMain";
+
+const escapeText = (str: string) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
 export class UI implements IUI {
     private core?: ICore;
     private vmMain?: VmMain;
     private basicCm?: Editor;
     private compiledCm?: Editor;
+    private compiledMessages: string[] = [];
     private initialUserAction = false;
     private fnOnKeyPressHandler: (event: KeyboardEvent) => void;
     private fnOnClickHandler: (event: MouseEvent) => void;
@@ -338,8 +342,12 @@ export class UI implements IUI {
 
         const compiledScript = this.compiledCm?.getValue() || ""; // Execute the compiled script
         const output = await this.vmMain?.run(compiledScript);
-        if (output) {
+        if (output) { // some remaining output?
             this.addOutputText(output);
+        }
+        if (this.compiledMessages.length) { // compile warning messages?
+            const messageString = escapeText(this.compiledMessages.join("\n"));
+            this.addOutputText(`<hr><details><summary>Compile warning messages: ${this.compiledMessages.length}</summary>${messageString}</details>`);
         }
         this.afterExecute();
     };
@@ -363,8 +371,9 @@ export class UI implements IUI {
         this.setButtonOrSelectDisabled("compileButton", true);
         const input = this.basicCm ? this.basicCm.getValue() : "";
         UI.asyncDelay(() => {
-            const compiledScript = core.compileScript(input) || "";
+            const { compiledScript, messages } = core.compileScript(input);
 
+            this.compiledMessages = messages;
             if (this.compiledCm) {
                 this.compiledCm.setValue(compiledScript);
             }

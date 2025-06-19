@@ -1,4 +1,4 @@
-import type { ConfigEntryType, ConfigType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore } from "./Interfaces";
+import type { CompileResultType, ConfigEntryType, ConfigType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore } from "./Interfaces";
 import { Parser } from "./Parser";
 import { arithmetic } from "./arithmetic";
 import { Semantics } from "./Semantics";
@@ -69,7 +69,7 @@ export class Core implements ICore {
         return exampleMap[name];
     }
 
-    public compileScript(script: string): string {
+    public compileScript(script: string): CompileResultType {
         if (!this.arithmeticParser) {
             const semanticsActionDict = this.semantics.getSemanticsActionDict();
             if (this.config.grammar === "strict") {
@@ -80,7 +80,9 @@ export class Core implements ICore {
             }
         }
         this.semantics.resetParser();
-        return this.arithmeticParser.parseAndEval(script);
+        const compiledScript = this.arithmeticParser.parseAndEval(script);
+        const messages = this.semantics.getHelper().getCompileMessages();
+        return { compiledScript, messages };
     }
 
     public getSemantics() {
