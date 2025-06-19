@@ -802,6 +802,8 @@ PRINT "ZONE";
 PRINT
 '
 PRINT "Completed."
+PRINT
+PRINT "The following 205 compile warning messages are expected..."
 END
 '
 10010 RETURN

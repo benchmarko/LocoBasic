@@ -273,8 +273,10 @@
         }
     }
 
+    const escapeText = (str) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;");
     class UI {
         constructor() {
+            this.compiledMessages = [];
             this.initialUserAction = false;
             this.onSetUiKeys = (codes) => {
                 if (codes.length) {
@@ -319,8 +321,12 @@
                 this.beforeExecute();
                 const compiledScript = ((_a = this.compiledCm) === null || _a === void 0 ? void 0 : _a.getValue()) || ""; // Execute the compiled script
                 const output = await ((_b = this.vmMain) === null || _b === void 0 ? void 0 : _b.run(compiledScript));
-                if (output) {
+                if (output) { // some remaining output?
                     this.addOutputText(output);
+                }
+                if (this.compiledMessages.length) { // compile warning messages?
+                    const messageString = escapeText(this.compiledMessages.join("\n"));
+                    this.addOutputText(`<hr><details><summary>Compile warning messages: ${this.compiledMessages.length}</summary>${messageString}</details>`);
                 }
                 this.afterExecute();
             };
@@ -342,7 +348,8 @@
                 this.setButtonOrSelectDisabled("compileButton", true);
                 const input = this.basicCm ? this.basicCm.getValue() : "";
                 UI.asyncDelay(() => {
-                    const compiledScript = core.compileScript(input) || "";
+                    const { compiledScript, messages } = core.compileScript(input);
+                    this.compiledMessages = messages;
                     if (this.compiledCm) {
                         this.compiledCm.setValue(compiledScript);
                     }

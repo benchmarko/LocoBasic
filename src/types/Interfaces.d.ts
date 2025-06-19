@@ -41,6 +41,10 @@ export type UsedLabelEntryType = {
 export interface ISemantics {
     getUsedLabels(): Record<string, Record<string, UsedLabelEntryType>>;
 }
+export type CompileResultType = {
+    compiledScript: string;
+    messages: string[];
+};
 export interface ICore {
     getDefaultConfigMap(): ConfigType;
     getConfigMap(): ConfigType;
@@ -51,7 +55,7 @@ export interface ICore {
     setExampleMap(exampleMap: ExampleMapType): void;
     getExample(name: string): ExampleType;
     getSemantics(): ISemantics;
-    compileScript(script: string): string;
+    compileScript(script: string): CompileResultType;
     addIndex: (dir: string, input: Record<string, ExampleType[]> | (() => void)) => void;
     addItem(key: string, input: string | (() => void)): void;
     parseArgs(args: string[], config: Record<string, ConfigEntryType>): void;

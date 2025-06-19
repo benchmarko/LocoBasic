@@ -1,4 +1,4 @@
-import type { ConfigEntryType, ConfigType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore } from "./Interfaces";
+import type { CompileResultType, ConfigEntryType, ConfigType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore } from "./Interfaces";
 import { Semantics } from "./Semantics";
 export declare class Core implements ICore {
     private readonly defaultConfig;
@@ -15,7 +15,7 @@ export declare class Core implements ICore {
     getExampleMap(): ExampleMapType;
     setExampleMap(exampleMap: ExampleMapType): void;
     getExample(name: string): ExampleType;
-    compileScript(script: string): string;
+    compileScript(script: string): CompileResultType;
     getSemantics(): Semantics;
     addIndex: (dir: string, input: Record<string, ExampleType[]> | (() => void)) => void;
     addItem: (key: string, input: string | (() => void)) => void;

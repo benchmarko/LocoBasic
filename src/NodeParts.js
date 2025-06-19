@@ -243,10 +243,17 @@ export class NodeParts {
         const actionConfig = core.getConfigMap().action;
         if (input !== "") {
             //core.setOnCheckSyntax((s: string) => Promise.resolve(this.nodeCheckSyntax(s)));
-            const compiledScript = actionConfig.includes("compile") ? core.compileScript(input) : input;
+            const needCompile = actionConfig.includes("compile");
+            const { compiledScript, messages } = needCompile ? core.compileScript(input) : {
+                compiledScript: input,
+                messages: []
+            };
             if (compiledScript.startsWith("ERROR:")) {
                 console.error(compiledScript);
                 return;
+            }
+            if (messages) {
+                console.log(messages.join("\n"));
             }
             if (actionConfig.includes("run")) {
                 return this.keepRunning(async () => {

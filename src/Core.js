@@ -90,7 +90,9 @@ export class Core {
             }
         }
         this.semantics.resetParser();
-        return this.arithmeticParser.parseAndEval(script);
+        const compiledScript = this.arithmeticParser.parseAndEval(script);
+        const messages = this.semantics.getHelper().getCompileMessages();
+        return { compiledScript, messages };
     }
     getSemantics() {
         return this.semantics;

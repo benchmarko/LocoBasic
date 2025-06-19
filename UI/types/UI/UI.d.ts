@@ -4,6 +4,7 @@ export declare class UI implements IUI {
     private vmMain?;
     private basicCm?;
     private compiledCm?;
+    private compiledMessages;
     private initialUserAction;
     private fnOnKeyPressHandler;
     private fnOnClickHandler;
