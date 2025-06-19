@@ -184,6 +184,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Funny Questions and Answers"
 		},
 		{
+			"key": "rayclip",
+			"title": "Ray Eclipse"
+		},
+		{
 			"key": "rectangl",
 			"title": "Rectangles Test"
 		},
@@ -238,6 +242,10 @@ cpcBasic.addIndex("./examples", {
 		{
 			"key": "testpgr",
 			"title": "Test Page Graphics"
+		},
+		{
+			"key": "testpns",
+			"title": "Test Page Not Supported"
 		},
 		{
 			"key": "testprsx",

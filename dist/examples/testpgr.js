@@ -31,14 +31,16 @@ x=x0+2*(w+w/2)
 MOVE x,y
 '
 DRAW x+w,y,1
-DRAW x+w,y+h,2
+GRAPHICS PEN 2
+DRAW x+w,y+h
 DRAW x,y+h,3
 DRAW x,y,1
 '
 MOVE x+w+w/2,y
 '
 DRAWR w,0,1
-DRAWR 0,h,2
+GRAPHICS PEN 2
+DRAWR 0,h
 DRAWR -w,0,3
 DRAWR 0,-h,1
 '
@@ -121,8 +123,11 @@ TAGOFF
 ''a=TEST(x,y)
 ''a=TESTR(xm,ym)
 '
-a=XPOS
-a=YPOS
+a=XPOS: IF a<>364 THEN ERROR 33
+a=YPOS: IF a<>80 THEN ERROR 33
+MOVE 10,20
+a=XPOS: IF a<>10 THEN ERROR 33
+a=YPOS: IF a<>20 THEN ERROR 33
 '
 x=x0:y=y0+2*(h+h/2)
 |RECT,x,y,x+w,y+h

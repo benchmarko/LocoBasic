@@ -487,7 +487,7 @@ ${content}
             return output;
         },
 
-        graphicsPen: () => vm._gra.graphicsPen,
+        graphicsPen: (num: number) => vm._gra.graphicsPen(num),
 
         hex$: function hex$(num: number, pad?: number) {
             return num.toString(16).toUpperCase().padStart(pad || 0, "0");
@@ -802,7 +802,7 @@ ${content}
             return args.map((arg) => vm.dec$(arg, format)).join('');
         },
 
-        unt: (num: number ) => num,
+        unt: (num: number) => num,
 
         upper$: (str: string) => str.toUpperCase(),
 
@@ -821,9 +821,9 @@ ${content}
             }
             vm.printText(text);
         },
-        xpos: () => vm._gra.xpos,
+        xpos: () => vm._gra.xpos(),
 
-        ypos: () => vm._gra.ypos,
+        ypos: () => vm._gra.ypos(),
 
         zone: function zone(num: number) {
             vm._zone = num;

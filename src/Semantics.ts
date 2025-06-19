@@ -690,12 +690,14 @@ ${dataList.join(",\n")}
 		},
 
 		Key_def(lit: Node, defLit: Node, num: Node, comma: Node, repeat: Node, comma2: Node, codes: Node) {
-			if (num.sourceString === "78" && repeat.sourceString === "1") {
-				const codeList = evalChildren(codes.asIteration().children);
+			//const codesIteration = codes.child(0) ? codes.child(0).asIteration() : undefined;
+			if (num.eval() === "78" && repeat.eval() === "1") {
+				const codeList = codes.child(0) ? evalChildren(codes.child(0).asIteration().children) : undefined;
+				const codeListStr = codeList ? `, ${codeList.join(", ")}`: "";
 				semanticsHelper.addInstr("keyDef");
-				return `keyDef(${num.eval()}, ${repeat.eval()}, ${codeList.join(", ")})`;
+				return `keyDef(${num.eval()}, ${repeat.eval()}${codeListStr})`;
 			}
-			return notSupported(lit, defLit, num, comma, repeat, comma2, codes.asIteration());
+			return notSupported(lit, defLit, num, comma, repeat, comma2, codes.child(0) ? codes.child(0).asIteration() : codes);
 		},
 
 		LeftS(_leftLit: Node, _open: Node, pos: Node, _comma: Node, len: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -1153,7 +1155,7 @@ ${dataList.join(",\n")}
 
 		Unt(_lit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.addInstr("unt");
-			return `unt(${num})`; // or inline: `${num.eval()}`
+			return `unt(${num.eval()})`; // or inline: `${num.eval()}`
 		},
 
 		UpperS(_upperLit: Node, _open: Node, str: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
