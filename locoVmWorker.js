@@ -414,7 +414,7 @@ ${content}
                 const output = hasGraphics ? textOutput.substring(0, outputGraphicsIndex) + graphicsOutput + textOutput.substring(outputGraphicsIndex) : textOutput;
                 return output;
             },
-            graphicsPen: () => vm._gra.graphicsPen,
+            graphicsPen: (num) => vm._gra.graphicsPen(num),
             hex$: function hex$(num, pad) {
                 return num.toString(16).toUpperCase().padStart(pad || 0, "0");
             },
@@ -701,8 +701,8 @@ ${content}
                 }
                 vm.printText(text);
             },
-            xpos: () => vm._gra.xpos,
-            ypos: () => vm._gra.ypos,
+            xpos: () => vm._gra.xpos(),
+            ypos: () => vm._gra.ypos(),
             zone: function zone(num) {
                 vm._zone = num;
             },

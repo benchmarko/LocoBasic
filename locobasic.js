@@ -434,7 +434,7 @@
 
     Key 
       = key NumExp "," StrExp -- key
-      | key def NumExp "," NumExp "," NonemptyListOf<NumExp, ","> -- def
+      | key def NumExp "," NumExp ("," ListOf<NumExp, ",">)? -- def
 
     LeftS
       = leftS "(" StrExp "," NumExp ")"
@@ -592,7 +592,7 @@
       = restore label?
 
     Resume
-      = resume (label | next)
+      = resume (label | next)?
 
     Return
       = return
@@ -2350,12 +2350,14 @@ ${dataList.join(",\n")}
                 return notSupported(lit, num, comma, str);
             },
             Key_def(lit, defLit, num, comma, repeat, comma2, codes) {
-                if (num.sourceString === "78" && repeat.sourceString === "1") {
-                    const codeList = evalChildren(codes.asIteration().children);
+                //const codesIteration = codes.child(0) ? codes.child(0).asIteration() : undefined;
+                if (num.eval() === "78" && repeat.eval() === "1") {
+                    const codeList = codes.child(0) ? evalChildren(codes.child(0).asIteration().children) : undefined;
+                    const codeListStr = codeList ? `, ${codeList.join(", ")}` : "";
                     semanticsHelper.addInstr("keyDef");
-                    return `keyDef(${num.eval()}, ${repeat.eval()}, ${codeList.join(", ")})`;
+                    return `keyDef(${num.eval()}, ${repeat.eval()}${codeListStr})`;
                 }
-                return notSupported(lit, defLit, num, comma, repeat, comma2, codes.asIteration());
+                return notSupported(lit, defLit, num, comma, repeat, comma2, codes.child(0) ? codes.child(0).asIteration() : codes);
             },
             LeftS(_leftLit, _open, pos, _comma, len, _close) {
                 semanticsHelper.addInstr("left$");
@@ -2719,7 +2721,7 @@ ${dataList.join(",\n")}
             Tron: notSupported,
             Unt(_lit, _open, num, _close) {
                 semanticsHelper.addInstr("unt");
-                return `unt(${num})`; // or inline: `${num.eval()}`
+                return `unt(${num.eval()})`; // or inline: `${num.eval()}`
             },
             UpperS(_upperLit, _open, str, _close) {
                 semanticsHelper.addInstr("upper$");

@@ -92,7 +92,7 @@ export declare const workerFn: (parentPort?: NodeWorkerThreads["parentPort"]) =>
     getFlushedText: () => string;
     handleTrailingNewline(str: string): string;
     getFlushedTextandGraphics: () => string;
-    graphicsPen: () => (num: number) => void;
+    graphicsPen: (num: number) => void;
     hex$: (num: number, pad?: number) => string;
     ink: (num: number, col: number) => void;
     inkey$: () => Promise<string>;
@@ -153,8 +153,8 @@ export declare const workerFn: (parentPort?: NodeWorkerThreads["parentPort"]) =>
     val: (str: string) => number;
     vpos: () => number;
     write: (...args: (string | number)[]) => void;
-    xpos: () => () => number;
-    ypos: () => () => number;
+    xpos: () => number;
+    ypos: () => number;
     zone: (num: number) => void;
 };
 export {};

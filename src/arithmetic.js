@@ -364,7 +364,7 @@ export const arithmetic = {
 
     Key 
       = key NumExp "," StrExp -- key
-      | key def NumExp "," NumExp "," NonemptyListOf<NumExp, ","> -- def
+      | key def NumExp "," NumExp ("," ListOf<NumExp, ",">)? -- def
 
     LeftS
       = leftS "(" StrExp "," NumExp ")"
@@ -522,7 +522,7 @@ export const arithmetic = {
       = restore label?
 
     Resume
-      = resume (label | next)
+      = resume (label | next)?
 
     Return
       = return

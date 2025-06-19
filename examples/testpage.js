@@ -73,17 +73,17 @@ a$="1.4"
 case=1: IF case<>1 THEN ERROR 33
 cASE=2: IF cASE<>2 OR case<>2 OR cAsE<>2 THEN ERROR 33
 cAsE=case
-''CaSe=cAsE
+CaSe=cAsE
 next1=2: IF next1<>2 THEN ERROR 33
 '
-''insert.line=2
-''in.ser.t.lin.e=2
+insert.line=2
+in.ser.t.lin.e=2
 ''a!(2)=1.4
 ''a%(2)=1.4
 '''1 a$=a%
 '''1 a$=a!
 '''1 abc=DEF
-'newline=7
+newline=7
 '
 PRINT "Arrays"
 DIM a(2), a$(2)
@@ -245,7 +245,9 @@ a=COS(180+360): IF ROUND(a,7)<>-1 THEN ERROR 33
 a=COS(0): IF a<>1 THEN ERROR 33
 RAD
 '
-''a=CREAL(2.3+a)
+PRINT "CREAL, ";
+a=CREAL(2.3+a)
+'
 ''CURSOR
 ''CURSOR 0
 ''CURSOR 1
@@ -289,7 +291,7 @@ a$=DEC$(3,"###.##"): IF a$<>"  3.00" THEN ERROR 33
 a$=DEC$(2.9949,"#.##"): IF a$<>"2.99" THEN ERROR 33
 ''a$=DEC$(8.575,"##.##"): IF a$<>" 8.58" THEN ERROR 33
 a$=DEC$(8.595,"##.##"): IF a$<>" 8.60" THEN ERROR 33
-''a$=DEC$(15.355,"#.##"): IF a$<>"15.36" THEN ERROR 33
+a$=DEC$(15.355,"#.##"): IF a$<>"15.36" THEN ERROR 33
 '
 PRINT "DEF FN (and FN), ";
 DEF FNclk=10
@@ -426,7 +428,6 @@ DIM a(1),a$(1):ERASE a,a$
 PRINT "EVERY, ";
 EVERY 10 GOSUB 10010
 a=REMAIN(0)
-PRINT "EVERY, ";
 EVERY 10,1 GOSUB 10010
 a=REMAIN(1)
 '
@@ -445,14 +446,10 @@ a=FIX(-2.3): IF a<>-2 THEN ERROR 33
 a=FIX(123.466): IF a<>123 THEN ERROR 33
 '
 PRINT "FN, ";
-DEF FNclk=1: c=FNclk
-DEF FNclk(a)=a: c=FNclk(a)
-DEF FNclk(a,b)=a+b: c=FNclk(a,b)
-DEF FNclk$(a$,b$)=a$+b$: c$=FNclk$(a$,b$)
-''c=FN clk
-''c=FN clk(a)
-''c=FN clk(a,b)
-''c$=FN clk$(a$,b$)
+DEF FNclk=1: c=FNclk: c=FN clk
+DEF FNclk(a)=a: c=FNclk(a): c=FN clk(a)
+DEF FNclk(a,b)=a+b: c=FNclk(a,b): c=FN clk(a,b)
+DEF FNclk$(a$,b$)=a$+b$: c$=FNclk$(a$,b$): c$=FN clk$(a$,b$)
 '
 PRINT "FOR, ";
 FOR a=1 TO 10:NEXT
@@ -550,7 +547,6 @@ a$=INKEY$
 ''INPUT #stream,;"string";a$,b
 '
 PRINT "INSTR, ";
-''a=INSTR("", ""): IF a<>0 THEN ERROR 33
 a=INSTR("key","ey"): IF a<>2 THEN ERROR 33
 a$="key": b$="y": a=INSTR(a$,b$): IF a<>3 THEN ERROR 33
 ''a=INSTR(start,a$,b$)
@@ -596,7 +592,9 @@ a=LEN(""): IF a<>0 THEN ERROR 33
 a=LEN("a"): IF a<>1 THEN ERROR 33
 a$="abc":a=LEN(a$): IF a<>3 THEN ERROR 33
 '
-''LET a=a+1
+PRINT "LET, ";
+LET a=a+1
+'
 ''LINE INPUT a$
 ''LINE INPUT ;a$
 ''LINE INPUT "para",a$
@@ -809,9 +807,6 @@ a=POS(#0): IF a<>35 THEN ERROR 33
 '
 PRINT
 PRINT "PRINT: ";
-PRINT
-''PRINT ,
-PRINT ;
 ''PRINT #2
 ''PRINT #2,
 PRINT "string";
@@ -986,7 +981,7 @@ IF a$<>" 1: 1 2 3  2: 1 2 3  3: 1 2 3  4: 1 2 3  5: 1 2 3 #" THEN ERROR 33
 PRINT "STRING$"
 a$=STRING$(13,"*"): IF a$<>"*************" THEN ERROR 33
 a=7:b$="x":a$=STRING$(a,b$): IF a$<>"xxxxxxx" THEN ERROR 33
-''a$=STRING$(10,42): IF a$<>"**********" THEN ERROR 33
+a$=STRING$(10,42): IF a$<>"**********" THEN ERROR 33
 ''SYMBOL 255,1,2,3,4,5,6,7,&X10110011
 ''SYMBOL 255,1
 ''SYMBOL AFTER 255
@@ -1022,7 +1017,9 @@ a=TIME: IF a<=0 THEN ERROR 33
 '
 ' UNT, UPPER$
 '
-''a=UNT(&FF66)
+PRINT "UNT, ";
+a=UNT(1234): IF a<>1234 THEN ERROR 33
+''a=UNT(&FF66): IF a<>-154 THEN ERROR 33 'TTT: not supported
 '
 PRINT "UPPER$, ";
 a$=UPPER$("String"): IF a$<>"STRING" THEN ERROR 33
@@ -1034,7 +1031,7 @@ PRINT "VAL, ";
 a=VAL("-2.3"): IF a<>-2.3 THEN ERROR 33
 b$="2.3": a=VAL(b$): IF a<>2.3 THEN ERROR 33
 a=VAL(""): IF a<>0 THEN ERROR 33
-''a=VAL("4r"): IF a<>4 THEN ERROR 33
+''a=VAL("4r"): IF a<>4 THEN ERROR 33 'TTT
 a=VAL("&ff"): IF a<>&FF THEN ERROR 33
 a=VAL("&7A00"): IF a<>31232 OR a<>&7A00 THEN ERROR 33
 '
@@ -1058,7 +1055,8 @@ a=3:WHILE a>0:a=a-1:WEND: IF a<>0 THEN ERROR 33
 ''WINDOW SWAP 1,0
 '''1 WINDOW SWAP #1
 PRINT
-PRINT "WRITE: ";: a$="def":WRITE "abc",a$,7,15; "abc";a$;7;15
+PRINT "WRITE: ";
+a$="def":WRITE "abc",a$,7,15; "abc";a$;7;15;1E+09
 ''WRITE
 ''WRITE #2
 ''WRITE #2,
@@ -1080,10 +1078,10 @@ PRINT "XOR, ";
 a=&X1001 XOR &X0110: IF a<>15 THEN ERROR 33
 b=5:c=7:a=b XOR c: IF a<>2 THEN ERROR 33
 PRINT "XPOS, ";
-a=XPOS
+a=XPOS: IF a<>0 THEN ERROR 33
 ' ypos
 PRINT "YPOS, ";
-a=YPOS
+a=YPOS: IF a<>0 THEN ERROR 33
 ' zone
 PRINT
 ZONE 9
