@@ -679,6 +679,9 @@ export class UI implements IUI {
     }
 
     private putKeysInBuffer(keys: string): void {
+        if (this.getCore().getConfigMap().debug) {
+            console.log("putKeysInBuffer:", keys);
+        }
         this.vmMain?.putKeys(keys);
     }
 

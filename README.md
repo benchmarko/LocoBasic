@@ -124,6 +124,7 @@ LocoBasic can be run in a browser or as a Node.js application.
 - `CHR$(number)` eturns the character corresponding to the ASCII code number.
 - `CINT(number)` Returns the integer part of *number*.
   - Same as *INT*.
+- `CLEAR INPUT` Clear the key input buffer for *INKEY$*
 - `CLS` Clears the output window.
   - **Note:** In LocoBasic, *PEN*, *PAPER*, *GRAPHICS PEN*, *TAG* are also initialized.
 - `COS(number)` Returns the cosine of the given *number*.

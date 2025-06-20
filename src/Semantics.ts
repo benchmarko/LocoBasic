@@ -162,12 +162,6 @@ ${dataList.join(",\n")}
 `;
 			}
 
-			const endingFrame = !instrMap["end"] ? `return frame();` : "";
-
-			if (endingFrame) {
-				semanticsHelper.addInstr("frame");
-			}
-
 			const libraryFunctions = Object.keys(instrMap).sort();
 
 			const needsCommaOrTabOpChar = instrMap["printTab"];
@@ -180,7 +174,6 @@ ${dataList.join(",\n")}
 				needsCommaOrTabOpChar ? `const CommaOpChar = "${CommaOpChar}", TabOpChar = "${TabOpChar}";` : '',
 				variableDeclarations,
 				...lineList.filter(line => line.trimEnd() !== ''),
-				endingFrame,
 				dataListSnippet
 			].filter(Boolean);
 
@@ -329,11 +322,22 @@ ${dataList.join(",\n")}
 		},
 
 		Call(lit: Node, args: Node) {
-			let result = notSupported(lit, args.asIteration());
-			if (Number(args.asIteration().child(0).eval()) === 0xbd19) {
-				result += "frame()";
+			const num = Number(args.asIteration().child(0).eval()); // only works for constants
+			let result = "";
+			switch (num) {
+				case 0xbb06: // fall through...
+				case 0xbb18:
+					result = `while (await inkey$() === "") {}`;
+					semanticsHelper.addInstr("inkey$");
+					break;
+				case 0xbd19:
+					result = "frame()";
+					semanticsHelper.addInstr("frame");
+					break;
+				default:
+					break;
 			}
-			return result;
+			return notSupported(lit, args.asIteration()) + result;
 		},
 
 		Cat: notSupported,
@@ -352,10 +356,11 @@ ${dataList.join(",\n")}
 			return `cint(${e.eval()})`; // or inline: `Math.round(${e.eval()})`
 		},
 
-		Clear: notSupported,
+		Clear_clear: notSupported,
 
-		Clear_input(lit: Node, inputLit: Node) {
-			return notSupported(lit, inputLit);
+		Clear_input(_lit: Node, _inputLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.addInstr("clearInput");
+			return "clearInput()";
 		},
 
 		Clg(lit: Node, num: Node) {

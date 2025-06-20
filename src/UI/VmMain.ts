@@ -1,6 +1,5 @@
 import type { MessageFromWorker, MessageToWorker } from "../Interfaces";
 
-
     const basicErrors = [
         "Improper argument", // 0
         "Unexpected NEXT", // 1
@@ -187,7 +186,6 @@ export class VmMain {
 
     public putKeys(keys: string) {
         if (this.worker) {
-            console.log("putKeys: key:", keys);
             this.worker.postMessage({ type: 'putKeys', keys } as MessageToWorker);
         }
     }

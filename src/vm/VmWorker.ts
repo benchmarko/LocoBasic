@@ -382,6 +382,8 @@ ${content}
 
         cint: (num: number) => Math.round(num),
 
+        clearInput: () => vm._keyCharBufferString = "",
+
         cls: () => {
             vm._output = "";
             vm._paperSpanPos = -1;
@@ -497,13 +499,12 @@ ${content}
         },
         inkey$: async function () {
             await vm.frame();
-            if (!vm._keyCharBufferString.length) {
-                return "";
+            if (vm._keyCharBufferString.length) {
+                const key = vm._keyCharBufferString.charAt(0);
+                vm._keyCharBufferString = vm._keyCharBufferString.substring(1);
+                return key;
             }
-            const key = vm._keyCharBufferString.charAt(0);
-            vm._keyCharBufferString = vm._keyCharBufferString.substring(1);
-
-            return key;
+            return "";
         },
 
         input: async (prompt: string, isNum: boolean): Promise<string | number> => { // TODO: isNum
@@ -877,22 +878,29 @@ ${content}
                     self.removeEventListener("error", errorEventHandler);
                 }
 
-                fnScript(vm).then((result: string) => {
+                fnScript(vm).then((result: string | undefined) => {
                     vm.remainAll();
+                    const message = vm.getFlushedTextandGraphics();
+                    if (message) {
+                        postMessage({ type: 'frame', message, needCls: vm._needCls });
+                    }
+                    result = result ?? "";
                     postMessage({ type: 'result', result });
                 }).catch((err: unknown) => {
+                    vm.remainAll();
                     console.warn(err instanceof Error ? err.stack : String(err));
                     const result = String(err);
-                    vm.remainAll();
+                    const message = vm.getFlushedTextandGraphics();
+                    if (message) {
+                        postMessage({ type: 'frame', message, needCls: vm._needCls });
+                    }
                     postMessage({ type: 'result', result });
                 });
                 break;
             }
 
             case 'stop':
-                // Gracefully stop execution
                 vm._stopRequested = true;
-                // self.close(); (optionally)
                 break;
 
             default:

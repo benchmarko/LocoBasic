@@ -170,7 +170,7 @@ export const arithmetic = {
 
     Clear
       = clear input -- input
-      | clear
+      | clear -- clear
 
     Clg
       = clg NumExp?
@@ -1257,7 +1257,7 @@ export const arithmetic = {
     stringDelimiter = "\\""
 
     string
-      = stringDelimiter (~(stringDelimiter | eol) any)* (stringDelimiter | &eol)
+      = stringDelimiter (~(stringDelimiter | eol | end) any)* (stringDelimiter | &eol | &end)
 
     label = digit+
 
