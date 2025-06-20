@@ -48,38 +48,6 @@ type NodeKeyPressType = {
 
 declare function require(name: string): NodeFs | NodeHttps | NodeModule | NodePath | NodeReadline | NodeVm | NodeWorkerThreads;
 
-/*
-interface DummyVm extends IVm {
-    _snippetData: SnippetDataType;
-    debug(...args: (string | number | boolean)[]): void;
-}
-
-// The functions from dummyVm will be stringified in the putScriptInFrame function
-const dummyVm: DummyVm = {
-    _snippetData: {} as SnippetDataType,
-    debug(..._args: (string | number)[]) { / * console.debug(...args); * / }, // eslint-disable-line @typescript-eslint/no-unused-vars
-    cls() { },
-    drawMovePlot(type: string, x: number, y: number, pen?: number) { this.debug("drawMovePlot:", type, x, y, pen !== undefined ? pen : ""); },
-    escapeText(str: string, isGraphics?: boolean) { return isGraphics ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;") : str; },
-    flush() { if (this._snippetData.output) { console.log(this._snippetData.output); this._snippetData.output = ""; } },
-    graphicsPen(num: number) { this.debug("graphicsPen:", num); },
-    ink(num: number, col: number) { this.debug("ink:", num, col); },
-    async inkey$() { return Promise.resolve(""); },
-    async input(msg: string) { console.log(msg); return ""; },
-    keyDef(num: number, repeat: number, ...codes: number[]) { this.debug("keyDef:", num, repeat, codes.join(", ")); },
-    mode(num: number) { this.debug("mode:", num); },
-    origin(x: number, y: number) { this.debug("origin:", x, y); },
-    paper(num: number) { this.debug("paper:", num); },
-    pen(num: number) { this.debug("pen:", num); },
-    printGraphicsText(text: string) { this.debug("printGraphicsText:", text); },
-    rsx(cmd: string, args: (string | number)[]): Promise<(number | string)[]> { this._snippetData.output += cmd + "," + args.join(''); return Promise.resolve([]); },
-    xpos() { this.debug("xpos:"); return 0; },
-    ypos() { this.debug("ypos:"); return 0; },
-    getEscape() { return false; },
-    getSnippetData() { return this._snippetData; }
-};
-*/
-
 function isUrl(s: string) {
     return s.startsWith("http"); // http or https
 }
@@ -204,28 +172,6 @@ export class NodeParts implements INodeParts {
             clearTimeout(timerId);
         })();
     }
-
-    /*
-    private putScriptInFrame(script: string, workerFn: () => unknown): string {
-        const dummyVm = workerFn; //TTT
-        const dummyVmString = Object.entries(dummyVm).map(([key, value]) => {
-            if (typeof value === "function") {
-                return `${value}`;
-            } else if (typeof value === "object") {
-                return `${key}: ${JSON.stringify(value)}`;
-            } else {
-                return `${key}: "${value}"`;
-            }
-        }).join(",\n  ");
-        const result =
-            `(function(_o) {
-    ${script}
-})({
-    ${dummyVmString}
-});`
-        return result;
-    }
-        */
 
     /* TODO
     private nodeCheckSyntax(script: string): string {
@@ -446,7 +392,7 @@ export class NodeParts implements INodeParts {
         } catch (error) {
             console.error("Load Example", scriptName, error);
         }
-        return example.script || ""; //TTT
+        return example.script || "";
 
     }
 

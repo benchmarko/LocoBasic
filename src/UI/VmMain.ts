@@ -66,7 +66,7 @@ export class VmMain {
 
     workerOnMessageHandler = (event: MessageEvent): void => {
         const data = event.data as MessageFromWorker;
-        const result = document.getElementById('outputText') as HTMLPreElement; //TTT
+        const result = document.getElementById('outputText') as HTMLPreElement;
         switch (data.type) {
             case 'frame':
                 if (data.needCls) {

@@ -34,7 +34,7 @@ describe('Semantics Class', () => {
         const getChildNode = (node: Node | undefined): Node => {
             return getMockOhmNode({
                 child(_n: number): Node { // eslint-disable-line @typescript-eslint/no-unused-vars
-                    return node as Node; //TTT
+                    return node as Node;
                 }
             });
         };

@@ -205,7 +205,7 @@ ${dataList.join(",\n")}
 			return [start, minus, end].map((node) => evalAnyFn(node)).join("");
 		},
 
-		Line(label: Node, stmts: Node, comment: Node, _eol: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		Line(label: Node, stmts: Node, colons2: Node, comment: Node, _eol: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			const labelString = label.sourceString;
 
 			const currentLineIndex = semanticsHelper.incrementLineIndex() - 1;
@@ -215,6 +215,10 @@ ${dataList.join(",\n")}
 			}
 
 			const lineStr = stmts.eval();
+
+			if (colons2.children.length) { // are there trailing colons?
+				notSupported(colons2);
+			}
 
 			if (lineStr === "return") {
 				const definedLabels = semanticsHelper.getDefinedLabels();
@@ -232,9 +236,16 @@ ${dataList.join(",\n")}
 			return indentStr + lineStr + commentStr + semi;
 		},
 
-		Statements(stmt: Node, _stmtSep: Node, stmts: Node) {
+		Statements(colons1: Node, stmt: Node, colons2: Node, stmts: Node) {
+			if (colons1.children.length) { // are there leading colons?
+				notSupported(colons1);
+			}
 			// separate statements, use ";", if the last stmt does not end with "{"
+			if (colons2.child(0)?.children.length > 1) { // are there additional colons between statements?
+				notSupported(colons2.child(0)); // ok, let's mark all
+			}
 			const statements = [stmt.eval(), ...evalChildren(stmts.children)];
+
 			return statements.reduce((acc, current) => acc.endsWith("{") ? `${acc} ${current}` : `${acc}; ${current}`);
 		},
 
@@ -250,13 +261,16 @@ ${dataList.join(",\n")}
 		},
 
 		LoopBlockContent(separator: Node, stmts: Node) {
-			const separatorStr = separator.eval();
+			const separatorStr = separator?.child(0)?.eval() || "";
 			const lineStr = stmts.eval();
 
 			return `${separatorStr}${lineStr}`;
 		},
 
-		LoopBlockSeparator_colon(_colonLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+		LoopBlockSeparator_colon(colons: Node) {
+			if (colons.children.length > 1) { // are there additional colons between statements?
+				notSupported(colons); // ok, let's mark all
+			}
 			return "";
 		},
 
@@ -614,13 +628,17 @@ ${dataList.join(",\n")}
 			return thenStatement;
 		},
 
-		If(_iflit: Node, condExp: Node, thenStat: Node, elseLit: Node, elseStat: Node) {
+		If(_iflit: Node, condExp: Node, thenStat: Node, colons: Node, elseLit: Node, elseStat: Node) {
 			const initialIndent = semanticsHelper.getIndentStr();
 			semanticsHelper.addIndent(2);
 			const increasedIndent = semanticsHelper.getIndentStr();
 
 			const condition = condExp.eval();
 			const thenStatement = addSemicolon(thenStat.eval());
+
+			if (colons.child(0)?.children.length) { // are there colons before else?
+				notSupported(colons.child(0));
+			}
 
 			let result = `if (${condition}) {\n${increasedIndent}${thenStatement}\n${initialIndent}}`; // put in newlines to also allow line comments
 			if (elseLit.sourceString) {
@@ -693,7 +711,7 @@ ${dataList.join(",\n")}
 			//const codesIteration = codes.child(0) ? codes.child(0).asIteration() : undefined;
 			if (num.eval() === "78" && repeat.eval() === "1") {
 				const codeList = codes.child(0) ? evalChildren(codes.child(0).asIteration().children) : undefined;
-				const codeListStr = codeList ? `, ${codeList.join(", ")}`: "";
+				const codeListStr = codeList ? `, ${codeList.join(", ")}` : "";
 				semanticsHelper.addInstr("keyDef");
 				return `keyDef(${num.eval()}, ${repeat.eval()}${codeListStr})`;
 			}
