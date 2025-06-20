@@ -329,7 +329,11 @@ ${dataList.join(",\n")}
 		},
 
 		Call(lit: Node, args: Node) {
-			return notSupported(lit, args.asIteration());
+			let result = notSupported(lit, args.asIteration());
+			if (Number(args.asIteration().child(0).eval()) === 0xbd19) {
+				result += "frame()";
+			}
+			return result;
 		},
 
 		Cat: notSupported,
@@ -826,8 +830,8 @@ ${dataList.join(",\n")}
 			return `([${argumentList.map((label) => `_${label}`).join(",")}]?.[${index} - 1] || (() => undefined))()`; // 1-based index
 		},
 
-		On_numGoto(lit: Node, num: Node, gotoLit: Node, labels: Node) {
-			return notSupported(lit, num, gotoLit, labels.asIteration());
+		On_numGoto(_lit: Node, _num: Node, gotoLit: Node, labels: Node) {
+			return notSupported(gotoLit, labels.asIteration());
 		},
 
 		On_breakCont(lit: Node, breakLit: Node, contLit: Node) {
