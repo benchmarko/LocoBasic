@@ -77,13 +77,13 @@
       = Line*
 
     Line
-      = Label? Statements Comment? (eol | end)
+      = Label? Statements ":"* Comment? (eol | end)
 
     Label
       = label
 
     Statements
-      = Statement (":" Statement)*
+      = ":"* Statement (":"+ Statement)*
 
     Statement
       = Comment
@@ -188,10 +188,10 @@
       | StrArrayIdent "=" StrExp
 
     LoopBlockContent
-      = LoopBlockSeparator Statements
+      = LoopBlockSeparator? Statements
 
     LoopBlockSeparator
-      = ":" -- colon
+      = ":"+ -- colon
       | Comment? eol Label? -- newline
 
     Abs
@@ -746,7 +746,7 @@
       | Goto
 
     If
-      = if NumExp IfThen (else IfExp)?
+      = if NumExp IfThen (":"* else IfExp)?
 
     StrExp
       = StrAddExp
@@ -893,9 +893,11 @@
 
     ArrayIdent
       = ident "(" ArrayArgs ")"
+      | ident "[" ArrayArgs "]"
 
     StrArrayIdent
       = strIdent "(" ArrayArgs ")"
+      | strIdent "[" ArrayArgs "]"
 
     DimArrayArgs
       = NonemptyListOf<NumExp, ",">
@@ -903,6 +905,8 @@
     DimArrayIdent
       = ident "(" DimArrayArgs ")"
       | strIdent "(" DimArrayArgs ")"
+      | ident "[" DimArrayArgs "]"
+      | strIdent "[" DimArrayArgs "]"
 
     SimpleIdent
       = strIdent
@@ -1973,13 +1977,16 @@ ${dataList.join(",\n")}
             LetterRange(start, minus, end) {
                 return [start, minus, end].map((node) => evalAnyFn(node)).join("");
             },
-            Line(label, stmts, comment, _eol) {
+            Line(label, stmts, colons2, comment, _eol) {
                 const labelString = label.sourceString;
                 const currentLineIndex = semanticsHelper.incrementLineIndex() - 1;
                 if (labelString) {
                     semanticsHelper.addDefinedLabel(labelString, currentLineIndex);
                 }
                 const lineStr = stmts.eval();
+                if (colons2.children.length) { // are there trailing colons?
+                    notSupported(colons2);
+                }
                 if (lineStr === "return") {
                     const definedLabels = semanticsHelper.getDefinedLabels();
                     if (definedLabels.length) {
@@ -1992,8 +1999,15 @@ ${dataList.join(",\n")}
                 const indentStr = semanticsHelper.getIndentStr();
                 return indentStr + lineStr + commentStr + semi;
             },
-            Statements(stmt, _stmtSep, stmts) {
+            Statements(colons1, stmt, colons2, stmts) {
+                var _a;
+                if (colons1.children.length) { // are there leading colons?
+                    notSupported(colons1);
+                }
                 // separate statements, use ";", if the last stmt does not end with "{"
+                if (((_a = colons2.child(0)) === null || _a === void 0 ? void 0 : _a.children.length) > 1) { // are there additional colons between statements?
+                    notSupported(colons2.child(0)); // ok, let's mark all
+                }
                 const statements = [stmt.eval(), ...evalChildren(stmts.children)];
                 return statements.reduce((acc, current) => acc.endsWith("{") ? `${acc} ${current}` : `${acc}; ${current}`);
             },
@@ -2007,11 +2021,15 @@ ${dataList.join(",\n")}
                 return `${resolvedVariableName} = ${value}`;
             },
             LoopBlockContent(separator, stmts) {
-                const separatorStr = separator.eval();
+                var _a;
+                const separatorStr = ((_a = separator === null || separator === void 0 ? void 0 : separator.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
                 const lineStr = stmts.eval();
                 return `${separatorStr}${lineStr}`;
             },
-            LoopBlockSeparator_colon(_colonLit) {
+            LoopBlockSeparator_colon(colons) {
+                if (colons.children.length > 1) { // are there additional colons between statements?
+                    notSupported(colons); // ok, let's mark all
+                }
                 return "";
             },
             LoopBlockSeparator_newline(comment, eol, _label) {
@@ -2289,12 +2307,16 @@ ${dataList.join(",\n")}
                 const thenStatement = thenStat.eval();
                 return thenStatement;
             },
-            If(_iflit, condExp, thenStat, elseLit, elseStat) {
+            If(_iflit, condExp, thenStat, colons, elseLit, elseStat) {
+                var _a;
                 const initialIndent = semanticsHelper.getIndentStr();
                 semanticsHelper.addIndent(2);
                 const increasedIndent = semanticsHelper.getIndentStr();
                 const condition = condExp.eval();
                 const thenStatement = addSemicolon(thenStat.eval());
+                if ((_a = colons.child(0)) === null || _a === void 0 ? void 0 : _a.children.length) { // are there colons before else?
+                    notSupported(colons.child(0));
+                }
                 let result = `if (${condition}) {\n${increasedIndent}${thenStatement}\n${initialIndent}}`; // put in newlines to also allow line comments
                 if (elseLit.sourceString) {
                     const elseStatement = addSemicolon(evalChildren(elseStat.children).join('; '));
@@ -3192,37 +3214,6 @@ ${dataList.join(",\n")}
         }
     }
 
-    /*
-    interface DummyVm extends IVm {
-        _snippetData: SnippetDataType;
-        debug(...args: (string | number | boolean)[]): void;
-    }
-
-    // The functions from dummyVm will be stringified in the putScriptInFrame function
-    const dummyVm: DummyVm = {
-        _snippetData: {} as SnippetDataType,
-        debug(..._args: (string | number)[]) { / * console.debug(...args); * / }, // eslint-disable-line @typescript-eslint/no-unused-vars
-        cls() { },
-        drawMovePlot(type: string, x: number, y: number, pen?: number) { this.debug("drawMovePlot:", type, x, y, pen !== undefined ? pen : ""); },
-        escapeText(str: string, isGraphics?: boolean) { return isGraphics ? str.replace(/&/g, "&amp;").replace(/</g, "&lt;") : str; },
-        flush() { if (this._snippetData.output) { console.log(this._snippetData.output); this._snippetData.output = ""; } },
-        graphicsPen(num: number) { this.debug("graphicsPen:", num); },
-        ink(num: number, col: number) { this.debug("ink:", num, col); },
-        async inkey$() { return Promise.resolve(""); },
-        async input(msg: string) { console.log(msg); return ""; },
-        keyDef(num: number, repeat: number, ...codes: number[]) { this.debug("keyDef:", num, repeat, codes.join(", ")); },
-        mode(num: number) { this.debug("mode:", num); },
-        origin(x: number, y: number) { this.debug("origin:", x, y); },
-        paper(num: number) { this.debug("paper:", num); },
-        pen(num: number) { this.debug("pen:", num); },
-        printGraphicsText(text: string) { this.debug("printGraphicsText:", text); },
-        rsx(cmd: string, args: (string | number)[]): Promise<(number | string)[]> { this._snippetData.output += cmd + "," + args.join(''); return Promise.resolve([]); },
-        xpos() { this.debug("xpos:"); return 0; },
-        ypos() { this.debug("ypos:"); return 0; },
-        getEscape() { return false; },
-        getSnippetData() { return this._snippetData; }
-    };
-    */
     function isUrl(s) {
         return s.startsWith("http"); // http or https
     }
@@ -3321,27 +3312,6 @@ ${dataList.join(",\n")}
                 clearTimeout(timerId);
             })();
         }
-        /*
-        private putScriptInFrame(script: string, workerFn: () => unknown): string {
-            const dummyVm = workerFn; //TTT
-            const dummyVmString = Object.entries(dummyVm).map(([key, value]) => {
-                if (typeof value === "function") {
-                    return `${value}`;
-                } else if (typeof value === "object") {
-                    return `${key}: ${JSON.stringify(value)}`;
-                } else {
-                    return `${key}: "${value}"`;
-                }
-            }).join(",\n  ");
-            const result =
-                `(function(_o) {
-        ${script}
-    })({
-        ${dummyVmString}
-    });`
-            return result;
-        }
-            */
         /* TODO
         private nodeCheckSyntax(script: string): string {
             if (!this.nodeVm) {
@@ -3549,7 +3519,7 @@ ${dataList.join(",\n")}
             catch (error) {
                 console.error("Load Example", scriptName, error);
             }
-            return example.script || ""; //TTT
+            return example.script || "";
         }
         async nodeMain(core) {
             const config = core.getConfigMap();

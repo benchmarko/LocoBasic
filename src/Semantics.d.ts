@@ -12,12 +12,12 @@ export declare class Semantics implements ISemantics {
         Program(lines: Node): string;
         LabelRange(start: Node, minus: Node, end: Node): string;
         LetterRange(start: Node, minus: Node, end: Node): string;
-        Line(label: Node, stmts: Node, comment: Node, _eol: Node): string;
-        Statements(stmt: Node, _stmtSep: Node, stmts: Node): any;
+        Line(label: Node, stmts: Node, colons2: Node, comment: Node, _eol: Node): string;
+        Statements(colons1: Node, stmt: Node, colons2: Node, stmts: Node): any;
         ArrayAssign(ident: Node, _op: Node, e: Node): string;
         Assign(ident: Node, _op: Node, e: Node): string;
         LoopBlockContent(separator: Node, stmts: Node): string;
-        LoopBlockSeparator_colon(_colonLit: Node): string;
+        LoopBlockSeparator_colon(colons: Node): string;
         LoopBlockSeparator_newline(comment: Node, eol: Node, _label: Node): string;
         Abs(_absLit: Node, _open: Node, e: Node, _close: Node): string;
         AddressOf(op: Node, ident: Node): string;
@@ -88,7 +88,7 @@ export declare class Semantics implements ISemantics {
         Himem(lit: Node): string;
         IfExp_label(label: Node): string;
         IfThen_then(_thenLit: Node, thenStat: Node): any;
-        If(_iflit: Node, condExp: Node, thenStat: Node, elseLit: Node, elseStat: Node): string;
+        If(_iflit: Node, condExp: Node, thenStat: Node, colons: Node, elseLit: Node, elseStat: Node): string;
         Ink(_inkLit: Node, num: Node, _comma: Node, col: Node, _comma2: Node, col2: Node): string;
         Inkey(lit: Node, open: Node, num: Node, close: Node): string;
         InkeyS(_inkeySLit: Node): string;

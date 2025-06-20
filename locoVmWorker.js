@@ -266,7 +266,7 @@ ${content}
             },
             setOutputGraphicsIndex: () => {
                 if (vmGra._outputGraphicsIndex < 0) {
-                    vmGra._outputGraphicsIndex = 0; // TODO this.getSnippetData().output.length;
+                    vmGra._outputGraphicsIndex = vm._output.length;
                 }
             },
             xpos: () => {

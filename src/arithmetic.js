@@ -7,13 +7,13 @@ export const arithmetic = {
       = Line*
 
     Line
-      = Label? Statements Comment? (eol | end)
+      = Label? Statements ":"* Comment? (eol | end)
 
     Label
       = label
 
     Statements
-      = Statement (":" Statement)*
+      = ":"* Statement (":"+ Statement)*
 
     Statement
       = Comment
@@ -118,10 +118,10 @@ export const arithmetic = {
       | StrArrayIdent "=" StrExp
 
     LoopBlockContent
-      = LoopBlockSeparator Statements
+      = LoopBlockSeparator? Statements
 
     LoopBlockSeparator
-      = ":" -- colon
+      = ":"+ -- colon
       | Comment? eol Label? -- newline
 
     Abs
@@ -676,7 +676,7 @@ export const arithmetic = {
       | Goto
 
     If
-      = if NumExp IfThen (else IfExp)?
+      = if NumExp IfThen (":"* else IfExp)?
 
     StrExp
       = StrAddExp
@@ -823,9 +823,11 @@ export const arithmetic = {
 
     ArrayIdent
       = ident "(" ArrayArgs ")"
+      | ident "[" ArrayArgs "]"
 
     StrArrayIdent
       = strIdent "(" ArrayArgs ")"
+      | strIdent "[" ArrayArgs "]"
 
     DimArrayArgs
       = NonemptyListOf<NumExp, ",">
@@ -833,6 +835,8 @@ export const arithmetic = {
     DimArrayIdent
       = ident "(" DimArrayArgs ")"
       | strIdent "(" DimArrayArgs ")"
+      | ident "[" DimArrayArgs "]"
+      | strIdent "[" DimArrayArgs "]"
 
     SimpleIdent
       = strIdent

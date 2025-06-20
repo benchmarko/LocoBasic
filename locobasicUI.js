@@ -145,7 +145,7 @@
             this.code = "";
             this.workerOnMessageHandler = (event) => {
                 const data = event.data;
-                const result = document.getElementById('outputText'); //TTT
+                const result = document.getElementById('outputText');
                 switch (data.type) {
                     case 'frame':
                         if (data.needCls) {

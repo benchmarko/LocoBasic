@@ -332,6 +332,7 @@ PRINT "HIMEM"
 ' IF, INK, INKEY, INKEY$, INP, INPUT, INSTR, INT
 '
 PRINT "IF, ";
+:IF 0=1 THEN :a=6::b=7 :ELSE a=8::b=9:
 ''IF a=1 THEN
 ''IF a=1 THEN ELSE
 ''IF a=1 THEN a=2 ELSE
@@ -803,7 +804,7 @@ PRINT
 '
 PRINT "Completed."
 PRINT
-PRINT "The following 205 compile warning messages are expected..."
+PRINT "The following compile warning messages are expected..."
 END
 '
 10010 RETURN
