@@ -164,7 +164,6 @@ export class VmMain {
     }
     putKeys(keys) {
         if (this.worker) {
-            console.log("putKeys: key:", keys);
             this.worker.postMessage({ type: 'putKeys', keys });
         }
     }

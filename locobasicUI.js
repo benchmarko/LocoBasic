@@ -267,7 +267,6 @@
         }
         putKeys(keys) {
             if (this.worker) {
-                console.log("putKeys: key:", keys);
                 this.worker.postMessage({ type: 'putKeys', keys });
             }
         }
@@ -841,6 +840,9 @@
         }
         putKeysInBuffer(keys) {
             var _a;
+            if (this.getCore().getConfigMap().debug) {
+                console.log("putKeysInBuffer:", keys);
+            }
             (_a = this.vmMain) === null || _a === void 0 ? void 0 : _a.putKeys(keys);
         }
         onOutputTextKeydown(event) {

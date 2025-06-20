@@ -75,6 +75,7 @@ export declare const workerFn: (parentPort?: NodeWorkerThreads["parentPort"]) =>
     bin$: (num: number, pad?: number) => string;
     chr$: (num: number) => string;
     cint: (num: number) => number;
+    clearInput: () => string;
     cls: () => void;
     cos: (x: number) => number;
     creal: (num: number) => number;

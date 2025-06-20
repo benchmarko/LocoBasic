@@ -32,8 +32,8 @@ export declare class Semantics implements ISemantics {
         Chain(lit: Node, merge: Node, file: Node, comma: Node, num: Node, comma2: Node, del: Node): string;
         ChrS(_chrLit: Node, _open: Node, e: Node, _close: Node): string;
         Cint(_cintLit: Node, _open: Node, e: Node, _close: Node): string;
-        Clear: (str: Node, ...args: Node[]) => string;
-        Clear_input(lit: Node, inputLit: Node): string;
+        Clear_clear: (str: Node, ...args: Node[]) => string;
+        Clear_input(_lit: Node, _inputLit: Node): string;
         Clg(lit: Node, num: Node): string;
         Closein: (str: Node, ...args: Node[]) => string;
         Closeout: (str: Node, ...args: Node[]) => string;
@@ -123,7 +123,7 @@ export declare class Semantics implements ISemantics {
         New: (str: Node, ...args: Node[]) => string;
         Next(_nextLit: Node, _variable: Node): string;
         On_numGosub(_onLit: Node, e1: Node, _gosubLit: Node, args: Node): string;
-        On_numGoto(lit: Node, num: Node, gotoLit: Node, labels: Node): string;
+        On_numGoto(_lit: Node, _num: Node, gotoLit: Node, labels: Node): string;
         On_breakCont(lit: Node, breakLit: Node, contLit: Node): string;
         On_breakGosub(lit: Node, breakLit: Node, gosubLit: Node, label: Node): string;
         On_breakStop(lit: Node, breakLit: Node, stopLit: Node): string;

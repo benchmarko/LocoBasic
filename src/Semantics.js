@@ -132,10 +132,6 @@ ${dataList.join(",\n")}
 }
 `;
             }
-            const endingFrame = !instrMap["end"] ? `return frame();` : "";
-            if (endingFrame) {
-                semanticsHelper.addInstr("frame");
-            }
             const libraryFunctions = Object.keys(instrMap).sort();
             const needsCommaOrTabOpChar = instrMap["printTab"];
             // Assemble code lines
@@ -146,7 +142,6 @@ ${dataList.join(",\n")}
                 needsCommaOrTabOpChar ? `const CommaOpChar = "${CommaOpChar}", TabOpChar = "${TabOpChar}";` : '',
                 variableDeclarations,
                 ...lineList.filter(line => line.trimEnd() !== ''),
-                endingFrame,
                 dataListSnippet
             ].filter(Boolean);
             let lineStr = codeLines.join('\n');
@@ -268,7 +263,22 @@ ${dataList.join(",\n")}
             return notSupported(lit, num, comma, num2);
         },
         Call(lit, args) {
-            return notSupported(lit, args.asIteration());
+            const num = Number(args.asIteration().child(0).eval()); // only works for constants
+            let result = "";
+            switch (num) {
+                case 0xbb06: // fall through...
+                case 0xbb18:
+                    result = `while (await inkey$() === "") {}`;
+                    semanticsHelper.addInstr("inkey$");
+                    break;
+                case 0xbd19:
+                    result = "frame()";
+                    semanticsHelper.addInstr("frame");
+                    break;
+                default:
+                    break;
+            }
+            return notSupported(lit, args.asIteration()) + result;
         },
         Cat: notSupported,
         Chain(lit, merge, file, comma, num, comma2, del) {
@@ -282,9 +292,10 @@ ${dataList.join(",\n")}
             semanticsHelper.addInstr("cint");
             return `cint(${e.eval()})`; // or inline: `Math.round(${e.eval()})`
         },
-        Clear: notSupported,
-        Clear_input(lit, inputLit) {
-            return notSupported(lit, inputLit);
+        Clear_clear: notSupported,
+        Clear_input(_lit, _inputLit) {
+            semanticsHelper.addInstr("clearInput");
+            return "clearInput()";
         },
         Clg(lit, num) {
             return notSupported(lit, num);
@@ -654,8 +665,8 @@ ${dataList.join(",\n")}
             }
             return `([${argumentList.map((label) => `_${label}`).join(",")}]?.[${index} - 1] || (() => undefined))()`; // 1-based index
         },
-        On_numGoto(lit, num, gotoLit, labels) {
-            return notSupported(lit, num, gotoLit, labels.asIteration());
+        On_numGoto(_lit, _num, gotoLit, labels) {
+            return notSupported(gotoLit, labels.asIteration());
         },
         On_breakCont(lit, breakLit, contLit) {
             return notSupported(lit, breakLit, contLit);

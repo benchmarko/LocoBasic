@@ -568,6 +568,9 @@ export class UI {
     }
     putKeysInBuffer(keys) {
         var _a;
+        if (this.getCore().getConfigMap().debug) {
+            console.log("putKeysInBuffer:", keys);
+        }
         (_a = this.vmMain) === null || _a === void 0 ? void 0 : _a.putKeys(keys);
     }
     onOutputTextKeydown(event) {
