@@ -87,16 +87,17 @@ newline=7
 '
 PRINT "Arrays"
 DIM a(2), a$(2)
-a(2)=1.4:IF a(2)<>1.4 THEN ERROR 33
-a(2)=1.5:IF a(2)<>1.5 THEN ERROR 33
-a$(2)="1.4":IF a$(2)<>"1.4" THEN ERROR 33
+a(2)=1.4: IF a(2)<>1.4 THEN ERROR 33
+a(2)=1.5: IF a(2)<>1.5 THEN ERROR 33
+a$(2)="1.4": IF a$(2)<>"1.4" THEN ERROR 33
 ERASE a,a$
-DIM a$(2):a$(2)="1.4"
-''a$[2]="1.4"
+DIM a$[2]:a$[2]="1.5": IF a$[2]<>"1.5" THEN ERROR 33
+a$[2]="1.4"
 ERASE a$
-DIM a(9),b(1,2):a(9)=b(1,2)
+DIM a(9),b(1,2):b(1,2)=3:a(9)=b(1,2): IF a(9)<>3 THEN ERROR 33
 ERASE a,b
-''a[9]=b[1,2]
+DIM a[9],b[1,2]:b[1,2]=4:a[9]=b[1,2]: IF a(9)<>4 THEN ERROR 33
+a[9]=b[1,2]
 DIM a(10,10,10),b(10,9):a(10,10,10)=b(10,9)
 ERASE a,b
 DIM a(2),b(2,2,1)

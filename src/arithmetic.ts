@@ -824,9 +824,11 @@ export const arithmetic = {
 
     ArrayIdent
       = ident "(" ArrayArgs ")"
+      | ident "[" ArrayArgs "]"
 
     StrArrayIdent
       = strIdent "(" ArrayArgs ")"
+      | strIdent "[" ArrayArgs "]"
 
     DimArrayArgs
       = NonemptyListOf<NumExp, ",">
@@ -834,6 +836,8 @@ export const arithmetic = {
     DimArrayIdent
       = ident "(" DimArrayArgs ")"
       | strIdent "(" DimArrayArgs ")"
+      | ident "[" DimArrayArgs "]"
+      | strIdent "[" DimArrayArgs "]"
 
     SimpleIdent
       = strIdent
