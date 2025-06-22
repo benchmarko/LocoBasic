@@ -114,7 +114,7 @@ ${content}
             vmRsx._pitch = 1;
         },
 
-        rsxDate: async (args: (number | string)[]) => {
+        rsxDate: (args: (number | string)[]) => {
             const date = new Date();
             const dayOfWeek = (date.getDay() + 1) % 7;
             const day = date.getDate();
@@ -122,8 +122,9 @@ ${content}
             const year = date.getFullYear() % 100;
             const dateStr = `${String(dayOfWeek).padStart(2, '0')} ${String(day).padStart(2, '0')} ${String(month).padStart(2, '0')} ${String(year).padStart(2, '0')}`;
             args[0] = dateStr;
-            return Promise.resolve(args);
+            return args;
         },
+
         rsxPitch: (args: (number | string)[]) => {
             vmRsx._pitch = (args[0] as number) / 10;
         },
@@ -133,14 +134,14 @@ ${content}
             postMessage({ type: 'speak', message, pitch: vmRsx._pitch });
         },
 
-        rsxTime: async (args: (number | string)[]) => {
+        rsxTime: (args: (number | string)[]) => {
             const date = new Date();
             const hours = date.getHours();
             const minutes = date.getMinutes();
             const seconds = date.getSeconds();
             const timeStr = `${String(hours).padStart(2, '0')} ${String(minutes).padStart(2, '0')} ${String(seconds).padStart(2, '0')}`;
             args[0] = timeStr;
-            return Promise.resolve(args);
+            return args;
         }
     };
 
@@ -732,32 +733,26 @@ ${content}
             return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
         },
 
-        rsxCall: async function (cmd: string, ...args: (string | number)[]) {
-            switch (cmd) {
-                case "arc":
-                    return vm._gra.rsxArc(args); // 9x number, number?
-                case "circle":
-                    return vm._gra.rsxCircle(args); // 3x number, number?
-                case "date":
-                    return vm._rsx.rsxDate(args); // string
-                case "ellipse":
-                    return vm._gra.rsxEllipse(args);
-                case "pitch":
-                    return vm._rsx.rsxPitch(args); // string
-                case "rect":
-                    return vm._gra.rsxRect(args); // 4x number, number?
-                case "say": {
-                    vm._rsx.rsxSay(args);// string
-                    return new Promise<void>((resolve) => {
-                        vm._waitResolvedFn = resolve;
-                    });
-                }
-                case "time":
-                    return vm._rsx.rsxTime(args); // string
-                default:
-                    throw new Error(`Unknown RSX command: |${cmd.toUpperCase()}`);
-            }
+        rsxArc: (...args: number[]) => vm._gra.rsxArc(args), // 9x number, number?
+
+        rsxCircle: (...args: number[]) => vm._gra.rsxCircle(args), // 3x number, number?
+
+        rsxDate: (...args: string[]) => vm._rsx.rsxDate(args), // string
+
+        rsxEllipse: (...args: number[]) => vm._gra.rsxEllipse(args),
+
+        rsxPitch: (...args: string[]) => vm._rsx.rsxPitch(args), // string
+
+        rsxRect: (...args: number[]) => vm._gra.rsxRect(args), // 4x number, number?
+
+        rsxSay: (...args: string[]) => {
+            vm._rsx.rsxSay(args); // string
+            return new Promise<void>((resolve) => {
+                vm._waitResolvedFn = resolve;
+            });
         },
+
+        rsxTime: (...args: string[]) => vm._rsx.rsxTime(args), // string
 
         sgn: Math.sign,
 

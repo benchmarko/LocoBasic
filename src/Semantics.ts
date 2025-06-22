@@ -122,7 +122,11 @@ function getSemanticsActions(semanticsHelper: SemanticsHelper) {
 
 	const addSemicolon = (str: string) => {
 		return str.endsWith("}") ? str : str + ";" // add semicolon, but not for closing bracket
-	}
+	};
+
+	const stringCapitalize = (str: string): string => { // capitalize first letter
+		return str.charAt(0).toUpperCase() + str.substring(1);
+	};
 
 	const semantics = {
 		Program(lines: Node) {
@@ -458,7 +462,7 @@ ${dataList.join(",\n")}
 
 		Deg(_degLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			semanticsHelper.setDeg(true);
-			return `/* deg */`; // we assume to check it at compile time 
+			return `/* deg */`; // we assume to check it at compile time
 		},
 
 		Delete(lit: Node, labelRange: Node) {
@@ -1027,15 +1031,26 @@ ${dataList.join(",\n")}
 		},
 
 		Rsx(_rsxLit: Node, cmd: Node, e: Node) {
-			semanticsHelper.addInstr("rsxCall");
+			//semanticsHelper.addInstr("rsxCall");
 			const cmdString = adaptIdentName(cmd.sourceString).toLowerCase();
 			const rsxArgs: string = e.child(0)?.eval() || "";
 
+			const knownRsx = ["arc", "circle", "date", "ellipse", "pitch", "rect", "say", "time"];
+
+			if (!knownRsx.includes(cmdString)) {
+				return notSupported(_rsxLit, cmd, e);
+			}
+
+			const rsxCall = "rsx" + stringCapitalize(cmdString);
+			semanticsHelper.addInstr(rsxCall);
+
+			const asyncStr = cmdString === "say" ? "await " : "";
+
 			if (rsxArgs === "") {
-				return `await rsxCall("${cmdString}"${rsxArgs})`;
+				return `${asyncStr}${rsxCall}(${rsxArgs})`;
 			}
 			// need assign, not so nice to use <RSXFUNCTION>" as separator
-			return rsxArgs.replace("<RSXFUNCTION>", `await rsxCall("${cmdString}"`) + ")";
+			return rsxArgs.replace("<RSXFUNCTION>", `${asyncStr}${rsxCall}(`) + ")";
 		},
 
 		RsxAddressOf(_adressOfLit: Node, ident: Node) {
@@ -1061,7 +1076,8 @@ ${dataList.join(",\n")}
 
 			// Build the result string
 			const assignments = assignList.length ? `[${assignList.join(", ")}] = ` : "";
-			const result = `${assignments}<RSXFUNCTION>, ${argumentListNoAddr.join(", ")}`;
+			//const result = `${assignments}<RSXFUNCTION>, ${argumentListNoAddr.join(", ")}`;
+			const result = `${assignments}<RSXFUNCTION>${argumentListNoAddr.join(", ")}`;
 
 			return result;
 		},

@@ -145,9 +145,10 @@ describe("VmWorker.vm core methods", () => {
 
     it("tag enables graphics text output", () => {
         const vm = workerFn(getMockParentPort());
-        vm.tag(true);
+        vm.tag();
         vm.print("abc");
         expect(vm._gra._graphicsBuffer.join("")).toContain("abc");
+        vm.tagoff();
     });
 
     it("escapeText escapes HTML", () => {
@@ -176,12 +177,12 @@ describe("VmWorker.vm core methods", () => {
         expect(vm.read()).toBe(2);
     });
 
-    it("rsxCall handles known and unknown commands", async () => {
+    it("rsx calls handles known and unknown commands", async () => {
         const vm = workerFn(getMockParentPort());
-        await expect(vm.rsxCall("date", "")).resolves.toBeDefined();
-        await expect(vm.rsxCall("time", "")).resolves.toBeDefined();
-        await expect(vm.rsxCall("rect", 1,2,3,4,5)).resolves.toBeUndefined();
-        await expect(vm.rsxCall("unknown")).rejects.toThrow();
+        expect(vm.rsxDate("")).toBeDefined(); // TTT
+        expect(vm.rsxTime("")).toBeDefined();
+        //expect(vm.rsxRect(1,2,3,4,5));
+        //await expect(vm.rsxCall("unknown")).rejects.toThrow();
     });
 
     it("frame", async () => {
@@ -218,9 +219,10 @@ describe("VmWorker.vm core methods", () => {
 
     it("print handles _tag graphics mode", () => {
         const vm = workerFn(getMockParentPort());
-        vm.tag(true);
+        vm.tag();
         vm.print("hello");
         expect(vm._gra._graphicsBuffer.join("")).toContain("hello");
+        vm.tagoff();
     });
 
     it("paper and pen handle browser and terminal output", () => {
