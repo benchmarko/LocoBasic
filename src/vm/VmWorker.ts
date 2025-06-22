@@ -114,7 +114,7 @@ ${content}
             vmRsx._pitch = 1;
         },
 
-        rsxDate: (args: (number | string)[]) => {
+        rsxDate: (args: string[]) => {
             const date = new Date();
             const dayOfWeek = (date.getDay() + 1) % 7;
             const day = date.getDate();
@@ -125,16 +125,21 @@ ${content}
             return args;
         },
 
-        rsxPitch: (args: (number | string)[]) => {
-            vmRsx._pitch = (args[0] as number) / 10;
+        rsxGeolocation: () => {
+            //const message = args[0] as string;
+            postMessage({ type: 'geolocation' });
         },
 
-        rsxSay: (args: (number | string)[]) => {
-            const message = args[0] as string;
+        rsxPitch: (args: number[]) => {
+            vmRsx._pitch = args[0] / 10;
+        },
+
+        rsxSay: (args: string[]) => {
+            const message = args[0];
             postMessage({ type: 'speak', message, pitch: vmRsx._pitch });
         },
 
-        rsxTime: (args: (number | string)[]) => {
+        rsxTime: (args: string[]) => {
             const date = new Date();
             const hours = date.getHours();
             const minutes = date.getMinutes();
@@ -329,8 +334,8 @@ ${content}
     const vm = {
         _gra: vmGra,
         _rsx: vmRsx,
-        _inputResolvedFn: null as ((value: string) => void) | null,
-        _waitResolvedFn: null as (() => void) | null,
+        _inputResolvedFn: null as ((value: string | null) => void) | null,
+        _waitResolvedFn: null as ((value: string) => void) | null,
         _isTerminal: false, // output for terminal
 
         _data: [] as (string | number)[],
@@ -509,7 +514,7 @@ ${content}
         },
 
         input: async (prompt: string, isNum: boolean): Promise<string | number> => { // TODO: isNum
-            const inputPromise = new Promise<string>((resolve) => {
+            const inputPromise = new Promise<string | null>((resolve) => {
                 // Store early: The resolve function to be called later
                 vm._inputResolvedFn = resolve;
             });
@@ -741,15 +746,32 @@ ${content}
 
         rsxEllipse: (...args: number[]) => vm._gra.rsxEllipse(args),
 
-        rsxPitch: (...args: string[]) => vm._rsx.rsxPitch(args), // string
+        rsxGeolocation: (...args: string[]) => {
+            const promise =  new Promise<string>((resolve) => {
+                vm._waitResolvedFn = resolve;
+            }).then((str: string) => {
+                if (str.startsWith("{")) {
+                    const json = JSON.parse(str);
+                    args[0] = json.latitude;
+                    args[1] = json.longitude;
+                    return args;
+                }
+                return args;
+            });
+            vm._rsx.rsxGeolocation();
+            return promise;
+        },
+
+        rsxPitch: (...args: number[]) => vm._rsx.rsxPitch(args),
 
         rsxRect: (...args: number[]) => vm._gra.rsxRect(args), // 4x number, number?
 
         rsxSay: (...args: string[]) => {
-            vm._rsx.rsxSay(args); // string
-            return new Promise<void>((resolve) => {
+            const promise =  new Promise<string>((resolve) => {
                 vm._waitResolvedFn = resolve;
             });
+            vm._rsx.rsxSay(args);
+            return promise;
         },
 
         rsxTime: (...args: string[]) => vm._rsx.rsxTime(args), // string
@@ -845,7 +867,7 @@ ${content}
                 break;
             case 'continue':
                 if (vm._waitResolvedFn) {
-                    vm._waitResolvedFn();
+                    vm._waitResolvedFn(data.result);
                     vm._waitResolvedFn = null;
                 }
                 break;

@@ -179,7 +179,7 @@ describe("VmWorker.vm core methods", () => {
 
     it("rsx calls handles known and unknown commands", async () => {
         const vm = workerFn(getMockParentPort());
-        expect(vm.rsxDate("")).toBeDefined(); // TTT
+        expect(vm.rsxDate("")).toBeDefined(); // simple tests
         expect(vm.rsxTime("")).toBeDefined();
         //expect(vm.rsxRect(1,2,3,4,5));
         //await expect(vm.rsxCall("unknown")).rejects.toThrow();

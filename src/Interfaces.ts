@@ -75,14 +75,15 @@ export interface ICore {
 
 export type MessageToWorker =
     | { type: 'config'; isTerminal: boolean }
-    | { type: 'continue' }
-    | { type: 'input'; prompt: string }
+    | { type: 'continue', result: string }
+    | { type: 'input'; prompt: string | null }
     | { type: 'putKeys'; keys: string }
     | { type: 'run'; code: string }
     | { type: 'stop' };
 
 export type MessageFromWorker =
     | { type: 'frame'; message: string; needCls?: boolean }
+    | { type: 'geolocation' }
     | { type: 'input'; prompt: string }
     | { type: 'keyDef'; codes: number[] }
     | { type: 'result'; result: string }

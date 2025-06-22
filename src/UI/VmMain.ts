@@ -1,41 +1,41 @@
 import type { MessageFromWorker, MessageToWorker } from "../Interfaces";
 
-    const basicErrors = [
-        "Improper argument", // 0
-        "Unexpected NEXT", // 1
-        "Syntax Error", // 2
-        "Unexpected RETURN", // 3
-        "DATA exhausted", // 4
-        "Improper argument", // 5
-        "Overflow", // 6
-        "Memory full", // 7
-        "Line does not exist", // 8
-        "Subscript out of range", // 9
-        "Array already dimensioned", // 10
-        "Division by zero", // 11
-        "Invalid direct command", // 12
-        "Type mismatch", // 13
-        "String space full", // 14
-        "String too long", // 15
-        "String expression too complex", // 16
-        "Cannot CONTinue", // 17
-        "Unknown user function", // 18
-        "RESUME missing", // 19
-        "Unexpected RESUME", // 20
-        "Direct command found", // 21
-        "Operand missing", // 22
-        "Line too long", // 23
-        "EOF met", // 24
-        "File type error", // 25
-        "NEXT missing", // 26
-        "File already open", // 27
-        "Unknown command", // 28
-        "WEND missing", // 29
-        "Unexpected WEND", // 30
-        "File not open", // 31,
-        "Broken", // 32 "Broken in" (derr=146: xxx not found)
-        "Unknown error" // 33...
-    ];
+const basicErrors = [
+    "Improper argument", // 0
+    "Unexpected NEXT", // 1
+    "Syntax Error", // 2
+    "Unexpected RETURN", // 3
+    "DATA exhausted", // 4
+    "Improper argument", // 5
+    "Overflow", // 6
+    "Memory full", // 7
+    "Line does not exist", // 8
+    "Subscript out of range", // 9
+    "Array already dimensioned", // 10
+    "Division by zero", // 11
+    "Invalid direct command", // 12
+    "Type mismatch", // 13
+    "String space full", // 14
+    "String too long", // 15
+    "String expression too complex", // 16
+    "Cannot CONTinue", // 17
+    "Unknown user function", // 18
+    "RESUME missing", // 19
+    "Unexpected RESUME", // 20
+    "Direct command found", // 21
+    "Operand missing", // 22
+    "Line too long", // 23
+    "EOF met", // 24
+    "File type error", // 25
+    "NEXT missing", // 26
+    "File already open", // 27
+    "Unknown command", // 28
+    "WEND missing", // 29
+    "Unexpected WEND", // 30
+    "File not open", // 31,
+    "Broken", // 32 "Broken in" (derr=146: xxx not found)
+    "Unknown error" // 33...
+];
 
 export class VmMain {
 
@@ -46,14 +46,17 @@ export class VmMain {
     private finishedResolverFn: ((msg: string) => void) | undefined;
 
     private setUiKeysFn: (codes: number[]) => void;
+
+    private onGeolocationFn: () => Promise<string>;
     private onSpeakFn: (text: string, pitch: number) => Promise<void>;
 
     private code = "";
 
-    constructor(workerScript: string, setUiKeysFn: (codes: number[]) => void, onSpeakFn: (text: string, pitch: number) => Promise<void>) {
+    constructor(workerScript: string, setUiKeysFn: (codes: number[]) => void, onGeolocationFn: () => Promise<string>, onSpeakFn: (text: string, pitch: number) => Promise<void>) {
         this.workerScript = workerScript;
         this.setUiKeysFn = setUiKeysFn;
         this.onSpeakFn = onSpeakFn;
+        this.onGeolocationFn = onGeolocationFn;
         window.addEventListener('beforeunload', this.handleBeforeUnload, { once: true });
     }
 
@@ -61,6 +64,12 @@ export class VmMain {
         const lines = stringToEval.split("\n");
         const line = lines[lineno - 1];
         return `${line}\n${" ".repeat(colno - 1) + "^"}`;
+    }
+
+    postMessage(message: MessageToWorker) {
+        if (this.worker) {
+            this.worker.postMessage(message);
+        }
     }
 
     workerOnMessageHandler = (event: MessageEvent): void => {
@@ -74,12 +83,21 @@ export class VmMain {
                     result.innerHTML += data.message;
                 }
                 break;
+            case 'geolocation': {
+                const finishedPromise = this.onGeolocationFn();
+                finishedPromise.then((str: string) => {
+                    this.postMessage({ type: 'continue', result: str });
+                }).catch((msg: string) => {
+                    console.error(msg);
+                    this.postMessage({ type: 'stop' });
+                    this.postMessage({ type: 'continue', result: '' });
+                });
+                break;
+            }
             case 'input':
                 setTimeout(() => {
                     const userInput = prompt(data.prompt);
-                    if (this.worker) {
-                        this.worker.postMessage({ type: 'input', prompt: userInput } as MessageToWorker);
-                    }
+                    this.postMessage({ type: 'input', prompt: userInput });
                 }, 50); // 50ms delay to allow UI update
                 break;
             case 'keyDef':
@@ -116,20 +134,16 @@ export class VmMain {
             case 'speak': {
                 const finishedPromise = this.onSpeakFn(data.message, data.pitch);
                 finishedPromise.then(() => {
-                    if (this.worker) {
-                        this.worker.postMessage({ type: 'continue' } as MessageToWorker);
-                    }
+                    this.postMessage({ type: 'continue', result: '' });
                 }).catch((msg) => {
                     console.log(msg);
-                    if (this.worker) {
-                        this.worker.postMessage({ type: 'stop' } as MessageToWorker);
-                        this.worker.postMessage({ type: 'continue' } as MessageToWorker);
-                    }
+                    this.postMessage({ type: 'stop' });
+                    this.postMessage({ type: 'continue', result: '' });
                 });
                 break;
             }
             default:
-                // Unknown message type
+                console.error("VmMain: Unknown message type:", data);
                 break;
         }
     };
@@ -155,21 +169,19 @@ export class VmMain {
             code += "\n"; // make sure the script end with a new line (needed for line comment in last line)
         }
         this.code = code; // for error message
-        const worker = this.getOrCreateWorker();
+        this.getOrCreateWorker();
 
         const finishedPromise = new Promise<string>((resolve) => {
             this.finishedResolverFn = resolve;
         })
 
-        worker.postMessage({ type: 'run', code } as MessageToWorker);
+        this.postMessage({ type: 'run', code });
         return finishedPromise;
     }
 
     public stop() {
-        if (this.worker) {
-            console.log("stop: Stop requested.");
-            this.worker.postMessage({ type: 'stop' } as MessageToWorker);
-        }
+        console.log("stop: Stop requested.");
+        this.postMessage({ type: 'stop' });
     }
 
     public reset() {
@@ -185,8 +197,6 @@ export class VmMain {
     }
 
     public putKeys(keys: string) {
-        if (this.worker) {
-            this.worker.postMessage({ type: 'putKeys', keys } as MessageToWorker);
-        }
+        this.postMessage({ type: 'putKeys', keys });
     }
 }

@@ -801,6 +801,26 @@ PRINT "ZONE";
 '
 PRINT
 '
+PRINT "RSX";
+|A
+|B
+|BASIC
+|CPM
+a$="*.drw": |DIR,@a$
+|DISC
+|DISC.IN
+|DISC.OUT
+|DRIVE,0
+'''1 |DRIVE,
+'''1 |DRIVE,#1
+|ERA,"file.bas"
+|REN,"file1.bas","file2.bas"
+|TAPE
+|TAPE.IN
+|TAPE.OUT
+|USER,1
+''|
+'
 PRINT "Completed."
 PRINT
 PRINT "The following compile warning messages are expected..."

@@ -239,6 +239,28 @@ export class UI implements IUI {
         return utterance;
     }
 
+    private onGeolocation = async (): Promise<string> => { // bound this
+        if (navigator.geolocation) {
+            return new Promise<string>((resolve, reject) => {
+                const positionCallback: PositionCallback = (position) => {
+                    const {latitude, longitude} = position.coords;
+                    const json = {
+                        latitude,
+                        longitude
+                    }
+                    resolve(JSON.stringify(json));
+                };
+                const options = {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                };
+                navigator.geolocation.getCurrentPosition(positionCallback, reject, options);
+            });
+        }
+        return Promise.reject("ERROR: Geolocation is not supported by this browser.");
+    }
+
     private onSpeak = async (text: string, pitch: number): Promise<void> => { // bound this
         const debug = this.getCore().getConfigMap().debug;
         if (debug) {
@@ -866,7 +888,7 @@ export class UI implements IUI {
 
         const workerScript = `(${workerFn})();`;
 
-        this.vmMain = new VmMain(workerScript, this.onSetUiKeys, this.onSpeak);
+        this.vmMain = new VmMain(workerScript, this.onSetUiKeys, this.onGeolocation, this.onSpeak);
 
         // Initialize database and examples
         UI.asyncDelay(() => {

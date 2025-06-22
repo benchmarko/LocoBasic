@@ -1035,7 +1035,7 @@ ${dataList.join(",\n")}
 			const cmdString = adaptIdentName(cmd.sourceString).toLowerCase();
 			const rsxArgs: string = e.child(0)?.eval() || "";
 
-			const knownRsx = ["arc", "circle", "date", "ellipse", "pitch", "rect", "say", "time"];
+			const knownRsx = ["arc", "circle", "date", "ellipse", "geolocation", "pitch", "rect", "say", "time"];
 
 			if (!knownRsx.includes(cmdString)) {
 				return notSupported(_rsxLit, cmd, e);
@@ -1044,7 +1044,7 @@ ${dataList.join(",\n")}
 			const rsxCall = "rsx" + stringCapitalize(cmdString);
 			semanticsHelper.addInstr(rsxCall);
 
-			const asyncStr = cmdString === "say" ? "await " : "";
+			const asyncStr = ["geolocation", "say"].includes(cmdString) ? "await " : "";
 
 			if (rsxArgs === "") {
 				return `${asyncStr}${rsxCall}(${rsxArgs})`;

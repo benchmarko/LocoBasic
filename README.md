@@ -263,6 +263,7 @@ Notes:
 - `d$=SPACE$(11): |DATE,@d$` Returns a date string in the format "ww DD MM YY" (ww=day of week) from the Real Time Clock (RTC). Use the address operator `@` to denote that the result of the RSX command should be written in the variable.
   See also: [Dobbertin Smart Watch](https://www.cpcwiki.eu/index.php/Dobbertin_Smart_Watch)
 - `|ELLIPSE.cx,cy,rx,ry[,fillPen]` Draws an ellipse, creating shape [SVG ellipse](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/ellipse).
+- `lat=0.0: lon=0.0: |GEOLOCATION,@lat,@lon` Gets the geolocation (if available).
 - `|PITCH,n` Sets the speech synthesis pitch (1-20; default: 10)
 - `|RECT,x,y,x2,y2[,fillPen]` Draws a rectangle, creating shape [SVG rect](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/rect). See also: *|CIRCLE*.
 - `|SAY,"Hello"` Says "Hello" using speech synthesis. See also: *|PITCH*.
