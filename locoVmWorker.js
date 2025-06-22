@@ -98,7 +98,7 @@ ${content}
             resetRsx: () => {
                 vmRsx._pitch = 1;
             },
-            rsxDate: async (args) => {
+            rsxDate: (args) => {
                 const date = new Date();
                 const dayOfWeek = (date.getDay() + 1) % 7;
                 const day = date.getDate();
@@ -106,7 +106,11 @@ ${content}
                 const year = date.getFullYear() % 100;
                 const dateStr = `${String(dayOfWeek).padStart(2, '0')} ${String(day).padStart(2, '0')} ${String(month).padStart(2, '0')} ${String(year).padStart(2, '0')}`;
                 args[0] = dateStr;
-                return Promise.resolve(args);
+                return args;
+            },
+            rsxGeolocation: () => {
+                //const message = args[0] as string;
+                postMessage({ type: 'geolocation' });
             },
             rsxPitch: (args) => {
                 vmRsx._pitch = args[0] / 10;
@@ -115,14 +119,14 @@ ${content}
                 const message = args[0];
                 postMessage({ type: 'speak', message, pitch: vmRsx._pitch });
             },
-            rsxTime: async (args) => {
+            rsxTime: (args) => {
                 const date = new Date();
                 const hours = date.getHours();
                 const minutes = date.getMinutes();
                 const seconds = date.getSeconds();
                 const timeStr = `${String(hours).padStart(2, '0')} ${String(minutes).padStart(2, '0')} ${String(seconds).padStart(2, '0')}`;
                 args[0] = timeStr;
-                return Promise.resolve(args);
+                return args;
             }
         };
         const vmGra = {
@@ -631,32 +635,35 @@ ${content}
             round: function round(num, dec) {
                 return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
             },
-            rsxCall: async function (cmd, ...args) {
-                switch (cmd) {
-                    case "arc":
-                        return vm._gra.rsxArc(args); // 9x number, number?
-                    case "circle":
-                        return vm._gra.rsxCircle(args); // 3x number, number?
-                    case "date":
-                        return vm._rsx.rsxDate(args); // string
-                    case "ellipse":
-                        return vm._gra.rsxEllipse(args);
-                    case "pitch":
-                        return vm._rsx.rsxPitch(args); // string
-                    case "rect":
-                        return vm._gra.rsxRect(args); // 4x number, number?
-                    case "say": {
-                        vm._rsx.rsxSay(args); // string
-                        return new Promise((resolve) => {
-                            vm._waitResolvedFn = resolve;
-                        });
+            rsxArc: (...args) => vm._gra.rsxArc(args), // 9x number, number?
+            rsxCircle: (...args) => vm._gra.rsxCircle(args), // 3x number, number?
+            rsxDate: (...args) => vm._rsx.rsxDate(args), // string
+            rsxEllipse: (...args) => vm._gra.rsxEllipse(args),
+            rsxGeolocation: (...args) => {
+                const promise = new Promise((resolve) => {
+                    vm._waitResolvedFn = resolve;
+                }).then((str) => {
+                    if (str.startsWith("{")) {
+                        const json = JSON.parse(str);
+                        args[0] = json.latitude;
+                        args[1] = json.longitude;
+                        return args;
                     }
-                    case "time":
-                        return vm._rsx.rsxTime(args); // string
-                    default:
-                        throw new Error(`Unknown RSX command: |${cmd.toUpperCase()}`);
-                }
+                    return args;
+                });
+                vm._rsx.rsxGeolocation();
+                return promise;
             },
+            rsxPitch: (...args) => vm._rsx.rsxPitch(args),
+            rsxRect: (...args) => vm._gra.rsxRect(args), // 4x number, number?
+            rsxSay: (...args) => {
+                const promise = new Promise((resolve) => {
+                    vm._waitResolvedFn = resolve;
+                });
+                vm._rsx.rsxSay(args);
+                return promise;
+            },
+            rsxTime: (...args) => vm._rsx.rsxTime(args), // string
             sgn: Math.sign,
             sin: Math.sin,
             space$: (num) => " ".repeat(num),
@@ -726,7 +733,7 @@ ${content}
                     break;
                 case 'continue':
                     if (vm._waitResolvedFn) {
-                        vm._waitResolvedFn();
+                        vm._waitResolvedFn(data.result);
                         vm._waitResolvedFn = null;
                     }
                     break;

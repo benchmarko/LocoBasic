@@ -65,9 +65,10 @@ export type MessageToWorker = {
     isTerminal: boolean;
 } | {
     type: 'continue';
+    result: string;
 } | {
     type: 'input';
-    prompt: string;
+    prompt: string | null;
 } | {
     type: 'putKeys';
     keys: string;
@@ -81,6 +82,8 @@ export type MessageFromWorker = {
     type: 'frame';
     message: string;
     needCls?: boolean;
+} | {
+    type: 'geolocation';
 } | {
     type: 'input';
     prompt: string;

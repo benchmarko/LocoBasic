@@ -42,13 +42,14 @@ export declare const workerFn: (parentPort?: NodeWorkerThreads["parentPort"]) =>
     _rsx: {
         _pitch: number;
         resetRsx: () => void;
-        rsxDate: (args: (number | string)[]) => Promise<(string | number)[]>;
-        rsxPitch: (args: (number | string)[]) => void;
-        rsxSay: (args: (number | string)[]) => void;
-        rsxTime: (args: (number | string)[]) => Promise<(string | number)[]>;
+        rsxDate: (args: string[]) => string[];
+        rsxGeolocation: () => void;
+        rsxPitch: (args: number[]) => void;
+        rsxSay: (args: string[]) => void;
+        rsxTime: (args: string[]) => string[];
     };
-    _inputResolvedFn: ((value: string) => void) | null;
-    _waitResolvedFn: (() => void) | null;
+    _inputResolvedFn: ((value: string | null) => void) | null;
+    _waitResolvedFn: ((value: string) => void) | null;
     _isTerminal: boolean;
     _data: (string | number)[];
     _dataPtr: number;
@@ -131,7 +132,15 @@ export declare const workerFn: (parentPort?: NodeWorkerThreads["parentPort"]) =>
     rnd: () => number;
     round1: (x: number) => number;
     round: (num: number, dec: number) => number;
-    rsxCall: (cmd: string, ...args: (string | number)[]) => Promise<void | (string | number)[]>;
+    rsxArc: (...args: number[]) => void;
+    rsxCircle: (...args: number[]) => void;
+    rsxDate: (...args: string[]) => string[];
+    rsxEllipse: (...args: number[]) => void;
+    rsxGeolocation: (...args: string[]) => Promise<string[]>;
+    rsxPitch: (...args: number[]) => void;
+    rsxRect: (...args: number[]) => void;
+    rsxSay: (...args: string[]) => Promise<string>;
+    rsxTime: (...args: string[]) => string[];
     sgn: (x: number) => number;
     sin: (x: number) => number;
     space$: (num: number) => string;

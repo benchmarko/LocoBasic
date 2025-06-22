@@ -1910,6 +1910,9 @@
         const addSemicolon = (str) => {
             return str.endsWith("}") ? str : str + ";"; // add semicolon, but not for closing bracket
         };
+        const stringCapitalize = (str) => {
+            return str.charAt(0).toUpperCase() + str.substring(1);
+        };
         const semantics = {
             Program(lines) {
                 const lineList = evalChildren(lines.children);
@@ -2176,7 +2179,7 @@ ${dataList.join(",\n")}
             },
             Deg(_degLit) {
                 semanticsHelper.setDeg(true);
-                return `/* deg */`; // we assume to check it at compile time 
+                return `/* deg */`; // we assume to check it at compile time
             },
             Delete(lit, labelRange) {
                 return notSupported(lit, labelRange);
@@ -2633,14 +2636,21 @@ ${dataList.join(",\n")}
             },
             Rsx(_rsxLit, cmd, e) {
                 var _a;
-                semanticsHelper.addInstr("rsxCall");
+                //semanticsHelper.addInstr("rsxCall");
                 const cmdString = adaptIdentName(cmd.sourceString).toLowerCase();
                 const rsxArgs = ((_a = e.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+                const knownRsx = ["arc", "circle", "date", "ellipse", "geolocation", "pitch", "rect", "say", "time"];
+                if (!knownRsx.includes(cmdString)) {
+                    return notSupported(_rsxLit, cmd, e);
+                }
+                const rsxCall = "rsx" + stringCapitalize(cmdString);
+                semanticsHelper.addInstr(rsxCall);
+                const asyncStr = ["geolocation", "say"].includes(cmdString) ? "await " : "";
                 if (rsxArgs === "") {
-                    return `await rsxCall("${cmdString}"${rsxArgs})`;
+                    return `${asyncStr}${rsxCall}(${rsxArgs})`;
                 }
                 // need assign, not so nice to use <RSXFUNCTION>" as separator
-                return rsxArgs.replace("<RSXFUNCTION>", `await rsxCall("${cmdString}"`) + ")";
+                return rsxArgs.replace("<RSXFUNCTION>", `${asyncStr}${rsxCall}(`) + ")";
             },
             RsxAddressOf(_adressOfLit, ident) {
                 const identString = ident.eval().toLowerCase();
@@ -2658,7 +2668,8 @@ ${dataList.join(",\n")}
                 }
                 // Build the result string
                 const assignments = assignList.length ? `[${assignList.join(", ")}] = ` : "";
-                const result = `${assignments}<RSXFUNCTION>, ${argumentListNoAddr.join(", ")}`;
+                //const result = `${assignments}<RSXFUNCTION>, ${argumentListNoAddr.join(", ")}`;
+                const result = `${assignments}<RSXFUNCTION>${argumentListNoAddr.join(", ")}`;
                 return result;
             },
             Run(lit, labelOrFileOrNoting) {
@@ -3125,13 +3136,15 @@ ${dataList.join(",\n")}
                         }
                         this.nodeParts.consolePrint(data.message);
                         break;
+                    case 'geolocation':
+                        // TODO
+                        this.postMessage({ type: 'continue', result: '' });
+                        break;
                     case 'input':
                         setTimeout(() => {
                             this.nodeParts.consolePrint(data.prompt);
                             const userInput = ""; //TODO
-                            if (this.worker) {
-                                this.worker.postMessage({ type: 'input', prompt: userInput });
-                            }
+                            this.postMessage({ type: 'input', prompt: userInput });
                         }, 50); // 50ms delay to allow UI update
                         break;
                     case 'keyDef':
@@ -3160,13 +3173,13 @@ ${dataList.join(",\n")}
                         }
                         break;
                     }
-                    case 'speak': {
+                    case 'speak':
                         // TODO
-                        if (this.worker) {
-                            this.worker.postMessage({ type: 'continue' });
-                        }
+                        this.postMessage({ type: 'continue', result: '' });
                         break;
-                    }
+                    default:
+                        console.error("NodeVmMain: Unknown message type:", data);
+                        break;
                 }
             };
             this.nodeParts = nodeParts;
@@ -3177,12 +3190,16 @@ ${dataList.join(",\n")}
             const line = lines[lineno - 1];
             return `${line}\n${" ".repeat(colno - 1) + "^"}`;
         }
+        postMessage(message) {
+            if (this.worker) {
+                this.worker.postMessage(message);
+            }
+        }
         getOrCreateWorker() {
             if (!this.worker) {
                 this.worker = this.nodeParts.createNodeWorker(this.workerFile);
                 this.worker.on('message', this.workerOnMessageHandler);
-                this.worker.postMessage({ type: 'config', isTerminal: true });
-                // "locoVmWorker.js",
+                this.postMessage({ type: 'config', isTerminal: true });
             }
             return this.worker;
         }
@@ -3191,18 +3208,16 @@ ${dataList.join(",\n")}
                 code += "\n"; // make sure the script end with a new line (needed for line comment in las line)
             }
             this.code = code; // for error message
-            const worker = this.getOrCreateWorker();
+            this.getOrCreateWorker();
             const finishedPromise = new Promise((resolve) => {
                 this.finishedResolverFn = resolve;
             });
-            worker.postMessage({ type: 'run', code });
+            this.postMessage({ type: 'run', code });
             return finishedPromise;
         }
         stop() {
-            if (this.worker) {
-                console.log("stop: Stop requested.");
-                this.worker.postMessage({ type: 'stop' });
-            }
+            console.log("stop: Stop requested.");
+            this.postMessage({ type: 'stop' });
         }
         reset() {
             if (this.worker) {
@@ -3216,10 +3231,8 @@ ${dataList.join(",\n")}
             }
         }
         putKeys(keys) {
-            if (this.worker) {
-                console.log("putKeys: key:", keys);
-                this.worker.postMessage({ type: 'putKeys', keys });
-            }
+            //console.log("putKeys: key:", keys);
+            this.postMessage({ type: 'putKeys', keys });
         }
     }
 

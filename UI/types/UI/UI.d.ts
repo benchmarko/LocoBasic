@@ -36,6 +36,7 @@ export declare class UI implements IUI {
     private waitForUserInteraction;
     private logVoiceDebugInfo;
     private getSpeechSynthesisUtterance;
+    private onGeolocation;
     private onSpeak;
     private updateConfigParameter;
     private hasCompiledError;

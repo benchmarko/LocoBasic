@@ -9,13 +9,15 @@ export class NodeVmMain {
                     }
                     this.nodeParts.consolePrint(data.message);
                     break;
+                case 'geolocation':
+                    // TODO
+                    this.postMessage({ type: 'continue', result: '' });
+                    break;
                 case 'input':
                     setTimeout(() => {
                         this.nodeParts.consolePrint(data.prompt);
                         const userInput = ""; //TODO
-                        if (this.worker) {
-                            this.worker.postMessage({ type: 'input', prompt: userInput });
-                        }
+                        this.postMessage({ type: 'input', prompt: userInput });
                     }, 50); // 50ms delay to allow UI update
                     break;
                 case 'keyDef':
@@ -44,15 +46,12 @@ export class NodeVmMain {
                     }
                     break;
                 }
-                case 'speak': {
+                case 'speak':
                     // TODO
-                    if (this.worker) {
-                        this.worker.postMessage({ type: 'continue' });
-                    }
+                    this.postMessage({ type: 'continue', result: '' });
                     break;
-                }
                 default:
-                    // Unknown message type
+                    console.error("NodeVmMain: Unknown message type:", data);
                     break;
             }
         };
@@ -64,12 +63,16 @@ export class NodeVmMain {
         const line = lines[lineno - 1];
         return `${line}\n${" ".repeat(colno - 1) + "^"}`;
     }
+    postMessage(message) {
+        if (this.worker) {
+            this.worker.postMessage(message);
+        }
+    }
     getOrCreateWorker() {
         if (!this.worker) {
             this.worker = this.nodeParts.createNodeWorker(this.workerFile);
             this.worker.on('message', this.workerOnMessageHandler);
-            this.worker.postMessage({ type: 'config', isTerminal: true });
-            // "locoVmWorker.js",
+            this.postMessage({ type: 'config', isTerminal: true });
         }
         return this.worker;
     }
@@ -78,18 +81,16 @@ export class NodeVmMain {
             code += "\n"; // make sure the script end with a new line (needed for line comment in las line)
         }
         this.code = code; // for error message
-        const worker = this.getOrCreateWorker();
+        this.getOrCreateWorker();
         const finishedPromise = new Promise((resolve) => {
             this.finishedResolverFn = resolve;
         });
-        worker.postMessage({ type: 'run', code });
+        this.postMessage({ type: 'run', code });
         return finishedPromise;
     }
     stop() {
-        if (this.worker) {
-            console.log("stop: Stop requested.");
-            this.worker.postMessage({ type: 'stop' });
-        }
+        console.log("stop: Stop requested.");
+        this.postMessage({ type: 'stop' });
     }
     reset() {
         if (this.worker) {
@@ -103,10 +104,8 @@ export class NodeVmMain {
         }
     }
     putKeys(keys) {
-        if (this.worker) {
-            console.log("putKeys: key:", keys);
-            this.worker.postMessage({ type: 'putKeys', keys });
-        }
+        //console.log("putKeys: key:", keys);
+        this.postMessage({ type: 'putKeys', keys });
     }
 }
 //# sourceMappingURL=NodeVmMain.js.map

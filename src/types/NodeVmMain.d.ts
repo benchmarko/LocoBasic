@@ -1,4 +1,4 @@
-import type { INodeParts } from "./Interfaces";
+import type { INodeParts, MessageToWorker } from "./Interfaces";
 export declare class NodeVmMain {
     private nodeParts;
     private workerFile;
@@ -7,6 +7,7 @@ export declare class NodeVmMain {
     private code;
     constructor(nodeParts: INodeParts, workerFile: string);
     private static describeError;
+    postMessage(message: MessageToWorker): void;
     private workerOnMessageHandler;
     private getOrCreateWorker;
     run(code: string): Promise<string>;

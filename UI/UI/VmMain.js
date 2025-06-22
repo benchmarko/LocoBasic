@@ -35,7 +35,7 @@ const basicErrors = [
     "Unknown error" // 33...
 ];
 export class VmMain {
-    constructor(workerScript, setUiKeysFn, onSpeakFn) {
+    constructor(workerScript, setUiKeysFn, onGeolocationFn, onSpeakFn) {
         this.code = "";
         this.workerOnMessageHandler = (event) => {
             const data = event.data;
@@ -49,12 +49,21 @@ export class VmMain {
                         result.innerHTML += data.message;
                     }
                     break;
+                case 'geolocation': {
+                    const finishedPromise = this.onGeolocationFn();
+                    finishedPromise.then((str) => {
+                        this.postMessage({ type: 'continue', result: str });
+                    }).catch((msg) => {
+                        console.error(msg);
+                        this.postMessage({ type: 'stop' });
+                        this.postMessage({ type: 'continue', result: '' });
+                    });
+                    break;
+                }
                 case 'input':
                     setTimeout(() => {
                         const userInput = prompt(data.prompt);
-                        if (this.worker) {
-                            this.worker.postMessage({ type: 'input', prompt: userInput });
-                        }
+                        this.postMessage({ type: 'input', prompt: userInput });
                     }, 50); // 50ms delay to allow UI update
                     break;
                 case 'keyDef':
@@ -92,20 +101,16 @@ export class VmMain {
                 case 'speak': {
                     const finishedPromise = this.onSpeakFn(data.message, data.pitch);
                     finishedPromise.then(() => {
-                        if (this.worker) {
-                            this.worker.postMessage({ type: 'continue' });
-                        }
+                        this.postMessage({ type: 'continue', result: '' });
                     }).catch((msg) => {
                         console.log(msg);
-                        if (this.worker) {
-                            this.worker.postMessage({ type: 'stop' });
-                            this.worker.postMessage({ type: 'continue' });
-                        }
+                        this.postMessage({ type: 'stop' });
+                        this.postMessage({ type: 'continue', result: '' });
                     });
                     break;
                 }
                 default:
-                    // Unknown message type
+                    console.error("VmMain: Unknown message type:", data);
                     break;
             }
         };
@@ -116,12 +121,18 @@ export class VmMain {
         this.workerScript = workerScript;
         this.setUiKeysFn = setUiKeysFn;
         this.onSpeakFn = onSpeakFn;
+        this.onGeolocationFn = onGeolocationFn;
         window.addEventListener('beforeunload', this.handleBeforeUnload, { once: true });
     }
     static describeError(stringToEval, lineno, colno) {
         const lines = stringToEval.split("\n");
         const line = lines[lineno - 1];
         return `${line}\n${" ".repeat(colno - 1) + "^"}`;
+    }
+    postMessage(message) {
+        if (this.worker) {
+            this.worker.postMessage(message);
+        }
     }
     getOrCreateWorker() {
         if (!this.worker) {
@@ -138,18 +149,16 @@ export class VmMain {
             code += "\n"; // make sure the script end with a new line (needed for line comment in last line)
         }
         this.code = code; // for error message
-        const worker = this.getOrCreateWorker();
+        this.getOrCreateWorker();
         const finishedPromise = new Promise((resolve) => {
             this.finishedResolverFn = resolve;
         });
-        worker.postMessage({ type: 'run', code });
+        this.postMessage({ type: 'run', code });
         return finishedPromise;
     }
     stop() {
-        if (this.worker) {
-            console.log("stop: Stop requested.");
-            this.worker.postMessage({ type: 'stop' });
-        }
+        console.log("stop: Stop requested.");
+        this.postMessage({ type: 'stop' });
     }
     reset() {
         if (this.worker) {
@@ -163,9 +172,7 @@ export class VmMain {
         }
     }
     putKeys(keys) {
-        if (this.worker) {
-            this.worker.postMessage({ type: 'putKeys', keys });
-        }
+        this.postMessage({ type: 'putKeys', keys });
     }
 }
 //# sourceMappingURL=VmMain.js.map

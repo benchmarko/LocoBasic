@@ -19,6 +19,27 @@ export class UI {
                 }
             }
         };
+        this.onGeolocation = async () => {
+            if (navigator.geolocation) {
+                return new Promise((resolve, reject) => {
+                    const positionCallback = (position) => {
+                        const { latitude, longitude } = position.coords;
+                        const json = {
+                            latitude,
+                            longitude
+                        };
+                        resolve(JSON.stringify(json));
+                    };
+                    const options = {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    };
+                    navigator.geolocation.getCurrentPosition(positionCallback, reject, options);
+                });
+            }
+            return Promise.reject("ERROR: Geolocation is not supported by this browser.");
+        };
         this.onSpeak = async (text, pitch) => {
             const debug = this.getCore().getConfigMap().debug;
             if (debug) {
@@ -732,7 +753,7 @@ export class UI {
             this.initialUserAction = true;
         }, { once: true });
         const workerScript = `(${workerFn})();`;
-        this.vmMain = new VmMain(workerScript, this.onSetUiKeys, this.onSpeak);
+        this.vmMain = new VmMain(workerScript, this.onSetUiKeys, this.onGeolocation, this.onSpeak);
         // Initialize database and examples
         UI.asyncDelay(() => {
             const databaseMap = core.initDatabaseMap();
