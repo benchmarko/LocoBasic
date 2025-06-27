@@ -8,7 +8,7 @@ export class Parser {
     constructor(grammarString: string, semanticsMap: ActionDict<string | string[]>, superParser?: Parser) {
         if (superParser) {
             const superGrammar = superParser.getOhmGrammar();
-            
+
             const namespace: Namespace = {
                 basicGrammar: superGrammar
             };
@@ -21,7 +21,7 @@ export class Parser {
 
         this.ohmSemantics = this.ohmGrammar
             .createSemantics()
-			.addOperation<string | string[]>("eval", semanticsMap);
+            .addOperation<string | string[]>("eval", semanticsMap);
     }
 
     public getOhmGrammar(): Grammar {
