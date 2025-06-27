@@ -4,6 +4,21 @@ import { Semantics } from "./Semantics";
 function fnHereDoc(fn) {
     return String(fn).replace(/^[^/]+\/\*\S*/, "").replace(/\*\/[^/]+$/, "");
 }
+function getLineCol(src, offset) {
+    const lines = src.slice(0, offset).split('\n');
+    const line = lines.length;
+    const col = lines[lines.length - 1].length + 1; // 1-based column
+    return { line, col };
+}
+function expandNextStatements(src, semanticsHelper) {
+    // Replace NEXT i,j,k with NEXT i : NEXT j : NEXT k (case-insensitive)
+    return src.replace(/NEXT\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)+)/gi, (_match, vars, offset) => {
+        //`Line ${line}, col ${col}`:
+        const { line, col } = getLineCol(src, offset);
+        semanticsHelper.addCompileMessage(`WARNING: Not supported: Line ${line}, col ${col}: Expanding NEXT statement: ${vars}\n`);
+        return vars.split(/\s*,\s*/).map(v => `NEXT ${v}`).join(' : ');
+    });
+}
 export class Core {
     constructor(defaultConfig) {
         this.semantics = new Semantics();
@@ -90,8 +105,10 @@ export class Core {
             }
         }
         this.semantics.resetParser();
-        const compiledScript = this.arithmeticParser.parseAndEval(script);
-        const messages = this.semantics.getHelper().getCompileMessages();
+        const semanticsHelper = this.semantics.getHelper();
+        const preprocessedScript = expandNextStatements(script, semanticsHelper); // some preprocessing
+        const compiledScript = this.arithmeticParser.parseAndEval(preprocessedScript);
+        const messages = semanticsHelper.getCompileMessages();
         return { compiledScript, messages };
     }
     getSemantics() {
