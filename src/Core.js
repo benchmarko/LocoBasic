@@ -4,20 +4,45 @@ import { Semantics } from "./Semantics";
 function fnHereDoc(fn) {
     return String(fn).replace(/^[^/]+\/\*\S*/, "").replace(/\*\/[^/]+$/, "");
 }
-function getLineCol(src, offset) {
-    const lines = src.slice(0, offset).split('\n');
-    const line = lines.length;
-    const col = lines[lines.length - 1].length + 1; // 1-based column
-    return { line, col };
-}
 function expandNextStatements(src, semanticsHelper) {
-    // Replace NEXT i,j,k with NEXT i : NEXT j : NEXT k (case-insensitive)
-    return src.replace(/NEXT\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)+)/gi, (_match, vars, offset) => {
-        //`Line ${line}, col ${col}`:
-        const { line, col } = getLineCol(src, offset);
-        semanticsHelper.addCompileMessage(`WARNING: Not supported: Line ${line}, col ${col}: Expanding NEXT statement: ${vars}\n`);
-        return vars.split(/\s*,\s*/).map(v => `NEXT ${v}`).join(' : ');
-    });
+    return src.split('\n').map((line, lineIdx) => {
+        // Find the first REM or ' that is not inside a string
+        let commentIdx = -1;
+        let inString = false;
+        for (let i = 0; i < line.length; i++) {
+            const c = line[i];
+            if (c === '"')
+                inString = !inString;
+            // Check for REM (case-insensitive) or '
+            if (!inString) {
+                if (line.slice(i, i + 3).toUpperCase() === "REM" && (i === 0 || /\s/.test(line[i - 1]))) {
+                    commentIdx = i;
+                    break;
+                }
+                if (c === "'") {
+                    commentIdx = i;
+                    break;
+                }
+            }
+        }
+        let code = line;
+        let comment = "";
+        if (commentIdx !== -1) {
+            code = line.slice(0, commentIdx);
+            comment = line.slice(commentIdx);
+        }
+        // Replace NEXT i,j,k with NEXT i : NEXT j : NEXT k (not inside strings)
+        code = code.replace(/NEXT\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)+)/gi, (match, vars, offset) => {
+            const before = code.slice(0, offset);
+            const quoteCount = (before.match(/"/g) || []).length;
+            if (quoteCount % 2 !== 0)
+                return match; // inside string, skip
+            const col = offset + 1;
+            semanticsHelper.addCompileMessage(`WARNING: Not supported: Line ${lineIdx + 1}, col ${col}: Expanding NEXT statement: ${vars}\n`);
+            return vars.split(/\s*,\s*/).map(v => `NEXT ${v}`).join(' : ');
+        });
+        return code + comment;
+    }).join('\n');
 }
 export class Core {
     constructor(defaultConfig) {
