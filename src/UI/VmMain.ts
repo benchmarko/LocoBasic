@@ -45,6 +45,7 @@ export class VmMain {
 
     private finishedResolverFn: ((msg: string) => void) | undefined;
 
+    private addOutputText: (str: string, needCls?: boolean, hasGraphics?: boolean) => void;
     private setUiKeysFn: (codes: number[]) => void;
 
     private onGeolocationFn: () => Promise<string>;
@@ -52,8 +53,9 @@ export class VmMain {
 
     private code = "";
 
-    constructor(workerScript: string, setUiKeysFn: (codes: number[]) => void, onGeolocationFn: () => Promise<string>, onSpeakFn: (text: string, pitch: number) => Promise<void>) {
+    constructor(workerScript: string, addOutputText: (str: string, needCls?: boolean, hasGraphics?: boolean) => void, setUiKeysFn: (codes: number[]) => void, onGeolocationFn: () => Promise<string>, onSpeakFn: (text: string, pitch: number) => Promise<void>) {
         this.workerScript = workerScript;
+        this.addOutputText = addOutputText;
         this.setUiKeysFn = setUiKeysFn;
         this.onSpeakFn = onSpeakFn;
         this.onGeolocationFn = onGeolocationFn;
@@ -74,14 +76,9 @@ export class VmMain {
 
     workerOnMessageHandler = (event: MessageEvent): void => {
         const data = event.data as MessageFromWorker;
-        const result = document.getElementById('outputText') as HTMLPreElement;
         switch (data.type) {
             case 'frame':
-                if (data.needCls) {
-                    result.innerHTML = data.message;
-                } else {
-                    result.innerHTML += data.message;
-                }
+                this.addOutputText(data.message, data.needCls, data.hasGraphics);
                 break;
             case 'geolocation': {
                 const finishedPromise = this.onGeolocationFn();

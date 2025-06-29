@@ -120,20 +120,21 @@ export class UI implements IUI {
         element.scrollTop = element.scrollHeight;
     }
 
-    public addOutputText(value: string, hasGraphics?: boolean): void {
+    addOutputText = (str: string, needCls?: boolean, hasGraphics?: boolean) => { // bound this
         const outputText = document.getElementById("outputText") as HTMLPreElement;
-        outputText.innerHTML += value;
+        if (needCls) {
+            outputText.innerHTML = str;
+            if (!hasGraphics) {
+                this.setButtonOrSelectDisabled("exportSvgButton", true);
+            }
+        } else {
+            outputText.innerHTML += str;
+        }
         if (hasGraphics) {
             this.setButtonOrSelectDisabled("exportSvgButton", false);
         } else {
             this.scrollToBottom("outputText");
         }
-    }
-
-    public setOutputText(value: string): void {
-        const outputText = document.getElementById("outputText") as HTMLPreElement;
-        outputText.innerText = value;
-        this.setButtonOrSelectDisabled("exportSvgButton", true);
     }
 
     private onUserKeyClick(event: Event) {
@@ -305,7 +306,7 @@ export class UI implements IUI {
     private hasCompiledError() {
         const compiledScript = this.compiledCm ? this.compiledCm.getValue() : "";
         const hasError = compiledScript.startsWith("ERROR:");
-        this.setOutputText(hasError ? compiledScript : "");
+        this.addOutputText(hasError ? compiledScript : "", true);
         return hasError;
     }
 
@@ -561,7 +562,7 @@ export class UI implements IUI {
     private onExampleSelectChange = async (event: Event): Promise<void> => { // bound this
         const core = this.getCore();
 
-        this.setOutputText("");
+        this.addOutputText("", true); // clear output
 
         const exampleSelect = event.target as HTMLSelectElement;
         const exampleName = exampleSelect.value;
@@ -888,7 +889,7 @@ export class UI implements IUI {
 
         const workerScript = `(${workerFn})();`;
 
-        this.vmMain = new VmMain(workerScript, this.onSetUiKeys, this.onGeolocation, this.onSpeak);
+        this.vmMain = new VmMain(workerScript,  this.addOutputText, this.onSetUiKeys, this.onGeolocation, this.onSpeak);
 
         // Initialize database and examples
         UI.asyncDelay(() => {

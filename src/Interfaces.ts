@@ -82,7 +82,7 @@ export type MessageToWorker =
     | { type: 'stop' };
 
 export type MessageFromWorker =
-    | { type: 'frame'; message: string; needCls?: boolean }
+    | { type: 'frame'; message: string; hasGraphics: boolean, needCls?: boolean }
     | { type: 'geolocation' }
     | { type: 'input'; prompt: string }
     | { type: 'keyDef'; codes: number[] }
@@ -103,9 +103,8 @@ export interface INodeParts {
 }
 
 export interface IUI {
-    addOutputText(value: string, hasGraphics?: boolean): void;
+    addOutputText(str: string, needCls?: boolean, hasGraphics?: boolean): void;
     getCurrentDataKey(): string;
     onWindowLoadContinue(core: ICore, workerFn: () => unknown): void;
-    setOutputText(value: string): void;
     prompt(msg: string): string | null;
 }
