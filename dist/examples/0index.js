@@ -224,6 +224,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "String Art"
 		},
 		{
+			"key": "sultan",
+			"title": "Sultan's Maze Demo Screen"
+		},
+		{
 			"key": "tester",
 			"title": "Tester"
 		},
