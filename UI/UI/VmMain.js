@@ -35,19 +35,13 @@ const basicErrors = [
     "Unknown error" // 33...
 ];
 export class VmMain {
-    constructor(workerScript, setUiKeysFn, onGeolocationFn, onSpeakFn) {
+    constructor(workerScript, addOutputText, setUiKeysFn, onGeolocationFn, onSpeakFn) {
         this.code = "";
         this.workerOnMessageHandler = (event) => {
             const data = event.data;
-            const result = document.getElementById('outputText');
             switch (data.type) {
                 case 'frame':
-                    if (data.needCls) {
-                        result.innerHTML = data.message;
-                    }
-                    else {
-                        result.innerHTML += data.message;
-                    }
+                    this.addOutputText(data.message, data.needCls, data.hasGraphics);
                     break;
                 case 'geolocation': {
                     const finishedPromise = this.onGeolocationFn();
@@ -119,6 +113,7 @@ export class VmMain {
             (_a = this.worker) === null || _a === void 0 ? void 0 : _a.terminate();
         };
         this.workerScript = workerScript;
+        this.addOutputText = addOutputText;
         this.setUiKeysFn = setUiKeysFn;
         this.onSpeakFn = onSpeakFn;
         this.onGeolocationFn = onGeolocationFn;

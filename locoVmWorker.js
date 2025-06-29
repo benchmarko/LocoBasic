@@ -398,7 +398,8 @@ ${content}
                 }
                 const message = vm.getFlushedTextandGraphics();
                 if (message) {
-                    postMessage({ type: 'frame', message, needCls: vm._needCls });
+                    const hasGraphics = vm._gra._outputGraphicsIndex >= 0;
+                    postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
                     vm._needCls = false;
                 }
                 return new Promise(resolve => setTimeout(() => resolve(), Date.now() % 50));
@@ -760,7 +761,8 @@ ${content}
                         vm.remainAll();
                         const message = vm.getFlushedTextandGraphics();
                         if (message) {
-                            postMessage({ type: 'frame', message, needCls: vm._needCls });
+                            const hasGraphics = vm._gra._outputGraphicsIndex >= 0;
+                            postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
                         }
                         result = result !== null && result !== void 0 ? result : "";
                         postMessage({ type: 'result', result });
@@ -770,7 +772,8 @@ ${content}
                         const result = String(err);
                         const message = vm.getFlushedTextandGraphics();
                         if (message) {
-                            postMessage({ type: 'frame', message, needCls: vm._needCls });
+                            const hasGraphics = vm._gra._outputGraphicsIndex >= 0;
+                            postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
                         }
                         postMessage({ type: 'result', result });
                     });

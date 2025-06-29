@@ -141,19 +141,13 @@
         "Unknown error" // 33...
     ];
     class VmMain {
-        constructor(workerScript, setUiKeysFn, onGeolocationFn, onSpeakFn) {
+        constructor(workerScript, addOutputText, setUiKeysFn, onGeolocationFn, onSpeakFn) {
             this.code = "";
             this.workerOnMessageHandler = (event) => {
                 const data = event.data;
-                const result = document.getElementById('outputText');
                 switch (data.type) {
                     case 'frame':
-                        if (data.needCls) {
-                            result.innerHTML = data.message;
-                        }
-                        else {
-                            result.innerHTML += data.message;
-                        }
+                        this.addOutputText(data.message, data.needCls, data.hasGraphics);
                         break;
                     case 'geolocation': {
                         const finishedPromise = this.onGeolocationFn();
@@ -225,6 +219,7 @@
                 (_a = this.worker) === null || _a === void 0 ? void 0 : _a.terminate();
             };
             this.workerScript = workerScript;
+            this.addOutputText = addOutputText;
             this.setUiKeysFn = setUiKeysFn;
             this.onSpeakFn = onSpeakFn;
             this.onGeolocationFn = onGeolocationFn;
@@ -287,6 +282,24 @@
         constructor() {
             this.compiledMessages = [];
             this.initialUserAction = false;
+            this.addOutputText = (str, needCls, hasGraphics) => {
+                const outputText = document.getElementById("outputText");
+                if (needCls) {
+                    outputText.innerHTML = str;
+                    if (!hasGraphics) {
+                        this.setButtonOrSelectDisabled("exportSvgButton", true);
+                    }
+                }
+                else {
+                    outputText.innerHTML += str;
+                }
+                if (hasGraphics) {
+                    this.setButtonOrSelectDisabled("exportSvgButton", false);
+                }
+                else {
+                    this.scrollToBottom("outputText");
+                }
+            };
             this.onSetUiKeys = (codes) => {
                 if (codes.length) {
                     const code = codes[0];
@@ -473,7 +486,7 @@
             };
             this.onExampleSelectChange = async (event) => {
                 const core = this.getCore();
-                this.setOutputText("");
+                this.addOutputText("", true); // clear output
                 const exampleSelect = event.target;
                 const exampleName = exampleSelect.value;
                 const example = core.getExample(exampleName); //.script || "";
@@ -611,21 +624,6 @@
             const element = document.getElementById(id);
             element.scrollTop = element.scrollHeight;
         }
-        addOutputText(value, hasGraphics) {
-            const outputText = document.getElementById("outputText");
-            outputText.innerHTML += value;
-            if (hasGraphics) {
-                this.setButtonOrSelectDisabled("exportSvgButton", false);
-            }
-            else {
-                this.scrollToBottom("outputText");
-            }
-        }
-        setOutputText(value) {
-            const outputText = document.getElementById("outputText");
-            outputText.innerText = value;
-            this.setButtonOrSelectDisabled("exportSvgButton", true);
-        }
         onUserKeyClick(event) {
             const target = event.target;
             const dataKey = target.getAttribute("data-key");
@@ -717,7 +715,7 @@
         hasCompiledError() {
             const compiledScript = this.compiledCm ? this.compiledCm.getValue() : "";
             const hasError = compiledScript.startsWith("ERROR:");
-            this.setOutputText(hasError ? compiledScript : "");
+            this.addOutputText(hasError ? compiledScript : "", true);
             return hasError;
         }
         // Helper function to update button states
@@ -1035,7 +1033,7 @@
                 this.initialUserAction = true;
             }, { once: true });
             const workerScript = `(${workerFn})();`;
-            this.vmMain = new VmMain(workerScript, this.onSetUiKeys, this.onGeolocation, this.onSpeak);
+            this.vmMain = new VmMain(workerScript, this.addOutputText, this.onSetUiKeys, this.onGeolocation, this.onSpeak);
             // Initialize database and examples
             UI.asyncDelay(() => {
                 const databaseMap = core.initDatabaseMap();

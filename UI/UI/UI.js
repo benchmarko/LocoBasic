@@ -5,6 +5,24 @@ export class UI {
     constructor() {
         this.compiledMessages = [];
         this.initialUserAction = false;
+        this.addOutputText = (str, needCls, hasGraphics) => {
+            const outputText = document.getElementById("outputText");
+            if (needCls) {
+                outputText.innerHTML = str;
+                if (!hasGraphics) {
+                    this.setButtonOrSelectDisabled("exportSvgButton", true);
+                }
+            }
+            else {
+                outputText.innerHTML += str;
+            }
+            if (hasGraphics) {
+                this.setButtonOrSelectDisabled("exportSvgButton", false);
+            }
+            else {
+                this.scrollToBottom("outputText");
+            }
+        };
         this.onSetUiKeys = (codes) => {
             if (codes.length) {
                 const code = codes[0];
@@ -191,7 +209,7 @@ export class UI {
         };
         this.onExampleSelectChange = async (event) => {
             const core = this.getCore();
-            this.setOutputText("");
+            this.addOutputText("", true); // clear output
             const exampleSelect = event.target;
             const exampleName = exampleSelect.value;
             const example = core.getExample(exampleName); //.script || "";
@@ -329,21 +347,6 @@ export class UI {
         const element = document.getElementById(id);
         element.scrollTop = element.scrollHeight;
     }
-    addOutputText(value, hasGraphics) {
-        const outputText = document.getElementById("outputText");
-        outputText.innerHTML += value;
-        if (hasGraphics) {
-            this.setButtonOrSelectDisabled("exportSvgButton", false);
-        }
-        else {
-            this.scrollToBottom("outputText");
-        }
-    }
-    setOutputText(value) {
-        const outputText = document.getElementById("outputText");
-        outputText.innerText = value;
-        this.setButtonOrSelectDisabled("exportSvgButton", true);
-    }
     onUserKeyClick(event) {
         const target = event.target;
         const dataKey = target.getAttribute("data-key");
@@ -435,7 +438,7 @@ export class UI {
     hasCompiledError() {
         const compiledScript = this.compiledCm ? this.compiledCm.getValue() : "";
         const hasError = compiledScript.startsWith("ERROR:");
-        this.setOutputText(hasError ? compiledScript : "");
+        this.addOutputText(hasError ? compiledScript : "", true);
         return hasError;
     }
     // Helper function to update button states
@@ -753,7 +756,7 @@ export class UI {
             this.initialUserAction = true;
         }, { once: true });
         const workerScript = `(${workerFn})();`;
-        this.vmMain = new VmMain(workerScript, this.onSetUiKeys, this.onGeolocation, this.onSpeak);
+        this.vmMain = new VmMain(workerScript, this.addOutputText, this.onSetUiKeys, this.onGeolocation, this.onSpeak);
         // Initialize database and examples
         UI.asyncDelay(() => {
             const databaseMap = core.initDatabaseMap();

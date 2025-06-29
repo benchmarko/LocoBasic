@@ -3,11 +3,12 @@ export declare class VmMain {
     private workerScript;
     private worker?;
     private finishedResolverFn;
+    private addOutputText;
     private setUiKeysFn;
     private onGeolocationFn;
     private onSpeakFn;
     private code;
-    constructor(workerScript: string, setUiKeysFn: (codes: number[]) => void, onGeolocationFn: () => Promise<string>, onSpeakFn: (text: string, pitch: number) => Promise<void>);
+    constructor(workerScript: string, addOutputText: (str: string, needCls?: boolean, hasGraphics?: boolean) => void, setUiKeysFn: (codes: number[]) => void, onGeolocationFn: () => Promise<string>, onSpeakFn: (text: string, pitch: number) => Promise<void>);
     private static describeError;
     postMessage(message: MessageToWorker): void;
     workerOnMessageHandler: (event: MessageEvent) => void;

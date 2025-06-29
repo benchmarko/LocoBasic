@@ -22,8 +22,7 @@ export declare class UI implements IUI {
     private loadScript;
     getCurrentDataKey(): string;
     private scrollToBottom;
-    addOutputText(value: string, hasGraphics?: boolean): void;
-    setOutputText(value: string): void;
+    addOutputText: (str: string, needCls?: boolean, hasGraphics?: boolean) => void;
     private onUserKeyClick;
     private onSetUiKeys;
     /**
