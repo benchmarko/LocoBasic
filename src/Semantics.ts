@@ -1097,8 +1097,8 @@ ${dataList.join(",\n")}
 
 		Sin: cosSinTan,
 
-		Sound(lit: Node, args: Node) {
-			return notSupported(lit, args.asIteration());
+		Sound(lit: Node, state: Node, comma: Node, period: Node, comma2: Node, args: Node) {
+			return notSupported(lit, state, comma, period, comma2, args);
 		},
 
 		SpaceS(_stringLit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars

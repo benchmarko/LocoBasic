@@ -496,7 +496,7 @@ export const arithmetic = {
       = ";" | ""
 
     Print
-      = (print | "?") (StreamArg ("," | &":" | &Comment | &eol))? ListOf<PrintArg, PrintSep> (";")?
+      = (print | "?") (StreamArg ("," | &":" | &Comment | &else | &end | &eol))? ListOf<PrintArg, PrintSep> (";")?
 
     Rad
       = rad
@@ -561,7 +561,7 @@ export const arithmetic = {
       = sin "(" NumExp ")"
 
     Sound
-      = sound NonemptyListOf<NumExp, ","> // simplified
+      = sound NumExp "," NumExp ("," NumExp?)*
 
     SpaceS
       = spaceS "(" NumExp ")"

@@ -62,6 +62,7 @@ a=-&X111111111111111: IF a<>-32767 THEN ERROR 33
 PRINT "Strings"
 a$="a12": IF a$<>"a12" THEN ERROR 33
 a$="7.1": IF a$<>"7.1" THEN ERROR 33
+a$="NEXT i,j": IF a$<>"NEXT i,j" THEN ERROR 33
 '''a$="\\"
 '
 PRINT "Variables: types: $, ";
