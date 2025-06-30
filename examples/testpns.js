@@ -688,6 +688,7 @@ SOUND 1,100,400,15
 SOUND 1,100,400,15,1
 SOUND 1,100,400,15,1,1
 SOUND 1,100,400,15,1,1,4
+SOUND 1,100,400,,,,4
 ''SOUND ch,period,duration,,,,noise
 ''SOUND ch,period,duration,vol,env1,ent1,noise
 '

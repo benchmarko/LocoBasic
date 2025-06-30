@@ -875,8 +875,8 @@ ${dataList.join(",\n")}
             return `sgn(${num.eval()})`; // or inline: `Math.sign(${num.eval()})`
         },
         Sin: cosSinTan,
-        Sound(lit, args) {
-            return notSupported(lit, args.asIteration());
+        Sound(lit, state, comma, period, comma2, args) {
+            return notSupported(lit, state, comma, period, comma2, args);
         },
         SpaceS(_stringLit, _open, num, _close) {
             semanticsHelper.addInstr("space$");

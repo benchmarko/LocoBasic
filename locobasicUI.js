@@ -715,7 +715,7 @@
         hasCompiledError() {
             const compiledScript = this.compiledCm ? this.compiledCm.getValue() : "";
             const hasError = compiledScript.startsWith("ERROR:");
-            this.addOutputText(hasError ? compiledScript : "", true);
+            this.addOutputText(hasError ? escapeText(compiledScript) : "", true);
             return hasError;
         }
         // Helper function to update button states

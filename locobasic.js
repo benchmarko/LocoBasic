@@ -565,7 +565,7 @@
       = ";" | ""
 
     Print
-      = (print | "?") (StreamArg ("," | &":" | &Comment | &eol))? ListOf<PrintArg, PrintSep> (";")?
+      = (print | "?") (StreamArg ("," | &":" | &Comment | &else | &end | &eol))? ListOf<PrintArg, PrintSep> (";")?
 
     Rad
       = rad
@@ -630,7 +630,7 @@
       = sin "(" NumExp ")"
 
     Sound
-      = sound NonemptyListOf<NumExp, ","> // simplified
+      = sound NumExp "," NumExp ("," NumExp?)*
 
     SpaceS
       = spaceS "(" NumExp ")"
@@ -2683,8 +2683,8 @@ ${dataList.join(",\n")}
                 return `sgn(${num.eval()})`; // or inline: `Math.sign(${num.eval()})`
             },
             Sin: cosSinTan,
-            Sound(lit, args) {
-                return notSupported(lit, args.asIteration());
+            Sound(lit, state, comma, period, comma2, args) {
+                return notSupported(lit, state, comma, period, comma2, args);
             },
             SpaceS(_stringLit, _open, num, _close) {
                 semanticsHelper.addInstr("space$");

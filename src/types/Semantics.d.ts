@@ -165,7 +165,7 @@ export declare class Semantics implements ISemantics {
         Save(lit: Node, file: Node, comma: Node, type: Node, comma2: Node, num: Node, comma3: Node, num2: Node, comma4: Node, num3: Node): string;
         Sgn(_sgnLit: Node, _open: Node, num: Node, _close: Node): string;
         Sin: (lit: Node, _open: Node, num: Node, _close: Node) => string;
-        Sound(lit: Node, args: Node): string;
+        Sound(lit: Node, state: Node, comma: Node, period: Node, comma2: Node, args: Node): string;
         SpaceS(_stringLit: Node, _open: Node, num: Node, _close: Node): string;
         Spc(_lit: Node, _open: Node, num: Node, _close: Node): string;
         Speed_ink(lit: Node, inkLit: Node, num: Node, comma: Node, num2: Node): string;
