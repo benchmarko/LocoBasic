@@ -49,7 +49,7 @@ body {
 	border: 0.5px solid #7A7A7A;
 	position: absolute;
 	background-color: WhiteSmoke;
-  z-index: 1;
+  z-index: 16;
 }
 
 .popoverElement {

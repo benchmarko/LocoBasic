@@ -5,6 +5,8 @@ import { VmMain } from "./VmMain";
 
 const escapeText = (str: string) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
+type CodeMirrorCallbackType = (value: string, e: Event) => void;
+
 export class UI implements IUI {
     private core?: ICore;
     private vmMain?: VmMain;
@@ -43,10 +45,19 @@ export class UI implements IUI {
     }
 
     private getCore() {
-        if (!this.core) {
-            throw new Error("Core not initialized");
-        }
-        return this.core;
+        return this.core as ICore;
+    }
+
+    private getVmMain() {
+        return  this.vmMain as VmMain;
+    }
+
+    private getBasicCm() {
+        return this.basicCm as Editor;
+    }
+
+    private getCompiledCm() {
+        return this.compiledCm as Editor;
     }
 
     private cancelSpeech() {
@@ -64,10 +75,10 @@ export class UI implements IUI {
         return !element.hidden;
     }
 
-    private setElementHidden(id: string): boolean {
+    private setElementHidden(id: string, hidden: boolean): boolean {
         const element = document.getElementById(id) as HTMLElement;
-        if (!element.hidden) {
-            element.hidden = true;
+        if (element.hidden !== hidden) {
+            element.hidden = hidden;
         }
         return element.hidden;
     }
@@ -187,7 +198,7 @@ export class UI implements IUI {
 
         return new Promise<void>((resolve) => {
             button.addEventListener("click", () => {
-                this.setElementHidden(buttonId);
+                this.setElementHidden(buttonId, true);
                 resolve();
             }, { once: true });
         });
@@ -304,7 +315,7 @@ export class UI implements IUI {
     }
 
     private hasCompiledError() {
-        const compiledScript = this.compiledCm ? this.compiledCm.getValue() : "";
+        const compiledScript = this.getCompiledCm().getValue();
         const hasError = compiledScript.startsWith("ERROR:");
         this.addOutputText(hasError ? escapeText(compiledScript) : "", true);
         return hasError;
@@ -318,7 +329,7 @@ export class UI implements IUI {
     }
 
     private beforeExecute() {
-        this.setElementHidden("convertArea");
+        this.setElementHidden("convertArea", true);
 
         const buttonStates = {
             enterButton: false,
@@ -363,8 +374,8 @@ export class UI implements IUI {
         }
         this.beforeExecute();
 
-        const compiledScript = this.compiledCm?.getValue() || ""; // Execute the compiled script
-        const output = await this.vmMain?.run(compiledScript);
+        const compiledScript = this.getCompiledCm().getValue(); // Execute the compiled script
+        const output = await this.getVmMain().run(compiledScript);
         if (output) { // some remaining output?
             this.addOutputText(output);
         }
@@ -392,14 +403,12 @@ export class UI implements IUI {
     private onCompileButtonClick = (_event: Event): void => { // bound this
         const core = this.getCore();
         this.setButtonOrSelectDisabled("compileButton", true);
-        const input = this.basicCm ? this.basicCm.getValue() : "";
+        const input = this.getBasicCm().getValue();
         UI.asyncDelay(() => {
             const { compiledScript, messages } = core.compileScript(input);
 
             this.compiledMessages = messages;
-            if (this.compiledCm) {
-                this.compiledCm.setValue(compiledScript);
-            }
+            this.getCompiledCm().setValue(compiledScript);
             this.setButtonOrSelectDisabled("compileButton", false);
             if (!compiledScript.startsWith("ERROR:")) {
                 this.setButtonOrSelectDisabled("labelRemoveButton", false);
@@ -458,14 +467,14 @@ export class UI implements IUI {
         this.cancelSpeech(); // maybe a speech was waiting
         this.clickStartSpeechButton(); // we just did a user interaction
         this.setButtonOrSelectDisabled("stopButton", true);
-        this.vmMain?.stop();
+        this.getVmMain().stop();
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onResetButtonClick = (_event: Event): void => { // bound this
         this.cancelSpeech();
         this.clickStartSpeechButton(); // we just did a user interaction
-        this.vmMain?.reset();
+        this.getVmMain().reset();
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -473,6 +482,38 @@ export class UI implements IUI {
         this.toggleElementHidden("convertArea");
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onBasicReplaceButtonClick = (_event: Event): void => { // bound this
+        this.getBasicCm().execCommand("replace");
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onBasicReplaceAllButtonClick = (_event: Event): void => { // bound this
+        this.getBasicCm().execCommand("replaceAll");
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onBasicSearchButtonClick = (_event: Event): void => { // bound this
+        if (!this.toggleElementHidden("basicSearchArea")) {
+           this.getBasicCm().execCommand("clearSearch"); 
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onBasicSearchNextButtonClick = (_event: Event): void => { // bound this
+        this.getBasicCm().execCommand("findNext");
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onBasicSearchPrevButtonClick = (_event: Event): void => { // bound this
+        this.getBasicCm().execCommand("findPrev");
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onBasicSearchInputChange = (_event: Event): void => { // bound this
+        this.getBasicCm().execCommand("clearSearch");
+    }
+    
     private static addLabels(input: string) {
         const lineParts = input.split("\n");
         let lastLine = 0;
@@ -503,17 +544,17 @@ export class UI implements IUI {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onLabelAddButtonClick = (_event: Event): void => { // bound this
-        const input = this.basicCm!.getValue();
+        const input = this.getBasicCm().getValue();
         const output = input ? UI.addLabels(input) : "";
 
         if (output && output !== input) {
-            this.basicCm!.setValue(output);
+            this.getBasicCm().setValue(output);
         }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onLabelRemoveButtonClick = (_event: Event): void => { // bound this
-        const input = this.basicCm!.getValue();
+        const input = this.getBasicCm().getValue();
 
         const core = this.getCore();
         const semantics = core.getSemantics();
@@ -529,7 +570,7 @@ export class UI implements IUI {
         const output = UI.removeUnusedLabels(input, allUsedLabels);
 
         if (output && output !== input) {
-            this.basicCm!.setValue(output);
+            this.getBasicCm().setValue(output);
         }
     }
 
@@ -572,10 +613,7 @@ export class UI implements IUI {
             this.updateConfigParameter("example", exampleName);
 
             const script = await this.getExampleScript(example);
-
-            if (this.basicCm) {
-                this.basicCm.setValue(script);
-            }
+            this.getBasicCm().setValue(script);
         } else {
             console.warn("onExampleSelectChange: example not found:", exampleName);
         }
@@ -675,7 +713,7 @@ export class UI implements IUI {
     }
 
     private getExampleName(): string {
-        const input = this.basicCm ? this.basicCm.getValue() : "";
+        const input = this.getBasicCm().getValue();
         const firstLine = input.slice(0, input.indexOf("\n"));
         const matches = firstLine.match(/^\s*\d*\s*(?:REM|rem|')\s*(\w+)/);
         const name = matches ? matches[1] : this.getCore().getConfigMap().example || "locobasic";
@@ -705,14 +743,14 @@ export class UI implements IUI {
         if (this.getCore().getConfigMap().debug) {
             console.log("putKeysInBuffer:", keys);
         }
-        this.vmMain?.putKeys(keys);
+        this.getVmMain().putKeys(keys);
     }
 
     private onOutputTextKeydown(event: KeyboardEvent): void {
         const key = event.key;
         if (key === "Escape") {
             this.cancelSpeech();
-            this.vmMain?.stop(); // request stop
+            this.getVmMain().stop(); // request stop
         } else if (key === "Enter") {
             this.putKeysInBuffer("\x0d");
             event.preventDefault();
@@ -813,6 +851,32 @@ export class UI implements IUI {
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onCodeMirrorOpenDialog = (_template: unknown, callback: CodeMirrorCallbackType, _options: unknown): void => { // bound this
+        // see: https://codemirror.net/5/addon/dialog/dialog.js
+        this.setElementHidden("basicSearchArea", false);
+        
+        const basicSearchInput = document.getElementById("basicSearchInput") as HTMLInputElement;
+        if (basicSearchInput.value) {
+            callback(basicSearchInput.value, new Event(""));
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onCodeMirrorOpenConfirm = (_template: unknown, callbacks: CodeMirrorCallbackType[], _options: unknown): void => { // bound this
+        const callback = callbacks[0];
+        //TTT callback("bla", new Event("")); // we need to call the callback with some value, otherwise the dialog will not close
+        console.log("TTT", callback);
+        /*
+        this.setElementHidden("basicSearchArea", false);
+        
+        const basicSearchInput = document.getElementById("basicSearchInput") as HTMLInputElement;
+        if (basicSearchInput.value) {
+            callback(basicSearchInput.value, new Event(""));
+        }
+        */
+    }
+
     public onWindowLoadContinue(core: ICore, workerFn: () => unknown): void {
         this.core = core;
         const config = core.getConfigMap();
@@ -827,6 +891,11 @@ export class UI implements IUI {
             stopButton: this.onStopButtonClick,
             resetButton: this.onResetButtonClick,
             convertButton: this.onConvertButtonClick,
+            basicReplaceButton: this.onBasicReplaceButtonClick,
+            basicReplaceAllButton: this.onBasicReplaceAllButtonClick,
+            basicSearchButton: this.onBasicSearchButtonClick,
+            basicSearchNextButton: this.onBasicSearchNextButtonClick,
+            basicSearchPrevButton: this.onBasicSearchPrevButtonClick,
             labelAddButton: this.onLabelAddButtonClick,
             labelRemoveButton: this.onLabelRemoveButtonClick,
             helpButton: this.onHelpButtonClick,
@@ -841,6 +910,7 @@ export class UI implements IUI {
             showCompiledInput: this.onShowCompiledInputChange,
             databaseSelect: this.onDatabaseSelectChange,
             exampleSelect: this.onExampleSelectChange,
+            basicSearchInput: this.onBasicSearchInputChange,
         };
 
         // Attach event listeners for buttons
@@ -863,6 +933,9 @@ export class UI implements IUI {
 
             this.basicCm = this.initializeEditor("basicEditor", "lbasic", this.onBasicTextChange, config.debounceCompile);
             this.compiledCm = this.initializeEditor("compiledEditor", "javascript", this.onCompiledTextChange, config.debounceExecute);
+
+            WinCodeMirror.defineExtension("openDialog", this.onCodeMirrorOpenDialog);
+            WinCodeMirror.defineExtension("openConfirm", this.onCodeMirrorOpenConfirm);
         }
 
         // Handle browser navigation (popstate)
