@@ -5,7 +5,9 @@
 cpcBasic.addItem("", `
 REM testpns - Test Page Not Supported
 REM These command and constructs are parsable but not (yet) supported
+REM (Make sure that this file can be compiled by CPCBasicTS because it is used as a test there.)
 MODE 2
+ON ERROR GOTO 65535
 'CLS
 ''CLS #5
 ''CLS #a+7-2*b
@@ -394,7 +396,7 @@ KEY DEF 68,1
 KEY DEF 68,1,159
 KEY DEF 68,1,159,160
 KEY DEF 68,1,159,160,161
-KEY DEF num,a,b,b,b,b
+KEY DEF num,a,b,b,b
 '
 ' LEFT$, LEN, LET, LINE INPUT, LIST, LOAD, LOCATE, LOG, LOG10, LOWER$
 '

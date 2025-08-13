@@ -14,6 +14,9 @@ export declare class UI implements IUI {
     private debounce;
     private static asyncDelay;
     private getCore;
+    private getVmMain;
+    private getBasicCm;
+    private getCompiledCm;
     private cancelSpeech;
     private toggleElementHidden;
     private setElementHidden;
@@ -55,6 +58,12 @@ export declare class UI implements IUI {
     private onStopButtonClick;
     private onResetButtonClick;
     private onConvertButtonClick;
+    private onBasicReplaceButtonClick;
+    private onBasicReplaceAllButtonClick;
+    private onBasicSearchButtonClick;
+    private onBasicSearchNextButtonClick;
+    private onBasicSearchPrevButtonClick;
+    private onBasicSearchInputChange;
     private static addLabels;
     private static removeUnusedLabels;
     private onLabelAddButtonClick;
@@ -78,6 +87,8 @@ export declare class UI implements IUI {
     private parseUri;
     private initializeEditor;
     private syncInputState;
+    private onCodeMirrorOpenDialog;
+    private onCodeMirrorOpenConfirm;
     onWindowLoadContinue(core: ICore, workerFn: () => unknown): void;
 }
 //# sourceMappingURL=UI.d.ts.map

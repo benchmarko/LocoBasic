@@ -357,13 +357,12 @@
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onExecuteButtonClick = async (_event) => {
-                var _a, _b;
                 if (this.hasCompiledError()) {
                     return;
                 }
                 this.beforeExecute();
-                const compiledScript = ((_a = this.compiledCm) === null || _a === void 0 ? void 0 : _a.getValue()) || ""; // Execute the compiled script
-                const output = await ((_b = this.vmMain) === null || _b === void 0 ? void 0 : _b.run(compiledScript));
+                const compiledScript = this.getCompiledCm().getValue(); // Execute the compiled script
+                const output = await this.getVmMain().run(compiledScript);
                 if (output) { // some remaining output?
                     this.addOutputText(output);
                 }
@@ -389,13 +388,11 @@
             this.onCompileButtonClick = (_event) => {
                 const core = this.getCore();
                 this.setButtonOrSelectDisabled("compileButton", true);
-                const input = this.basicCm ? this.basicCm.getValue() : "";
+                const input = this.getBasicCm().getValue();
                 UI.asyncDelay(() => {
                     const { compiledScript, messages } = core.compileScript(input);
                     this.compiledMessages = messages;
-                    if (this.compiledCm) {
-                        this.compiledCm.setValue(compiledScript);
-                    }
+                    this.getCompiledCm().setValue(compiledScript);
                     this.setButtonOrSelectDisabled("compileButton", false);
                     if (!compiledScript.startsWith("ERROR:")) {
                         this.setButtonOrSelectDisabled("labelRemoveButton", false);
@@ -432,34 +429,58 @@
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onStopButtonClick = (_event) => {
-                var _a;
                 this.cancelSpeech(); // maybe a speech was waiting
                 this.clickStartSpeechButton(); // we just did a user interaction
                 this.setButtonOrSelectDisabled("stopButton", true);
-                (_a = this.vmMain) === null || _a === void 0 ? void 0 : _a.stop();
+                this.getVmMain().stop();
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onResetButtonClick = (_event) => {
-                var _a;
                 this.cancelSpeech();
                 this.clickStartSpeechButton(); // we just did a user interaction
-                (_a = this.vmMain) === null || _a === void 0 ? void 0 : _a.reset();
+                this.getVmMain().reset();
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onConvertButtonClick = (_event) => {
                 this.toggleElementHidden("convertArea");
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            this.onBasicReplaceButtonClick = (_event) => {
+                this.getBasicCm().execCommand("replace");
+            };
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            this.onBasicReplaceAllButtonClick = (_event) => {
+                this.getBasicCm().execCommand("replaceAll");
+            };
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            this.onBasicSearchButtonClick = (_event) => {
+                if (!this.toggleElementHidden("basicSearchArea")) {
+                    this.getBasicCm().execCommand("clearSearch");
+                }
+            };
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            this.onBasicSearchNextButtonClick = (_event) => {
+                this.getBasicCm().execCommand("findNext");
+            };
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            this.onBasicSearchPrevButtonClick = (_event) => {
+                this.getBasicCm().execCommand("findPrev");
+            };
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            this.onBasicSearchInputChange = (_event) => {
+                this.getBasicCm().execCommand("clearSearch");
+            };
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onLabelAddButtonClick = (_event) => {
-                const input = this.basicCm.getValue();
+                const input = this.getBasicCm().getValue();
                 const output = input ? UI.addLabels(input) : "";
                 if (output && output !== input) {
-                    this.basicCm.setValue(output);
+                    this.getBasicCm().setValue(output);
                 }
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onLabelRemoveButtonClick = (_event) => {
-                const input = this.basicCm.getValue();
+                const input = this.getBasicCm().getValue();
                 const core = this.getCore();
                 const semantics = core.getSemantics();
                 const usedLabels = semantics.getUsedLabels();
@@ -471,7 +492,7 @@
                 }
                 const output = UI.removeUnusedLabels(input, allUsedLabels);
                 if (output && output !== input) {
-                    this.basicCm.setValue(output);
+                    this.getBasicCm().setValue(output);
                 }
             };
             this.onBasicTextChange = async () => {
@@ -493,9 +514,7 @@
                 if (example) {
                     this.updateConfigParameter("example", exampleName);
                     const script = await this.getExampleScript(example);
-                    if (this.basicCm) {
-                        this.basicCm.setValue(script);
-                    }
+                    this.getBasicCm().setValue(script);
                 }
                 else {
                     console.warn("onExampleSelectChange: example not found:", exampleName);
@@ -537,6 +556,29 @@
                 const filename = `${example}.svg`;
                 UI.fnDownloadBlob(svgBlob, filename);
             };
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            this.onCodeMirrorOpenDialog = (_template, callback, _options) => {
+                // see: https://codemirror.net/5/addon/dialog/dialog.js
+                this.setElementHidden("basicSearchArea", false);
+                const basicSearchInput = document.getElementById("basicSearchInput");
+                if (basicSearchInput.value) {
+                    callback(basicSearchInput.value, new Event(""));
+                }
+            };
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            this.onCodeMirrorOpenConfirm = (_template, callbacks, _options) => {
+                const callback = callbacks[0];
+                //TTT callback("bla", new Event("")); // we need to call the callback with some value, otherwise the dialog will not close
+                console.log("TTT", callback);
+                /*
+                this.setElementHidden("basicSearchArea", false);
+                
+                const basicSearchInput = document.getElementById("basicSearchInput") as HTMLInputElement;
+                if (basicSearchInput.value) {
+                    callback(basicSearchInput.value, new Event(""));
+                }
+                */
+            };
             this.fnOnKeyPressHandler = (event) => this.onOutputTextKeydown(event);
             this.fnOnClickHandler = (event) => this.onOutputTextClick(event);
             this.fnOnUserKeyClickHandler = (event) => this.onUserKeyClick(event);
@@ -560,10 +602,16 @@
             })();
         }
         getCore() {
-            if (!this.core) {
-                throw new Error("Core not initialized");
-            }
             return this.core;
+        }
+        getVmMain() {
+            return this.vmMain;
+        }
+        getBasicCm() {
+            return this.basicCm;
+        }
+        getCompiledCm() {
+            return this.compiledCm;
         }
         cancelSpeech() {
             if (this.speechSynthesisUtterance && this.speechSynthesisUtterance.text) {
@@ -578,10 +626,10 @@
             }
             return !element.hidden;
         }
-        setElementHidden(id) {
+        setElementHidden(id, hidden) {
             const element = document.getElementById(id);
-            if (!element.hidden) {
-                element.hidden = true;
+            if (element.hidden !== hidden) {
+                element.hidden = hidden;
             }
             return element.hidden;
         }
@@ -655,7 +703,7 @@
             const button = document.getElementById(buttonId);
             return new Promise((resolve) => {
                 button.addEventListener("click", () => {
-                    this.setElementHidden(buttonId);
+                    this.setElementHidden(buttonId, true);
                     resolve();
                 }, { once: true });
             });
@@ -713,7 +761,7 @@
             history.pushState({}, "", url.href);
         }
         hasCompiledError() {
-            const compiledScript = this.compiledCm ? this.compiledCm.getValue() : "";
+            const compiledScript = this.getCompiledCm().getValue();
             const hasError = compiledScript.startsWith("ERROR:");
             this.addOutputText(hasError ? escapeText(compiledScript) : "", true);
             return hasError;
@@ -725,7 +773,7 @@
             });
         }
         beforeExecute() {
-            this.setElementHidden("convertArea");
+            this.setElementHidden("convertArea", true);
             const buttonStates = {
                 enterButton: false,
                 executeButton: true,
@@ -861,25 +909,23 @@
             a.click();
         }
         getExampleName() {
-            const input = this.basicCm ? this.basicCm.getValue() : "";
+            const input = this.getBasicCm().getValue();
             const firstLine = input.slice(0, input.indexOf("\n"));
             const matches = firstLine.match(/^\s*\d*\s*(?:REM|rem|')\s*(\w+)/);
             const name = matches ? matches[1] : this.getCore().getConfigMap().example || "locobasic";
             return name;
         }
         putKeysInBuffer(keys) {
-            var _a;
             if (this.getCore().getConfigMap().debug) {
                 console.log("putKeysInBuffer:", keys);
             }
-            (_a = this.vmMain) === null || _a === void 0 ? void 0 : _a.putKeys(keys);
+            this.getVmMain().putKeys(keys);
         }
         onOutputTextKeydown(event) {
-            var _a;
             const key = event.key;
             if (key === "Escape") {
                 this.cancelSpeech();
-                (_a = this.vmMain) === null || _a === void 0 ? void 0 : _a.stop(); // request stop
+                this.getVmMain().stop(); // request stop
             }
             else if (key === "Enter") {
                 this.putKeysInBuffer("\x0d");
@@ -981,6 +1027,11 @@
                 stopButton: this.onStopButtonClick,
                 resetButton: this.onResetButtonClick,
                 convertButton: this.onConvertButtonClick,
+                basicReplaceButton: this.onBasicReplaceButtonClick,
+                basicReplaceAllButton: this.onBasicReplaceAllButtonClick,
+                basicSearchButton: this.onBasicSearchButtonClick,
+                basicSearchNextButton: this.onBasicSearchNextButtonClick,
+                basicSearchPrevButton: this.onBasicSearchPrevButtonClick,
                 labelAddButton: this.onLabelAddButtonClick,
                 labelRemoveButton: this.onLabelRemoveButtonClick,
                 helpButton: this.onHelpButtonClick,
@@ -994,6 +1045,7 @@
                 showCompiledInput: this.onShowCompiledInputChange,
                 databaseSelect: this.onDatabaseSelectChange,
                 exampleSelect: this.onExampleSelectChange,
+                basicSearchInput: this.onBasicSearchInputChange,
             };
             // Attach event listeners for buttons
             Object.entries(buttonHandlers).forEach(([id, handler]) => {
@@ -1012,6 +1064,8 @@
                 WinCodeMirror.defineMode("lbasic", getModeFn);
                 this.basicCm = this.initializeEditor("basicEditor", "lbasic", this.onBasicTextChange, config.debounceCompile);
                 this.compiledCm = this.initializeEditor("compiledEditor", "javascript", this.onCompiledTextChange, config.debounceExecute);
+                WinCodeMirror.defineExtension("openDialog", this.onCodeMirrorOpenDialog);
+                WinCodeMirror.defineExtension("openConfirm", this.onCodeMirrorOpenConfirm);
             }
             // Handle browser navigation (popstate)
             window.addEventListener("popstate", (event) => {
