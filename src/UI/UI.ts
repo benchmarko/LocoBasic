@@ -28,7 +28,7 @@ export class UI implements IUI {
     private debounce<T extends (...args: unknown[]) => void | Promise<void>>(func: T, fngetDelay: () => number): (...args: Parameters<T>) => void {
         let timeoutId: ReturnType<typeof setTimeout>;
         return function (this: unknown, ...args: Parameters<T>) {
-            // use delay 0 when change comes from "SetValue" (ant not form "+input")
+            // Fast hack for CodeMittor changes: Use delay 0 when change comes from "setValue" (and not from CodeMirror "+input")
             const delay = (args as any)?.[1]?.[0]?.origin === "setValue" ? 0 : fngetDelay();
             clearTimeout(timeoutId);
             timeoutId = setTimeout(() => {

@@ -124,7 +124,7 @@ export class SemanticsHelper {
 
     private static deleteAllItems(items: Record<string, unknown>): void {
         for (const name in items) {
-            delete items[name];
+            delete items[name]; // eslint-disable-line @typescript-eslint/no-dynamic-delete
         }
     }
 

@@ -103,10 +103,10 @@ describe("VmWorker.vm core methods", () => {
         const vm = workerFn(getMockParentPort());
         const arr1 = vm.dim1(2, 7);
         expect(arr1).toEqual([7,7,7]);
-        const arr2 = vm.dim([1,2], 3);
-        expect(Array.isArray(arr2)).toBe(true);
-        expect(arr2[0][0]).toBe(3);
-        expect(arr2[1][2]).toBe(3);
+        const numArr = vm.dim([1,2], 3) as number[][];
+        expect(Array.isArray(numArr)).toBe(true);
+        expect(numArr[0][0]).toBe(3);
+        expect(numArr[1][2]).toBe(3);
     });
 
     it("left$, mid$, mid$Assign, right$ string functions", () => {

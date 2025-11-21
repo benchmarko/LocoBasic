@@ -6,6 +6,7 @@ interface State {
     tokenize: ((stream: StringStream, state: State) => string | null) | null;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class LocoBasicMode {
     public static getMode(): Mode<State> {
         function words(array: string[]) {
