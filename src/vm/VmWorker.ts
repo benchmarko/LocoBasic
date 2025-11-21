@@ -1,4 +1,5 @@
 import type { MessageFromWorker, MessageToWorker } from "../Interfaces";
+import { CommaOpChar, TabOpChar } from "../Constants";
 
 interface NodeWorkerThreads {
     parentPort: {
@@ -14,9 +15,6 @@ export const workerFn = (parentPort?: NodeWorkerThreads["parentPort"]) => {
     const postMessage = (message: MessageFromWorker) => {
         (parentPort || self).postMessage(message);
     }
-
-    const CommaOpChar = "\u2192"; // Unicode arrow right
-    const TabOpChar = "\u21d2"; // Unicode double arrow right
 
     const cpcColors = [ // browser
         "#000000", //  0 Black
@@ -448,10 +446,7 @@ ${content}
             return ""; //"end";
         },
 
-        escapeText(str: string, isGraphics?: boolean): string {
-            if (vm._isTerminal && !isGraphics) { // for node.js we do not need to escape non-graphics text
-                return str;
-            }
+        escapeText(str: string): string {
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;");
         },
 
@@ -663,7 +658,7 @@ ${content}
             const formatNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
             const text = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg).join("");
             if (vm._tag) {
-                return vm._gra.printGraphicsText(vm.escapeText(text, true));
+                return vm._gra.printGraphicsText(vm.escapeText(text));
             }
             vm.printText(text);
         },
@@ -683,14 +678,14 @@ ${content}
                 return str;
             };
             if (vm._tag) {
-                return vm._gra.printGraphicsText(vm.escapeText(strArgs.map(arg => formatCommaOrTab(arg)).join(""), true));
+                return vm._gra.printGraphicsText(vm.escapeText(strArgs.map(arg => formatCommaOrTab(arg)).join("")));
             }
             for (const str of strArgs) {
                 vm.printText(formatCommaOrTab(str));
             }
         },
         printText: function printText(text: string) {
-            vm._output += vm.escapeText(text);
+            vm._output += vm._isTerminal ? text : vm.escapeText(text); // for node.js we do not need to escape (non-graphics) text
             const lines = text.split("\n");
             if (lines.length > 1) {
                 vm._vpos += lines.length - 1;
@@ -832,7 +827,7 @@ ${content}
         write: function write(...args: (string | number)[]) {
             const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
             if (vm._tag) {
-                return vm._gra.printGraphicsText(vm.escapeText(text, true));
+                return vm._gra.printGraphicsText(vm.escapeText(text));
             }
             vm.printText(text);
         },

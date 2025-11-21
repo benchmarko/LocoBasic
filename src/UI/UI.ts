@@ -877,7 +877,7 @@ export class UI implements IUI {
         */
     }
 
-    public onWindowLoadContinue(core: ICore, workerFn: () => unknown): void {
+    public onWindowLoadContinue(core: ICore, workerFnString: string): void {
         this.core = core;
         const config = core.getConfigMap();
         const args = this.parseUri(config);
@@ -960,7 +960,8 @@ export class UI implements IUI {
             this.initialUserAction = true;
         }, { once: true });
 
-        const workerScript = `(${workerFn})();`;
+        const preparedWorkerFnString = core.prepareWorkerFnString(workerFnString);
+        const workerScript = `(${preparedWorkerFnString})();`;
 
         this.vmMain = new VmMain(workerScript,  this.addOutputText, this.onSetUiKeys, this.onGeolocation, this.onSpeak);
 

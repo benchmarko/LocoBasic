@@ -1,4 +1,5 @@
 import type { CompileResultType, ConfigEntryType, ConfigType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore } from "./Interfaces";
+import { CommaOpChar, TabOpChar } from "./Constants";
 import { Parser } from "./Parser";
 import { arithmetic } from "./arithmetic";
 import { Semantics } from "./Semantics";
@@ -187,5 +188,14 @@ export class Core implements ICore {
             }
         }
         return config;
+    }
+
+    public prepareWorkerFnString(workerFnString: string): string {
+        const constants = `
+    const CommaOpChar = "${CommaOpChar}";
+    const TabOpChar = "${TabOpChar}";
+`;
+        const workerStringWithConstants = workerFnString.replace(/const postMessage =/, `${constants}    const postMessage =`); // fast hack: get constants into worker string
+        return workerStringWithConstants;
     }
 }

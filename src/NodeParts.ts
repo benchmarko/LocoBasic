@@ -155,6 +155,27 @@ export class NodeParts implements INodeParts {
         return worker;
     }
 
+    private getWorkerAsString(workerFn: () => unknown): string {
+        const workerString = Object.entries(workerFn).map(([key, value]) => {
+            if (typeof value === "function") {
+                return `${value}`;
+            } else if (typeof value === "object") {
+                return `${key}: ${JSON.stringify(value)}`;
+            } else {
+                return `${key}: "${value}"`;
+            }
+        }).join(",\n  ");
+        return workerString;
+    }
+
+    private createNodeWorkerAsString(workerFile: string): string {
+        const path = this.getNodePath();
+        const workerFnPath = path.resolve(__dirname, workerFile);
+        const workerFn = require(workerFnPath) as unknown as () => unknown;
+        const workerFnString = this.getWorkerAsString(workerFn);
+        return workerFnString;
+    }
+
     private loadScript(fileOrUrl: string): Promise<string> {
         if (isUrl(fileOrUrl)) {
             return this.nodeReadUrl(fileOrUrl);
@@ -254,19 +275,6 @@ export class NodeParts implements INodeParts {
         console.log(msg);
     }
 
-    private getWorkerAsString(workerFn: () => unknown): string {
-        const workerString = Object.entries(workerFn).map(([key, value]) => {
-            if (typeof value === "function") {
-                return `${value}`;
-            } else if (typeof value === "object") {
-                return `${key}: ${JSON.stringify(value)}`;
-            } else {
-                return `${key}: "${value}"`;
-            }
-        }).join(",\n  ");
-        return workerString;
-    }
-
     private async startRun(core: ICore, compiledScript: string) {
         if (core.getConfigMap().debug) {
             console.log("DEBUG: running compiled script...");
@@ -281,18 +289,13 @@ export class NodeParts implements INodeParts {
         }
     }
 
-    private compiledCodeInFrame(compiledScript: string) {
-        const path = this.getNodePath();
-        const workerFnPath = path.resolve(__dirname, workerFilename);
-        const workerFn = require(workerFnPath) as unknown as () => unknown;
-        const workerString = this.getWorkerAsString(workerFn);
-
-        const asyncStr = compiledScript.includes("await ") ? "async " : ""; // fast hack
+    private compiledCodeInFrame(compiledScript: string, workerFnString: string) {
+        const asyncStr = compiledScript.includes("await ") ? "async " : ""; // fast hack: check if we need async function
 
         const inFrame = `(${asyncStr}function(_o) {
     ${compiledScript}
 })(
-    (${workerString})({
+    (${workerFnString})({
         on: (...args) => {
             // on: [ 'message', [Function: onMessageHandler] ]
             //console.log("on:", args);
@@ -348,7 +351,8 @@ export class NodeParts implements INodeParts {
                     return this.startRun(core, compiledScript);
                 }, 5000);
             } else {
-                const inFrame = this.compiledCodeInFrame(compiledScript);
+                const workerString = core.prepareWorkerFnString(this.createNodeWorkerAsString(workerFilename));
+                const inFrame = this.compiledCodeInFrame(compiledScript, workerString);
                 console.log(inFrame);
             }
         } else {

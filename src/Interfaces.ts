@@ -70,6 +70,7 @@ export interface ICore {
     addIndex: (dir: string, input: Record<string, ExampleType[]> | (() => void)) => void;
     addItem(key: string, input: string | (() => void)): void;
     parseArgs(args: string[], config: Record<string, ConfigEntryType>): void;
+    prepareWorkerFnString(workerFnString: string): string;
 }
 
 
@@ -105,6 +106,6 @@ export interface INodeParts {
 export interface IUI {
     addOutputText(str: string, needCls?: boolean, hasGraphics?: boolean): void;
     getCurrentDataKey(): string;
-    onWindowLoadContinue(core: ICore, workerFn: () => unknown): void;
+    onWindowLoadContinue(core: ICore, workerFnString: string): void;
     prompt(msg: string): string | null;
 }
