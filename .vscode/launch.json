@@ -7,14 +7,14 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "Launch Program",
+            "name": "Run Script",
             "skipFiles": [
                 "<node_internals>/**"
             ],
             "program": "${workspaceFolder}/dist/locobasic.js",
             "args": [
                 //"input=for j=1 to 10:print j:next j",
-                "example=euler"
+                "example=euler",
                 //"input=a=2:?a"
                 //"input=b=5:c=2:a=(b>c13+3.9)+7:?a;"
                 //"input=b=5:c=2:a=(b>c)+7:?a;"
@@ -25,6 +25,22 @@
                 //"input=f=2:if f=0 then print f+7 else ?f*7:'comment"
                 //"fileName=./dist/example.bas"
                 //"debug=0"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/**/*.js"
+            ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Compile-only Script",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "program": "${workspaceFolder}/dist/locobasic.js",
+            "args": [
+                "example=euler",
+                "action=compile",
             ],
             "outFiles": [
                 "${workspaceFolder}/**/*.js"
