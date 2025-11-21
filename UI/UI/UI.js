@@ -310,7 +310,7 @@ export class UI {
         let timeoutId;
         return function (...args) {
             var _a, _b;
-            // use delay 0 when change comes from "SetValue" (ant not form "+input")
+            // Fast hack for CodeMittor changes: Use delay 0 when change comes from "setValue" (and not from CodeMirror "+input")
             const delay = ((_b = (_a = args === null || args === void 0 ? void 0 : args[1]) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.origin) === "setValue" ? 0 : fngetDelay();
             clearTimeout(timeoutId);
             timeoutId = setTimeout(() => {

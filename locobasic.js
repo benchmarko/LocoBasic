@@ -1776,7 +1776,7 @@
         }
         static deleteAllItems(items) {
             for (const name in items) {
-                delete items[name];
+                delete items[name]; // eslint-disable-line @typescript-eslint/no-dynamic-delete
             }
         }
         incrementLineIndex() {

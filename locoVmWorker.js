@@ -83,7 +83,7 @@
             1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
         ];
         const deleteAllItems = (items) => {
-            Object.keys(items).forEach(key => delete items[key]);
+            Object.keys(items).forEach(key => delete items[key]); // eslint-disable-line @typescript-eslint/no-dynamic-delete
         };
         const strokeWidthForMode = [4, 2, 1, 1];
         const getTagInSvg = (content, strokeWidth, backgroundColor) => {
@@ -612,17 +612,13 @@ ${content}
                 const value = vm._timerMap[timer];
                 if (value !== undefined) {
                     clearTimeout(value);
-                    delete vm._timerMap[timer];
+                    delete vm._timerMap[timer]; // eslint-disable-line @typescript-eslint/no-dynamic-delete
                 }
                 return value;
             },
             remainAll: function () {
                 for (const timer in vm._timerMap) {
-                    if (vm._timerMap[timer] !== undefined) {
-                        const value = vm._timerMap[timer];
-                        clearTimeout(value);
-                        delete vm._timerMap[timer];
-                    }
+                    vm.remain(Number(timer));
                 }
             },
             restore: function restore(label) {
