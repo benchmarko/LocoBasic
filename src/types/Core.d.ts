@@ -20,5 +20,6 @@ export declare class Core implements ICore {
     addIndex: (dir: string, input: Record<string, ExampleType[]> | (() => void)) => void;
     addItem: (key: string, input: string | (() => void)) => void;
     parseArgs(args: string[], config: Record<string, ConfigEntryType>): Record<string, ConfigEntryType>;
+    prepareWorkerFnString(workerFnString: string): string;
 }
 //# sourceMappingURL=Core.d.ts.map

@@ -81,6 +81,27 @@ export class NodeParts {
         const worker = new nodeWorkerThreads.Worker(path.resolve(__dirname, workerFile));
         return worker;
     }
+    getWorkerAsString(workerFn) {
+        const workerString = Object.entries(workerFn).map(([key, value]) => {
+            if (typeof value === "function") {
+                return `${value}`;
+            }
+            else if (typeof value === "object") {
+                return `${key}: ${JSON.stringify(value)}`;
+            }
+            else {
+                return `${key}: "${value}"`;
+            }
+        }).join(",\n  ");
+        return workerString;
+    }
+    createNodeWorkerAsString(workerFile) {
+        const path = this.getNodePath();
+        const workerFnPath = path.resolve(__dirname, workerFile);
+        const workerFn = require(workerFnPath);
+        const workerFnString = this.getWorkerAsString(workerFn);
+        return workerFnString;
+    }
     loadScript(fileOrUrl) {
         if (isUrl(fileOrUrl)) {
             return this.nodeReadUrl(fileOrUrl);
@@ -173,62 +194,25 @@ export class NodeParts {
     consolePrint(msg) {
         console.log(msg);
     }
-    getWorkerAsString(workerFn) {
-        const workerString = Object.entries(workerFn).map(([key, value]) => {
-            if (typeof value === "function") {
-                return `${value}`;
-            }
-            else if (typeof value === "object") {
-                return `${key}: ${JSON.stringify(value)}`;
-            }
-            else {
-                return `${key}: "${value}"`;
-            }
-        }).join(",\n  ");
-        return workerString;
+    async startRun(core, compiledScript) {
+        if (core.getConfigMap().debug) {
+            console.log("DEBUG: running compiled script...");
+        }
+        const output = await this.nodeVmMain.run(compiledScript);
+        console.log(output.replace(/\n$/, ""));
+        this.nodeVmMain.reset(); // terminate worker
+        if (this.fnOnKeyPressHandler) {
+            process.stdin.off('keypress', this.fnOnKeyPressHandler);
+            process.stdin.setRawMode(false);
+            process.exit(0); // hmm, not so nice
+        }
     }
-    start(core, input) {
-        const actionConfig = core.getConfigMap().action;
-        if (input !== "") {
-            //core.setOnCheckSyntax((s: string) => Promise.resolve(this.nodeCheckSyntax(s)));
-            const needCompile = actionConfig.includes("compile");
-            const { compiledScript, messages } = needCompile ? core.compileScript(input) : {
-                compiledScript: input,
-                messages: []
-            };
-            if (compiledScript.startsWith("ERROR:")) {
-                console.error(compiledScript);
-                return;
-            }
-            if (messages) {
-                console.log(messages.join("\n"));
-            }
-            if (actionConfig.includes("run")) {
-                return this.keepRunning(async () => {
-                    if (core.getConfigMap().debug) {
-                        console.log("DEBUG: running compiled script...");
-                    }
-                    const output = await this.nodeVmMain.run(compiledScript);
-                    console.log(output.replace(/\n$/, ""));
-                    this.nodeVmMain.reset(); // terminate worker
-                    if (this.fnOnKeyPressHandler) {
-                        process.stdin.off('keypress', this.fnOnKeyPressHandler);
-                        process.stdin.setRawMode(false);
-                        process.exit(0); // hmm, not so nice
-                    }
-                }, 5000);
-            }
-            else {
-                return this.keepRunning(async () => {
-                    const path = this.getNodePath();
-                    const workerFnPath = path.resolve(__dirname, workerFilename);
-                    const workerFn = require(workerFnPath);
-                    const workerString = this.getWorkerAsString(workerFn);
-                    const asyncStr = compiledScript.includes("await ") ? "async " : ""; // fast hack
-                    const inFrame = `(${asyncStr}function(_o) {
+    compiledCodeInFrame(compiledScript, workerFnString) {
+        const asyncStr = compiledScript.includes("await ") ? "async " : ""; // fast hack: check if we need async function
+        const inFrame = `(${asyncStr}function(_o) {
     ${compiledScript}
 })(
-    (${workerString})({
+    (${workerFnString})({
         on: (...args) => {
             // on: [ 'message', [Function: onMessageHandler] ]
             //console.log("on:", args);
@@ -256,8 +240,33 @@ export class NodeParts {
         }
     })
 );`;
-                    console.log(inFrame);
+        return inFrame;
+    }
+    start(core, input) {
+        const actionConfig = core.getConfigMap().action;
+        if (input !== "") {
+            //core.setOnCheckSyntax((s: string) => Promise.resolve(this.nodeCheckSyntax(s)));
+            const needCompile = actionConfig.includes("compile");
+            const { compiledScript, messages } = needCompile ? core.compileScript(input) : {
+                compiledScript: input,
+                messages: []
+            };
+            if (compiledScript.startsWith("ERROR:")) {
+                console.error(compiledScript);
+                return;
+            }
+            if (messages) {
+                console.log(messages.join("\n"));
+            }
+            if (actionConfig.includes("run")) {
+                return this.keepRunning(async () => {
+                    return this.startRun(core, compiledScript);
                 }, 5000);
+            }
+            else {
+                const workerString = core.prepareWorkerFnString(this.createNodeWorkerAsString(workerFilename));
+                const inFrame = this.compiledCodeInFrame(compiledScript, workerString);
+                console.log(inFrame);
             }
         }
         else {

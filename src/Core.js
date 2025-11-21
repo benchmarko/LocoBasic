@@ -1,3 +1,4 @@
+import { CommaOpChar, TabOpChar } from "./Constants";
 import { Parser } from "./Parser";
 import { arithmetic } from "./arithmetic";
 import { Semantics } from "./Semantics";
@@ -155,6 +156,14 @@ export class Core {
             }
         }
         return config;
+    }
+    prepareWorkerFnString(workerFnString) {
+        const constants = `
+    const CommaOpChar = "${CommaOpChar}";
+    const TabOpChar = "${TabOpChar}";
+`;
+        const workerStringWithConstants = workerFnString.replace(/const postMessage =/, `${constants}    const postMessage =`); // fast hack: get constants into worker string
+        return workerStringWithConstants;
     }
 }
 //# sourceMappingURL=Core.js.map

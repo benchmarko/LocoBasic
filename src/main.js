@@ -31,7 +31,7 @@ if (typeof window !== "undefined") {
                 core.addItem(key, input);
             }
         };
-        ui.onWindowLoadContinue(core, workerFn);
+        ui.onWindowLoadContinue(core, `${workerFn}`);
     };
 }
 else { // node.js

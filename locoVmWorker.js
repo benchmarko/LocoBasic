@@ -4,12 +4,13 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.locoVmWorker = {}));
 })(this, (function (exports) { 'use strict';
 
+    const CommaOpChar = "\u2192"; // Unicode arrow right
+    const TabOpChar = "\u21d2"; // Unicode double arrow right
+
     const workerFn = (parentPort) => {
         const postMessage = (message) => {
             (parentPort || self).postMessage(message);
         };
-        const CommaOpChar = "\u2192"; // Unicode arrow right
-        const TabOpChar = "\u21d2"; // Unicode double arrow right
         const cpcColors = [
             "#000000", //  0 Black
             "#000080", //  1 Blue
@@ -380,10 +381,7 @@ ${content}
                 vm.frame();
                 return ""; //"end";
             },
-            escapeText(str, isGraphics) {
-                if (vm._isTerminal && !isGraphics) { // for node.js we do not need to escape non-graphics text
-                    return str;
-                }
+            escapeText(str) {
                 return str.replace(/&/g, "&amp;").replace(/</g, "&lt;");
             },
             every: function every(timeout, timer, fn) {
@@ -562,7 +560,7 @@ ${content}
                 const formatNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
                 const text = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg).join("");
                 if (vm._tag) {
-                    return vm._gra.printGraphicsText(vm.escapeText(text, true));
+                    return vm._gra.printGraphicsText(vm.escapeText(text));
                 }
                 vm.printText(text);
             },
@@ -582,14 +580,14 @@ ${content}
                     return str;
                 };
                 if (vm._tag) {
-                    return vm._gra.printGraphicsText(vm.escapeText(strArgs.map(arg => formatCommaOrTab(arg)).join(""), true));
+                    return vm._gra.printGraphicsText(vm.escapeText(strArgs.map(arg => formatCommaOrTab(arg)).join("")));
                 }
                 for (const str of strArgs) {
                     vm.printText(formatCommaOrTab(str));
                 }
             },
             printText: function printText(text) {
-                vm._output += vm.escapeText(text);
+                vm._output += vm._isTerminal ? text : vm.escapeText(text); // for node.js we do not need to escape (non-graphics) text
                 const lines = text.split("\n");
                 if (lines.length > 1) {
                     vm._vpos += lines.length - 1;
@@ -702,7 +700,7 @@ ${content}
             write: function write(...args) {
                 const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
                 if (vm._tag) {
-                    return vm._gra.printGraphicsText(vm.escapeText(text, true));
+                    return vm._gra.printGraphicsText(vm.escapeText(text));
                 }
                 vm.printText(text);
             },

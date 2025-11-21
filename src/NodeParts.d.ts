@@ -19,6 +19,8 @@ export declare class NodeParts implements INodeParts {
     private nodeReadFile;
     private nodeReadUrl;
     createNodeWorker(workerFile: string): NodeWorkerType;
+    private getWorkerAsString;
+    private createNodeWorkerAsString;
     private loadScript;
     private keepRunning;
     private putKeyInBuffer;
@@ -28,7 +30,8 @@ export declare class NodeParts implements INodeParts {
     getEscape(): boolean;
     consoleClear(): void;
     consolePrint(msg: string): void;
-    private getWorkerAsString;
+    private startRun;
+    private compiledCodeInFrame;
     private start;
     private getExampleMap;
     private getExampleScript;

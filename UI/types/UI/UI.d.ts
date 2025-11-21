@@ -89,6 +89,6 @@ export declare class UI implements IUI {
     private syncInputState;
     private onCodeMirrorOpenDialog;
     private onCodeMirrorOpenConfirm;
-    onWindowLoadContinue(core: ICore, workerFn: () => unknown): void;
+    onWindowLoadContinue(core: ICore, workerFnString: string): void;
 }
 //# sourceMappingURL=UI.d.ts.map

@@ -86,7 +86,7 @@ export declare const workerFn: (parentPort?: NodeWorkerThreads["parentPort"]) =>
     draw: (x: number, y: number, pen?: number) => void;
     drawr: (x: number, y: number, pen?: number) => void;
     end: () => string;
-    escapeText(str: string, isGraphics?: boolean): string;
+    escapeText(str: string): string;
     every: (timeout: number, timer: number, fn: () => void) => void;
     exp: (num: number) => number;
     fix: (num: number) => number;

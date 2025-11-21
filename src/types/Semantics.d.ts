@@ -1,8 +1,6 @@
 import type { ActionDict, Node } from "ohm-js";
 import type { ISemantics, UsedLabelEntryType } from "./Interfaces";
 import { SemanticsHelper } from "./SemanticsHelper";
-export declare const CommaOpChar = "\u2192";
-export declare const TabOpChar = "\u21D2";
 export declare class Semantics implements ISemantics {
     private readonly helper;
     constructor();

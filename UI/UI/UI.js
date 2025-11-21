@@ -737,7 +737,7 @@ export class UI {
             input.dispatchEvent(new Event("change"));
         }
     }
-    onWindowLoadContinue(core, workerFn) {
+    onWindowLoadContinue(core, workerFnString) {
         this.core = core;
         const config = core.getConfigMap();
         const args = this.parseUri(config);
@@ -809,7 +809,8 @@ export class UI {
         window.document.addEventListener("click", () => {
             this.initialUserAction = true;
         }, { once: true });
-        const workerScript = `(${workerFn})();`;
+        const preparedWorkerFnString = core.prepareWorkerFnString(workerFnString);
+        const workerScript = `(${preparedWorkerFnString})();`;
         this.vmMain = new VmMain(workerScript, this.addOutputText, this.onSetUiKeys, this.onGeolocation, this.onSpeak);
         // Initialize database and examples
         UI.asyncDelay(() => {
