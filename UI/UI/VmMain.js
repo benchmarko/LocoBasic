@@ -35,7 +35,7 @@ const basicErrors = [
     "Unknown error" // 33...
 ];
 export class VmMain {
-    constructor(workerScript, addOutputText, setUiKeysFn, onGeolocationFn, onSpeakFn) {
+    constructor(locoVmWorkerName, createWebWorker, addOutputText, setUiKeysFn, onGeolocationFn, onSpeakFn) {
         this.code = "";
         this.workerOnMessageHandler = (event) => {
             const data = event.data;
@@ -112,7 +112,8 @@ export class VmMain {
             var _a;
             (_a = this.worker) === null || _a === void 0 ? void 0 : _a.terminate();
         };
-        this.workerScript = workerScript;
+        this.locoVmWorkerName = locoVmWorkerName;
+        this.createWebWorker = createWebWorker;
         this.addOutputText = addOutputText;
         this.setUiKeysFn = setUiKeysFn;
         this.onSpeakFn = onSpeakFn;
@@ -129,22 +130,19 @@ export class VmMain {
             this.worker.postMessage(message);
         }
     }
-    getOrCreateWorker() {
+    async getOrCreateWorker() {
         if (!this.worker) {
-            const blob = new Blob([this.workerScript], { type: "text/javascript" });
-            const objectURL = window.URL.createObjectURL(blob);
-            this.worker = new Worker(objectURL);
-            window.URL.revokeObjectURL(objectURL);
+            this.worker = await this.createWebWorker(this.locoVmWorkerName);
             this.worker.onmessage = this.workerOnMessageHandler;
         }
         return this.worker;
     }
-    run(code) {
+    async run(code) {
         if (!code.endsWith("\n")) {
             code += "\n"; // make sure the script end with a new line (needed for line comment in last line)
         }
         this.code = code; // for error message
-        this.getOrCreateWorker();
+        await this.getOrCreateWorker();
         const finishedPromise = new Promise((resolve) => {
             this.finishedResolverFn = resolve;
         });

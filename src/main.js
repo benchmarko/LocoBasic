@@ -17,10 +17,10 @@ const core = new Core({
     showCompiled: false,
     showOutput: true
 });
+const locoVmWorkerName = "./locoVmWorker.js";
 if (typeof window !== "undefined") {
     window.onload = () => {
         const UI = window.locobasicUI.UI; // we expect that it is already loaded in the HTML page
-        const workerFn = window.locoVmWorker.workerFn; // we expect that it is already loaded in the HTML page
         const ui = new UI();
         window.cpcBasic = {
             addIndex: core.addIndex,
@@ -31,10 +31,10 @@ if (typeof window !== "undefined") {
                 core.addItem(key, input);
             }
         };
-        ui.onWindowLoadContinue(core, `${workerFn}`);
+        ui.onWindowLoadContinue(core, locoVmWorkerName);
     };
 }
 else { // node.js
-    new NodeParts().nodeMain(core);
+    new NodeParts().nodeMain(core, locoVmWorkerName);
 }
 //# sourceMappingURL=main.js.map

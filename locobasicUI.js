@@ -4,6 +4,7 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.locobasicUI = {}));
 })(this, (function (exports) { 'use strict';
 
+    var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
     // eslint-disable-next-line @typescript-eslint/no-extraneous-class
     class LocoBasicMode {
         static getMode() {
@@ -142,7 +143,7 @@
         "Unknown error" // 33...
     ];
     class VmMain {
-        constructor(workerScript, addOutputText, setUiKeysFn, onGeolocationFn, onSpeakFn) {
+        constructor(locoVmWorkerName, createWebWorker, addOutputText, setUiKeysFn, onGeolocationFn, onSpeakFn) {
             this.code = "";
             this.workerOnMessageHandler = (event) => {
                 const data = event.data;
@@ -219,7 +220,8 @@
                 var _a;
                 (_a = this.worker) === null || _a === void 0 ? void 0 : _a.terminate();
             };
-            this.workerScript = workerScript;
+            this.locoVmWorkerName = locoVmWorkerName;
+            this.createWebWorker = createWebWorker;
             this.addOutputText = addOutputText;
             this.setUiKeysFn = setUiKeysFn;
             this.onSpeakFn = onSpeakFn;
@@ -236,22 +238,19 @@
                 this.worker.postMessage(message);
             }
         }
-        getOrCreateWorker() {
+        async getOrCreateWorker() {
             if (!this.worker) {
-                const blob = new Blob([this.workerScript], { type: "text/javascript" });
-                const objectURL = window.URL.createObjectURL(blob);
-                this.worker = new Worker(objectURL);
-                window.URL.revokeObjectURL(objectURL);
+                this.worker = await this.createWebWorker(this.locoVmWorkerName);
                 this.worker.onmessage = this.workerOnMessageHandler;
             }
             return this.worker;
         }
-        run(code) {
+        async run(code) {
             if (!code.endsWith("\n")) {
                 code += "\n"; // make sure the script end with a new line (needed for line comment in last line)
             }
             this.code = code; // for error message
-            this.getOrCreateWorker();
+            await this.getOrCreateWorker();
             const finishedPromise = new Promise((resolve) => {
                 this.finishedResolverFn = resolve;
             });
@@ -1015,7 +1014,35 @@
                 input.dispatchEvent(new Event("change"));
             }
         }
-        onWindowLoadContinue(core, workerFnString) {
+        async getLocoVmWorker(locoVmWorkerName) {
+            if (!window.locoVmWorker) {
+                await this.loadScript(locoVmWorkerName, "");
+            }
+            return window.locoVmWorker;
+        }
+        async createWebWorker(locoVmWorkerName) {
+            let worker;
+            // Detect if running on file:// protocol
+            const isFileProtocol = window.location.protocol === 'file:';
+            if (isFileProtocol) {
+                const locoVmWorker = await this.getLocoVmWorker(locoVmWorkerName);
+                const preparedWorkerFnString = this.getCore().prepareWorkerFnString(`${locoVmWorker.workerFn}`);
+                const workerScript = `(${preparedWorkerFnString})();`;
+                // Use Blob for file:// protocol
+                const blob = new Blob([workerScript], { type: "text/javascript" });
+                const objectURL = window.URL.createObjectURL(blob);
+                worker = new Worker(objectURL);
+                window.URL.revokeObjectURL(objectURL);
+                //console.log("VmMain: Worker created from Blob (file:// protocol).");
+            }
+            else {
+                // Use file-based worker for http/https
+                worker = new Worker(new URL(locoVmWorkerName, (typeof document === 'undefined' && typeof location === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : typeof document === 'undefined' ? location.href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('locobasicUI.js', document.baseURI).href))));
+                //console.log("VmMain: Worker created from file.");
+            }
+            return worker;
+        }
+        onWindowLoadContinue(core, locoVmWorkerName) {
             this.core = core;
             const config = core.getConfigMap();
             const args = this.parseUri(config);
@@ -1087,9 +1114,7 @@
             window.document.addEventListener("click", () => {
                 this.initialUserAction = true;
             }, { once: true });
-            const preparedWorkerFnString = core.prepareWorkerFnString(workerFnString);
-            const workerScript = `(${preparedWorkerFnString})();`;
-            this.vmMain = new VmMain(workerScript, this.addOutputText, this.onSetUiKeys, this.onGeolocation, this.onSpeak);
+            this.vmMain = new VmMain(locoVmWorkerName, (workerName) => this.createWebWorker(workerName), this.addOutputText, this.onSetUiKeys, this.onGeolocation, this.onSpeak);
             // Initialize database and examples
             UI.asyncDelay(() => {
                 const databaseMap = core.initDatabaseMap();

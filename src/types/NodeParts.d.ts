@@ -1,6 +1,7 @@
 import type { ICore, INodeParts, NodeWorkerType } from "./Interfaces";
 export declare class NodeParts implements INodeParts {
-    private nodeVmMain;
+    private nodeVmMain?;
+    private locoVmWorkerName;
     private nodeFs?;
     private nodeHttps?;
     private nodePath?;
@@ -10,7 +11,6 @@ export declare class NodeParts implements INodeParts {
     private readonly keyBuffer;
     private escape;
     private fnOnKeyPressHandler?;
-    constructor();
     private getNodeFs;
     private getNodeHttps;
     private getNodePath;
@@ -30,12 +30,13 @@ export declare class NodeParts implements INodeParts {
     getEscape(): boolean;
     consoleClear(): void;
     consolePrint(msg: string): void;
+    private getNodeVmMain;
     private startRun;
     private compiledCodeInFrame;
     private start;
     private getExampleMap;
     private getExampleScript;
-    nodeMain(core: ICore): Promise<void>;
+    nodeMain(core: ICore, locoVmWorkerName: string): Promise<void>;
     private static getHelpString;
 }
 //# sourceMappingURL=NodeParts.d.ts.map

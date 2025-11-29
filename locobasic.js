@@ -3281,13 +3281,12 @@ ${dataList.join(",\n")}
     function isUrl(s) {
         return s.startsWith("http"); // http or https
     }
-    const workerFilename = "locoVmWorker.js";
     class NodeParts {
         constructor() {
+            this.locoVmWorkerName = "";
             this.modulePath = "";
             this.keyBuffer = []; // buffered pressed keys
             this.escape = false;
-            this.nodeVmMain = new NodeVmMain(this, workerFilename);
         }
         getNodeFs() {
             if (!this.nodeFs) {
@@ -3473,13 +3472,20 @@ ${dataList.join(",\n")}
         consolePrint(msg) {
             console.log(msg);
         }
+        getNodeVmMain() {
+            if (!this.nodeVmMain) {
+                this.nodeVmMain = new NodeVmMain(this, this.locoVmWorkerName);
+            }
+            return this.nodeVmMain;
+        }
         async startRun(core, compiledScript) {
             if (core.getConfigMap().debug) {
                 console.log("DEBUG: running compiled script...");
             }
-            const output = await this.nodeVmMain.run(compiledScript);
+            const nodeVmMain = this.getNodeVmMain();
+            const output = await nodeVmMain.run(compiledScript);
             console.log(output.replace(/\n$/, ""));
-            this.nodeVmMain.reset(); // terminate worker
+            nodeVmMain.reset(); // terminate worker
             if (this.fnOnKeyPressHandler) {
                 process.stdin.off('keypress', this.fnOnKeyPressHandler);
                 process.stdin.setRawMode(false);
@@ -3543,7 +3549,7 @@ ${dataList.join(",\n")}
                     }, 5000);
                 }
                 else {
-                    const workerString = core.prepareWorkerFnString(this.createNodeWorkerAsString(workerFilename));
+                    const workerString = core.prepareWorkerFnString(this.createNodeWorkerAsString(this.locoVmWorkerName));
                     const inFrame = this.compiledCodeInFrame(compiledScript, workerString);
                     console.log(inFrame);
                 }
@@ -3594,9 +3600,10 @@ ${dataList.join(",\n")}
             }
             return example.script || "";
         }
-        async nodeMain(core) {
+        async nodeMain(core, locoVmWorkerName) {
             const config = core.getConfigMap();
             core.parseArgs(global.process.argv.slice(2), config);
+            this.locoVmWorkerName = locoVmWorkerName;
             if (config.input) {
                 return this.keepRunning(async () => {
                     this.start(core, config.input);
@@ -3687,10 +3694,10 @@ node hello1.js
         showCompiled: false,
         showOutput: true
     });
+    const locoVmWorkerName = "./locoVmWorker.js";
     if (typeof window !== "undefined") {
         window.onload = () => {
             const UI = window.locobasicUI.UI; // we expect that it is already loaded in the HTML page
-            const workerFn = window.locoVmWorker.workerFn; // we expect that it is already loaded in the HTML page
             const ui = new UI();
             window.cpcBasic = {
                 addIndex: core.addIndex,
@@ -3701,11 +3708,11 @@ node hello1.js
                     core.addItem(key, input);
                 }
             };
-            ui.onWindowLoadContinue(core, `${workerFn}`);
+            ui.onWindowLoadContinue(core, locoVmWorkerName);
         };
     }
     else { // node.js
-        new NodeParts().nodeMain(core);
+        new NodeParts().nodeMain(core, locoVmWorkerName);
     }
 
 }));

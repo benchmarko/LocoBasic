@@ -89,6 +89,8 @@ export declare class UI implements IUI {
     private syncInputState;
     private onCodeMirrorOpenDialog;
     private onCodeMirrorOpenConfirm;
-    onWindowLoadContinue(core: ICore, workerFnString: string): void;
+    private getLocoVmWorker;
+    createWebWorker(locoVmWorkerName: string): Promise<Worker>;
+    onWindowLoadContinue(core: ICore, locoVmWorkerName: string): void;
 }
 //# sourceMappingURL=UI.d.ts.map
