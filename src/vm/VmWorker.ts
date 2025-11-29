@@ -167,7 +167,7 @@ ${content}
             vmGra.cls();
         },
 
-        addGraphicsElement(element: string): void {
+        addGraphicsElement: (element: string): void => {
             vmGra.setOutputGraphicsIndex();
             vmGra.flushGraphicsPath(); // maybe a path is open
             vmGra._graphicsBuffer.push(element);
@@ -214,15 +214,15 @@ ${content}
             vmGra._graphicsPathBuffer.push(svgPathCmd);
         },
 
-        flushGraphicsPath(): void {
+        flushGraphicsPath: (): void => {
             if (vmGra._graphicsPathBuffer.length) {
-                const strokeStr = this._currGraphicsPen >= 0 ? `stroke="${vmGra.getRgbColorStringForPen(vmGra._currGraphicsPen)}" ` : "";
+                const strokeStr = vmGra._currGraphicsPen >= 0 ? `stroke="${vmGra.getRgbColorStringForPen(vmGra._currGraphicsPen)}" ` : "";
                 vmGra._graphicsBuffer.push(`<path ${strokeStr}d="${vmGra._graphicsPathBuffer.join("")}" />`);
                 vmGra._graphicsPathBuffer.length = 0;
             }
         },
 
-        getFlushedGraphics(): string {
+        getFlushedGraphics: (): string => {
             vmGra.flushGraphicsPath();
             if (vmGra._graphicsBuffer.length) {
                 const graphicsBufferStr = vmGra._graphicsBuffer.join("\n");
@@ -273,7 +273,7 @@ ${content}
         },
 
 
-        getStrokeAndFillStr(fill: number): string {
+        getStrokeAndFillStr: (fill: number): string => {
             const currGraphicsPen = vmGra._currGraphicsPen;
             const strokeStr = currGraphicsPen >= 0 ? ` stroke="${vmGra.getRgbColorStringForPen(currGraphicsPen)}"` : "";
             const fillStr = fill >= 0 ? ` fill="${vmGra.getRgbColorStringForPen(fill)}"` : "";
@@ -431,26 +431,26 @@ ${content}
             return createRecursiveArray(0);
         },
 
-        dim1: (dim: number, value: string | number = 0) => {
+        dim1: (dim: number, value: number = 0): number[] => {
             return new Array(dim + 1).fill(value);
         },
 
-        draw: function draw(x: number, y: number, pen?: number) {
+        draw: (x: number, y: number, pen?: number) => {
             vm._gra.drawMovePlot("L", x, y, pen);
         },
-        drawr: function drawr(x: number, y: number, pen?: number) {
+        drawr: (x: number, y: number, pen?: number) => {
             vm._gra.drawMovePlot("l", x, y, pen);
         },
-        end: function end() {
+        end: () => {
             vm.frame();
             return ""; //"end";
         },
 
-        escapeText(str: string): string {
+        escapeText: (str: string): string => {
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;");
         },
 
-        every: function every(timeout: number, timer: number, fn: () => void) {
+        every: (timeout: number, timer: number, fn: () => void) => {
             vm.remain(timer);
             vm._timerMap[timer] = setInterval(() => fn(), timeout * 20);
         },
@@ -478,7 +478,7 @@ ${content}
             return output;
         },
 
-        handleTrailingNewline(str: string) {
+        handleTrailingNewline: (str: string) => {
             return vm._isTerminal ? str.replace(/\n$/, "") : str;
         },
 
@@ -493,13 +493,13 @@ ${content}
 
         graphicsPen: (num: number) => vm._gra.graphicsPen(num),
 
-        hex$: function hex$(num: number, pad?: number) {
+        hex$: (num: number, pad?: number) => {
             return num.toString(16).toUpperCase().padStart(pad || 0, "0");
         },
-        ink: function ink(num: number, col: number) {
+        ink: (num: number, col: number) => {
             vm._gra.ink(num, col);
         },
-        inkey$: async function () {
+        inkey$: async () => {
             await vm.frame();
             if (vm._keyCharBufferString.length) {
                 const key = vm._keyCharBufferString.charAt(0);
@@ -527,18 +527,18 @@ ${content}
             return isNum ? Number(input) : input;
         },
 
-        instr: function instr(str: string, find: string, len: number) {
+        instr: (str: string, find: string, len: number) => {
             return str.indexOf(find, len !== undefined ? len - 1 : len) + 1;
         },
 
         int: (num: number) => Math.floor(num),
 
-        keyDef(num: number, repeat: number, ...codes: number[]): void {
+        keyDef: (num: number, repeat: number, ...codes: number[]): void => {
             if (num === 78 && repeat === 1) {
                 postMessage({ type: 'keyDef', codes });
             }
         },
-        left$: function left$(str: string, num: number) {
+        left$: (str: string, num: number) => {
             return str.slice(0, num);
         },
 
@@ -552,10 +552,10 @@ ${content}
 
         max: Math.max,
 
-        mid$: function mid$(str: string, pos: number, len?: number) {
+        mid$: (str: string, pos: number, len?: number) => {
             return str.substr(pos - 1, len);
         },
-        mid$Assign: function mid$Assign(s: string, start: number, newString: string, len?: number) {
+        mid$Assign: (s: string, start: number, newString: string, len?: number) => {
             start -= 1;
             len = Math.min(len ?? newString.length, newString.length, s.length - start);
             return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
@@ -563,17 +563,17 @@ ${content}
 
         min: Math.min,
 
-        mode: function mode(num: number) {
+        mode: (num: number) => {
             vm._gra.mode(num);
             vm.cls();
         },
-        move: function move(x: number, y: number, pen?: number) {
+        move: (x: number, y: number, pen?: number) => {
             vm._gra.drawMovePlot("M", x, y, pen);
         },
-        mover: function mover(x: number, y: number, pen?: number) {
+        mover: (x: number, y: number, pen?: number) => {
             vm._gra.drawMovePlot("m", x, y, pen);
         },
-        origin: function origin(x: number, y: number) {
+        origin: (x: number, y: number) => {
             vm._gra.origin(x, y);
         },
 
@@ -611,7 +611,7 @@ ${content}
             }
         },
 
-        pen(n: number): void {
+        pen: (n: number): void =>{
             if (n !== vm._penValue) {
                 vm._penValue = n;
                 if (vm._isTerminal) {
@@ -644,13 +644,13 @@ ${content}
 
         pi: Math.PI,
 
-        plot: function plot(x: number, y: number, pen?: number) {
+        plot: (x: number, y: number, pen?: number) => {
             vm._gra.drawMovePlot("P", x, y, pen);
         },
-        plotr: function plotr(x: number, y: number, pen?: number) {
+        plotr: (x: number, y: number, pen?: number) => {
             vm._gra.drawMovePlot("p", x, y, pen);
         },
-        pos: function pos() {
+        pos: () => {
             return vm._pos + 1;
         },
 
@@ -665,7 +665,7 @@ ${content}
 
         // printTab: print with commaOp or tabOp
         // For graphics output the text position does not change, so we can output all at once.
-        printTab: function printTab(...args: (string | number)[]) {
+        printTab: (...args: (string | number)[]) => {
             const formatNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
             const strArgs = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg);
             const formatCommaOrTab = (str: string) => {
@@ -684,7 +684,7 @@ ${content}
                 vm.printText(formatCommaOrTab(str));
             }
         },
-        printText: function printText(text: string) {
+        printText: (text: string) => {
             vm._output += vm._isTerminal ? text : vm.escapeText(text); // for node.js we do not need to escape (non-graphics) text
             const lines = text.split("\n");
             if (lines.length > 1) {
@@ -694,7 +694,7 @@ ${content}
                 vm._pos += text.length;
             }
         },
-        read: function read() {
+        read: () => {
             if (vm._dataPtr < vm._data.length) {
                 return vm._data[vm._dataPtr++];
             } else {
@@ -702,7 +702,7 @@ ${content}
             }
         },
         // remain: the return value is not really the remaining time
-        remain: function remain(timer: number) {
+        remain: (timer: number) => {
             const value = vm._timerMap[timer];
             if (value !== undefined) {
                 clearTimeout(value);
@@ -710,15 +710,15 @@ ${content}
             }
             return value;
         },
-        remainAll: function () {
+        remainAll: () => {
             for (const timer in vm._timerMap) {
                 vm.remain(Number(timer));
             }
         },
-        restore: function restore(label: string) {
+        restore: (label: string) => {
             vm._dataPtr = vm._restoreMap[label];
         },
-        right$: function right$(str: string, num: number) {
+        right$: (str: string, num: number) => {
             return str.substring(str.length - num);
         },
 
@@ -726,7 +726,7 @@ ${content}
 
         round1: Math.round,
 
-        round: function round(num: number, dec: number) {
+        round: (num: number, dec: number) => {
             return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
         },
 
@@ -778,11 +778,11 @@ ${content}
 
         sqr: Math.sqrt,
 
-        stop: function stop() {
+        stop: () => {
             vm.frame();
             return ""; //"stop";
         },
-        str$: function str$(num: number) {
+        str$: (num: number) => {
             return num >= 0 ? ` ${num}` : String(num);
         },
 
@@ -800,7 +800,7 @@ ${content}
 
         tan: Math.tan,
 
-        time: function time() {
+        time: () => {
             return ((Date.now() - vm._startTime) * 3 / 10) | 0;
         },
 
@@ -818,13 +818,13 @@ ${content}
 
         val1: (str: string) => Number(str),
 
-        val: function val(str: string) {
+        val: (str: string) =>{
             return Number(str.replace("&x", "0b").replace("&", "0x"));
         },
-        vpos: function vpos() {
+        vpos: () => {
             return vm._vpos + 1;
         },
-        write: function write(...args: (string | number)[]) {
+        write: (...args: (string | number)[]) => {
             const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
             if (vm._tag) {
                 return vm._gra.printGraphicsText(vm.escapeText(text));
@@ -835,7 +835,7 @@ ${content}
 
         ypos: () => vm._gra.ypos(),
 
-        zone: function zone(num: number) {
+        zone: (num: number) => {
             vm._zone = num;
         },
     };
