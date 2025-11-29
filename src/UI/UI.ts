@@ -877,7 +877,38 @@ export class UI implements IUI {
         */
     }
 
-    public onWindowLoadContinue(core: ICore, workerFnString: string): void {
+    private async getLocoVmWorker(locoVmWorkerName: string) {
+        if (!window.locoVmWorker) {
+             await this.loadScript(locoVmWorkerName, "");
+
+        }
+        return window.locoVmWorker;
+    }
+
+    public async createWebWorker(locoVmWorkerName: string) {
+        let worker: Worker;
+        // Detect if running on file:// protocol
+        const isFileProtocol = window.location.protocol === 'file:';
+        if (isFileProtocol) {
+            const locoVmWorker = await this.getLocoVmWorker(locoVmWorkerName);
+            const preparedWorkerFnString = this.getCore().prepareWorkerFnString(`${locoVmWorker.workerFn}`);
+            const workerScript = `(${preparedWorkerFnString})();`;
+
+            // Use Blob for file:// protocol
+            const blob = new Blob([workerScript], { type: "text/javascript" });
+            const objectURL = window.URL.createObjectURL(blob);
+            worker = new Worker(objectURL);
+            window.URL.revokeObjectURL(objectURL);
+            //console.log("VmMain: Worker created from Blob (file:// protocol).");
+        } else {
+            // Use file-based worker for http/https
+            worker = new Worker(new URL(locoVmWorkerName, import.meta.url));
+            //console.log("VmMain: Worker created from file.");
+        }
+        return worker;
+    }
+
+    public onWindowLoadContinue(core: ICore, locoVmWorkerName: string): void {
         this.core = core;
         const config = core.getConfigMap();
         const args = this.parseUri(config);
@@ -960,10 +991,7 @@ export class UI implements IUI {
             this.initialUserAction = true;
         }, { once: true });
 
-        const preparedWorkerFnString = core.prepareWorkerFnString(workerFnString);
-        const workerScript = `(${preparedWorkerFnString})();`;
-
-        this.vmMain = new VmMain(workerScript,  this.addOutputText, this.onSetUiKeys, this.onGeolocation, this.onSpeak);
+        this.vmMain = new VmMain(locoVmWorkerName, (workerName: string) => this.createWebWorker(workerName), this.addOutputText, this.onSetUiKeys, this.onGeolocation, this.onSpeak);
 
         // Initialize database and examples
         UI.asyncDelay(() => {

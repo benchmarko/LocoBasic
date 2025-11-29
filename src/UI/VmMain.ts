@@ -1,5 +1,13 @@
 import type { MessageFromWorker, MessageToWorker } from "../Interfaces";
 
+declare global {
+    interface Window {
+        locoVmWorker: {
+            workerFn: () => unknown
+        }
+    }
+}
+
 const basicErrors = [
     "Improper argument", // 0
     "Unexpected NEXT", // 1
@@ -38,8 +46,8 @@ const basicErrors = [
 ];
 
 export class VmMain {
-
-    private workerScript: string;
+    private locoVmWorkerName: string;
+    private createWebWorker: (workerName: string) => Promise<Worker>;
 
     private worker?: Worker;
 
@@ -53,8 +61,9 @@ export class VmMain {
 
     private code = "";
 
-    constructor(workerScript: string, addOutputText: (str: string, needCls?: boolean, hasGraphics?: boolean) => void, setUiKeysFn: (codes: number[]) => void, onGeolocationFn: () => Promise<string>, onSpeakFn: (text: string, pitch: number) => Promise<void>) {
-        this.workerScript = workerScript;
+    constructor(locoVmWorkerName: string, createWebWorker: (workerName: string) => Promise<Worker>, addOutputText: (str: string, needCls?: boolean, hasGraphics?: boolean) => void, setUiKeysFn: (codes: number[]) => void, onGeolocationFn: () => Promise<string>, onSpeakFn: (text: string, pitch: number) => Promise<void>) {
+        this.locoVmWorkerName = locoVmWorkerName;
+        this.createWebWorker = createWebWorker;
         this.addOutputText = addOutputText;
         this.setUiKeysFn = setUiKeysFn;
         this.onSpeakFn = onSpeakFn;
@@ -149,24 +158,21 @@ export class VmMain {
         this.worker?.terminate();
     }
 
-    private getOrCreateWorker() {
+    private async getOrCreateWorker() {
         if (!this.worker) {
-            const blob = new Blob([this.workerScript], { type: "text/javascript" });
-            const objectURL = window.URL.createObjectURL(blob);
+            this.worker = await this.createWebWorker(this.locoVmWorkerName);
 
-            this.worker = new Worker(objectURL);
-            window.URL.revokeObjectURL(objectURL);
             this.worker.onmessage = this.workerOnMessageHandler;
         }
         return this.worker;
     }
 
-    public run(code: string) {
+    public async run(code: string) {
         if (!code.endsWith("\n")) {
             code += "\n"; // make sure the script end with a new line (needed for line comment in last line)
         }
         this.code = code; // for error message
-        this.getOrCreateWorker();
+        await this.getOrCreateWorker();
 
         const finishedPromise = new Promise<string>((resolve) => {
             this.finishedResolverFn = resolve;

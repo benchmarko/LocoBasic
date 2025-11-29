@@ -106,6 +106,6 @@ export interface INodeParts {
 export interface IUI {
     addOutputText(str: string, needCls?: boolean, hasGraphics?: boolean): void;
     getCurrentDataKey(): string;
-    onWindowLoadContinue(core: ICore, workerFnString: string): void;
+    onWindowLoadContinue(core: ICore, locoVmWorkerName: string): void;
     prompt(msg: string): string | null;
 }

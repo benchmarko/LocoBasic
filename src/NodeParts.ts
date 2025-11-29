@@ -50,10 +50,9 @@ function isUrl(s: string) {
     return s.startsWith("http"); // http or https
 }
 
-const workerFilename = "locoVmWorker.js";
-
 export class NodeParts implements INodeParts {
-    private nodeVmMain: NodeVmMain;
+    private nodeVmMain?: NodeVmMain;
+    private locoVmWorkerName = "";
 
     private nodeFs?: NodeFs;
     private nodeHttps?: NodeHttps;
@@ -64,10 +63,6 @@ export class NodeParts implements INodeParts {
     private readonly keyBuffer: string[] = []; // buffered pressed keys
     private escape = false;
     private fnOnKeyPressHandler?: (chunk: string, key: NodeKeyPressType) => void;
-
-    constructor() {
-        this.nodeVmMain = new NodeVmMain(this, workerFilename);
-    }
 
     private getNodeFs() {
         if (!this.nodeFs) {
@@ -275,13 +270,21 @@ export class NodeParts implements INodeParts {
         console.log(msg);
     }
 
+    private getNodeVmMain() {
+        if (!this.nodeVmMain) {
+            this.nodeVmMain = new NodeVmMain(this, this.locoVmWorkerName);
+        }
+        return this.nodeVmMain;
+    }
+
     private async startRun(core: ICore, compiledScript: string) {
         if (core.getConfigMap().debug) {
             console.log("DEBUG: running compiled script...");
         }
-        const output = await this.nodeVmMain.run(compiledScript);
+        const nodeVmMain = this.getNodeVmMain();
+        const output = await nodeVmMain.run(compiledScript);
         console.log(output.replace(/\n$/, ""));
-        this.nodeVmMain.reset(); // terminate worker
+        nodeVmMain.reset(); // terminate worker
         if (this.fnOnKeyPressHandler) {
             process.stdin.off('keypress', this.fnOnKeyPressHandler);
             process.stdin.setRawMode(false);
@@ -351,7 +354,7 @@ export class NodeParts implements INodeParts {
                     return this.startRun(core, compiledScript);
                 }, 5000);
             } else {
-                const workerString = core.prepareWorkerFnString(this.createNodeWorkerAsString(workerFilename));
+                const workerString = core.prepareWorkerFnString(this.createNodeWorkerAsString(this.locoVmWorkerName));
                 const inFrame = this.compiledCodeInFrame(compiledScript, workerString);
                 console.log(inFrame);
             }
@@ -403,9 +406,10 @@ export class NodeParts implements INodeParts {
 
     }
 
-    public async nodeMain(core: ICore): Promise<void> {
+    public async nodeMain(core: ICore, locoVmWorkerName: string): Promise<void> {
         const config = core.getConfigMap();
         core.parseArgs(global.process.argv.slice(2), config);
+        this.locoVmWorkerName = locoVmWorkerName;
 
         if (config.input) {
             return this.keepRunning(async () => {
