@@ -35,7 +35,7 @@ const core: ICore = new Core({
     showOutput: true
 });
 
-const locoVmWorkerName = "./locoVmWorker.js";
+const locoVmWorkerName = "locoVmWorker.js";
 
 if (typeof window !== "undefined") {
     window.onload = () => {

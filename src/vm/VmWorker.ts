@@ -938,4 +938,8 @@ if (typeof require !== "undefined") { // node.js?
             workerFn(parentPort);
         }
     })();
+} else if (typeof self !== "undefined") {
+    //console.log("DDD: Starting worker in browser...");
+    // Browser worker environment
+    workerFn();
 }

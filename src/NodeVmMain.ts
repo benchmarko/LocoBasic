@@ -1,4 +1,5 @@
 import type { INodeParts, MessageFromWorker, MessageToWorker, NodeWorkerType } from "./Interfaces";
+import { VmMessageHandler, type VmMessageHandlerCallbacks } from "./VmMessageHandler";
 
 
 export class NodeVmMain {
@@ -10,17 +11,46 @@ export class NodeVmMain {
 
     private finishedResolverFn: ((msg: string) => void) | undefined;
 
-    private code = "";
+    private messageHandler: VmMessageHandler;
 
     constructor(nodeParts: INodeParts, workerFile: string) {
         this.nodeParts = nodeParts;
         this.workerFile = workerFile;
-    }
 
-    private static describeError(stringToEval: string, lineno: number, colno: number): string {
-        const lines = stringToEval.split("\n");
-        const line = lines[lineno - 1];
-        return `${line}\n${" ".repeat(colno - 1) + "^"}`;
+        const callbacks: VmMessageHandlerCallbacks = {
+            onFrame: (message: string, needCls?: boolean) => {
+                if (needCls) {
+                    this.nodeParts.consoleClear();
+                }
+                this.nodeParts.consolePrint(message);
+            },
+            onInput: (prompt: string) => {
+                setTimeout(() => {
+                    this.nodeParts.consolePrint(prompt);
+                    const userInput = ""; //TODO
+                    this.postMessage({ type: 'input', prompt: userInput });
+                }, 50); // 50ms delay to allow UI update
+            },
+            onGeolocation: async () => {
+                // TODO
+                return '';
+            },
+            onSpeak: async () => {
+                // TODO
+            },
+            onKeyDef: () => {
+                //TODO
+            },
+            onResultResolved: (message: string) => {
+                if (this.finishedResolverFn) {
+                    this.finishedResolverFn(message);
+                    this.finishedResolverFn = undefined;
+                }
+            }
+        };
+
+        this.messageHandler = new VmMessageHandler(callbacks);
+        this.messageHandler.setPostMessageFn((message: MessageToWorker) => this.postMessage(message));
     }
 
     postMessage(message: MessageToWorker) {
@@ -30,57 +60,7 @@ export class NodeVmMain {
     }
 
     private workerOnMessageHandler = (data: MessageFromWorker): void => {
-        switch (data.type) {
-            case 'frame':
-                if (data.needCls) {
-                    this.nodeParts.consoleClear();
-                }
-                this.nodeParts.consolePrint(data.message);
-                break;
-            case 'geolocation':
-                // TODO
-                this.postMessage({ type: 'continue', result: '' });
-                break;
-            case 'input':
-                setTimeout(() => {
-                    this.nodeParts.consolePrint(data.prompt);
-                    const userInput = ""; //TODO
-                    this.postMessage({ type: 'input', prompt: userInput });
-                }, 50); // 50ms delay to allow UI update
-                break;
-            case 'keyDef':
-                //sthis.setUiKeysFn(data.codes);
-                break;
-            case 'result': {
-                let res = data.result || "";
-
-                if (res.startsWith("{")) {
-                    const json = JSON.parse(res);
-                    const { lineno, colno, message } = json;
-                    if (message === "No Error: Parsing successful!") {
-                        res = "";
-                    } else {
-                        res = `Syntax error thrown at: Line ${lineno - 2}, col: ${colno}\n`
-                            + NodeVmMain.describeError(this.code, lineno - 2, colno) + "\n"
-                            + message;
-                    }
-                } else if (res === "Error: INFO: Program stopped") {
-                    res = "";
-                }
-                if (this.finishedResolverFn) {
-                    this.finishedResolverFn(res);
-                    this.finishedResolverFn = undefined;
-                }
-                break;
-            }
-            case 'speak':
-                // TODO
-                this.postMessage({ type: 'continue', result: '' });
-                break;
-            default:
-                console.error("NodeVmMain: Unknown message type:", data);
-                break;
-        }
+        this.messageHandler.handleMessage(data);
     };
 
     private getOrCreateWorker() {
@@ -92,15 +72,16 @@ export class NodeVmMain {
         return this.worker;
     }
 
-    public run(code: string) {
+    public async run(code: string) {
         if (!code.endsWith("\n")) {
             code += "\n"; // make sure the script end with a new line (needed for line comment in las line)
         }
-        this.code = code; // for error message
+        this.messageHandler.setCode(code); // for error message
         this.getOrCreateWorker();
 
         const finishedPromise = new Promise<string>((resolve) => {
             this.finishedResolverFn = resolve;
+            this.messageHandler.setFinishedResolver(resolve);
         })
 
         this.postMessage({ type: 'run', code });

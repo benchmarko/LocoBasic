@@ -899,11 +899,10 @@ export class UI implements IUI {
             const objectURL = window.URL.createObjectURL(blob);
             worker = new Worker(objectURL);
             window.URL.revokeObjectURL(objectURL);
-            //console.log("VmMain: Worker created from Blob (file:// protocol).");
         } else {
             // Use file-based worker for http/https
-            worker = new Worker(new URL(locoVmWorkerName, import.meta.url));
-            //console.log("VmMain: Worker created from file.");
+            const workerUrl = new URL(locoVmWorkerName, window.location.href);
+            worker = new Worker(workerUrl);
         }
         return worker;
     }
