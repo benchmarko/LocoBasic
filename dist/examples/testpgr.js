@@ -5,6 +5,7 @@
 cpcBasic.addItem("", `
 REM testpgr - Test Page Graphics
 MODE 1
+TAG:MOVE 0,399
 PRINT "Test Page Graphics"
 '
 x0=40:y0=50

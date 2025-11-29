@@ -74,20 +74,21 @@ describe("VmWorker.vm core methods", () => {
         vm._paperValue = 1;
         vm._penValue = 2;
         vm._pos = 5;
+        vm._vpos = 2;
         vm.cls();
         expect(vm._output).toBe('');
         expect(vm._paperValue).toBe(-1);
         expect(vm._penValue).toBe(-1);
         expect(vm._pos).toBe(0);
+        expect(vm._vpos).toBe(0);
     });
 
     it("print and printText append and escape output (& and <)", () => {
         const vm = workerFn(getMockParentPort());
         vm.cls();
         vm.print("<b>", 42, -1);
-        expect(vm._output).toContain("&lt;b>");
-        expect(vm._output).toContain(" 42 ");
-        expect(vm._output).toContain("-1 ");
+        expect(vm._pos).toBe(10);
+        expect(vm._output).toBe('&lt;b> 42 -1 ');
     });
 
     it("getFlushedText returns and clears output", () => {
@@ -241,5 +242,10 @@ describe("VmWorker.vm core methods", () => {
         expect(vm._output).toContain('\x1b[');
         vm.pen(2);
         expect(vm._output).toContain('\x1b[');
+    });
+
+    it("pos", () => {
+        const vm = workerFn(getMockParentPort());
+        expect(vm.pos()).toBe(1);
     });
 });
