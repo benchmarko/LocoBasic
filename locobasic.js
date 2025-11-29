@@ -6,6 +6,42 @@
 
     const CommaOpChar = "\u2192"; // Unicode arrow right
     const TabOpChar = "\u21d2"; // Unicode double arrow right
+    const basicErrors = [
+        "Improper argument", // 0
+        "Unexpected NEXT", // 1
+        "Syntax Error", // 2
+        "Unexpected RETURN", // 3
+        "DATA exhausted", // 4
+        "Improper argument", // 5
+        "Overflow", // 6
+        "Memory full", // 7
+        "Line does not exist", // 8
+        "Subscript out of range", // 9
+        "Array already dimensioned", // 10
+        "Division by zero", // 11
+        "Invalid direct command", // 12
+        "Type mismatch", // 13
+        "String space full", // 14
+        "String too long", // 15
+        "String expression too complex", // 16
+        "Cannot CONTinue", // 17
+        "Unknown user function", // 18
+        "RESUME missing", // 19
+        "Unexpected RESUME", // 20
+        "Direct command found", // 21
+        "Operand missing", // 22
+        "Line too long", // 23
+        "EOF met", // 24
+        "File type error", // 25
+        "NEXT missing", // 26
+        "File already open", // 27
+        "Unknown command", // 28
+        "WEND missing", // 29
+        "Unexpected WEND", // 30
+        "File not open", // 31,
+        "Broken", // 32 "Broken in" (derr=146: xxx not found)
+        "Unknown error" // 33...
+    ];
 
     class Parser {
         constructor(grammarString, semanticsMap, superParser) {
@@ -3167,70 +3203,150 @@ ${dataList.join(",\n")}
         }
     }
 
-    class NodeVmMain {
-        constructor(nodeParts, workerFile) {
+    class VmMessageHandler {
+        constructor(callbacks) {
             this.code = "";
-            this.workerOnMessageHandler = (data) => {
-                switch (data.type) {
-                    case 'frame':
-                        if (data.needCls) {
-                            this.nodeParts.consoleClear();
-                        }
-                        this.nodeParts.consolePrint(data.message);
-                        break;
-                    case 'geolocation':
-                        // TODO
-                        this.postMessage({ type: 'continue', result: '' });
-                        break;
-                    case 'input':
-                        setTimeout(() => {
-                            this.nodeParts.consolePrint(data.prompt);
-                            const userInput = ""; //TODO
-                            this.postMessage({ type: 'input', prompt: userInput });
-                        }, 50); // 50ms delay to allow UI update
-                        break;
-                    case 'keyDef':
-                        //sthis.setUiKeysFn(data.codes);
-                        break;
-                    case 'result': {
-                        let res = data.result || "";
-                        if (res.startsWith("{")) {
-                            const json = JSON.parse(res);
-                            const { lineno, colno, message } = json;
-                            if (message === "No Error: Parsing successful!") {
-                                res = "";
-                            }
-                            else {
-                                res = `Syntax error thrown at: Line ${lineno - 2}, col: ${colno}\n`
-                                    + NodeVmMain.describeError(this.code, lineno - 2, colno) + "\n"
-                                    + message;
-                            }
-                        }
-                        else if (res === "Error: INFO: Program stopped") {
-                            res = "";
-                        }
-                        if (this.finishedResolverFn) {
-                            this.finishedResolverFn(res);
-                            this.finishedResolverFn = undefined;
-                        }
-                        break;
-                    }
-                    case 'speak':
-                        // TODO
-                        this.postMessage({ type: 'continue', result: '' });
-                        break;
-                    default:
-                        console.error("NodeVmMain: Unknown message type:", data);
-                        break;
-                }
-            };
-            this.nodeParts = nodeParts;
-            this.workerFile = workerFile;
+            this.callbacks = callbacks;
+        }
+        setPostMessageFn(postMessageFn) {
+            this.postMessageFn = postMessageFn;
+        }
+        setCode(code) {
+            this.code = code;
+        }
+        setFinishedResolver(resolver) {
+            this.finishedResolverFn = resolver;
+        }
+        getFinishedResolver() {
+            return this.finishedResolverFn;
+        }
+        clearFinishedResolver() {
+            this.finishedResolverFn = undefined;
         }
         static describeError(stringToEval, lineno, colno) {
             const lines = stringToEval.split("\n");
             const line = lines[lineno - 1];
             return `${line}\n${" ".repeat(colno - 1) + "^"}`;
+        }
+        postMessageToWorker(message) {
+            if (this.postMessageFn) {
+                this.postMessageFn(message);
+            }
+        }
+        async handleMessage(data) {
+            switch (data.type) {
+                case 'frame':
+                    this.callbacks.onFrame(data.message, data.needCls, data.hasGraphics);
+                    break;
+                case 'geolocation': {
+                    try {
+                        const str = await this.callbacks.onGeolocation();
+                        this.postMessageToWorker({ type: 'continue', result: str });
+                    }
+                    catch (msg) {
+                        console.error(msg);
+                        this.postMessageToWorker({ type: 'stop' });
+                        this.postMessageToWorker({ type: 'continue', result: '' });
+                    }
+                    break;
+                }
+                case 'input': {
+                    setTimeout(() => {
+                        this.callbacks.onInput(data.prompt);
+                    }, 50); // 50ms delay to allow UI update
+                    break;
+                }
+                case 'keyDef':
+                    this.callbacks.onKeyDef(data.codes);
+                    break;
+                case 'result': {
+                    let res = data.result || "";
+                    if (res.startsWith("{")) {
+                        const json = JSON.parse(res);
+                        const { lineno, colno, message } = json;
+                        if (message === "No Error: Parsing successful!") {
+                            res = "";
+                        }
+                        else {
+                            res = `Syntax error thrown at: Line ${lineno - 2}, col: ${colno}\n`
+                                + VmMessageHandler.describeError(this.code, lineno - 2, colno) + "\n"
+                                + message;
+                        }
+                    }
+                    else if (res === "Error: INFO: Program stopped") {
+                        res = "";
+                    }
+                    else {
+                        const match1 = res.match(/^Error: (\d+)$/);
+                        if (match1) {
+                            res += ": " + basicErrors[Number(match1[1])];
+                        }
+                    }
+                    if (this.finishedResolverFn) {
+                        this.callbacks.onResultResolved(res);
+                        this.finishedResolverFn = undefined;
+                    }
+                    break;
+                }
+                case 'speak': {
+                    try {
+                        await this.callbacks.onSpeak(data.message, data.pitch);
+                        this.postMessageToWorker({ type: 'continue', result: '' });
+                    }
+                    catch (msg) {
+                        console.log(msg);
+                        this.postMessageToWorker({ type: 'stop' });
+                        this.postMessageToWorker({ type: 'continue', result: '' });
+                    }
+                    break;
+                }
+                default:
+                    console.error("VmMessageHandler: Unknown message type:", data);
+                    break;
+            }
+        }
+    }
+
+    class NodeVmMain {
+        constructor(nodeParts, workerFile) {
+            this.workerOnMessageHandler = (data) => {
+                this.messageHandler.handleMessage(data);
+            };
+            this.nodeParts = nodeParts;
+            this.workerFile = workerFile;
+            const callbacks = {
+                onFrame: (message, needCls) => {
+                    if (needCls) {
+                        this.nodeParts.consoleClear();
+                    }
+                    this.nodeParts.consolePrint(message);
+                },
+                onInput: (prompt) => {
+                    setTimeout(() => {
+                        this.nodeParts.consolePrint(prompt);
+                        const userInput = ""; //TODO
+                        this.postMessage({ type: 'input', prompt: userInput });
+                    }, 50); // 50ms delay to allow UI update
+                },
+                onGeolocation: async () => {
+                    // TODO
+                    return '';
+                },
+                onSpeak: async () => {
+                    // TODO
+                },
+                onKeyDef: () => {
+                    //TODO
+                },
+                onResultResolved: (message) => {
+                    if (this.finishedResolverFn) {
+                        this.finishedResolverFn(message);
+                        this.finishedResolverFn = undefined;
+                    }
+                }
+            };
+            this.messageHandler = new VmMessageHandler(callbacks);
+            this.messageHandler.setPostMessageFn((message) => this.postMessage(message));
         }
         postMessage(message) {
             if (this.worker) {
@@ -3245,14 +3361,15 @@ ${dataList.join(",\n")}
             }
             return this.worker;
         }
-        run(code) {
+        async run(code) {
             if (!code.endsWith("\n")) {
                 code += "\n"; // make sure the script end with a new line (needed for line comment in las line)
             }
-            this.code = code; // for error message
+            this.messageHandler.setCode(code); // for error message
             this.getOrCreateWorker();
             const finishedPromise = new Promise((resolve) => {
                 this.finishedResolverFn = resolve;
+                this.messageHandler.setFinishedResolver(resolve);
             });
             this.postMessage({ type: 'run', code });
             return finishedPromise;
@@ -3694,7 +3811,7 @@ node hello1.js
         showCompiled: false,
         showOutput: true
     });
-    const locoVmWorkerName = "./locoVmWorker.js";
+    const locoVmWorkerName = "locoVmWorker.js";
     if (typeof window !== "undefined") {
         window.onload = () => {
             const UI = window.locobasicUI.UI; // we expect that it is already loaded in the HTML page

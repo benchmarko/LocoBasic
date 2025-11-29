@@ -4,9 +4,8 @@ export declare class NodeVmMain {
     private workerFile;
     private worker?;
     private finishedResolverFn;
-    private code;
+    private messageHandler;
     constructor(nodeParts: INodeParts, workerFile: string);
-    private static describeError;
     postMessage(message: MessageToWorker): void;
     private workerOnMessageHandler;
     private getOrCreateWorker;

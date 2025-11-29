@@ -4,7 +4,6 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.locobasicUI = {}));
 })(this, (function (exports) { 'use strict';
 
-    var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
     // eslint-disable-next-line @typescript-eslint/no-extraneous-class
     class LocoBasicMode {
         static getMode() {
@@ -142,79 +141,116 @@
         "Broken", // 32 "Broken in" (derr=146: xxx not found)
         "Unknown error" // 33...
     ];
-    class VmMain {
-        constructor(locoVmWorkerName, createWebWorker, addOutputText, setUiKeysFn, onGeolocationFn, onSpeakFn) {
+
+    class VmMessageHandler {
+        constructor(callbacks) {
             this.code = "";
-            this.workerOnMessageHandler = (event) => {
-                const data = event.data;
-                switch (data.type) {
-                    case 'frame':
-                        this.addOutputText(data.message, data.needCls, data.hasGraphics);
-                        break;
-                    case 'geolocation': {
-                        const finishedPromise = this.onGeolocationFn();
-                        finishedPromise.then((str) => {
-                            this.postMessage({ type: 'continue', result: str });
-                        }).catch((msg) => {
-                            console.error(msg);
-                            this.postMessage({ type: 'stop' });
-                            this.postMessage({ type: 'continue', result: '' });
-                        });
-                        break;
+            this.callbacks = callbacks;
+        }
+        setPostMessageFn(postMessageFn) {
+            this.postMessageFn = postMessageFn;
+        }
+        setCode(code) {
+            this.code = code;
+        }
+        setFinishedResolver(resolver) {
+            this.finishedResolverFn = resolver;
+        }
+        getFinishedResolver() {
+            return this.finishedResolverFn;
+        }
+        clearFinishedResolver() {
+            this.finishedResolverFn = undefined;
+        }
+        static describeError(stringToEval, lineno, colno) {
+            const lines = stringToEval.split("\n");
+            const line = lines[lineno - 1];
+            return `${line}\n${" ".repeat(colno - 1) + "^"}`;
+        }
+        postMessageToWorker(message) {
+            if (this.postMessageFn) {
+                this.postMessageFn(message);
+            }
+        }
+        async handleMessage(data) {
+            switch (data.type) {
+                case 'frame':
+                    this.callbacks.onFrame(data.message, data.needCls, data.hasGraphics);
+                    break;
+                case 'geolocation': {
+                    try {
+                        const str = await this.callbacks.onGeolocation();
+                        this.postMessageToWorker({ type: 'continue', result: str });
                     }
-                    case 'input':
-                        setTimeout(() => {
-                            const userInput = prompt(data.prompt);
-                            this.postMessage({ type: 'input', prompt: userInput });
-                        }, 50); // 50ms delay to allow UI update
-                        break;
-                    case 'keyDef':
-                        this.setUiKeysFn(data.codes);
-                        break;
-                    case 'result': {
-                        let res = data.result || "";
-                        if (res.startsWith("{")) {
-                            const json = JSON.parse(res);
-                            const { lineno, colno, message } = json;
-                            if (message === "No Error: Parsing successful!") {
-                                res = "";
-                            }
-                            else {
-                                res = `Syntax error thrown at: Line ${lineno - 2}, col: ${colno}\n`
-                                    + VmMain.describeError(this.code, lineno - 2, colno) + "\n"
-                                    + message;
-                            }
-                        }
-                        else if (res === "Error: INFO: Program stopped") {
+                    catch (msg) {
+                        console.error(msg);
+                        this.postMessageToWorker({ type: 'stop' });
+                        this.postMessageToWorker({ type: 'continue', result: '' });
+                    }
+                    break;
+                }
+                case 'input': {
+                    setTimeout(() => {
+                        this.callbacks.onInput(data.prompt);
+                    }, 50); // 50ms delay to allow UI update
+                    break;
+                }
+                case 'keyDef':
+                    this.callbacks.onKeyDef(data.codes);
+                    break;
+                case 'result': {
+                    let res = data.result || "";
+                    if (res.startsWith("{")) {
+                        const json = JSON.parse(res);
+                        const { lineno, colno, message } = json;
+                        if (message === "No Error: Parsing successful!") {
                             res = "";
                         }
                         else {
-                            const match1 = res.match(/^Error: (\d+)$/);
-                            if (match1) {
-                                res += ": " + basicErrors[Number(match1[1])];
-                            }
+                            res = `Syntax error thrown at: Line ${lineno - 2}, col: ${colno}\n`
+                                + VmMessageHandler.describeError(this.code, lineno - 2, colno) + "\n"
+                                + message;
                         }
-                        if (this.finishedResolverFn) {
-                            this.finishedResolverFn(res);
-                            this.finishedResolverFn = undefined;
+                    }
+                    else if (res === "Error: INFO: Program stopped") {
+                        res = "";
+                    }
+                    else {
+                        const match1 = res.match(/^Error: (\d+)$/);
+                        if (match1) {
+                            res += ": " + basicErrors[Number(match1[1])];
                         }
-                        break;
                     }
-                    case 'speak': {
-                        const finishedPromise = this.onSpeakFn(data.message, data.pitch);
-                        finishedPromise.then(() => {
-                            this.postMessage({ type: 'continue', result: '' });
-                        }).catch((msg) => {
-                            console.log(msg);
-                            this.postMessage({ type: 'stop' });
-                            this.postMessage({ type: 'continue', result: '' });
-                        });
-                        break;
+                    if (this.finishedResolverFn) {
+                        this.callbacks.onResultResolved(res);
+                        this.finishedResolverFn = undefined;
                     }
-                    default:
-                        console.error("VmMain: Unknown message type:", data);
-                        break;
+                    break;
                 }
+                case 'speak': {
+                    try {
+                        await this.callbacks.onSpeak(data.message, data.pitch);
+                        this.postMessageToWorker({ type: 'continue', result: '' });
+                    }
+                    catch (msg) {
+                        console.log(msg);
+                        this.postMessageToWorker({ type: 'stop' });
+                        this.postMessageToWorker({ type: 'continue', result: '' });
+                    }
+                    break;
+                }
+                default:
+                    console.error("VmMessageHandler: Unknown message type:", data);
+                    break;
+            }
+        }
+    }
+
+    class VmMain {
+        constructor(locoVmWorkerName, createWebWorker, addOutputText, setUiKeysFn, onGeolocationFn, onSpeakFn) {
+            this.workerOnMessageHandler = (event) => {
+                const data = event.data;
+                this.messageHandler.handleMessage(data);
             };
             this.handleBeforeUnload = () => {
                 var _a;
@@ -226,12 +262,29 @@
             this.setUiKeysFn = setUiKeysFn;
             this.onSpeakFn = onSpeakFn;
             this.onGeolocationFn = onGeolocationFn;
+            const callbacks = {
+                onFrame: (message, needCls, hasGraphics) => {
+                    this.addOutputText(message, needCls, hasGraphics);
+                },
+                onInput: (prompt) => {
+                    const userInput = window.prompt(prompt);
+                    this.postMessage({ type: 'input', prompt: userInput });
+                },
+                onGeolocation: () => this.onGeolocationFn(),
+                onSpeak: (message, pitch) => this.onSpeakFn(message, pitch),
+                onKeyDef: (codes) => {
+                    this.setUiKeysFn(codes);
+                },
+                onResultResolved: (message) => {
+                    if (this.finishedResolverFn) {
+                        this.finishedResolverFn(message);
+                        this.finishedResolverFn = undefined;
+                    }
+                }
+            };
+            this.messageHandler = new VmMessageHandler(callbacks);
+            this.messageHandler.setPostMessageFn((message) => this.postMessage(message));
             window.addEventListener('beforeunload', this.handleBeforeUnload, { once: true });
-        }
-        static describeError(stringToEval, lineno, colno) {
-            const lines = stringToEval.split("\n");
-            const line = lines[lineno - 1];
-            return `${line}\n${" ".repeat(colno - 1) + "^"}`;
         }
         postMessage(message) {
             if (this.worker) {
@@ -242,6 +295,8 @@
             if (!this.worker) {
                 this.worker = await this.createWebWorker(this.locoVmWorkerName);
                 this.worker.onmessage = this.workerOnMessageHandler;
+                // Send config message to initialize worker
+                //this.postMessage({ type: 'config', isTerminal: false });
             }
             return this.worker;
         }
@@ -249,10 +304,11 @@
             if (!code.endsWith("\n")) {
                 code += "\n"; // make sure the script end with a new line (needed for line comment in last line)
             }
-            this.code = code; // for error message
+            this.messageHandler.setCode(code); // for error message
             await this.getOrCreateWorker();
             const finishedPromise = new Promise((resolve) => {
                 this.finishedResolverFn = resolve;
+                this.messageHandler.setFinishedResolver(resolve);
             });
             this.postMessage({ type: 'run', code });
             return finishedPromise;
@@ -1033,12 +1089,11 @@
                 const objectURL = window.URL.createObjectURL(blob);
                 worker = new Worker(objectURL);
                 window.URL.revokeObjectURL(objectURL);
-                //console.log("VmMain: Worker created from Blob (file:// protocol).");
             }
             else {
                 // Use file-based worker for http/https
-                worker = new Worker(new URL(locoVmWorkerName, (typeof document === 'undefined' && typeof location === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : typeof document === 'undefined' ? location.href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('locobasicUI.js', document.baseURI).href))));
-                //console.log("VmMain: Worker created from file.");
+                const workerUrl = new URL(locoVmWorkerName, window.location.href);
+                worker = new Worker(workerUrl);
             }
             return worker;
         }

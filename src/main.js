@@ -17,7 +17,7 @@ const core = new Core({
     showCompiled: false,
     showOutput: true
 });
-const locoVmWorkerName = "./locoVmWorker.js";
+const locoVmWorkerName = "locoVmWorker.js";
 if (typeof window !== "undefined") {
     window.onload = () => {
         const UI = window.locobasicUI.UI; // we expect that it is already loaded in the HTML page

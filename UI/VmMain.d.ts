@@ -10,14 +10,13 @@ export declare class VmMain {
     private locoVmWorkerName;
     private createWebWorker;
     private worker?;
-    private finishedResolverFn;
     private addOutputText;
     private setUiKeysFn;
     private onGeolocationFn;
     private onSpeakFn;
-    private code;
+    private messageHandler;
+    private finishedResolverFn;
     constructor(locoVmWorkerName: string, createWebWorker: (workerName: string) => Promise<Worker>, addOutputText: (str: string, needCls?: boolean, hasGraphics?: boolean) => void, setUiKeysFn: (codes: number[]) => void, onGeolocationFn: () => Promise<string>, onSpeakFn: (text: string, pitch: number) => Promise<void>);
-    private static describeError;
     postMessage(message: MessageToWorker): void;
     workerOnMessageHandler: (event: MessageEvent) => void;
     private handleBeforeUnload;
