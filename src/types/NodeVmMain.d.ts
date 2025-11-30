@@ -1,17 +1,13 @@
-import type { INodeParts, MessageToWorker } from "./Interfaces";
-export declare class NodeVmMain {
+import type { INodeParts, MessageToWorker, NodeWorkerType } from "./Interfaces";
+import type { VmMessageHandlerCallbacks } from "./VmMessageHandler";
+import { VmMainBase } from "./VmMainBase";
+export declare class NodeVmMain extends VmMainBase {
     private nodeParts;
     private workerFile;
-    private worker?;
-    private finishedResolverFn;
-    private messageHandler;
     constructor(nodeParts: INodeParts, workerFile: string);
-    postMessage(message: MessageToWorker): void;
+    protected createCallbacks(): VmMessageHandlerCallbacks;
+    protected postMessage(message: MessageToWorker): void;
     private workerOnMessageHandler;
-    private getOrCreateWorker;
-    run(code: string): Promise<string>;
-    stop(): void;
-    reset(): void;
-    putKeys(keys: string): void;
+    protected getOrCreateWorker(): NodeWorkerType;
 }
 //# sourceMappingURL=NodeVmMain.d.ts.map

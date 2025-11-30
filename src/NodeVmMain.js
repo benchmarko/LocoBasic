@@ -1,12 +1,15 @@
-import { VmMessageHandler } from "./VmMessageHandler";
-export class NodeVmMain {
+import { VmMainBase } from "./VmMainBase";
+export class NodeVmMain extends VmMainBase {
     constructor(nodeParts, workerFile) {
+        super();
         this.workerOnMessageHandler = (data) => {
             this.messageHandler.handleMessage(data);
         };
         this.nodeParts = nodeParts;
         this.workerFile = workerFile;
-        const callbacks = {
+    }
+    createCallbacks() {
+        return {
             onFrame: (message, needCls) => {
                 if (needCls) {
                     this.nodeParts.consoleClear();
@@ -37,8 +40,6 @@ export class NodeVmMain {
                 }
             }
         };
-        this.messageHandler = new VmMessageHandler(callbacks);
-        this.messageHandler.setPostMessageFn((message) => this.postMessage(message));
     }
     postMessage(message) {
         if (this.worker) {
@@ -52,38 +53,6 @@ export class NodeVmMain {
             this.postMessage({ type: 'config', isTerminal: true });
         }
         return this.worker;
-    }
-    async run(code) {
-        if (!code.endsWith("\n")) {
-            code += "\n"; // make sure the script end with a new line (needed for line comment in las line)
-        }
-        this.messageHandler.setCode(code); // for error message
-        this.getOrCreateWorker();
-        const finishedPromise = new Promise((resolve) => {
-            this.finishedResolverFn = resolve;
-            this.messageHandler.setFinishedResolver(resolve);
-        });
-        this.postMessage({ type: 'run', code });
-        return finishedPromise;
-    }
-    stop() {
-        console.log("stop: Stop requested.");
-        this.postMessage({ type: 'stop' });
-    }
-    reset() {
-        if (this.worker) {
-            this.worker.terminate();
-            this.worker = undefined;
-            //console.log("reset: Worker terminated.");
-        }
-        if (this.finishedResolverFn) {
-            this.finishedResolverFn("terminated.");
-            this.finishedResolverFn = undefined;
-        }
-    }
-    putKeys(keys) {
-        //console.log("putKeys: key:", keys);
-        this.postMessage({ type: 'putKeys', keys });
     }
 }
 //# sourceMappingURL=NodeVmMain.js.map

@@ -789,7 +789,7 @@ ${content}
         }
         return vm; // for testing
     };
-    if (typeof require !== "undefined") { // node.js?
+    if (typeof require !== "undefined") { // node.js worker environment
         (function callWithParentPort() {
             const { parentPort } = require('worker_threads');
             if (parentPort) { // is null in test environment
@@ -797,9 +797,7 @@ ${content}
             }
         })();
     }
-    else if (typeof self !== "undefined") {
-        //console.log("DDD: Starting worker in browser...");
-        // Browser worker environment
+    else if (typeof self !== "undefined" && typeof Window === "undefined") { // web worker environment
         workerFn();
     }
 

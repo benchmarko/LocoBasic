@@ -1,6 +1,7 @@
-import { VmMessageHandler } from "../VmMessageHandler";
-export class VmMain {
+import { VmMainBase } from "../VmMainBase";
+export class VmMain extends VmMainBase {
     constructor(locoVmWorkerName, createWebWorker, addOutputText, setUiKeysFn, onGeolocationFn, onSpeakFn) {
+        super();
         this.workerOnMessageHandler = (event) => {
             const data = event.data;
             this.messageHandler.handleMessage(data);
@@ -15,7 +16,10 @@ export class VmMain {
         this.setUiKeysFn = setUiKeysFn;
         this.onSpeakFn = onSpeakFn;
         this.onGeolocationFn = onGeolocationFn;
-        const callbacks = {
+        window.addEventListener('beforeunload', this.handleBeforeUnload, { once: true });
+    }
+    createCallbacks() {
+        return {
             onFrame: (message, needCls, hasGraphics) => {
                 this.addOutputText(message, needCls, hasGraphics);
             },
@@ -35,9 +39,6 @@ export class VmMain {
                 }
             }
         };
-        this.messageHandler = new VmMessageHandler(callbacks);
-        this.messageHandler.setPostMessageFn((message) => this.postMessage(message));
-        window.addEventListener('beforeunload', this.handleBeforeUnload, { once: true });
     }
     postMessage(message) {
         if (this.worker) {
@@ -52,37 +53,6 @@ export class VmMain {
             //this.postMessage({ type: 'config', isTerminal: false });
         }
         return this.worker;
-    }
-    async run(code) {
-        if (!code.endsWith("\n")) {
-            code += "\n"; // make sure the script end with a new line (needed for line comment in last line)
-        }
-        this.messageHandler.setCode(code); // for error message
-        await this.getOrCreateWorker();
-        const finishedPromise = new Promise((resolve) => {
-            this.finishedResolverFn = resolve;
-            this.messageHandler.setFinishedResolver(resolve);
-        });
-        this.postMessage({ type: 'run', code });
-        return finishedPromise;
-    }
-    stop() {
-        console.log("stop: Stop requested.");
-        this.postMessage({ type: 'stop' });
-    }
-    reset() {
-        if (this.worker) {
-            this.worker.terminate();
-            this.worker = undefined;
-            console.log("reset: Worker terminated.");
-        }
-        if (this.finishedResolverFn) {
-            this.finishedResolverFn("terminated.");
-            this.finishedResolverFn = undefined;
-        }
-    }
-    putKeys(keys) {
-        this.postMessage({ type: 'putKeys', keys });
     }
 }
 //# sourceMappingURL=VmMain.js.map

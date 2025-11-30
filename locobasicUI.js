@@ -246,59 +246,11 @@
         }
     }
 
-    class VmMain {
-        constructor(locoVmWorkerName, createWebWorker, addOutputText, setUiKeysFn, onGeolocationFn, onSpeakFn) {
-            this.workerOnMessageHandler = (event) => {
-                const data = event.data;
-                this.messageHandler.handleMessage(data);
-            };
-            this.handleBeforeUnload = () => {
-                var _a;
-                (_a = this.worker) === null || _a === void 0 ? void 0 : _a.terminate();
-            };
-            this.locoVmWorkerName = locoVmWorkerName;
-            this.createWebWorker = createWebWorker;
-            this.addOutputText = addOutputText;
-            this.setUiKeysFn = setUiKeysFn;
-            this.onSpeakFn = onSpeakFn;
-            this.onGeolocationFn = onGeolocationFn;
-            const callbacks = {
-                onFrame: (message, needCls, hasGraphics) => {
-                    this.addOutputText(message, needCls, hasGraphics);
-                },
-                onInput: (prompt) => {
-                    const userInput = window.prompt(prompt);
-                    this.postMessage({ type: 'input', prompt: userInput });
-                },
-                onGeolocation: () => this.onGeolocationFn(),
-                onSpeak: (message, pitch) => this.onSpeakFn(message, pitch),
-                onKeyDef: (codes) => {
-                    this.setUiKeysFn(codes);
-                },
-                onResultResolved: (message) => {
-                    if (this.finishedResolverFn) {
-                        this.finishedResolverFn(message);
-                        this.finishedResolverFn = undefined;
-                    }
-                }
-            };
+    class VmMainBase {
+        constructor() {
+            const callbacks = this.createCallbacks();
             this.messageHandler = new VmMessageHandler(callbacks);
             this.messageHandler.setPostMessageFn((message) => this.postMessage(message));
-            window.addEventListener('beforeunload', this.handleBeforeUnload, { once: true });
-        }
-        postMessage(message) {
-            if (this.worker) {
-                this.worker.postMessage(message);
-            }
-        }
-        async getOrCreateWorker() {
-            if (!this.worker) {
-                this.worker = await this.createWebWorker(this.locoVmWorkerName);
-                this.worker.onmessage = this.workerOnMessageHandler;
-                // Send config message to initialize worker
-                //this.postMessage({ type: 'config', isTerminal: false });
-            }
-            return this.worker;
         }
         async run(code) {
             if (!code.endsWith("\n")) {
@@ -321,7 +273,6 @@
             if (this.worker) {
                 this.worker.terminate();
                 this.worker = undefined;
-                console.log("reset: Worker terminated.");
             }
             if (this.finishedResolverFn) {
                 this.finishedResolverFn("terminated.");
@@ -330,6 +281,63 @@
         }
         putKeys(keys) {
             this.postMessage({ type: 'putKeys', keys });
+        }
+    }
+
+    class VmMain extends VmMainBase {
+        constructor(locoVmWorkerName, createWebWorker, addOutputText, setUiKeysFn, onGeolocationFn, onSpeakFn) {
+            super();
+            this.workerOnMessageHandler = (event) => {
+                const data = event.data;
+                this.messageHandler.handleMessage(data);
+            };
+            this.handleBeforeUnload = () => {
+                var _a;
+                (_a = this.worker) === null || _a === void 0 ? void 0 : _a.terminate();
+            };
+            this.locoVmWorkerName = locoVmWorkerName;
+            this.createWebWorker = createWebWorker;
+            this.addOutputText = addOutputText;
+            this.setUiKeysFn = setUiKeysFn;
+            this.onSpeakFn = onSpeakFn;
+            this.onGeolocationFn = onGeolocationFn;
+            window.addEventListener('beforeunload', this.handleBeforeUnload, { once: true });
+        }
+        createCallbacks() {
+            return {
+                onFrame: (message, needCls, hasGraphics) => {
+                    this.addOutputText(message, needCls, hasGraphics);
+                },
+                onInput: (prompt) => {
+                    const userInput = window.prompt(prompt);
+                    this.postMessage({ type: 'input', prompt: userInput });
+                },
+                onGeolocation: () => this.onGeolocationFn(),
+                onSpeak: (message, pitch) => this.onSpeakFn(message, pitch),
+                onKeyDef: (codes) => {
+                    this.setUiKeysFn(codes);
+                },
+                onResultResolved: (message) => {
+                    if (this.finishedResolverFn) {
+                        this.finishedResolverFn(message);
+                        this.finishedResolverFn = undefined;
+                    }
+                }
+            };
+        }
+        postMessage(message) {
+            if (this.worker) {
+                this.worker.postMessage(message);
+            }
+        }
+        async getOrCreateWorker() {
+            if (!this.worker) {
+                this.worker = await this.createWebWorker(this.locoVmWorkerName);
+                this.worker.onmessage = this.workerOnMessageHandler;
+                // Send config message to initialize worker
+                //this.postMessage({ type: 'config', isTerminal: false });
+            }
+            return this.worker;
         }
     }
 
@@ -840,7 +848,7 @@
             };
             this.updateButtonStates(buttonStates);
             const outputText = document.getElementById("outputText");
-            outputText.setAttribute("contenteditable", "false");
+            //outputText.setAttribute("contenteditable", "false");
             outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
             outputText.addEventListener("click", this.fnOnClickHandler, false);
             const userKeys = document.getElementById("userKeys");
@@ -850,7 +858,7 @@
             const outputText = document.getElementById("outputText");
             outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
             outputText.removeEventListener("click", this.fnOnClickHandler, false);
-            outputText.setAttribute("contenteditable", "true");
+            // do not change after rendering: outputText.setAttribute("contenteditable", "true");
             this.onSetUiKeys([0]); // remove user keys
             this.updateButtonStates({
                 enterButton: true,

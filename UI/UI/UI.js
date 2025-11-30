@@ -507,7 +507,7 @@ export class UI {
         };
         this.updateButtonStates(buttonStates);
         const outputText = document.getElementById("outputText");
-        outputText.setAttribute("contenteditable", "false");
+        //outputText.setAttribute("contenteditable", "false");
         outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.addEventListener("click", this.fnOnClickHandler, false);
         const userKeys = document.getElementById("userKeys");
@@ -517,7 +517,7 @@ export class UI {
         const outputText = document.getElementById("outputText");
         outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.removeEventListener("click", this.fnOnClickHandler, false);
-        outputText.setAttribute("contenteditable", "true");
+        // do not change after rendering: outputText.setAttribute("contenteditable", "true");
         this.onSetUiKeys([0]); // remove user keys
         this.updateButtonStates({
             enterButton: true,
