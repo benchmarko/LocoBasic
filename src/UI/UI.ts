@@ -342,7 +342,7 @@ export class UI implements IUI {
         this.updateButtonStates(buttonStates);
 
         const outputText = document.getElementById("outputText") as HTMLPreElement;
-        outputText.setAttribute("contenteditable", "false");
+        //outputText.setAttribute("contenteditable", "false");
         outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.addEventListener("click", this.fnOnClickHandler, false);
 
@@ -354,7 +354,7 @@ export class UI implements IUI {
         const outputText = document.getElementById("outputText") as HTMLPreElement;
         outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.removeEventListener("click", this.fnOnClickHandler, false);
-        outputText.setAttribute("contenteditable", "true");
+        // do not change after rendering: outputText.setAttribute("contenteditable", "true");
         this.onSetUiKeys([0]); // remove user keys
 
         this.updateButtonStates({
