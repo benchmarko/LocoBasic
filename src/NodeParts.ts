@@ -44,7 +44,11 @@ type NodeKeyPressType = {
     shift: boolean;
 }
 
-declare function require(name: string): NodeFs | NodeHttps | NodeModule | NodePath | NodeReadline | NodeVm | NodeWorkerThreads;
+type NodeWorkerFnType = {
+    workerFn: () => unknown
+}
+
+declare function require(name: string): NodeFs | NodeHttps | NodeModule | NodePath | NodeReadline | NodeVm | NodeWorkerThreads | NodeWorkerFnType;
 
 function isUrl(s: string) {
     return s.startsWith("http"); // http or https
@@ -150,24 +154,11 @@ export class NodeParts implements INodeParts {
         return worker;
     }
 
-    private getWorkerAsString(workerFn: () => unknown): string {
-        const workerString = Object.entries(workerFn).map(([key, value]) => {
-            if (typeof value === "function") {
-                return `${value}`;
-            } else if (typeof value === "object") {
-                return `${key}: ${JSON.stringify(value)}`;
-            } else {
-                return `${key}: "${value}"`;
-            }
-        }).join(",\n  ");
-        return workerString;
-    }
-
     private createNodeWorkerAsString(workerFile: string): string {
         const path = this.getNodePath();
         const workerFnPath = path.resolve(__dirname, workerFile);
-        const workerFn = require(workerFnPath) as unknown as () => unknown;
-        const workerFnString = this.getWorkerAsString(workerFn);
+        const workerFn = require(workerFnPath) as NodeWorkerFnType;
+        const workerFnString = `${workerFn.workerFn}`;
         return workerFnString;
     }
 
@@ -292,75 +283,34 @@ export class NodeParts implements INodeParts {
         }
     }
 
-    private compiledCodeInFrame(compiledScript: string, workerFnString: string) {
-        const asyncStr = compiledScript.includes("await ") ? "async " : ""; // fast hack: check if we need async function
-
-        const inFrame = `(${asyncStr}function(_o) {
-    ${compiledScript}
-})(
-    (${workerFnString})({
-        on: (...args) => {
-            // on: [ 'message', [Function: onMessageHandler] ]
-            //console.log("on:", args);
-            this.onMessageHandler = args[1];
-            this.onMessageHandler({
-                type: "config",
-                isTerminal: true
-            });
-        },
-        postMessage: (args) => {
-            if (args.type === "frame") {
-                if (args.needCls) {
-                    console.clear();
-                }
-                console.log(args.message);
-            } else if (args.type === "input") {
-                console.log(args.prompt);
-                this.onMessageHandler({
-                    type: "input",
-                    prompt: ""
-                });
-            } else {
-                console.log("postMessage:", args);
-            }
-        }
-    })
-);`;
-        return inFrame;
-    }
-
     private start(core: ICore, input: string): Promise<void> | undefined {
         const actionConfig = core.getConfigMap().action;
-        if (input !== "") {
-            //core.setOnCheckSyntax((s: string) => Promise.resolve(this.nodeCheckSyntax(s)));
-            const needCompile = actionConfig.includes("compile");
+        //core.setOnCheckSyntax((s: string) => Promise.resolve(this.nodeCheckSyntax(s)));
+        const needCompile = actionConfig.includes("compile");
 
-            const { compiledScript, messages } = needCompile ? core.compileScript(input) : {
-                compiledScript: input,
-                messages: []
-            };
+        const { compiledScript, messages } = needCompile ? core.compileScript(input) : {
+            compiledScript: input,
+            messages: []
+        };
 
-            if (compiledScript.startsWith("ERROR:")) {
-                console.error(compiledScript);
-                return;
-            }
+        if (compiledScript.startsWith("ERROR:")) {
+            console.error(compiledScript);
+            return;
+        }
 
-            if (messages) {
-                console.log(messages.join("\n"));
-            }
+        if (messages) {
+            console.log(messages.join("\n"));
+        }
 
-            if (actionConfig.includes("run")) {
-                return this.keepRunning(async () => {
-                    return this.startRun(core, compiledScript);
-                }, 5000);
-            } else {
-                const workerString = core.prepareWorkerFnString(this.createNodeWorkerAsString(this.locoVmWorkerName));
-                const inFrame = this.compiledCodeInFrame(compiledScript, workerString);
-                console.log(inFrame);
-            }
+        if (actionConfig.includes("run")) {
+            return this.keepRunning(async () => {
+                return this.startRun(core, compiledScript);
+            }, 5000);
         } else {
-            console.log("No input");
-            console.log(NodeParts.getHelpString());
+            const workerString = this.createNodeWorkerAsString(this.locoVmWorkerName);
+            const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
+            const inFrame = core.createStandaloneScript(workerString, compiledScript, usedInstrMap);
+            console.log(inFrame);
         }
     }
 
@@ -415,16 +365,14 @@ export class NodeParts implements INodeParts {
             return this.keepRunning(async () => {
                 this.start(core, config.input);
             }, 5000);
-        }
 
-        if (config.fileName) {
+        } else if (config.fileName) {
             return this.keepRunning(async () => {
                 const inputFromFile = await this.nodeReadFile(config.fileName);
                 this.start(core, inputFromFile);
             }, 5000);
-        }
 
-        if (config.example) {
+        } else if (config.example) {
             const databaseMap = core.initDatabaseMap();
             const database = config.database;
             const databaseItem = databaseMap[database];
@@ -449,6 +397,8 @@ export class NodeParts implements INodeParts {
                     console.error(`Error: Example not found: ${exampleName}`);
                 }
             }, 5000);
+        } else {
+            console.log(NodeParts.getHelpString());
         }
     }
 

@@ -18,6 +18,7 @@ export class UI implements IUI {
     private fnOnClickHandler: (event: MouseEvent) => void;
     private fnOnUserKeyClickHandler: (event: MouseEvent) => void;
     private speechSynthesisUtterance?: SpeechSynthesisUtterance;
+    private locoVmWorkerName = "";
 
     constructor() {
         this.fnOnKeyPressHandler = (event: KeyboardEvent) => this.onOutputTextKeydown(event);
@@ -49,7 +50,7 @@ export class UI implements IUI {
     }
 
     private getVmMain() {
-        return  this.vmMain as VmMain;
+        return this.vmMain as VmMain;
     }
 
     private getBasicCm() {
@@ -168,16 +169,6 @@ export class UI implements IUI {
         }
     }
 
-    /**
-     * Prompts the user with a message and returns the input.
-     * @param msg - The message to prompt.
-     * @returns A promise that resolves to the user input or null if canceled.
-     */
-    public prompt(msg: string): string | null {
-        const input = window.prompt(msg);
-        return input;
-    }
-
     private async waitForVoices(callback: () => void): Promise<void> {
         return new Promise<void>((resolve) => {
             window.speechSynthesis.addEventListener("voiceschanged", () => {
@@ -255,7 +246,7 @@ export class UI implements IUI {
         if (navigator.geolocation) {
             return new Promise<string>((resolve, reject) => {
                 const positionCallback: PositionCallback = (position) => {
-                    const {latitude, longitude} = position.coords;
+                    const { latitude, longitude } = position.coords;
                     const json = {
                         latitude,
                         longitude
@@ -495,7 +486,7 @@ export class UI implements IUI {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onBasicSearchButtonClick = (_event: Event): void => { // bound this
         if (!this.toggleElementHidden("basicSearchArea")) {
-           this.getBasicCm().execCommand("clearSearch"); 
+            this.getBasicCm().execCommand("clearSearch");
         }
     }
 
@@ -513,7 +504,7 @@ export class UI implements IUI {
     private onBasicSearchInputChange = (_event: Event): void => { // bound this
         this.getBasicCm().execCommand("clearSearch");
     }
-    
+
     private static addLabels(input: string) {
         const lineParts = input.split("\n");
         let lastLine = 0;
@@ -739,6 +730,24 @@ export class UI implements IUI {
         UI.fnDownloadBlob(svgBlob, filename);
     }
 
+    private onStandaloneButtonClick = async () => { // bound this
+        const locoVmWorker = await this.getLocoVmWorker(this.locoVmWorkerName);
+        const workerString = `${locoVmWorker.workerFn}`;
+
+        const core = this.getCore();
+        const compiledScript = this.getCompiledCm().getValue();
+        const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
+        const output = core.createStandaloneScript(workerString, compiledScript, usedInstrMap);
+
+        const blob = new Blob([output], { type: "text/javascript" });
+        const objectURL = window.URL.createObjectURL(blob);
+        const win = window.open(objectURL, "Standalone Script", "width=640,height=300,resizable=yes,scrollbars=yes,dependent=yes");
+        if (win && win.focus) {
+            win.focus();
+        }
+        window.URL.revokeObjectURL(objectURL);
+    }
+
     private putKeysInBuffer(keys: string): void {
         if (this.getCore().getConfigMap().debug) {
             console.log("putKeysInBuffer:", keys);
@@ -855,7 +864,7 @@ export class UI implements IUI {
     private onCodeMirrorOpenDialog = (_template: unknown, callback: CodeMirrorCallbackType, _options: unknown): void => { // bound this
         // see: https://codemirror.net/5/addon/dialog/dialog.js
         this.setElementHidden("basicSearchArea", false);
-        
+
         const basicSearchInput = document.getElementById("basicSearchInput") as HTMLInputElement;
         if (basicSearchInput.value) {
             callback(basicSearchInput.value, new Event(""));
@@ -879,7 +888,7 @@ export class UI implements IUI {
 
     private async getLocoVmWorker(locoVmWorkerName: string) {
         if (!window.locoVmWorker) {
-             await this.loadScript(locoVmWorkerName, "");
+            await this.loadScript(locoVmWorkerName, "");
 
         }
         return window.locoVmWorker;
@@ -912,6 +921,7 @@ export class UI implements IUI {
         const config = core.getConfigMap();
         const args = this.parseUri(config);
         core.parseArgs(args, config);
+        this.locoVmWorkerName = locoVmWorkerName; // not so nice to have it here as well
 
         // Map of element IDs to event handlers
         const buttonHandlers: Record<string, EventListener> = {
@@ -930,6 +940,7 @@ export class UI implements IUI {
             labelRemoveButton: this.onLabelRemoveButtonClick,
             helpButton: this.onHelpButtonClick,
             exportSvgButton: this.onExportSvgButtonClick,
+            standaloneButton: this.onStandaloneButtonClick
         };
 
         const inputAndSelectHandlers: Record<string, EventListener> = {

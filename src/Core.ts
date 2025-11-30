@@ -1,9 +1,10 @@
 import type { CompileResultType, ConfigEntryType, ConfigType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore } from "./Interfaces";
-import { CommaOpChar, TabOpChar } from "./Constants";
 import { Parser } from "./Parser";
 import { arithmetic } from "./arithmetic";
 import { Semantics } from "./Semantics";
 import { SemanticsHelper } from "./SemanticsHelper";
+import { CommaOpChar, TabOpChar } from "./Constants";
+import { ScriptCreator } from "./ScriptCreator";
 
 function fnHereDoc(fn: () => void) {
     return String(fn).replace(/^[^/]+\/\*\S*/, "").replace(/\*\/[^/]+$/, "");
@@ -59,6 +60,7 @@ export class Core implements ICore {
     private readonly semantics = new Semantics();
     private readonly databaseMap: DatabaseMapType = {};
     private arithmeticParser: Parser | undefined;
+    private scriptCreator?: ScriptCreator;
 
     constructor(defaultConfig: ConfigType) {
         this.defaultConfig = defaultConfig;
@@ -135,7 +137,7 @@ export class Core implements ICore {
         return { compiledScript, messages };
     }
 
-    public getSemantics() {
+    public getSemantics(): Semantics {
         return this.semantics;
     }
 
@@ -197,5 +199,14 @@ export class Core implements ICore {
 `;
         const workerStringWithConstants = workerFnString.replace(/const postMessage =/, `${constants}    const postMessage =`); // fast hack: get constants into worker string
         return workerStringWithConstants;
+    }
+
+    public createStandaloneScript(workerString: string, compiledScript: string, usedInstrMap: Record<string, number>): string {
+        if (!this.scriptCreator) {
+            this.scriptCreator = new ScriptCreator(this.config.debug);
+        }
+        workerString = this.prepareWorkerFnString(workerString);
+        const inFrame = this.scriptCreator.createStandaloneScript(workerString, compiledScript, usedInstrMap);
+        return inFrame;
     }
 }

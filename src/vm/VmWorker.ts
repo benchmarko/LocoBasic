@@ -1,16 +1,9 @@
-import type { MessageFromWorker, MessageToWorker } from "../Interfaces";
+import type { MessageFromWorker, MessageToWorker, NodeWorkerThreadsType } from "../Interfaces";
 import { CommaOpChar, TabOpChar } from "../Constants";
 
-interface NodeWorkerThreads {
-    parentPort: {
-        postMessage: (message: MessageFromWorker) => void
-        on: (event: string, listener: (data: MessageToWorker) => void) => void;
-    }
-}
+declare function require(name: string): NodeWorkerThreadsType;
 
-declare function require(name: string): NodeWorkerThreads;
-
-export const workerFn = (parentPort?: NodeWorkerThreads["parentPort"]) => {
+export const workerFn = (parentPort?: NodeWorkerThreadsType["parentPort"]) => {
 
     const postMessage = (message: MessageFromWorker) => {
         (parentPort || self).postMessage(message);
@@ -124,7 +117,6 @@ ${content}
         },
 
         rsxGeolocation: () => {
-            //const message = args[0] as string;
             postMessage({ type: 'geolocation' });
         },
 
@@ -329,6 +321,7 @@ ${content}
     type RestoreMapType = Record<string, number>;
 
     // This object will be passed to the worker's code as `_o`
+    // (Make sure you use this arrow style:  fn: [async] (...) =>  { ... } )
     const vm = {
         _gra: vmGra,
         _rsx: vmRsx,
@@ -367,26 +360,38 @@ ${content}
             vm.remainAll();
         },
 
-        abs: (num: number) => Math.abs(num),
+        abs: (num: number) => {
+            return Math.abs(num);
+        },
 
         after: (timeout: number, timer: number, fn: () => void) => {
             vm.remain(timer);
             vm._timerMap[timer] = setTimeout(() => fn(), timeout * 20);
         },
 
-        asc: (str: string) => str.charCodeAt(0),
+        asc: (str: string) => {
+            return str.charCodeAt(0);
+        },
 
-        atn: Math.atan,
+        atn: (num: number) => {
+            return Math.atan(num);
+        },
 
         bin$: (num: number, pad: number = 0): string => {
             return num.toString(2).toUpperCase().padStart(pad, "0");
         },
 
-        chr$: (num: number) => String.fromCharCode(num),
+        chr$: (num: number) => {
+            return String.fromCharCode(num);
+        },
 
-        cint: (num: number) => Math.round(num),
+        cint: (num: number) => {
+            return Math.round(num)
+        },
 
-        clearInput: () => vm._keyCharBufferString = "",
+        clearInput: () => {
+            vm._keyCharBufferString = "";
+        },
 
         cls: () => {
             vm._output = "";
@@ -403,9 +408,13 @@ ${content}
             vm._needCls = true;
         },
 
-        cos: Math.cos,
+        cos: (num: number) => {
+            return Math.cos(num);
+        },
 
-        creal: (num: number) => num, // nothing
+        creal: (num: number) => {
+            return num; // nothing
+        },
 
         dec$: (num: number, format: string) => {
             const decimals = (format.split(".")[1] || "").length;
@@ -443,7 +452,7 @@ ${content}
         },
         end: () => {
             vm.frame();
-            return ""; //"end";
+            return "";
         },
 
         escapeText: (str: string): string => {
@@ -455,9 +464,13 @@ ${content}
             vm._timerMap[timer] = setInterval(() => fn(), timeout * 20);
         },
 
-        exp: (num: number) => Math.exp(num),
+        exp: (num: number) => {
+            return Math.exp(num);
+        },
 
-        fix: (num: number) => Math.trunc(num),
+        fix: (num: number) => {
+            return Math.trunc(num);
+        },
 
         frame: async () => {
             if (vm._stopRequested) {
@@ -472,7 +485,7 @@ ${content}
             return new Promise<void>(resolve => setTimeout(() => resolve(), Date.now() % 50));
         },
 
-        getFlushedText: (): string => {
+        getFlushedText: () => {
             const output = vm._output;
             vm._output = "";
             return output;
@@ -491,7 +504,9 @@ ${content}
             return output;
         },
 
-        graphicsPen: (num: number) => vm._gra.graphicsPen(num),
+        graphicsPen: (num: number) => {
+            return vm._gra.graphicsPen(num);
+        },
 
         hex$: (num: number, pad?: number) => {
             return num.toString(16).toUpperCase().padStart(pad || 0, "0");
@@ -531,7 +546,9 @@ ${content}
             return str.indexOf(find, len !== undefined ? len - 1 : len) + 1;
         },
 
-        int: (num: number) => Math.floor(num),
+        int: (num: number) => {
+            return Math.floor(num);
+        },
 
         keyDef: (num: number, repeat: number, ...codes: number[]): void => {
             if (num === 78 && repeat === 1) {
@@ -542,15 +559,25 @@ ${content}
             return str.slice(0, num);
         },
 
-        len: (str: string) => str.length,
+        len: (str: string) => {
+            return str.length;
+        },
 
-        log: (num: number) => Math.log(num),
+        log: (num: number) => {
+            return Math.log(num);
+        },
 
-        log10: (num: number) => Math.log10(num),
+        log10: (num: number) => {
+            return Math.log10(num);
+        },
 
-        lower$: (str: string) => str.toLowerCase(),
+        lower$: (str: string) => {
+            return str.toLowerCase();
+        },
 
-        max: Math.max,
+        max: (...nums: number[]) => {
+            return Math.max.apply(null, nums);
+        },
 
         mid$: (str: string, pos: number, len?: number) => {
             return str.substr(pos - 1, len);
@@ -561,7 +588,9 @@ ${content}
             return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
         },
 
-        min: Math.min,
+        min: (...nums: number[]) => {
+            return Math.min.apply(null, nums);
+        },
 
         mode: (num: number) => {
             vm._gra.mode(num);
@@ -577,9 +606,8 @@ ${content}
             vm._gra.origin(x, y);
         },
 
-        // Use a virtual stack to handle paper and pen spans
-
         paper: (n: number): void => {
+            // Use a virtual stack to handle paper and pen spans
             if (n !== vm._paperValue) {
                 vm._paperValue = n;
                 if (vm._isTerminal) {
@@ -611,7 +639,7 @@ ${content}
             }
         },
 
-        pen: (n: number): void =>{
+        pen: (n: number): void => {
             if (n !== vm._penValue) {
                 vm._penValue = n;
                 if (vm._isTerminal) {
@@ -642,7 +670,7 @@ ${content}
             }
         },
 
-        pi: Math.PI,
+        pi: Math.PI, // a constant!
 
         plot: (x: number, y: number, pen?: number) => {
             vm._gra.drawMovePlot("P", x, y, pen);
@@ -663,8 +691,6 @@ ${content}
             vm.printText(text);
         },
 
-        // printTab: print with commaOp or tabOp
-        // For graphics output the text position does not change, so we can output all at once.
         printTab: (...args: (string | number)[]) => {
             const formatNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
             const strArgs = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg);
@@ -679,6 +705,7 @@ ${content}
             };
             if (vm._tag) {
                 return vm._gra.printGraphicsText(vm.escapeText(strArgs.map(arg => formatCommaOrTab(arg)).join("")));
+                // For graphics output the text position does not change, so we can output all at once
             }
             for (const str of strArgs) {
                 vm.printText(formatCommaOrTab(str));
@@ -701,14 +728,13 @@ ${content}
                 throw new Error("4"); // 4: DATA exhausted
             }
         },
-        // remain: the return value is not really the remaining time
         remain: (timer: number) => {
             const value = vm._timerMap[timer];
             if (value !== undefined) {
                 clearTimeout(value);
                 delete vm._timerMap[timer]; // eslint-disable-line @typescript-eslint/no-dynamic-delete
             }
-            return value;
+            return value; // not really the remaining time
         },
         remainAll: () => {
             for (const timer in vm._timerMap) {
@@ -722,24 +748,36 @@ ${content}
             return str.substring(str.length - num);
         },
 
-        rnd: Math.random,
+        rnd: () => {
+            return Math.random();
+        },
 
-        round1: Math.round,
+        round1: (num: number) => {
+            return Math.round(num);
+        },
 
         round: (num: number, dec: number) => {
             return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
         },
 
-        rsxArc: (...args: number[]) => vm._gra.rsxArc(args), // 9x number, number?
+        rsxArc: (...args: number[]) => { // 9x number, number?
+            vm._gra.rsxArc(args);
+        },
 
-        rsxCircle: (...args: number[]) => vm._gra.rsxCircle(args), // 3x number, number?
+        rsxCircle: (...args: number[]) => { // 3x number, number?
+            vm._gra.rsxCircle(args);
+        },
 
-        rsxDate: (...args: string[]) => vm._rsx.rsxDate(args), // string
+        rsxDate: (...args: string[]) => { // string
+            return vm._rsx.rsxDate(args);
+        },
 
-        rsxEllipse: (...args: number[]) => vm._gra.rsxEllipse(args),
+        rsxEllipse: (...args: number[]) => {
+            vm._gra.rsxEllipse(args);
+        },
 
         rsxGeolocation: (...args: string[]) => {
-            const promise =  new Promise<string>((resolve) => {
+            const promise = new Promise<string>((resolve) => {
                 vm._waitResolvedFn = resolve;
             }).then((str: string) => {
                 if (str.startsWith("{")) {
@@ -754,29 +792,45 @@ ${content}
             return promise;
         },
 
-        rsxPitch: (...args: number[]) => vm._rsx.rsxPitch(args),
+        rsxPitch: (...args: number[]) => {
+            vm._rsx.rsxPitch(args);
+        },
 
-        rsxRect: (...args: number[]) => vm._gra.rsxRect(args), // 4x number, number?
+        rsxRect: (...args: number[]) => { // 4x number, number?
+            vm._gra.rsxRect(args);
+        },
 
         rsxSay: (...args: string[]) => {
-            const promise =  new Promise<string>((resolve) => {
+            const promise = new Promise<string>((resolve) => {
                 vm._waitResolvedFn = resolve;
             });
             vm._rsx.rsxSay(args);
             return promise;
         },
 
-        rsxTime: (...args: string[]) => vm._rsx.rsxTime(args), // string
+        rsxTime: (...args: string[]) => { // string
+            return vm._rsx.rsxTime(args);
+        },
 
-        sgn: Math.sign,
+        sgn: (num: number) => {
+            return Math.sign(num);
+        },
 
-        sin: Math.sin,
+        sin: (num: number) => {
+            return Math.sin(num);
+        },
 
-        space$: (num: number) => " ".repeat(num),
+        space$: (num: number) => {
+            return " ".repeat(num);
+        },
 
-        spc: (num: number) => " ".repeat(num), // same as space$
+        spc: (num: number) => { // same as space$
+            return " ".repeat(num);
+        },
 
-        sqr: Math.sqrt,
+        sqr: (num: number) => {
+            return Math.sqrt(num);
+        },
 
         stop: () => {
             vm.frame();
@@ -794,31 +848,47 @@ ${content}
             return str.repeat(len);
         },
 
-        tag: () => vm._tag = true,
+        tag: () => {
+            vm._tag = true;
+        },
 
-        tagoff: () => vm._tag = false,
+        tagoff: () => {
+            vm._tag = false;
+        },
 
-        tan: Math.tan,
+        tan: (num: number) => {
+            return Math.tan(num);
+        },
 
         time: () => {
             return ((Date.now() - vm._startTime) * 3 / 10) | 0;
         },
 
-        toDeg: (num: number) => num * 180 / Math.PI,
+        toDeg: (num: number) => {
+            return num * 180 / Math.PI;
+        },
 
-        toRad: (num: number) => num * Math.PI / 180,
+        toRad: (num: number) => {
+            return num * Math.PI / 180;
+        },
 
         using: (format: string, ...args: number[]) => {
             return args.map((arg) => vm.dec$(arg, format)).join('');
         },
 
-        unt: (num: number) => num,
+        unt: (num: number) => {
+            return num;
+        },
 
-        upper$: (str: string) => str.toUpperCase(),
+        upper$: (str: string) => {
+            return str.toUpperCase();
+        },
 
-        val1: (str: string) => Number(str),
+        val1: (str: string) => {
+            return Number(str);
+        },
 
-        val: (str: string) =>{
+        val: (str: string) => {
             return Number(str.replace("&x", "0b").replace("&", "0x"));
         },
         vpos: () => {
@@ -831,9 +901,13 @@ ${content}
             }
             vm.printText(text);
         },
-        xpos: () => vm._gra.xpos(),
+        xpos: () => {
+            return vm._gra.xpos();
+        },
 
-        ypos: () => vm._gra.ypos(),
+        ypos: () => {
+            return vm._gra.ypos();
+        },
 
         zone: (num: number) => {
             vm._zone = num;
@@ -933,7 +1007,7 @@ ${content}
 
 if (typeof require !== "undefined") { // node.js worker environment
     (function callWithParentPort() {
-        const { parentPort } = require('worker_threads') as NodeWorkerThreads;
+        const { parentPort } = require('worker_threads') as NodeWorkerThreadsType;
         if (parentPort) { // is null in test environment
             workerFn(parentPort);
         }
