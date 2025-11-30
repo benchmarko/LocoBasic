@@ -1,5 +1,6 @@
 import type { MessageFromWorker, MessageToWorker } from "../Interfaces";
-import { VmMessageHandler, type VmMessageHandlerCallbacks } from "../VmMessageHandler";
+import type { VmMessageHandlerCallbacks } from "../VmMessageHandler";
+import { VmMainBase } from "../VmMainBase";
 
 declare global {
     interface Window {
@@ -9,11 +10,9 @@ declare global {
     }
 }
 
-export class VmMain {
+export class VmMain extends VmMainBase {
     private locoVmWorkerName: string;
     private createWebWorker: (workerName: string) => Promise<Worker>;
-
-    private worker?: Worker;
 
     private addOutputText: (str: string, needCls?: boolean, hasGraphics?: boolean) => void;
     private setUiKeysFn: (codes: number[]) => void;
@@ -21,10 +20,8 @@ export class VmMain {
     private onGeolocationFn: () => Promise<string>;
     private onSpeakFn: (text: string, pitch: number) => Promise<void>;
 
-    private messageHandler: VmMessageHandler;
-    private finishedResolverFn: ((msg: string) => void) | undefined;
-
     constructor(locoVmWorkerName: string, createWebWorker: (workerName: string) => Promise<Worker>, addOutputText: (str: string, needCls?: boolean, hasGraphics?: boolean) => void, setUiKeysFn: (codes: number[]) => void, onGeolocationFn: () => Promise<string>, onSpeakFn: (text: string, pitch: number) => Promise<void>) {
+        super();
         this.locoVmWorkerName = locoVmWorkerName;
         this.createWebWorker = createWebWorker;
         this.addOutputText = addOutputText;
@@ -32,7 +29,11 @@ export class VmMain {
         this.onSpeakFn = onSpeakFn;
         this.onGeolocationFn = onGeolocationFn;
 
-        const callbacks: VmMessageHandlerCallbacks = {
+        window.addEventListener('beforeunload', this.handleBeforeUnload, { once: true });
+    }
+
+    protected createCallbacks(): VmMessageHandlerCallbacks {
+        return {
             onFrame: (message: string, needCls?: boolean, hasGraphics?: boolean) => {
                 this.addOutputText(message, needCls, hasGraphics);
             },
@@ -52,16 +53,11 @@ export class VmMain {
                 }
             }
         };
-
-        this.messageHandler = new VmMessageHandler(callbacks);
-        this.messageHandler.setPostMessageFn((message: MessageToWorker) => this.postMessage(message));
-
-        window.addEventListener('beforeunload', this.handleBeforeUnload, { once: true });
     }
 
-    postMessage(message: MessageToWorker) {
+    protected postMessage(message: MessageToWorker) {
         if (this.worker) {
-            this.worker.postMessage(message);
+            (this.worker as Worker).postMessage(message);
         }
     }
 
@@ -74,51 +70,14 @@ export class VmMain {
         this.worker?.terminate();
     }
 
-    private async getOrCreateWorker() {
+    protected async getOrCreateWorker(): Promise<Worker> {
         if (!this.worker) {
             this.worker = await this.createWebWorker(this.locoVmWorkerName);
-            this.worker.onmessage = this.workerOnMessageHandler;
+            (this.worker as Worker).onmessage = this.workerOnMessageHandler;
 
             // Send config message to initialize worker
             //this.postMessage({ type: 'config', isTerminal: false });
         }
-        return this.worker;
-    }
-
-    public async run(code: string) {
-        if (!code.endsWith("\n")) {
-            code += "\n"; // make sure the script end with a new line (needed for line comment in last line)
-        }
-        this.messageHandler.setCode(code); // for error message
-        await this.getOrCreateWorker();
-
-        const finishedPromise = new Promise<string>((resolve) => {
-            this.finishedResolverFn = resolve;
-            this.messageHandler.setFinishedResolver(resolve);
-        })
-
-        this.postMessage({ type: 'run', code });
-        return finishedPromise;
-    }
-
-    public stop() {
-        console.log("stop: Stop requested.");
-        this.postMessage({ type: 'stop' });
-    }
-
-    public reset() {
-        if (this.worker) {
-            this.worker.terminate();
-            this.worker = undefined;
-            console.log("reset: Worker terminated.");
-        }
-        if (this.finishedResolverFn) {
-            this.finishedResolverFn("terminated.");
-            this.finishedResolverFn = undefined;
-        }
-    }
-
-    public putKeys(keys: string) {
-        this.postMessage({ type: 'putKeys', keys });
+        return this.worker as Worker;
     }
 }
