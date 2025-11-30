@@ -1,7 +1,8 @@
-import { CommaOpChar, TabOpChar } from "./Constants";
 import { Parser } from "./Parser";
 import { arithmetic } from "./arithmetic";
 import { Semantics } from "./Semantics";
+import { CommaOpChar, TabOpChar } from "./Constants";
+import { ScriptCreator } from "./ScriptCreator";
 function fnHereDoc(fn) {
     return String(fn).replace(/^[^/]+\/\*\S*/, "").replace(/\*\/[^/]+$/, "");
 }
@@ -164,6 +165,14 @@ export class Core {
 `;
         const workerStringWithConstants = workerFnString.replace(/const postMessage =/, `${constants}    const postMessage =`); // fast hack: get constants into worker string
         return workerStringWithConstants;
+    }
+    createStandaloneScript(workerString, compiledScript, usedInstrMap) {
+        if (!this.scriptCreator) {
+            this.scriptCreator = new ScriptCreator(this.config.debug);
+        }
+        workerString = this.prepareWorkerFnString(workerString);
+        const inFrame = this.scriptCreator.createStandaloneScript(workerString, compiledScript, usedInstrMap);
+        return inFrame;
     }
 }
 //# sourceMappingURL=Core.js.map

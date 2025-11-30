@@ -4,45 +4,6 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.ohmJs));
 })(this, (function (ohmJs) { 'use strict';
 
-    const CommaOpChar = "\u2192"; // Unicode arrow right
-    const TabOpChar = "\u21d2"; // Unicode double arrow right
-    const basicErrors = [
-        "Improper argument", // 0
-        "Unexpected NEXT", // 1
-        "Syntax Error", // 2
-        "Unexpected RETURN", // 3
-        "DATA exhausted", // 4
-        "Improper argument", // 5
-        "Overflow", // 6
-        "Memory full", // 7
-        "Line does not exist", // 8
-        "Subscript out of range", // 9
-        "Array already dimensioned", // 10
-        "Division by zero", // 11
-        "Invalid direct command", // 12
-        "Type mismatch", // 13
-        "String space full", // 14
-        "String too long", // 15
-        "String expression too complex", // 16
-        "Cannot CONTinue", // 17
-        "Unknown user function", // 18
-        "RESUME missing", // 19
-        "Unexpected RESUME", // 20
-        "Direct command found", // 21
-        "Operand missing", // 22
-        "Line too long", // 23
-        "EOF met", // 24
-        "File type error", // 25
-        "NEXT missing", // 26
-        "File already open", // 27
-        "Unknown command", // 28
-        "WEND missing", // 29
-        "Unexpected WEND", // 30
-        "File not open", // 31,
-        "Broken", // 32 "Broken in" (derr=146: xxx not found)
-        "Unknown error" // 33...
-    ];
-
     class Parser {
         constructor(grammarString, semanticsMap, superParser) {
             if (superParser) {
@@ -1848,6 +1809,45 @@
     }
     SemanticsHelper.reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;
 
+    const CommaOpChar = "\u2192"; // Unicode arrow right
+    const TabOpChar = "\u21d2"; // Unicode double arrow right
+    const basicErrors = [
+        "Improper argument", // 0
+        "Unexpected NEXT", // 1
+        "Syntax Error", // 2
+        "Unexpected RETURN", // 3
+        "DATA exhausted", // 4
+        "Improper argument", // 5
+        "Overflow", // 6
+        "Memory full", // 7
+        "Line does not exist", // 8
+        "Subscript out of range", // 9
+        "Array already dimensioned", // 10
+        "Division by zero", // 11
+        "Invalid direct command", // 12
+        "Type mismatch", // 13
+        "String space full", // 14
+        "String too long", // 15
+        "String expression too complex", // 16
+        "Cannot CONTinue", // 17
+        "Unknown user function", // 18
+        "RESUME missing", // 19
+        "Unexpected RESUME", // 20
+        "Direct command found", // 21
+        "Operand missing", // 22
+        "Line too long", // 23
+        "EOF met", // 24
+        "File type error", // 25
+        "NEXT missing", // 26
+        "File already open", // 27
+        "Unknown command", // 28
+        "WEND missing", // 29
+        "Unexpected WEND", // 30
+        "File not open", // 31,
+        "Broken", // 32 "Broken in" (derr=146: xxx not found)
+        "Unknown error" // 33...
+    ];
+
     function evalChildren(children) {
         return children.map(child => child.eval());
     }
@@ -3038,6 +3038,273 @@ ${dataList.join(",\n")}
         }
     }
 
+    // Script creator for standalone scripts (complied script + worker function)
+    class ScriptCreator {
+        constructor(debug) {
+            this.debug = debug;
+        }
+        /**
+         * Scans vm object for function references (dependencies)
+         * Returns a map of function names to their dependencies and positions
+         */
+        scanVmFunctionReferences(workerFnString) {
+            const result = {
+                functions: new Map(),
+                vmObjectStart: -1,
+                vmObjectEnd: -1
+            };
+            // Find vm object boundaries
+            const vmObjectStart = workerFnString.indexOf('const vm = {');
+            if (vmObjectStart === -1) {
+                return result;
+            }
+            // Find the closing brace of vm object (need to match braces properly)
+            let braceCount = 0;
+            let vmObjectEnd = -1;
+            let inString = false;
+            let stringChar = '';
+            let foundOpenBrace = false;
+            for (let i = vmObjectStart + 11; i < workerFnString.length; i += 1) {
+                const ch = workerFnString[i];
+                const prevCh = i > 0 ? workerFnString[i - 1] : '';
+                // Handle string literals
+                if ((ch === '"' || ch === '`' || ch === "'") && prevCh !== '\\') {
+                    if (!inString) {
+                        inString = true;
+                        stringChar = ch;
+                    }
+                    else if (ch === stringChar) {
+                        inString = false;
+                    }
+                }
+                if (!inString) {
+                    if (ch === '{') {
+                        if (!foundOpenBrace) {
+                            foundOpenBrace = true;
+                        }
+                        braceCount++;
+                    }
+                    else if (ch === '}') {
+                        braceCount--;
+                        if (foundOpenBrace && braceCount === 0) {
+                            vmObjectEnd = i;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (vmObjectEnd === -1) {
+                return result;
+            }
+            result.vmObjectStart = vmObjectStart;
+            result.vmObjectEnd = vmObjectEnd;
+            const vmObjectStr = workerFnString.substring(vmObjectStart, vmObjectEnd + 1);
+            // Pattern to match: key: [async] (...) => {
+            const funcPattern = /([\w$]+)\s*:\s*(async\s+)?\([^)]*\)\s*=>\s*\{/g;
+            let match;
+            while ((match = funcPattern.exec(vmObjectStr)) !== null) {
+                const funcName = match[1];
+                const isAsync = !!match[2];
+                const startPos = match.index + match[0].length;
+                // Find matching closing brace for this function
+                let braceCount = 1;
+                let endPos = startPos;
+                let inString = false;
+                let stringChar = '';
+                for (let i = startPos; i < vmObjectStr.length && braceCount > 0; i++) {
+                    const ch = vmObjectStr[i];
+                    const prevCh = i > 0 ? vmObjectStr[i - 1] : '';
+                    // Handle string literals
+                    if ((ch === '"' || ch === '`' || ch === "'") && prevCh !== '\\') {
+                        if (!inString) {
+                            inString = true;
+                            stringChar = ch;
+                        }
+                        else if (ch === stringChar) {
+                            inString = false;
+                        }
+                    }
+                    if (!inString) {
+                        if (ch === '{')
+                            braceCount++;
+                        else if (ch === '}') {
+                            braceCount--;
+                            if (braceCount === 0) {
+                                endPos = i + 1; //vmObjectStart + match.index + match[0].length + i;
+                            }
+                        }
+                    }
+                }
+                const functionBody = vmObjectStr.substring(startPos, endPos);
+                // Extract all vm.xxx references in the function body
+                const deps = new Set();
+                const vmRefPattern = /vm\.(\w+)/g;
+                let vmMatch;
+                while ((vmMatch = vmRefPattern.exec(functionBody)) !== null) {
+                    const refName = vmMatch[1];
+                    // Do not add self-references
+                    if (refName !== funcName) {
+                        deps.add(refName);
+                    }
+                }
+                result.functions.set(funcName, {
+                    startPos: vmObjectStart + match.index,
+                    endPos: vmObjectStart + endPos,
+                    async: isAsync,
+                    deps
+                });
+            }
+            return result;
+        }
+        /**
+         * Filters worker function string to remove unused vm functions
+         * based on the instruction map from compilation
+         */
+        filterWorkerFnString(workerFnString, usedInstrMap) {
+            if (!usedInstrMap || Object.keys(usedInstrMap).length === 0) {
+                return workerFnString;
+            }
+            const scanResult = this.scanVmFunctionReferences(workerFnString);
+            if (this.debug) {
+                let output = "";
+                console.log("Scanning Standalone Worker Function...\n");
+                const scanResult = this.scanVmFunctionReferences(workerFnString);
+                output += `/*\nScanned functions: ${scanResult.functions.size}\n`;
+                for (const [funcName, funcInfo] of scanResult.functions) {
+                    output += `// Function: ${funcName}, async: ${funcInfo.async}, deps: [${[...funcInfo.deps].join(", ")}], startPos: ${funcInfo.startPos}, endPos: ${funcInfo.endPos}, body:\n${workerFnString.substring(funcInfo.startPos, funcInfo.endPos)}\n`;
+                }
+                output += `\n*/\n`;
+                console.log(output);
+            }
+            const vmFunctionMap = scanResult.functions;
+            if (vmFunctionMap.size === 0) {
+                return workerFnString;
+            }
+            // Build set of functions to keep using breadth-first search (transitive closure)
+            const functionsToKeep = new Set();
+            const queue = Object.keys(usedInstrMap);
+            while (queue.length > 0) {
+                const funcName = queue.shift();
+                if (!funcName || functionsToKeep.has(funcName))
+                    continue;
+                functionsToKeep.add(funcName);
+                const funcInfo = vmFunctionMap.get(funcName);
+                if (funcInfo) {
+                    for (const dep of funcInfo.deps) {
+                        if (!functionsToKeep.has(dep) && vmFunctionMap.has(dep)) {
+                            queue.push(dep);
+                        }
+                    }
+                }
+            }
+            // Collect positions to remove, sorted in descending order
+            const functionsToRemove = [];
+            for (const [funcName, funcInfo] of vmFunctionMap.entries()) {
+                if (!functionsToKeep.has(funcName)) {
+                    functionsToRemove.push({
+                        startPos: funcInfo.startPos,
+                        endPos: funcInfo.endPos
+                    });
+                }
+            }
+            // Sort by position (descending) so we can remove from end to start
+            functionsToRemove.sort((a, b) => b.startPos - a.startPos);
+            // Apply removals from end to start to preserve positions
+            let result = workerFnString;
+            for (const removal of functionsToRemove) {
+                // Find the actual end position including trailing comma/whitespace
+                let endPos = removal.endPos;
+                // Look for trailing comma and/or whitespace
+                while (endPos < result.length && /[,\s\n\r]/.test(result[endPos])) {
+                    endPos++;
+                }
+                result = result.substring(0, removal.startPos) + result.substring(endPos);
+            }
+            return result;
+        }
+        createParentPort() {
+            const parentPort = new class {
+                constructor() {
+                    // Dummy message handler
+                    this.onMessageHandler = (data) => {
+                        console.log("onMessageHandler called with:", data);
+                    };
+                }
+                // This method will be stringified into the standalone script
+                on(_event, messageHandler) {
+                    this.onMessageHandler = messageHandler;
+                    this.onMessageHandler({
+                        type: "config",
+                        isTerminal: true
+                    });
+                }
+                // This method will be stringified into the standalone script
+                postMessage(data) {
+                    switch (data.type) {
+                        case 'frame':
+                            if (data.needCls) {
+                                console.clear();
+                            }
+                            console.log(data.message);
+                            break;
+                        case 'geolocation':
+                            this.onMessageHandler({
+                                type: "continue",
+                                result: ""
+                            });
+                            break;
+                        case 'input':
+                            console.log(data.prompt);
+                            this.onMessageHandler({
+                                type: "input",
+                                prompt: ""
+                            });
+                            break;
+                        case 'keyDef':
+                            break;
+                        case 'result':
+                            break;
+                        case 'speak':
+                            this.onMessageHandler({
+                                type: "continue",
+                                result: ""
+                            });
+                            break;
+                        default:
+                            console.error("postMessageHandler: Unknown message type:", data);
+                            break;
+                    }
+                }
+            };
+            return parentPort;
+        }
+        compiledCodeInFrame(compiledScript, workerFnString) {
+            const asyncStr = compiledScript.includes("await ") ? "async " : ""; // fast hack: check if we need async function
+            const parentPort = this.createParentPort();
+            let postMessageStr = String(parentPort.postMessage);
+            // replace indentation
+            postMessageStr = postMessageStr.replace(/\n\s{12}/g, "\n");
+            let onStr = String(parentPort.on);
+            onStr = onStr.replace(/\n\s{12}/g, "\n");
+            const inFrame = `(${asyncStr}function(_o) {
+    ${compiledScript}
+})(
+    (${workerFnString})({
+        ${onStr},
+        ${postMessageStr}
+    })
+);`;
+            return inFrame;
+        }
+        createStandaloneScript(workerString, compiledScript, usedInstrMap) {
+            if (Object.keys(usedInstrMap).length > 0) {
+                workerString = this.filterWorkerFnString(workerString, usedInstrMap);
+            }
+            const inFrame = this.compiledCodeInFrame(compiledScript, workerString);
+            return inFrame;
+        }
+    }
+
     function fnHereDoc(fn) {
         return String(fn).replace(/^[^/]+\/\*\S*/, "").replace(/\*\/[^/]+$/, "");
     }
@@ -3200,6 +3467,14 @@ ${dataList.join(",\n")}
 `;
             const workerStringWithConstants = workerFnString.replace(/const postMessage =/, `${constants}    const postMessage =`); // fast hack: get constants into worker string
             return workerStringWithConstants;
+        }
+        createStandaloneScript(workerString, compiledScript, usedInstrMap) {
+            if (!this.scriptCreator) {
+                this.scriptCreator = new ScriptCreator(this.config.debug);
+            }
+            workerString = this.prepareWorkerFnString(workerString);
+            const inFrame = this.scriptCreator.createStandaloneScript(workerString, compiledScript, usedInstrMap);
+            return inFrame;
         }
     }
 
@@ -3483,25 +3758,11 @@ ${dataList.join(",\n")}
             const worker = new nodeWorkerThreads.Worker(path.resolve(__dirname, workerFile));
             return worker;
         }
-        getWorkerAsString(workerFn) {
-            const workerString = Object.entries(workerFn).map(([key, value]) => {
-                if (typeof value === "function") {
-                    return `${value}`;
-                }
-                else if (typeof value === "object") {
-                    return `${key}: ${JSON.stringify(value)}`;
-                }
-                else {
-                    return `${key}: "${value}"`;
-                }
-            }).join(",\n  ");
-            return workerString;
-        }
         createNodeWorkerAsString(workerFile) {
             const path = this.getNodePath();
             const workerFnPath = path.resolve(__dirname, workerFile);
             const workerFn = require(workerFnPath);
-            const workerFnString = this.getWorkerAsString(workerFn);
+            const workerFnString = `${workerFn.workerFn}`;
             return workerFnString;
         }
         loadScript(fileOrUrl) {
@@ -3616,71 +3877,31 @@ ${dataList.join(",\n")}
                 process.exit(0); // hmm, not so nice
             }
         }
-        compiledCodeInFrame(compiledScript, workerFnString) {
-            const asyncStr = compiledScript.includes("await ") ? "async " : ""; // fast hack: check if we need async function
-            const inFrame = `(${asyncStr}function(_o) {
-    ${compiledScript}
-})(
-    (${workerFnString})({
-        on: (...args) => {
-            // on: [ 'message', [Function: onMessageHandler] ]
-            //console.log("on:", args);
-            this.onMessageHandler = args[1];
-            this.onMessageHandler({
-                type: "config",
-                isTerminal: true
-            });
-        },
-        postMessage: (args) => {
-            if (args.type === "frame") {
-                if (args.needCls) {
-                    console.clear();
-                }
-                console.log(args.message);
-            } else if (args.type === "input") {
-                console.log(args.prompt);
-                this.onMessageHandler({
-                    type: "input",
-                    prompt: ""
-                });
-            } else {
-                console.log("postMessage:", args);
-            }
-        }
-    })
-);`;
-            return inFrame;
-        }
         start(core, input) {
             const actionConfig = core.getConfigMap().action;
-            if (input !== "") {
-                //core.setOnCheckSyntax((s: string) => Promise.resolve(this.nodeCheckSyntax(s)));
-                const needCompile = actionConfig.includes("compile");
-                const { compiledScript, messages } = needCompile ? core.compileScript(input) : {
-                    compiledScript: input,
-                    messages: []
-                };
-                if (compiledScript.startsWith("ERROR:")) {
-                    console.error(compiledScript);
-                    return;
-                }
-                if (messages) {
-                    console.log(messages.join("\n"));
-                }
-                if (actionConfig.includes("run")) {
-                    return this.keepRunning(async () => {
-                        return this.startRun(core, compiledScript);
-                    }, 5000);
-                }
-                else {
-                    const workerString = core.prepareWorkerFnString(this.createNodeWorkerAsString(this.locoVmWorkerName));
-                    const inFrame = this.compiledCodeInFrame(compiledScript, workerString);
-                    console.log(inFrame);
-                }
+            //core.setOnCheckSyntax((s: string) => Promise.resolve(this.nodeCheckSyntax(s)));
+            const needCompile = actionConfig.includes("compile");
+            const { compiledScript, messages } = needCompile ? core.compileScript(input) : {
+                compiledScript: input,
+                messages: []
+            };
+            if (compiledScript.startsWith("ERROR:")) {
+                console.error(compiledScript);
+                return;
+            }
+            if (messages) {
+                console.log(messages.join("\n"));
+            }
+            if (actionConfig.includes("run")) {
+                return this.keepRunning(async () => {
+                    return this.startRun(core, compiledScript);
+                }, 5000);
             }
             else {
-                console.log("No input");
-                console.log(NodeParts.getHelpString());
+                const workerString = this.createNodeWorkerAsString(this.locoVmWorkerName);
+                const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
+                const inFrame = core.createStandaloneScript(workerString, compiledScript, usedInstrMap);
+                console.log(inFrame);
             }
         }
         async getExampleMap(databaseItem, core) {
@@ -3733,13 +3954,13 @@ ${dataList.join(",\n")}
                     this.start(core, config.input);
                 }, 5000);
             }
-            if (config.fileName) {
+            else if (config.fileName) {
                 return this.keepRunning(async () => {
                     const inputFromFile = await this.nodeReadFile(config.fileName);
                     this.start(core, inputFromFile);
                 }, 5000);
             }
-            if (config.example) {
+            else if (config.example) {
                 const databaseMap = core.initDatabaseMap();
                 const database = config.database;
                 const databaseItem = databaseMap[database];
@@ -3762,6 +3983,9 @@ ${dataList.join(",\n")}
                         console.error(`Error: Example not found: ${exampleName}`);
                     }
                 }, 5000);
+            }
+            else {
+                console.log(NodeParts.getHelpString());
             }
         }
         static getHelpString() {

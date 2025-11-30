@@ -6,6 +6,7 @@ export declare class Core implements ICore {
     private readonly semantics;
     private readonly databaseMap;
     private arithmeticParser;
+    private scriptCreator?;
     constructor(defaultConfig: ConfigType);
     getDefaultConfigMap(): ConfigType;
     getConfigMap(): ConfigType;
@@ -21,5 +22,6 @@ export declare class Core implements ICore {
     addItem: (key: string, input: string | (() => void)) => void;
     parseArgs(args: string[], config: Record<string, ConfigEntryType>): Record<string, ConfigEntryType>;
     prepareWorkerFnString(workerFnString: string): string;
+    createStandaloneScript(workerString: string, compiledScript: string, usedInstrMap: Record<string, number>): string;
 }
 //# sourceMappingURL=Core.d.ts.map

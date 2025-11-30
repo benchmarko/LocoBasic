@@ -110,7 +110,6 @@ ${content}
                 return args;
             },
             rsxGeolocation: () => {
-                //const message = args[0] as string;
                 postMessage({ type: 'geolocation' });
             },
             rsxPitch: (args) => {
@@ -282,6 +281,7 @@ ${content}
             }
         };
         // This object will be passed to the worker's code as `_o`
+        // (Make sure you use this arrow style:  fn: [async] (...) =>  { ... } )
         const vm = {
             _gra: vmGra,
             _rsx: vmRsx,
@@ -317,19 +317,31 @@ ${content}
                 vm._stopRequested = false;
                 vm.remainAll();
             },
-            abs: (num) => Math.abs(num),
+            abs: (num) => {
+                return Math.abs(num);
+            },
             after: (timeout, timer, fn) => {
                 vm.remain(timer);
                 vm._timerMap[timer] = setTimeout(() => fn(), timeout * 20);
             },
-            asc: (str) => str.charCodeAt(0),
-            atn: Math.atan,
+            asc: (str) => {
+                return str.charCodeAt(0);
+            },
+            atn: (num) => {
+                return Math.atan(num);
+            },
             bin$: (num, pad = 0) => {
                 return num.toString(2).toUpperCase().padStart(pad, "0");
             },
-            chr$: (num) => String.fromCharCode(num),
-            cint: (num) => Math.round(num),
-            clearInput: () => vm._keyCharBufferString = "",
+            chr$: (num) => {
+                return String.fromCharCode(num);
+            },
+            cint: (num) => {
+                return Math.round(num);
+            },
+            clearInput: () => {
+                vm._keyCharBufferString = "";
+            },
             cls: () => {
                 vm._output = "";
                 vm._paperSpanPos = -1;
@@ -343,8 +355,12 @@ ${content}
                 vm._gra.cls();
                 vm._needCls = true;
             },
-            cos: Math.cos,
-            creal: (num) => num, // nothing
+            cos: (num) => {
+                return Math.cos(num);
+            },
+            creal: (num) => {
+                return num; // nothing
+            },
             dec$: (num, format) => {
                 const decimals = (format.split(".")[1] || "").length;
                 const str = num.toFixed(decimals);
@@ -379,7 +395,7 @@ ${content}
             },
             end: () => {
                 vm.frame();
-                return ""; //"end";
+                return "";
             },
             escapeText: (str) => {
                 return str.replace(/&/g, "&amp;").replace(/</g, "&lt;");
@@ -388,8 +404,12 @@ ${content}
                 vm.remain(timer);
                 vm._timerMap[timer] = setInterval(() => fn(), timeout * 20);
             },
-            exp: (num) => Math.exp(num),
-            fix: (num) => Math.trunc(num),
+            exp: (num) => {
+                return Math.exp(num);
+            },
+            fix: (num) => {
+                return Math.trunc(num);
+            },
             frame: async () => {
                 if (vm._stopRequested) {
                     throw new Error("INFO: Program stopped");
@@ -418,7 +438,9 @@ ${content}
                 const output = hasGraphics ? textOutput.substring(0, outputGraphicsIndex) + graphicsOutput + textOutput.substring(outputGraphicsIndex) : textOutput;
                 return output;
             },
-            graphicsPen: (num) => vm._gra.graphicsPen(num),
+            graphicsPen: (num) => {
+                return vm._gra.graphicsPen(num);
+            },
             hex$: (num, pad) => {
                 return num.toString(16).toUpperCase().padStart(pad || 0, "0");
             },
@@ -454,7 +476,9 @@ ${content}
             instr: (str, find, len) => {
                 return str.indexOf(find, len !== undefined ? len - 1 : len) + 1;
             },
-            int: (num) => Math.floor(num),
+            int: (num) => {
+                return Math.floor(num);
+            },
             keyDef: (num, repeat, ...codes) => {
                 if (num === 78 && repeat === 1) {
                     postMessage({ type: 'keyDef', codes });
@@ -463,11 +487,21 @@ ${content}
             left$: (str, num) => {
                 return str.slice(0, num);
             },
-            len: (str) => str.length,
-            log: (num) => Math.log(num),
-            log10: (num) => Math.log10(num),
-            lower$: (str) => str.toLowerCase(),
-            max: Math.max,
+            len: (str) => {
+                return str.length;
+            },
+            log: (num) => {
+                return Math.log(num);
+            },
+            log10: (num) => {
+                return Math.log10(num);
+            },
+            lower$: (str) => {
+                return str.toLowerCase();
+            },
+            max: (...nums) => {
+                return Math.max.apply(null, nums);
+            },
             mid$: (str, pos, len) => {
                 return str.substr(pos - 1, len);
             },
@@ -476,7 +510,9 @@ ${content}
                 len = Math.min(len !== null && len !== void 0 ? len : newString.length, newString.length, s.length - start);
                 return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
             },
-            min: Math.min,
+            min: (...nums) => {
+                return Math.min.apply(null, nums);
+            },
             mode: (num) => {
                 vm._gra.mode(num);
                 vm.cls();
@@ -490,8 +526,8 @@ ${content}
             origin: (x, y) => {
                 vm._gra.origin(x, y);
             },
-            // Use a virtual stack to handle paper and pen spans
             paper: (n) => {
+                // Use a virtual stack to handle paper and pen spans
                 if (n !== vm._paperValue) {
                     vm._paperValue = n;
                     if (vm._isTerminal) {
@@ -546,7 +582,7 @@ ${content}
                     }
                 }
             },
-            pi: Math.PI,
+            pi: Math.PI, // a constant!
             plot: (x, y, pen) => {
                 vm._gra.drawMovePlot("P", x, y, pen);
             },
@@ -564,8 +600,6 @@ ${content}
                 }
                 vm.printText(text);
             },
-            // printTab: print with commaOp or tabOp
-            // For graphics output the text position does not change, so we can output all at once.
             printTab: (...args) => {
                 const formatNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
                 const strArgs = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg);
@@ -581,6 +615,7 @@ ${content}
                 };
                 if (vm._tag) {
                     return vm._gra.printGraphicsText(vm.escapeText(strArgs.map(arg => formatCommaOrTab(arg)).join("")));
+                    // For graphics output the text position does not change, so we can output all at once
                 }
                 for (const str of strArgs) {
                     vm.printText(formatCommaOrTab(str));
@@ -605,14 +640,13 @@ ${content}
                     throw new Error("4"); // 4: DATA exhausted
                 }
             },
-            // remain: the return value is not really the remaining time
             remain: (timer) => {
                 const value = vm._timerMap[timer];
                 if (value !== undefined) {
                     clearTimeout(value);
                     delete vm._timerMap[timer]; // eslint-disable-line @typescript-eslint/no-dynamic-delete
                 }
-                return value;
+                return value; // not really the remaining time
             },
             remainAll: () => {
                 for (const timer in vm._timerMap) {
@@ -625,15 +659,27 @@ ${content}
             right$: (str, num) => {
                 return str.substring(str.length - num);
             },
-            rnd: Math.random,
-            round1: Math.round,
+            rnd: () => {
+                return Math.random();
+            },
+            round1: (num) => {
+                return Math.round(num);
+            },
             round: (num, dec) => {
                 return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
             },
-            rsxArc: (...args) => vm._gra.rsxArc(args), // 9x number, number?
-            rsxCircle: (...args) => vm._gra.rsxCircle(args), // 3x number, number?
-            rsxDate: (...args) => vm._rsx.rsxDate(args), // string
-            rsxEllipse: (...args) => vm._gra.rsxEllipse(args),
+            rsxArc: (...args) => {
+                vm._gra.rsxArc(args);
+            },
+            rsxCircle: (...args) => {
+                vm._gra.rsxCircle(args);
+            },
+            rsxDate: (...args) => {
+                return vm._rsx.rsxDate(args);
+            },
+            rsxEllipse: (...args) => {
+                vm._gra.rsxEllipse(args);
+            },
             rsxGeolocation: (...args) => {
                 const promise = new Promise((resolve) => {
                     vm._waitResolvedFn = resolve;
@@ -649,8 +695,12 @@ ${content}
                 vm._rsx.rsxGeolocation();
                 return promise;
             },
-            rsxPitch: (...args) => vm._rsx.rsxPitch(args),
-            rsxRect: (...args) => vm._gra.rsxRect(args), // 4x number, number?
+            rsxPitch: (...args) => {
+                vm._rsx.rsxPitch(args);
+            },
+            rsxRect: (...args) => {
+                vm._gra.rsxRect(args);
+            },
             rsxSay: (...args) => {
                 const promise = new Promise((resolve) => {
                     vm._waitResolvedFn = resolve;
@@ -658,12 +708,24 @@ ${content}
                 vm._rsx.rsxSay(args);
                 return promise;
             },
-            rsxTime: (...args) => vm._rsx.rsxTime(args), // string
-            sgn: Math.sign,
-            sin: Math.sin,
-            space$: (num) => " ".repeat(num),
-            spc: (num) => " ".repeat(num), // same as space$
-            sqr: Math.sqrt,
+            rsxTime: (...args) => {
+                return vm._rsx.rsxTime(args);
+            },
+            sgn: (num) => {
+                return Math.sign(num);
+            },
+            sin: (num) => {
+                return Math.sin(num);
+            },
+            space$: (num) => {
+                return " ".repeat(num);
+            },
+            spc: (num) => {
+                return " ".repeat(num);
+            },
+            sqr: (num) => {
+                return Math.sqrt(num);
+            },
             stop: () => {
                 vm.frame();
                 return ""; //"stop";
@@ -677,20 +739,36 @@ ${content}
             string$Str: (len, str) => {
                 return str.repeat(len);
             },
-            tag: () => vm._tag = true,
-            tagoff: () => vm._tag = false,
-            tan: Math.tan,
+            tag: () => {
+                vm._tag = true;
+            },
+            tagoff: () => {
+                vm._tag = false;
+            },
+            tan: (num) => {
+                return Math.tan(num);
+            },
             time: () => {
                 return ((Date.now() - vm._startTime) * 3 / 10) | 0;
             },
-            toDeg: (num) => num * 180 / Math.PI,
-            toRad: (num) => num * Math.PI / 180,
+            toDeg: (num) => {
+                return num * 180 / Math.PI;
+            },
+            toRad: (num) => {
+                return num * Math.PI / 180;
+            },
             using: (format, ...args) => {
                 return args.map((arg) => vm.dec$(arg, format)).join('');
             },
-            unt: (num) => num,
-            upper$: (str) => str.toUpperCase(),
-            val1: (str) => Number(str),
+            unt: (num) => {
+                return num;
+            },
+            upper$: (str) => {
+                return str.toUpperCase();
+            },
+            val1: (str) => {
+                return Number(str);
+            },
             val: (str) => {
                 return Number(str.replace("&x", "0b").replace("&", "0x"));
             },
@@ -704,8 +782,12 @@ ${content}
                 }
                 vm.printText(text);
             },
-            xpos: () => vm._gra.xpos(),
-            ypos: () => vm._gra.ypos(),
+            xpos: () => {
+                return vm._gra.xpos();
+            },
+            ypos: () => {
+                return vm._gra.ypos();
+            },
             zone: (num) => {
                 vm._zone = num;
             },

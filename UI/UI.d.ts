@@ -10,6 +10,7 @@ export declare class UI implements IUI {
     private fnOnClickHandler;
     private fnOnUserKeyClickHandler;
     private speechSynthesisUtterance?;
+    private locoVmWorkerName;
     constructor();
     private debounce;
     private static asyncDelay;
@@ -28,12 +29,6 @@ export declare class UI implements IUI {
     addOutputText: (str: string, needCls?: boolean, hasGraphics?: boolean) => void;
     private onUserKeyClick;
     private onSetUiKeys;
-    /**
-     * Prompts the user with a message and returns the input.
-     * @param msg - The message to prompt.
-     * @returns A promise that resolves to the user input or null if canceled.
-     */
-    prompt(msg: string): string | null;
     private waitForVoices;
     private waitForUserInteraction;
     private logVoiceDebugInfo;
@@ -79,6 +74,7 @@ export declare class UI implements IUI {
     private static fnDownloadBlob;
     private getExampleName;
     private onExportSvgButtonClick;
+    private onStandaloneButtonClick;
     private putKeysInBuffer;
     private onOutputTextKeydown;
     private getClickedKey;

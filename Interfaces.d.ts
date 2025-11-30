@@ -40,7 +40,11 @@ export type UsedLabelEntryType = {
 };
 export interface ISemantics {
     getUsedLabels(): Record<string, Record<string, UsedLabelEntryType>>;
+    getHelper(): SemanticsHelperType;
 }
+export type SemanticsHelperType = {
+    getInstrMap(): Record<string, number>;
+};
 export type CompileResultType = {
     compiledScript: string;
     messages: string[];
@@ -60,6 +64,7 @@ export interface ICore {
     addItem(key: string, input: string | (() => void)): void;
     parseArgs(args: string[], config: Record<string, ConfigEntryType>): void;
     prepareWorkerFnString(workerFnString: string): string;
+    createStandaloneScript(workerString: string, compiledScript: string, usedInstrMap: Record<string, number>): string;
 }
 export type MessageToWorker = {
     type: 'config';
@@ -105,6 +110,12 @@ export interface NodeWorkerType {
     postMessage: (message: MessageToWorker) => void;
     terminate: () => void;
 }
+export interface NodeWorkerThreadsType {
+    parentPort: {
+        postMessage: (message: MessageFromWorker) => void;
+        on: (event: string, listener: (data: MessageToWorker) => void) => void;
+    };
+}
 export interface INodeParts {
     getEscape(): boolean;
     getKeyFromBuffer(): string;
@@ -116,6 +127,5 @@ export interface IUI {
     addOutputText(str: string, needCls?: boolean, hasGraphics?: boolean): void;
     getCurrentDataKey(): string;
     onWindowLoadContinue(core: ICore, locoVmWorkerName: string): void;
-    prompt(msg: string): string | null;
 }
 //# sourceMappingURL=Interfaces.d.ts.map

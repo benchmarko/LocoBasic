@@ -5,6 +5,7 @@ export class UI {
     constructor() {
         this.compiledMessages = [];
         this.initialUserAction = false;
+        this.locoVmWorkerName = "";
         this.addOutputText = (str, needCls, hasGraphics) => {
             const outputText = document.getElementById("outputText");
             if (needCls) {
@@ -279,6 +280,21 @@ export class UI {
             const filename = `${example}.svg`;
             UI.fnDownloadBlob(svgBlob, filename);
         };
+        this.onStandaloneButtonClick = async () => {
+            const locoVmWorker = await this.getLocoVmWorker(this.locoVmWorkerName);
+            const workerString = `${locoVmWorker.workerFn}`;
+            const core = this.getCore();
+            const compiledScript = this.getCompiledCm().getValue();
+            const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
+            const output = core.createStandaloneScript(workerString, compiledScript, usedInstrMap);
+            const blob = new Blob([output], { type: "text/javascript" });
+            const objectURL = window.URL.createObjectURL(blob);
+            const win = window.open(objectURL, "Standalone Script", "width=640,height=300,resizable=yes,scrollbars=yes,dependent=yes");
+            if (win && win.focus) {
+                win.focus();
+            }
+            window.URL.revokeObjectURL(objectURL);
+        };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onCodeMirrorOpenDialog = (_template, callback, _options) => {
             // see: https://codemirror.net/5/addon/dialog/dialog.js
@@ -399,15 +415,6 @@ export class UI {
         const target = event.target;
         const dataKey = target.getAttribute("data-key");
         this.putKeysInBuffer(String.fromCharCode(Number(dataKey)));
-    }
-    /**
-     * Prompts the user with a message and returns the input.
-     * @param msg - The message to prompt.
-     * @returns A promise that resolves to the user input or null if canceled.
-     */
-    prompt(msg) {
-        const input = window.prompt(msg);
-        return input;
     }
     async waitForVoices(callback) {
         return new Promise((resolve) => {
@@ -769,6 +776,7 @@ export class UI {
         const config = core.getConfigMap();
         const args = this.parseUri(config);
         core.parseArgs(args, config);
+        this.locoVmWorkerName = locoVmWorkerName; // not so nice to have it here as well
         // Map of element IDs to event handlers
         const buttonHandlers = {
             compileButton: this.onCompileButtonClick,
@@ -786,6 +794,7 @@ export class UI {
             labelRemoveButton: this.onLabelRemoveButtonClick,
             helpButton: this.onHelpButtonClick,
             exportSvgButton: this.onExportSvgButtonClick,
+            standaloneButton: this.onStandaloneButtonClick
         };
         const inputAndSelectHandlers = {
             autoCompileInput: this.onAutoCompileInputChange,

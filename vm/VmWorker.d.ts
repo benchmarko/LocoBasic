@@ -1,11 +1,5 @@
-import type { MessageFromWorker, MessageToWorker } from "../Interfaces";
-interface NodeWorkerThreads {
-    parentPort: {
-        postMessage: (message: MessageFromWorker) => void;
-        on: (event: string, listener: (data: MessageToWorker) => void) => void;
-    };
-}
-export declare const workerFn: (parentPort?: NodeWorkerThreads["parentPort"]) => {
+import type { NodeWorkerThreadsType } from "../Interfaces";
+export declare const workerFn: (parentPort?: NodeWorkerThreadsType["parentPort"]) => {
     _gra: {
         _backgroundColor: string;
         _colorsForPens: number[];
@@ -72,13 +66,13 @@ export declare const workerFn: (parentPort?: NodeWorkerThreads["parentPort"]) =>
     abs: (num: number) => number;
     after: (timeout: number, timer: number, fn: () => void) => void;
     asc: (str: string) => number;
-    atn: (x: number) => number;
+    atn: (num: number) => number;
     bin$: (num: number, pad?: number) => string;
     chr$: (num: number) => string;
     cint: (num: number) => number;
-    clearInput: () => string;
+    clearInput: () => void;
     cls: () => void;
-    cos: (x: number) => number;
+    cos: (num: number) => number;
     creal: (num: number) => number;
     dec$: (num: number, format: string) => string;
     dim: (dims: number[], value?: string | number) => string | number | (string | number | (string | number | (string | number | (string | number | (string | number | (string | number | (string | number | (string | number | (string | number | (string | number | (string | number | /*elided*/ any)[])[])[])[])[])[])[])[])[])[])[];
@@ -107,10 +101,10 @@ export declare const workerFn: (parentPort?: NodeWorkerThreads["parentPort"]) =>
     log: (num: number) => number;
     log10: (num: number) => number;
     lower$: (str: string) => string;
-    max: (...values: number[]) => number;
+    max: (...nums: number[]) => number;
     mid$: (str: string, pos: number, len?: number) => string;
     mid$Assign: (s: string, start: number, newString: string, len?: number) => string;
-    min: (...values: number[]) => number;
+    min: (...nums: number[]) => number;
     mode: (num: number) => void;
     move: (x: number, y: number, pen?: number) => void;
     mover: (x: number, y: number, pen?: number) => void;
@@ -130,7 +124,7 @@ export declare const workerFn: (parentPort?: NodeWorkerThreads["parentPort"]) =>
     restore: (label: string) => void;
     right$: (str: string, num: number) => string;
     rnd: () => number;
-    round1: (x: number) => number;
+    round1: (num: number) => number;
     round: (num: number, dec: number) => number;
     rsxArc: (...args: number[]) => void;
     rsxCircle: (...args: number[]) => void;
@@ -141,18 +135,18 @@ export declare const workerFn: (parentPort?: NodeWorkerThreads["parentPort"]) =>
     rsxRect: (...args: number[]) => void;
     rsxSay: (...args: string[]) => Promise<string>;
     rsxTime: (...args: string[]) => string[];
-    sgn: (x: number) => number;
-    sin: (x: number) => number;
+    sgn: (num: number) => number;
+    sin: (num: number) => number;
     space$: (num: number) => string;
     spc: (num: number) => string;
-    sqr: (x: number) => number;
+    sqr: (num: number) => number;
     stop: () => string;
     str$: (num: number) => string;
     string$Num: (len: number, num: number) => string;
     string$Str: (len: number, str: string) => string;
-    tag: () => boolean;
-    tagoff: () => boolean;
-    tan: (x: number) => number;
+    tag: () => void;
+    tagoff: () => void;
+    tan: (num: number) => number;
     time: () => number;
     toDeg: (num: number) => number;
     toRad: (num: number) => number;
@@ -167,5 +161,4 @@ export declare const workerFn: (parentPort?: NodeWorkerThreads["parentPort"]) =>
     ypos: () => number;
     zone: (num: number) => void;
 };
-export {};
 //# sourceMappingURL=VmWorker.d.ts.map
