@@ -1,6 +1,8 @@
 export declare class ScriptCreator {
     private debug;
     constructor(debug: number);
+    private scanBoundaries;
+    private scanFunctionOrObjectBoundaries;
     /**
      * Scans vm object for function references (dependencies)
      * Returns a map of function names to their dependencies and positions

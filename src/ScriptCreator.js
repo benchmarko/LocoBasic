@@ -3,30 +3,17 @@ export class ScriptCreator {
     constructor(debug) {
         this.debug = debug;
     }
-    /**
-     * Scans vm object for function references (dependencies)
-     * Returns a map of function names to their dependencies and positions
-     */
-    scanVmFunctionReferences(workerFnString) {
-        const result = {
-            functions: new Map(),
-            vmObjectStart: -1,
-            vmObjectEnd: -1
-        };
-        // Find vm object boundaries
-        const vmObjectStart = workerFnString.indexOf('const vm = {');
-        if (vmObjectStart === -1) {
-            return result;
-        }
-        // Find the closing brace of vm object (need to match braces properly)
+    scanBoundaries(mainString, startPos) {
+        // Find opening and closing braces of function or object (need to match braces properly)
+        let endPos = -1;
         let braceCount = 0;
-        let vmObjectEnd = -1;
         let inString = false;
         let stringChar = '';
         let foundOpenBrace = false;
-        for (let i = vmObjectStart + 11; i < workerFnString.length; i += 1) {
-            const ch = workerFnString[i];
-            const prevCh = i > 0 ? workerFnString[i - 1] : '';
+        //for (let i = startPos + searchString.length; i < mainString.length && (!foundOpenBrace || braceCount > 0); i += 1) {
+        for (let i = startPos; i < mainString.length && (!foundOpenBrace || braceCount > 0); i += 1) {
+            const ch = mainString[i];
+            const prevCh = i > 0 ? mainString[i - 1] : '';
             // Handle string literals
             if ((ch === '"' || ch === '`' || ch === "'") && prevCh !== '\\') {
                 if (!inString) {
@@ -47,13 +34,35 @@ export class ScriptCreator {
                 else if (ch === '}') {
                     braceCount--;
                     if (foundOpenBrace && braceCount === 0) {
-                        vmObjectEnd = i;
-                        break;
+                        endPos = i;
                     }
                 }
             }
         }
-        if (vmObjectEnd === -1) {
+        return { startPos, endPos };
+    }
+    scanFunctionOrObjectBoundaries(mainString, searchString) {
+        // Find function or object boundaries
+        const startPos = mainString.indexOf(searchString);
+        if (startPos === -1) {
+            const endPos = -1;
+            return { startPos, endPos };
+        }
+        return this.scanBoundaries(mainString, startPos + searchString.length);
+    }
+    /**
+     * Scans vm object for function references (dependencies)
+     * Returns a map of function names to their dependencies and positions
+     */
+    scanVmFunctionReferences(workerFnString, objectString, refPrefix) {
+        // Find vm object boundaries
+        const { startPos: vmObjectStart, endPos: vmObjectEnd } = this.scanFunctionOrObjectBoundaries(workerFnString, objectString); // e.g. 'const vm = '
+        const result = {
+            functions: new Map(),
+            vmObjectStart,
+            vmObjectEnd
+        };
+        if (vmObjectStart < 0 || vmObjectEnd < 0) {
             return result;
         }
         result.vmObjectStart = vmObjectStart;
@@ -61,58 +70,35 @@ export class ScriptCreator {
         const vmObjectStr = workerFnString.substring(vmObjectStart, vmObjectEnd + 1);
         // Pattern to match: key: [async] (...) => {
         const funcPattern = /([\w$]+)\s*:\s*(async\s+)?\([^)]*\)\s*=>\s*\{/g;
+        const vmRefPattern = new RegExp(`${refPrefix}\\.([\\w$]+)`, "g"); // e.g. vm\.(\w+)
         let match;
         while ((match = funcPattern.exec(vmObjectStr)) !== null) {
             const funcName = match[1];
-            const isAsync = !!match[2];
+            const isAsync = Boolean(match[2]);
             const startPos = match.index + match[0].length;
-            // Find matching closing brace for this function
-            let braceCount = 1;
-            let endPos = startPos;
-            let inString = false;
-            let stringChar = '';
-            for (let i = startPos; i < vmObjectStr.length && braceCount > 0; i++) {
-                const ch = vmObjectStr[i];
-                const prevCh = i > 0 ? vmObjectStr[i - 1] : '';
-                // Handle string literals
-                if ((ch === '"' || ch === '`' || ch === "'") && prevCh !== '\\') {
-                    if (!inString) {
-                        inString = true;
-                        stringChar = ch;
-                    }
-                    else if (ch === stringChar) {
-                        inString = false;
-                    }
-                }
-                if (!inString) {
-                    if (ch === '{')
-                        braceCount++;
-                    else if (ch === '}') {
-                        braceCount--;
-                        if (braceCount === 0) {
-                            endPos = i + 1; //vmObjectStart + match.index + match[0].length + i;
-                        }
-                    }
-                }
-            }
+            const { endPos } = this.scanBoundaries(vmObjectStr, startPos - 1); // -1 to include the opening brace
             const functionBody = vmObjectStr.substring(startPos, endPos);
-            // Extract all vm.xxx references in the function body
+            // Extract all <refPrefix>.xxx references in the function body
             const deps = new Set();
-            const vmRefPattern = /vm\.(\w+)/g;
             let vmMatch;
             while ((vmMatch = vmRefPattern.exec(functionBody)) !== null) {
                 const refName = vmMatch[1];
-                // Do not add self-references
-                if (refName !== funcName) {
-                    deps.add(refName);
-                }
+                deps.add(refName); // add dependency (we assume no self-reference)
             }
             result.functions.set(funcName, {
                 startPos: vmObjectStart + match.index,
-                endPos: vmObjectStart + endPos,
+                endPos: vmObjectStart + endPos + 1,
                 async: isAsync,
                 deps
             });
+        }
+        if (this.debug >= 2) {
+            let output = "";
+            output += `Scanned functions for objectString '${objectString}', refPrefix '${refPrefix}': ${result.functions.size}\n`;
+            for (const [funcName, funcInfo] of result.functions) {
+                output += `// Function: ${funcName}, async: ${funcInfo.async}, deps: [${[...funcInfo.deps].join(", ")}], startPos: ${funcInfo.startPos}, endPos: ${funcInfo.endPos}, body:\n${workerFnString.substring(funcInfo.startPos, funcInfo.endPos)}\n`;
+            }
+            console.log(output);
         }
         return result;
     }
@@ -120,33 +106,20 @@ export class ScriptCreator {
      * Filters worker function string to remove unused vm functions
      * based on the instruction map from compilation
      */
-    filterWorkerFnString(workerFnString, usedInstrMap) {
-        if (!usedInstrMap || Object.keys(usedInstrMap).length === 0) {
-            return workerFnString;
-        }
-        const scanResult = this.scanVmFunctionReferences(workerFnString);
-        if (this.debug) {
-            let output = "";
-            console.log("Scanning Standalone Worker Function...\n");
-            const scanResult = this.scanVmFunctionReferences(workerFnString);
-            output += `/*\nScanned functions: ${scanResult.functions.size}\n`;
-            for (const [funcName, funcInfo] of scanResult.functions) {
-                output += `// Function: ${funcName}, async: ${funcInfo.async}, deps: [${[...funcInfo.deps].join(", ")}], startPos: ${funcInfo.startPos}, endPos: ${funcInfo.endPos}, body:\n${workerFnString.substring(funcInfo.startPos, funcInfo.endPos)}\n`;
-            }
-            output += `\n*/\n`;
-            console.log(output);
-        }
-        const vmFunctionMap = scanResult.functions;
+    filterWorkerFnString(workerFnString, usedInstrList, objectString, refPrefix) {
+        const scanVm = this.scanVmFunctionReferences(workerFnString, objectString, refPrefix); // e.g. 'const vm = ', 'vm'
+        const vmFunctionMap = scanVm.functions;
         if (vmFunctionMap.size === 0) {
             return workerFnString;
         }
         // Build set of functions to keep using breadth-first search (transitive closure)
         const functionsToKeep = new Set();
-        const queue = Object.keys(usedInstrMap);
+        const queue = [...usedInstrList];
         while (queue.length > 0) {
             const funcName = queue.shift();
-            if (!funcName || functionsToKeep.has(funcName))
+            if (!funcName || functionsToKeep.has(funcName)) {
                 continue;
+            }
             functionsToKeep.add(funcName);
             const funcInfo = vmFunctionMap.get(funcName);
             if (funcInfo) {
@@ -258,7 +231,24 @@ export class ScriptCreator {
     }
     createStandaloneScript(workerString, compiledScript, usedInstrMap) {
         if (Object.keys(usedInstrMap).length > 0) {
-            workerString = this.filterWorkerFnString(workerString, usedInstrMap);
+            const usedInstrList = Object.keys(usedInstrMap);
+            workerString = this.filterWorkerFnString(workerString, usedInstrList, 'const vm = ', 'vm');
+            const scanVmRsxInVm = this.scanVmFunctionReferences(workerString, 'const vm = ', 'vm._rsx');
+            const usedVmRsxInVm = {};
+            for (const [, props] of scanVmRsxInVm.functions) {
+                for (const dep of props.deps) {
+                    usedVmRsxInVm[dep] = true;
+                }
+            }
+            workerString = this.filterWorkerFnString(workerString, Object.keys(usedVmRsxInVm), 'const vmRsx = ', 'vmRsx');
+            const scanVmGraInVm = this.scanVmFunctionReferences(workerString, 'const vm = ', 'vm._gra');
+            const usedVmGraInVm = {};
+            for (const [, props] of scanVmGraInVm.functions) {
+                for (const dep of props.deps) {
+                    usedVmGraInVm[dep] = true;
+                }
+            }
+            workerString = this.filterWorkerFnString(workerString, Object.keys(usedVmGraInVm), 'const vmGra = ', 'vmGra');
         }
         const inFrame = this.compiledCodeInFrame(compiledScript, workerString);
         return inFrame;
