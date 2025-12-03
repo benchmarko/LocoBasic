@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { workerFn } from "../src/vm/VmWorker";
-import { MessageFromWorker, MessageToWorker } from '../src/Interfaces';
+import type { MessageFromWorker, MessageToWorker } from '../src/Interfaces';
+import { CommaOpChar, TabOpChar } from "../src/Constants";
 
 function getMockParentPort() {
     const parentPort = {
@@ -79,24 +80,22 @@ describe("VmWorker.vm core methods", () => {
         expect(vm._output).toBe('');
         expect(vm._paperValue).toBe(-1);
         expect(vm._penValue).toBe(-1);
-        expect(vm._pos).toBe(0);
-        expect(vm._vpos).toBe(0);
+        expect(vm.pos()).toBe(1);
+        expect(vm.vpos()).toBe(1);
     });
 
     it("print and printText append and escape output (& and <)", () => {
         const vm = workerFn(getMockParentPort());
-        vm.cls();
         vm.print("<b>", 42, -1);
-        expect(vm._pos).toBe(10);
+        expect(vm.pos()).toBe(11);
         expect(vm._output).toBe('&lt;b> 42 -1 ');
     });
 
     it("getFlushedText returns and clears output", () => {
         const vm = workerFn(getMockParentPort());
-        vm.cls();
         vm.print("abc");
         const flushed = vm.getFlushedText();
-        expect(flushed).toContain("abc");
+        expect(flushed).toBe("abc");
         expect(vm._output).toBe('');
     });
 
@@ -131,9 +130,22 @@ describe("VmWorker.vm core methods", () => {
         const vm = workerFn(getMockParentPort());
         vm.cls();
         vm.zone(5);
-        vm.printTab("\u2192", "\u21d210", "abc");
-        expect(vm._output).toContain("abc");
-        expect(vm._output).toMatch(/ +abc/);
+        vm.printTab("a", CommaOpChar, "abc5"); // zone to 5
+        expect(vm.getFlushedText()).toBe("a    abc5"); // abc5 at pos 6
+
+        vm.cls();
+        vm.printTab("a", TabOpChar + "10", "t10", TabOpChar + "20", "t20"); // tab to 10, then tab to 20
+        expect(vm.getFlushedText()).toBe("a        t10       t20"); // t10 at pos 10, t20 at pos 20
+
+        vm.cls();
+        vm.printTab("a", TabOpChar + "5", "t5", TabOpChar + "3", "t3"); // tab to 5, then tab to 3 (new line)
+        expect(vm.getFlushedText()).toBe("a   t5\n  t3");
+
+        vm.cls();
+        vm.printTab("a", TabOpChar + "0", "t0", TabOpChar + "-5", "t-5"); // invalid tab sizes (ignored)
+        expect(vm.getFlushedText()).toBe("at0t-5");
+
+        vm.zone(13);
     });
 
     it("ink assigns colors for pens and background", () => {
@@ -148,7 +160,7 @@ describe("VmWorker.vm core methods", () => {
         const vm = workerFn(getMockParentPort());
         vm.tag();
         vm.print("abc");
-        expect(vm._gra._graphicsBuffer.join("")).toContain("abc");
+        expect(vm._gra._graphicsBuffer.join("")).toContain("abc"); // <text x="0" y="415" style="white-space: pre">abc</text>
         vm.tagoff();
     });
 
@@ -178,10 +190,15 @@ describe("VmWorker.vm core methods", () => {
         expect(vm.read()).toBe(2);
     });
 
-    it("rsx calls handles known and unknown commands", async () => {
+    it("rsx calls", async () => {
         const vm = workerFn(getMockParentPort());
-        expect(vm.rsxDate("")).toBeDefined(); // simple tests
-        expect(vm.rsxTime("")).toBeDefined();
+
+        const date = vm.rsxDate("")[0];
+        expect(date).toMatch(/^\d{2} \d{2} \d{2} \d{2}$/); // dayOfWeek day month year
+
+        const time = vm.rsxTime("")[0];
+        expect(time).toMatch(/^\d{2} \d{2} \d{2}$/); // hh mm ss
+
         //expect(vm.rsxRect(1,2,3,4,5));
         //await expect(vm.rsxCall("unknown")).rejects.toThrow();
     });
@@ -190,32 +207,57 @@ describe("VmWorker.vm core methods", () => {
         const vm = workerFn(getMockParentPort());
         vm.print("abc");
         await vm.frame();
-        expect(typeof vm._needCls).toBe("boolean");
+        expect(vm._needCls).toBe(false);
     });
 
-    it("input and inkey$ handle input logic", async () => {
+    it("inkey$ handles input logic", async () => {
         const mockParentPort = getMockParentPort();
         const vm = workerFn(mockParentPort);
-        //let posted: MessageFromWorker | null = null;
         vm._isTerminal = false;
-        // Mock postMessage to resolve input
-        //(vm as any).postMessage = (msg: MessageFromWorker) => { posted = msg; };
 
-        //vi.useFakeTimers();
-        const p = vm.input("Prompt?", false);
-        //vi.advanceTimersByTime(50);
+        vm._keyCharBufferString = "A";
+        const ch = vm.inkey$();
+        await expect(ch).resolves.toBe("A");
+    });
+
+    it("input handles input logic", async () => {
+        const mockParentPort = getMockParentPort();
+        const vm = workerFn(mockParentPort);
+        vm._isTerminal = false;
+        const arr1 = vm.input("Prompt?", "s");
+
         // Simulate input response
         mockParentPort._messageHandler({ type: 'input', prompt: "hello" });
 
-        await expect(p).resolves.toBe("hello");
+        await expect(arr1).resolves.toStrictEqual(["hello"]);
         expect(mockParentPort._testMessage).toEqual({
             "type": "input",
             "prompt": "Prompt?"
         });
+    });
 
-        // andinkey$
-        vm._keyCharBufferString = "A";
-        await expect(vm.inkey$()).resolves.toBe("A");
+    it("input handles input logic (multiple parts)", async () => {
+        const mockParentPort = getMockParentPort();
+        const vm = workerFn(mockParentPort);
+        vm._isTerminal = false;
+        const arr1 = vm.input("Prompt?", "ssn");
+
+        // Simulate input response
+        mockParentPort._messageHandler({ type: 'input', prompt: "hello, world!,42" });
+
+        await expect(arr1).resolves.toStrictEqual(["hello", " world!", 42]);
+    });
+
+    it("line input handles input logic", async () => {
+        const mockParentPort = getMockParentPort();
+        const vm = workerFn(mockParentPort);
+        vm._isTerminal = false;
+        const p = vm.lineInput("Prompt?");
+
+        // Simulate input response
+        mockParentPort._messageHandler({ type: 'input', prompt: "hello, world!" });
+
+        await expect(p).resolves.toBe("hello, world!");
     });
 
     it("print handles _tag graphics mode", () => {
@@ -228,6 +270,7 @@ describe("VmWorker.vm core methods", () => {
 
     it("paper and pen handle browser and terminal output", () => {
         const vm = workerFn(getMockParentPort());
+
         // Browser mode
         vm._isTerminal = false;
         vm.cls();
@@ -235,6 +278,7 @@ describe("VmWorker.vm core methods", () => {
         expect(vm._output).toContain("background-color");
         vm.pen(3);
         expect(vm._output).toContain("color");
+
         // Terminal mode
         vm._isTerminal = true;
         vm.cls();
@@ -246,6 +290,15 @@ describe("VmWorker.vm core methods", () => {
 
     it("pos", () => {
         const vm = workerFn(getMockParentPort());
+        expect(vm.pos()).toBe(1);
+
+        vm.print("hello");
+        expect(vm.pos()).toBe(6);
+
+        vm.print(" ".repeat(80));
+        expect(vm.pos()).toBe(86); // no line wrap
+
+        vm.print("\n");
         expect(vm.pos()).toBe(1);
     });
 });

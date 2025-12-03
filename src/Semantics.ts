@@ -1151,7 +1151,7 @@ ${dataList.join(",\n")}
 		},
 
 		Tab(_lit: Node, _open: Node, num: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `"${TabOpChar}${num.eval()}"`; // Unicode double arrow right
+			return `"${TabOpChar}" + String(${num.eval()})`; // Unicode double arrow right
 		},
 
 		Tag(_tagLit: Node, stream: Node) {

@@ -706,7 +706,11 @@ ${content}
                     return " ".repeat(vm._zone - (vm._pos % vm._zone));
                 } else if (str.charAt(0) === TabOpChar) {
                     const tabSize = Number(str.substring(1));
-                    return " ".repeat(tabSize - 1 - vm._pos);
+                    if (isNaN(tabSize) || tabSize <= 0) {
+                        return "";
+                    }
+                    const len = tabSize - 1 - vm._pos;
+                    return len >= 0 ? " ".repeat(len) : "\n" + " ".repeat(tabSize - 1);
                 }
                 return str;
             };
