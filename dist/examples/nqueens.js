@@ -8,7 +8,10 @@ REM https://rosettacode.org/wiki/N-queens_problem#Locomotive_Basic
 REM GNU FDL 1.2 (https://www.gnu.org/licenses/fdl-1.2.html)
 REM modifications: print board without LOCATE; GOTO removed
 MODE 1
-n=3: WHILE n<4:INPUT "How many queens (N>=4)";n:WEND
+n=3: WHILE n<4
+INPUT "How many queens (N>=4)";n
+IF n=0 THEN n=4
+WEND
 DIM q(n),e(n),o(n)
 r=n MOD 6
 IF r<>2 AND r<>3 THEN GOSUB 320:GOSUB 220:END
@@ -32,7 +35,7 @@ END
 '
 ' print board
 220 CLS
-PRINT "N-queens problem"
+PRINT "N-queens problem with N =";n
 PRINT
 FOR i=1 TO n:PRINT CHR$(96+i);:NEXT:PRINT
 PRINT

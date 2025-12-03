@@ -681,13 +681,10 @@ ${dataList.join(",\n")}
 
 			const messageString = message.sourceString.replace(/\s*[;,]$/, "") || '""';
 			const identifiers = evalChildren(ids.asIteration().children);
-			const isNumberString = identifiers[0].includes("$") ? "" : ", true"; // TODO
-			if (identifiers.length > 1) {
-				const identifierStr = `[${identifiers.join(", ")}]`;
-				return `${identifierStr} = (await input(${streamStr}${messageString}${isNumberString})).split(",")`;
-			}
 
-			return `${identifiers[0]} = await input(${streamStr}${messageString}${isNumberString})`;
+			const identifierStr = `[${identifiers.join(", ")}]`;
+			const typesStr = identifiers.map(id => id.includes("$") ? "s" : "n").join("");
+			return `${identifierStr} = (await input(${streamStr}${messageString}, "${typesStr}"))`;
 		},
 
 		Instr_noLen(_instrLit: Node, _open: Node, e1: Node, _comma: Node, e2: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -738,8 +735,12 @@ ${dataList.join(",\n")}
 			return `${assign.eval()}`;
 		},
 
-		LineInput(lit: Node, inputLit: Node, stream: Node, comma: Node, message: Node, semi: Node, e: Node) {
-			return notSupported(lit, inputLit, stream, comma, message, semi, e);
+		LineInput(_lit: Node, _inputLit: Node, stream: Node, _comma: Node, message: Node, _semi: Node, id: Node) {
+			semanticsHelper.addInstr("lineInput");
+			const streamStr = stream.child(0)?.eval() || "";
+			const messageString = message.sourceString.replace(/\s*[;,]$/, "") || '""';
+			const identifier = id.eval();
+			return `${identifier} = await lineInput(${streamStr}${messageString})`;
 		},
 
 		List(lit: Node, labelRange: Node, comma: Node, stream: Node) {

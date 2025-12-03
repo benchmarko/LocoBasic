@@ -116,7 +116,8 @@ LocoBasic can be run in a browser or as a Node.js application.
 ### Supported Commands and Functions
 
 - `ABS(number)` Returns the absolute value of *number*.
-- `AFTER timeout GOSUB line` Calls subroutine line after timeout*20 msec (timeout 1/50 sec).
+- `AFTER timeout [, timer] GOSUB line` Calls subroutine line after timeout*20 msec (timeout 1/50 sec).
+  - An optional *timer* can be 0..3. (Priorities are not implemented in LocoBasic.)
 - `ASC(character)` Returns the ASCII code of *character*.
 - `ATN(number)` Returns the arctangent of the given *number*.
   - The returned value is in radians (*RAD*) or degrees (*DEG*), depending on the active mode.
@@ -153,7 +154,8 @@ LocoBasic can be run in a browser or as a Node.js application.
 - `ERASE variable, [variable,...]` Erases array variables.
   - Specify variable name without indices.
 - `ERROR number` Throws an error with *number*.
-- `EVERY timeout GOSUB line` Calls subroutine line in intervals of timeout*20 msec (timeout 1/50 sec).
+- `EVERY timeout [, timer] GOSUB line` Calls subroutine line in intervals of timeout*20 msec (timeout 1/50 sec).
+  - An optional *timer* can be 0..3. (Priorities are not implemented in LocoBasic.)
 - `EXP(number)` Returns e raised to the power of *number*.
 - `FIX(number)` Truncates *number*.
 - `FOR variable = start to end [STEP increment]` Control structure.
@@ -169,13 +171,14 @@ LocoBasic can be run in a browser or as a Node.js application.
   - **Note:** In LocoBasic, only following drawings get the new ink, existing drawings are not modified.
 - `INKEY$`: Gets the pressed character from the key buffer or an empty string if the buffer is empty.
 - `INPUT [message;] variable [, variable, ...]` Prompts the user for input (string or numeric).
-  - When using multiple variables, the input is split at "," and the parts are assigned to the variables
+  - The input is split at "," and the parts are assigned to multiple variables
   - **Note:** Currently the variables must have the same type.
 - `INSTR([startPos,] string1, string2)` Returns the first position of *string2* in *string1*, starting at optional *startPos*.
 - `INT(number)` Returns the integer part of *number*.
 - `LEFT$(string, number)` Returns *number* characters from the left of *string*.
 - `LEN(string)` Returns the length of the string.
   - LocoBasic has no limitation on the length.
+- `LINE INPUT [message;] variable` Prompts the user for a line of input (string).
 - `LOG(number)` Returns natural logarithm for *number* (based on e).
 - `LOG10(number)` Returns logarithm for *number* based on 10.
 - `LOWER$(string)` Returns the string in lowercase.
@@ -295,6 +298,7 @@ Notes:
 - *LOCATE* is not supported.
 - Text windows (*WINDOW*) are not supported.
 - Streams using prefix '#' (e.g. *PRINT*, *CLS*, *INPUT*) are not supported.
+  - Exception: *POS(#0)*, *VPOS(#0)* with stream 0.
 - *AFTER*, *EVERY* support only timer 0 and do not expect a timer parameter.
 
 ### History / Done

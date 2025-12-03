@@ -524,22 +524,15 @@ ${content}
             return "";
         },
 
-        input: async (prompt: string, isNum: boolean): Promise<string | number> => { // TODO: isNum
-            const inputPromise = new Promise<string | null>((resolve) => {
-                // Store early: The resolve function to be called later
-                vm._inputResolvedFn = resolve;
-            });
-            await vm.frame();
-            // Forward input request to main thread
-            postMessage({ type: 'input', prompt });
-
-            const input = await inputPromise;
-            if (input === null) {
-                throw new Error("INFO: Input canceled");
-            } else if (isNum && isNaN(Number(input))) {
-                throw new Error("Invalid number input");
+        input: async (prompt: string, types: string): Promise<(string | number)[]> => {
+            const input = await vm.lineInput(prompt);
+            const parts = input.split(',');
+            if (parts.length < types.length) { // not enough parts
+                parts.push(...new Array(types.length - parts.length).fill(""));
             }
-            return isNum ? Number(input) : input;
+            return parts.map((part, index) => {
+                return types.charAt(index) === 'n' ? Number(part) : part;
+            });
         },
 
         instr: (str: string, find: string, len: number) => {
@@ -561,6 +554,20 @@ ${content}
 
         len: (str: string) => {
             return str.length;
+        },
+
+        lineInput: async (prompt: string): Promise<string> => {
+            const inputPromise = new Promise<string | null>((resolve) => {
+                vm._inputResolvedFn = resolve;
+            });
+            await vm.frame();
+            postMessage({ type: 'input', prompt });
+
+            const input = await inputPromise;
+            if (input === null) {
+                throw new Error("INFO: Input canceled");
+            }
+            return input;
         },
 
         log: (num: number) => {

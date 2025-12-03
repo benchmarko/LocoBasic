@@ -6,8 +6,8 @@ cpcBasic.addItem("", `
 REM factoria - Big Factorials
 MODE 2
 PRINT "Big Factorials"
-n=252
 INPUT "Which number:"; n
+IF n<=0 THEN n=252
 PRINT
 '
 DEF FNnumStr$(x) = RIGHT$(STR$(x), LEN(STR$(x)) - 1)
