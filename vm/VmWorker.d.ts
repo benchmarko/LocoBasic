@@ -92,12 +92,13 @@ export declare const workerFn: (parentPort?: NodeWorkerThreadsType["parentPort"]
     hex$: (num: number, pad?: number) => string;
     ink: (num: number, col: number) => void;
     inkey$: () => Promise<string>;
-    input: (prompt: string, isNum: boolean) => Promise<string | number>;
+    input: (prompt: string, types: string) => Promise<(string | number)[]>;
     instr: (str: string, find: string, len: number) => number;
     int: (num: number) => number;
     keyDef: (num: number, repeat: number, ...codes: number[]) => void;
     left$: (str: string, num: number) => string;
     len: (str: string) => number;
+    lineInput: (prompt: string) => Promise<string>;
     log: (num: number) => number;
     log10: (num: number) => number;
     lower$: (str: string) => string;

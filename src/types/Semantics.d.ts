@@ -101,7 +101,7 @@ export declare class Semantics implements ISemantics {
         LeftS(_leftLit: Node, _open: Node, pos: Node, _comma: Node, len: Node, _close: Node): string;
         Len(_lenLit: Node, _open: Node, str: Node, _close: Node): string;
         Let(_letLit: Node, assign: Node): string;
-        LineInput(lit: Node, inputLit: Node, stream: Node, comma: Node, message: Node, semi: Node, e: Node): string;
+        LineInput(_lit: Node, _inputLit: Node, stream: Node, _comma: Node, message: Node, _semi: Node, id: Node): string;
         List(lit: Node, labelRange: Node, comma: Node, stream: Node): string;
         Load(lit: Node, file: Node, comma: Node, address: Node): string;
         Locate(lit: Node, stream: Node, comma: Node, x: Node, comma2: Node, y: Node): string;

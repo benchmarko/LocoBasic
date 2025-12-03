@@ -456,22 +456,15 @@ ${content}
                 }
                 return "";
             },
-            input: async (prompt, isNum) => {
-                const inputPromise = new Promise((resolve) => {
-                    // Store early: The resolve function to be called later
-                    vm._inputResolvedFn = resolve;
+            input: async (prompt, types) => {
+                const input = await vm.lineInput(prompt);
+                const parts = input.split(',');
+                if (parts.length < types.length) { // not enough parts
+                    parts.push(...new Array(types.length - parts.length).fill(""));
+                }
+                return parts.map((part, index) => {
+                    return types.charAt(index) === 'n' ? Number(part) : part;
                 });
-                await vm.frame();
-                // Forward input request to main thread
-                postMessage({ type: 'input', prompt });
-                const input = await inputPromise;
-                if (input === null) {
-                    throw new Error("INFO: Input canceled");
-                }
-                else if (isNum && isNaN(Number(input))) {
-                    throw new Error("Invalid number input");
-                }
-                return isNum ? Number(input) : input;
             },
             instr: (str, find, len) => {
                 return str.indexOf(find, len !== undefined ? len - 1 : len) + 1;
@@ -489,6 +482,18 @@ ${content}
             },
             len: (str) => {
                 return str.length;
+            },
+            lineInput: async (prompt) => {
+                const inputPromise = new Promise((resolve) => {
+                    vm._inputResolvedFn = resolve;
+                });
+                await vm.frame();
+                postMessage({ type: 'input', prompt });
+                const input = await inputPromise;
+                if (input === null) {
+                    throw new Error("INFO: Input canceled");
+                }
+                return input;
             },
             log: (num) => {
                 return Math.log(num);
@@ -609,7 +614,11 @@ ${content}
                     }
                     else if (str.charAt(0) === TabOpChar) {
                         const tabSize = Number(str.substring(1));
-                        return " ".repeat(tabSize - 1 - vm._pos);
+                        if (isNaN(tabSize) || tabSize <= 0) {
+                            return "";
+                        }
+                        const len = tabSize - 1 - vm._pos;
+                        return len >= 0 ? " ".repeat(len) : "\n" + " ".repeat(tabSize - 1);
                     }
                     return str;
                 };

@@ -834,6 +834,7 @@ PRINT " / ";USING "###.###";-1.2;1.2
 PRINT "PRINT comma:", "13","26 apples","39"; " (default zone 13)"
 PRINT "PRINT SPC:"; SPC(3);"13";SPC(11);"26 apples" SPC(4);"39"
 PRINT "PRINT TAB:"; TAB(14);"13";TAB(27);"26 apples";TAB(40);"39"
+i=14: PRINT "PRINT TAB:"; TAB(i);"13";TAB(i*2+13);"26 apples";TAB(i*3-2);"39"
 '
 PRINT "?: ";
 ?;

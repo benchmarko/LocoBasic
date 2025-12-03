@@ -545,12 +545,9 @@ ${dataList.join(",\n")}
             const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
             const messageString = message.sourceString.replace(/\s*[;,]$/, "") || '""';
             const identifiers = evalChildren(ids.asIteration().children);
-            const isNumberString = identifiers[0].includes("$") ? "" : ", true"; // TODO
-            if (identifiers.length > 1) {
-                const identifierStr = `[${identifiers.join(", ")}]`;
-                return `${identifierStr} = (await input(${streamStr}${messageString}${isNumberString})).split(",")`;
-            }
-            return `${identifiers[0]} = await input(${streamStr}${messageString}${isNumberString})`;
+            const identifierStr = `[${identifiers.join(", ")}]`;
+            const typesStr = identifiers.map(id => id.includes("$") ? "s" : "n").join("");
+            return `${identifierStr} = (await input(${streamStr}${messageString}, "${typesStr}"))`;
         },
         Instr_noLen(_instrLit, _open, e1, _comma, e2, _close) {
             semanticsHelper.addInstr("instr");
@@ -591,8 +588,13 @@ ${dataList.join(",\n")}
         Let(_letLit, assign) {
             return `${assign.eval()}`;
         },
-        LineInput(lit, inputLit, stream, comma, message, semi, e) {
-            return notSupported(lit, inputLit, stream, comma, message, semi, e);
+        LineInput(_lit, _inputLit, stream, _comma, message, _semi, id) {
+            var _a;
+            semanticsHelper.addInstr("lineInput");
+            const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+            const messageString = message.sourceString.replace(/\s*[;,]$/, "") || '""';
+            const identifier = id.eval();
+            return `${identifier} = await lineInput(${streamStr}${messageString})`;
         },
         List(lit, labelRange, comma, stream) {
             return notSupported(lit, labelRange, comma, stream);
@@ -916,7 +918,7 @@ ${dataList.join(",\n")}
             return notSupported(lit, afterLit, num);
         },
         Tab(_lit, _open, num, _close) {
-            return `"${TabOpChar}${num.eval()}"`; // Unicode double arrow right
+            return `"${TabOpChar}" + String(${num.eval()})`; // Unicode double arrow right
         },
         Tag(_tagLit, stream) {
             var _a;
