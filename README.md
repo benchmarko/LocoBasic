@@ -175,6 +175,7 @@ LocoBasic can be run in a browser or as a Node.js application.
   - **Note:** Currently the variables must have the same type.
 - `INSTR([startPos,] string1, string2)` Returns the first position of *string2* in *string1*, starting at optional *startPos*.
 - `INT(number)` Returns the integer part of *number*.
+- `KEY DEF 78,1,k` Creates a user-defined input button for a key with ASCII code *k* on the UI. This is only available in LocoBasic and should have "no function" in Locomotive BASIC. Other variants of *KEY DEF* are not supported. See example [testkey](https://benchmarko.github.io/LocoBasic/?example=testkey).
 - `LEFT$(string, number)` Returns *number* characters from the left of *string*.
 - `LEN(string)` Returns the length of the string.
   - LocoBasic has no limitation on the length.
