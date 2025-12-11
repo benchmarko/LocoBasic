@@ -8,7 +8,7 @@ REM (c) Wolfgang Volz, Laemmerstieg 58, 2400 Luebeck 1
 REM taken from bach; Orgel im Strassburger Muenster; Wohl mir,dass ich Jesum habe (J. S. Bach)
 REM
 MODE 1
-INK 0,0:INK 1,26:INK 2,14:INK 3,6:PAPER 0
+INK 0,0:INK 1,26:INK 2,14:INK 3,6
 'PRINT"Johann Sebastian Bach" 
 '
 'Organ case

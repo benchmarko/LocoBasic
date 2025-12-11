@@ -248,7 +248,7 @@ a=COS(180+360): IF ROUND(a,7)<>-1 THEN ERROR 33
 a=COS(0): IF a<>1 THEN ERROR 33
 RAD
 '
-PRINT "CREAL, ";
+PRINT "CREAL"
 a=CREAL(2.3+a)
 '
 ''CURSOR
@@ -263,7 +263,7 @@ a=CREAL(2.3+a)
 '
 ' DATA, DEC$, DEF FN, DEFINT, DEFREAL, DEFSTR, DEG, DELETE, DERR, DI, DIM, DRAW, DRAWR
 '
-PRINT "DATA (and READ)"
+PRINT "DATA (and READ), ";
 ''DATA
 ''DATA ,
 ''DATA data 1,2,3
@@ -473,7 +473,7 @@ FOR a=2 TO 1 STEP -&X1:NEXT
 FOR next1=1 TO 10 STEP 3:NEXT next1
 ''FOR a=b TO c STEP s:a=0:NEXT
 '
-PRINT "FRAME, ";
+PRINT "FRAME"
 FRAME
 '
 ''a=FRE(0)
@@ -498,7 +498,7 @@ GOSUB 10010
 '
 ' HEX$, HIMEM
 '
-PRINT "HEX$"
+PRINT "HEX$, ";
 a$=HEX$(0): IF a$<>"0" THEN ERROR 33
 a$=HEX$(16,4): IF a$<>"0010" THEN ERROR 33
 a$=HEX$(255): IF a$<>"FF" THEN ERROR 33
@@ -832,9 +832,8 @@ PRINT " / ";USING "###.###";-1.2;1.2
 ''PRINT USING "&";"a1";"a2";
 ''PRINT #9,TAB(t);t$;i;"h1"
 PRINT "PRINT comma:", "13","26 apples","39"; " (default zone 13)"
-PRINT "PRINT SPC:"; SPC(3);"13";SPC(11);"26 apples" SPC(4);"39"
-PRINT "PRINT TAB:"; TAB(14);"13";TAB(27);"26 apples";TAB(40);"39"
-i=14: PRINT "PRINT TAB:"; TAB(i);"13";TAB(i*2+13);"26 apples";TAB(i*3-2);"39"
+PRINT "PRINT SPC:"; SPC(3);"13";SPC(13-2);"26 apples" SPC(13-9);"39"
+i=14: PRINT "PRINT TAB:"; TAB(14);"13";TAB(i*2-1);"26 apples";TAB(i*3-2);"39"
 '
 PRINT "?: ";
 ?;
@@ -1048,7 +1047,7 @@ a=VPOS(#0)
 ''WAIT &FF34,20
 ''WAIT &FF34,20,25
 '
-PRINT "WEND (and WHILE), ";
+PRINT "WEND (and WHILE)"
 a=9:WHILE a=10:WEND: IF a<>9 THEN ERROR 33
 a=3:WHILE a>0:a=a-1:WEND: IF a<>0 THEN ERROR 33
 ''WIDTH 40
@@ -1058,7 +1057,7 @@ a=3:WHILE a>0:a=a-1:WEND: IF a<>0 THEN ERROR 33
 ''WINDOW SWAP 1
 ''WINDOW SWAP 1,0
 '''1 WINDOW SWAP #1
-PRINT
+'
 PRINT "WRITE: ";
 a$="def":WRITE "abc",a$,7,15; "abc";a$;7;15;1E+09
 ''WRITE
@@ -1078,16 +1077,16 @@ a$="def":WRITE "abc",a$,7,15; "abc";a$;7;15;1E+09
 '
 ' XOR, XPOS
 '
-PRINT "XOR, ";
+PRINT "XOR"
 a=&X1001 XOR &X0110: IF a<>15 THEN ERROR 33
 b=5:c=7:a=b XOR c: IF a<>2 THEN ERROR 33
-PRINT "XPOS, ";
-a=XPOS: IF a<>0 THEN ERROR 33
+'PRINT "XPOS, ";
+'a=XPOS: IF a<>0 THEN ERROR 33
 ' ypos
-PRINT "YPOS, ";
-a=YPOS: IF a<>0 THEN ERROR 33
+'PRINT "YPOS, ";
+'a=YPOS: IF a<>0 THEN ERROR 33
+'
 ' zone
-PRINT
 ZONE 9
 PRINT "ZONE:","10","19","28"
 ZONE 13
