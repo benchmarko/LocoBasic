@@ -3274,22 +3274,6 @@ ${dataList.join(",\n")}
         createStandaloneScript(workerString, compiledScript, usedInstrMap) {
             const usedInstrList = Object.keys(usedInstrMap);
             workerString = this.filterWorkerFnString(workerString, usedInstrList, 'const vm = ', 'vm');
-            const scanVmRsxInVm = this.scanVmFunctionReferences(workerString, 'const vm = ', 'vm._rsx');
-            const usedVmRsxInVm = {};
-            for (const [, props] of scanVmRsxInVm.functions) {
-                for (const dep of props.deps) {
-                    usedVmRsxInVm[dep] = true;
-                }
-            }
-            workerString = this.filterWorkerFnString(workerString, Object.keys(usedVmRsxInVm), 'const vmRsx = ', 'vmRsx');
-            const scanVmGraInVm = this.scanVmFunctionReferences(workerString, 'const vm = ', 'vm._gra');
-            const usedVmGraInVm = {};
-            for (const [, props] of scanVmGraInVm.functions) {
-                for (const dep of props.deps) {
-                    usedVmGraInVm[dep] = true;
-                }
-            }
-            workerString = this.filterWorkerFnString(workerString, Object.keys(usedVmGraInVm), 'const vmGra = ', 'vmGra');
             const inFrame = this.compiledCodeInFrame(compiledScript, workerString);
             return inFrame;
         }
@@ -3451,12 +3435,15 @@ ${dataList.join(",\n")}
             return config;
         }
         prepareWorkerFnString(workerFnString) {
+            /*
             const constants = `
-    const CommaOpChar = "${CommaOpChar}";
-    const TabOpChar = "${TabOpChar}";
-`;
+        const CommaOpChar = "${CommaOpChar}";
+        const TabOpChar = "${TabOpChar}";
+    `;
             const workerStringWithConstants = workerFnString.replace(/const postMessage =/, `${constants}    const postMessage =`); // fast hack: get constants into worker string
             return workerStringWithConstants;
+            */
+            return workerFnString; // currently no modification
         }
         createStandaloneScript(workerString, compiledScript, usedInstrMap) {
             if (!this.scriptCreator) {

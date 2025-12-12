@@ -116,6 +116,13 @@ export interface NodeWorkerThreadsType {
         on: (event: string, listener: (data: MessageToWorker) => void) => void;
     };
 }
+export interface BrowserWorkerThreadsType {
+    parentPort: {
+        postMessage: (message: MessageFromWorker) => void;
+        addEventListener: (event: string, listener: (event: Event) => void, options?: EventListenerOptions) => void;
+        removeEventListener: (event: string, listener: (event: Event) => void, options?: EventListenerOptions) => void;
+    };
+}
 export interface INodeParts {
     getEscape(): boolean;
     getKeyFromBuffer(): string;
