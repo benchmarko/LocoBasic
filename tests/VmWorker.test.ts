@@ -28,8 +28,6 @@ describe("VmWorker.vm API", () => {
         expect(typeof vm.input).toBe('function');
         expect(typeof vm.frame).toBe('function');
         expect(typeof vm.getFlushedText).toBe('function');
-        expect(typeof vm._gra).toBe('object');
-        expect(typeof vm._rsx).toBe('object');
     });
 
     it("should handle paper and pen span logic (browser mode)", () => {
@@ -151,16 +149,16 @@ describe("VmWorker.vm core methods", () => {
     it("ink assigns colors for pens and background", () => {
         const vm = workerFn(getMockParentPort());
         vm.ink(2, 5);
-        expect(vm._gra._colorsForPens[2]).toBe(5);
+        expect(vm._graColorsForPens[2]).toBe(5);
         vm.ink(0, 3);
-        expect(vm._gra._backgroundColor).toBeDefined();
+        expect(vm._graBackgroundColor).toBeDefined();
     });
 
     it("tag enables graphics text output", () => {
         const vm = workerFn(getMockParentPort());
         vm.tag();
         vm.print("abc");
-        expect(vm._gra._graphicsBuffer.join("")).toContain("abc"); // <text x="0" y="415" style="white-space: pre">abc</text>
+        expect(vm._graGraphicsBuffer.join("")).toContain("abc"); // <text x="0" y="415" style="white-space: pre">abc</text>
         vm.tagoff();
     });
 
@@ -264,7 +262,7 @@ describe("VmWorker.vm core methods", () => {
         const vm = workerFn(getMockParentPort());
         vm.tag();
         vm.print("hello");
-        expect(vm._gra._graphicsBuffer.join("")).toContain("hello");
+        expect(vm._graGraphicsBuffer.join("")).toContain("hello");
         vm.tagoff();
     });
 
