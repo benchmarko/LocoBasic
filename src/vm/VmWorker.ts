@@ -1,336 +1,113 @@
-import type { MessageFromWorker, MessageToWorker, NodeWorkerThreadsType } from "../Interfaces";
-import { CommaOpChar, TabOpChar } from "../Constants";
+import type { BrowserWorkerThreadsType, MessageFromWorker, MessageToWorker, NodeWorkerThreadsType } from "../Interfaces";
+//import { CommaOpChar, TabOpChar } from "../Constants";
 
 declare function require(name: string): NodeWorkerThreadsType;
 
-export const workerFn = (parentPort?: NodeWorkerThreadsType["parentPort"]) => {
+type RecursiveArray<T> = T | RecursiveArray<T>[];
+type RestoreMapType = Record<string, number>;
+type MessageEventType = {
+    data: MessageToWorker;
+};
 
-    const postMessage = (message: MessageFromWorker) => {
-        (parentPort || self).postMessage(message);
-    }
+export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | BrowserWorkerThreadsType["parentPort"]) => {
+    const isNodeParentPort = 'on' in parentPort;
 
-    const cpcColors = [ // browser
-        "#000000", //  0 Black
-        "#000080", //  1 Blue
-        "#0000FF", //  2 Bright Blue
-        "#800000", //  3 Red
-        "#800080", //  4 Magenta
-        "#8000FF", //  5 Mauve
-        "#FF0000", //  6 Bright Red
-        "#FF0080", //  7 Purple
-        "#FF00FF", //  8 Bright Magenta
-        "#008000", //  9 Green
-        "#008080", // 10 Cyan
-        "#0080FF", // 11 Sky Blue
-        "#808000", // 12 Yellow
-        "#808080", // 13 White
-        "#8080FF", // 14 Pastel Blue
-        "#FF8000", // 15 Orange
-        "#FF8080", // 16 Pink
-        "#FF80FF", // 17 Pastel Magenta
-        "#00FF00", // 18 Bright Green
-        "#00FF80", // 19 Sea Green
-        "#00FFFF", // 20 Bright Cyan
-        "#80FF00", // 21 Lime
-        "#80FF80", // 22 Pastel Green
-        "#80FFFF", // 23 Pastel Cyan
-        "#FFFF00", // 24 Bright Yellow
-        "#FFFF80", // 25 Pastel Yellow
-        "#FFFFFF", // 26 Bright White
-        "#808080", // 27 White (same as 13)
-        "#FF00FF", // 28 Bright Magenta (same as 8)
-        "#FFFF80", // 29 Pastel Yellow (same as 25)
-        "#000080", // 30 Blue (same as 1)
-        "#00FF80" //  31 Sea Green (same as 19)
-    ];
-
-    // Color codes for terminal (foreground). `\x1b[${code + add}m`, e.g. Navy: pen: "\x1b[34m" or paper: "\x1b[44m"
-    const ansiColorCodes = [
-        30, //  0 Black
-        34, //  1 Blue
-        94, //  2 Bright Blue
-        31, //  3 Red
-        35, //  4 Magenta (Purple?)
-        35, //  5 Mauve ???
-        91, //  6 Bright Red
-        35, //  7 Purple
-        95, //  8 Bright Magenta ?
-        32, //  9 Green
-        36, // 10 Cyan
-        94, // 11 Sky Blue ?
-        33, // 12 Yellow
-        37, // 13 White
-        94, // 14 Pastel Blue ?
-        91, // 15 Orange ?
-        95, // 16 Pink (Bright Magenta?)
-        95, // 17 Pastel Magenta?
-        92, // 18 Bright Green
-        92, // 19 Sea Green
-        96, // 20 Bright Cyan
-        96, // 21 Lime ?
-        92, // 22 Pastel Green (Bright Green)
-        96, // 23 Pastel Cyan ?
-        93, // 24 Bright Yellow
-        93, // 25 Pastel Yellow
-        37, // 26 Bright White
-        37, // 27 White (same as 13)
-        95, // 28 Bright Magenta (same as 8)
-        93, // 29 Pastel Yellow (same as 25)
-        34, // 30 Blue (same as 1)
-        92 //  31 Sea Green (same as 19)
-    ];
-
-    const defaultColorsForPens: number[] = [
-        1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
-    ];
-
-    const deleteAllItems = (items: Record<string, unknown>): void => {
-        Object.keys(items).forEach(key => delete items[key]); // eslint-disable-line @typescript-eslint/no-dynamic-delete
-    };
-
-    const strokeWidthForMode: number[] = [4, 2, 1, 1];
-
-    const getTagInSvg = (content: string, strokeWidth: string, backgroundColor: string) => {
-        const backgroundColorStr = backgroundColor !== "" ? ` style="background-color:${backgroundColor}"` : '';
-        return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" shape-rendering="optimizeSpeed" stroke="currentColor" stroke-width="${strokeWidth}"${backgroundColorStr}>
-${content}
-</svg>
-`;
-    };
-
-    const vmRsx = {
-        _pitch: 1,
-
-        resetRsx: () => {
-            vmRsx._pitch = 1;
-        },
-
-        rsxDate: (args: string[]) => {
-            const date = new Date();
-            const dayOfWeek = (date.getDay() + 1) % 7;
-            const day = date.getDate();
-            const month = date.getMonth() + 1;
-            const year = date.getFullYear() % 100;
-            const dateStr = `${String(dayOfWeek).padStart(2, '0')} ${String(day).padStart(2, '0')} ${String(month).padStart(2, '0')} ${String(year).padStart(2, '0')}`;
-            args[0] = dateStr;
-            return args;
-        },
-
-        rsxGeolocation: () => {
-            postMessage({ type: 'geolocation' });
-        },
-
-        rsxPitch: (args: number[]) => {
-            vmRsx._pitch = args[0] / 10;
-        },
-
-        rsxSay: (args: string[]) => {
-            const message = args[0];
-            postMessage({ type: 'speak', message, pitch: vmRsx._pitch });
-        },
-
-        rsxTime: (args: string[]) => {
-            const date = new Date();
-            const hours = date.getHours();
-            const minutes = date.getMinutes();
-            const seconds = date.getSeconds();
-            const timeStr = `${String(hours).padStart(2, '0')} ${String(minutes).padStart(2, '0')} ${String(seconds).padStart(2, '0')}`;
-            args[0] = timeStr;
-            return args;
-        }
-    };
-
-    const vmGra = {
-        _backgroundColor: "",
-        _colorsForPens: [...defaultColorsForPens],
-        _currGraphicsPen: -1,
-        _currMode: 1,
-        _originX: 0,
-        _originY: 0,
-        _graphicsBuffer: [] as string[],
-        _graphicsPathBuffer: [] as string[],
-        _graphicsX: 0,
-        _graphicsY: 0,
-        _outputGraphicsIndex: -1,
-
-        resetGra: () => {
-            vmGra._colorsForPens.splice(0, vmGra._colorsForPens.length, ...defaultColorsForPens);
-            vmGra._backgroundColor = "";
-            vmGra.cls();
-        },
-
-        addGraphicsElement: (element: string): void => {
-            vmGra.setOutputGraphicsIndex();
-            vmGra.flushGraphicsPath(); // maybe a path is open
-            vmGra._graphicsBuffer.push(element);
-        },
-
-        cls: (): void => {
-            vmGra._graphicsBuffer.length = 0;
-            vmGra._graphicsPathBuffer.length = 0;
-            vmGra._currGraphicsPen = -1;
-            vmGra._graphicsX = 0;
-            vmGra._graphicsY = 0;
-            vmGra._outputGraphicsIndex = -1;
-        },
-
-        // type: M | m | P | p | L | l
-        drawMovePlot: (type: string, x: number, y: number, pen?: number): void => {
-            vmGra.setOutputGraphicsIndex();
-            if (pen !== undefined) {
-                vmGra.graphicsPen(pen);
-            }
-            x = Math.round(x);
-            y = Math.round(y);
-
-            if (!vmGra._graphicsPathBuffer.length && type !== "M" && type !== "P") { // path must start with an absolute move
-                vmGra._graphicsPathBuffer.push(`M${vmGra._graphicsX + vmGra._originX} ${399 - vmGra._graphicsY - vmGra._originY}`);
-            }
-
-            const isAbsolute = type === type.toUpperCase();
-            if (isAbsolute) {
-                vmGra._graphicsX = x;
-                vmGra._graphicsY = y;
-                x = vmGra._graphicsX + vmGra._originX;
-                y = 399 - vmGra._graphicsY - vmGra._originY;
-            } else {
-                vmGra._graphicsX += x;
-                vmGra._graphicsY += y;
-                y = -y;
-            }
-
-            const svgPathCmd = (type === "P" || type === "p")
-                ? `${isAbsolute ? "M" : "m"}${x} ${y}h1v1h-1v-1`
-                : `${type}${x} ${y}`;
-
-            vmGra._graphicsPathBuffer.push(svgPathCmd);
-        },
-
-        flushGraphicsPath: (): void => {
-            if (vmGra._graphicsPathBuffer.length) {
-                const strokeStr = vmGra._currGraphicsPen >= 0 ? `stroke="${vmGra.getRgbColorStringForPen(vmGra._currGraphicsPen)}" ` : "";
-                vmGra._graphicsBuffer.push(`<path ${strokeStr}d="${vmGra._graphicsPathBuffer.join("")}" />`);
-                vmGra._graphicsPathBuffer.length = 0;
-            }
-        },
-
-        getFlushedGraphics: (): string => {
-            vmGra.flushGraphicsPath();
-            if (vmGra._graphicsBuffer.length) {
-                const graphicsBufferStr = vmGra._graphicsBuffer.join("\n");
-                const strokeWith = strokeWidthForMode[vmGra._currMode] + "px";
-                vmGra._graphicsBuffer.length = 0;
-                return getTagInSvg(graphicsBufferStr, strokeWith, vmGra._backgroundColor);
-            }
-            return "";
-        },
-
-        getRgbColorStringForPen: (pen: number): string => {
-            return cpcColors[vmGra._colorsForPens[pen]];
-        },
-
-        graphicsPen: (num: number): void => {
-            if (num !== vmGra._currGraphicsPen) {
-                vmGra.flushGraphicsPath();
-                vmGra._currGraphicsPen = num;
-            }
-        },
-
-        ink: (num: number, col: number): void => {
-            vmGra._colorsForPens[num] = col;
-            // we modify inks, so set default pens and papers
-            if (vmGra._currGraphicsPen < 0) {
-                vmGra.graphicsPen(1);
-            }
-            if (num === 0) {
-                vmGra._backgroundColor = vmGra.getRgbColorStringForPen(0);
-            }
-        },
-
-        mode: (num: number): void => {
-            vmGra._currMode = num;
-            vmGra.origin(0, 0);
-        },
-
-        origin: (x: number, y: number): void => {
-            vmGra._originX = x;
-            vmGra._originY = y;
-        },
-
-        printGraphicsText: (text: string): void => {
-            const yOffset = 16;
-            const colorStyleStr = vmGra._currGraphicsPen >= 0 ? `; color: ${vmGra.getRgbColorStringForPen(vmGra._currGraphicsPen)}` : "";
-            vmGra.addGraphicsElement(`<text x="${vmGra._graphicsX + vmGra._originX}" y="${399 - vmGra._graphicsY - vmGra._originY + yOffset}" style="white-space: pre${colorStyleStr}">${text}</text>`);
-            vmGra._graphicsX += text.length * 8; // assuming 8px width per character
-        },
-
-
-        getStrokeAndFillStr: (fill: number): string => {
-            const currGraphicsPen = vmGra._currGraphicsPen;
-            const strokeStr = currGraphicsPen >= 0 ? ` stroke="${vmGra.getRgbColorStringForPen(currGraphicsPen)}"` : "";
-            const fillStr = fill >= 0 ? ` fill="${vmGra.getRgbColorStringForPen(fill)}"` : "";
-            return `${strokeStr}${fillStr}`;
-        },
-
-        rsxArc: (args: (number | string)[]) => {
-            const [x, y, rx, ry, rotx, long, sweep, endx, endy, fill] = args.map((p) => Math.round(p as number));
-            const strokeAndFillStr = vmGra.getStrokeAndFillStr(fill);
-            const svgPathCmd = `M${x} ${399 - y} A${rx} ${ry} ${rotx} ${long} ${sweep} ${endx} ${399 - endy}`;
-            vmGra.addGraphicsElement(`<path d="${svgPathCmd}"${strokeAndFillStr} />`);
-        },
-
-        rsxCircle: (args: (number | string)[]) => {
-            const [cx, cy, r, fill] = args.map((p) => Math.round(p as number));
-            const strokeAndFillStr = vmGra.getStrokeAndFillStr(fill);
-            vmGra.addGraphicsElement(`<circle cx="${cx}" cy="${399 - cy}" r="${r}"${strokeAndFillStr} />`);
-        },
-
-        rsxEllipse: (args: (number | string)[]) => {
-            const [cx, cy, rx, ry, fill] = args.map((p) => Math.round(p as number));
-            const strokeAndFillStr = vmGra.getStrokeAndFillStr(fill);
-            vmGra.addGraphicsElement(`<ellipse cx="${cx}" cy="${399 - cy}" rx="${rx}" ry="${ry}"${strokeAndFillStr} />`);
-        },
-
-        rsxRect: (args: (number | string)[]) => {
-            const [x1, y1, x2, y2, fill] = args.map((p) => Math.round(p as number));
-            const x = Math.min(x1, x2);
-            const y = Math.max(y1, y2);
-            const width = Math.abs(x2 - x1);
-            const height = Math.abs(y2 - y1);
-            const strokeAndFillStr = vmGra.getStrokeAndFillStr(fill);
-            vmGra.addGraphicsElement(`<rect x="${x}" y="${399 - y}" width="${width}" height="${height}"${strokeAndFillStr} />`);
-        },
-
-        setOutputGraphicsIndex: (): void => {
-            if (vmGra._outputGraphicsIndex < 0) {
-                vmGra._outputGraphicsIndex = vm._output.length;
-            }
-        },
-
-        xpos: (): number => {
-            return vmGra._graphicsX;
-        },
-
-        ypos: (): number => {
-            return vmGra._graphicsY;
-        }
-    };
-
-    type RecursiveArray<T> = T | RecursiveArray<T>[];
-
-    type RestoreMapType = Record<string, number>;
-
-    // This object will be passed to the worker's code as `_o`
-    // (Make sure you use this arrow style:  fn: [async] (...) =>  { ... } )
+    // The vm object will be passed to the worker's code as `_o`. (Make sure you use arrow style:  fn: [async] (...) =>  { ... } )
     const vm = {
-        _gra: vmGra,
-        _rsx: vmRsx,
-        _inputResolvedFn: null as ((value: string | null) => void) | null,
-        _waitResolvedFn: null as ((value: string) => void) | null,
+        _commaOpChar: "\u2192", // Unicode arrow right (Constants.CommaOpChar)
+        _tabOpChar: "\u21d2", // Unicode double arrow right (Constants.TabOpChar)
+
+        // Color codes for terminal (foreground). `\x1b[${code + add}m`, e.g. Navy: pen: "\x1b[34m" or paper: "\x1b[44m"
+        _ansiColorCodes: [
+            30, //  0 Black
+            34, //  1 Blue
+            94, //  2 Bright Blue
+            31, //  3 Red
+            35, //  4 Magenta (Purple?)
+            35, //  5 Mauve ???
+            91, //  6 Bright Red
+            35, //  7 Purple
+            95, //  8 Bright Magenta ?
+            32, //  9 Green
+            36, // 10 Cyan
+            94, // 11 Sky Blue ?
+            33, // 12 Yellow
+            37, // 13 White
+            94, // 14 Pastel Blue ?
+            91, // 15 Orange ?
+            95, // 16 Pink (Bright Magenta?)
+            95, // 17 Pastel Magenta?
+            92, // 18 Bright Green
+            92, // 19 Sea Green
+            96, // 20 Bright Cyan
+            96, // 21 Lime ?
+            92, // 22 Pastel Green (Bright Green)
+            96, // 23 Pastel Cyan ?
+            93, // 24 Bright Yellow
+            93, // 25 Pastel Yellow
+            37, // 26 Bright White
+            37, // 27 White (same as 13)
+            95, // 28 Bright Magenta (same as 8)
+            93, // 29 Pastel Yellow (same as 25)
+            34, // 30 Blue (same as 1)
+            92 //  31 Sea Green (same as 19)
+        ],
+        _cpcColors: [ // browser
+            "#000000", //  0 Black
+            "#000080", //  1 Blue
+            "#0000FF", //  2 Bright Blue
+            "#800000", //  3 Red
+            "#800080", //  4 Magenta
+            "#8000FF", //  5 Mauve
+            "#FF0000", //  6 Bright Red
+            "#FF0080", //  7 Purple
+            "#FF00FF", //  8 Bright Magenta
+            "#008000", //  9 Green
+            "#008080", // 10 Cyan
+            "#0080FF", // 11 Sky Blue
+            "#808000", // 12 Yellow
+            "#808080", // 13 White
+            "#8080FF", // 14 Pastel Blue
+            "#FF8000", // 15 Orange
+            "#FF8080", // 16 Pink
+            "#FF80FF", // 17 Pastel Magenta
+            "#00FF00", // 18 Bright Green
+            "#00FF80", // 19 Sea Green
+            "#00FFFF", // 20 Bright Cyan
+            "#80FF00", // 21 Lime
+            "#80FF80", // 22 Pastel Green
+            "#80FFFF", // 23 Pastel Cyan
+            "#FFFF00", // 24 Bright Yellow
+            "#FFFF80", // 25 Pastel Yellow
+            "#FFFFFF", // 26 Bright White
+            "#808080", // 27 White (same as 13)
+            "#FF00FF", // 28 Bright Magenta (same as 8)
+            "#FFFF80", // 29 Pastel Yellow (same as 25)
+            "#000080", // 30 Blue (same as 1)
+            "#00FF80" //  31 Sea Green (same as 19)
+        ],
+        _cpcDefaultColorsForPens: [
+        1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
+        ],
+        _cpcStrokeWidthForMode: [4, 2, 1, 1],
+
         _isTerminal: false, // output for terminal
 
         _data: [] as (string | number)[],
         _dataPtr: 0,
+
+        _graBackgroundColor: "",
+        _graColorsForPens: [] as number[], // make sure to initialize with resetAll (or resetGra)
+        _graCurrGraphicsPen: -1,
+        _graCurrMode: 1,
+        _graOriginX: 0,
+        _graOriginY: 0,
+        _graGraphicsBuffer: [] as string[],
+        _graGraphicsPathBuffer: [] as string[],
+        _graGraphicsX: 0,
+        _graGraphicsY: 0,
+        _graOutputGraphicsIndex: -1,
+
         _keyCharBufferString: "",
         _needCls: false,
         _output: "",
@@ -340,6 +117,7 @@ ${content}
         _penValue: -1,
         _pos: 0,
         _restoreMap: {} as RestoreMapType,
+        _rsxPitch: 1,
         _startTime: 0,
         _stopRequested: false,
         _tag: false,
@@ -347,17 +125,35 @@ ${content}
         _vpos: 0,
         _zone: 13,
 
+        _inputResolvedFn: null as ((value: string | null) => void) | null,
+        _waitResolvedFn: null as ((value: string) => void) | null,
+
+        deleteAllItems: (items: Record<string, unknown>): void => {
+            Object.keys(items).forEach(key => delete items[key]); // eslint-disable-line @typescript-eslint/no-dynamic-delete
+        },
+
+        postMessage: (message: MessageFromWorker) => {
+            parentPort.postMessage(message);
+        },
+
         resetAll: () => {
-            vm._rsx.resetRsx();
-            vm._gra.resetGra();
+            vm._rsxPitch = 1;
+            vm.resetGra();
             vm.cls();
             vm._data.length = 0;
             vm._dataPtr = 0;
             vm._keyCharBufferString = "";
-            deleteAllItems(vm._restoreMap);
+            vm.deleteAllItems(vm._restoreMap);
             vm._startTime = Date.now();
             vm._stopRequested = false;
             vm.remainAll();
+        },
+
+        resetGra: () => {
+            vm._graColorsForPens.length = 0;
+            vm._graColorsForPens.push(...vm._cpcDefaultColorsForPens);
+            vm._graBackgroundColor = "";
+            vm.graCls();
         },
 
         abs: (num: number) => {
@@ -404,7 +200,7 @@ ${content}
             vm._vpos = 0;
             vm._zone = 13;
 
-            vm._gra.cls();
+            vm.graCls();
             vm._needCls = true;
         },
 
@@ -445,10 +241,10 @@ ${content}
         },
 
         draw: (x: number, y: number, pen?: number) => {
-            vm._gra.drawMovePlot("L", x, y, pen);
+            vm.graDrawMovePlot("L", x, y, pen);
         },
         drawr: (x: number, y: number, pen?: number) => {
-            vm._gra.drawMovePlot("l", x, y, pen);
+            vm.graDrawMovePlot("l", x, y, pen);
         },
         end: () => {
             vm.frame();
@@ -478,11 +274,15 @@ ${content}
             }
             const message = vm.getFlushedTextandGraphics();
             if (message) {
-                const hasGraphics = vm._gra._outputGraphicsIndex >= 0;
-                postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
+                const hasGraphics = vm._graOutputGraphicsIndex >= 0;
+                vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
                 vm._needCls = false;
             }
             return new Promise<void>(resolve => setTimeout(() => resolve(), Date.now() % 50));
+        },
+
+        getAnsiColorCodeForPen: (pen: number) => {
+            return vm._ansiColorCodes[vm._graColorsForPens[pen]];
         },
 
         getFlushedText: () => {
@@ -491,29 +291,136 @@ ${content}
             return output;
         },
 
+        graAddGraphicsElement: (element: string): void => {
+            vm.graSetOutputGraphicsIndex();
+            vm.graFlushGraphicsPath(); // maybe a path is open
+            vm._graGraphicsBuffer.push(element);
+        },
+
+        graCls: (): void => {
+            vm._graGraphicsBuffer.length = 0;
+            vm._graGraphicsPathBuffer.length = 0;
+            vm._graCurrGraphicsPen = -1;
+            vm._graGraphicsX = 0;
+            vm._graGraphicsY = 0;
+            vm._graOutputGraphicsIndex = -1;
+        },
+
+        // type: M | m | P | p | L | l
+        graDrawMovePlot: (type: string, x: number, y: number, pen?: number): void => {
+            vm.graSetOutputGraphicsIndex();
+            if (pen !== undefined) {
+                vm.graphicsPen(pen);
+            }
+            x = Math.round(x);
+            y = Math.round(y);
+
+            if (!vm._graGraphicsPathBuffer.length && type !== "M" && type !== "P") { // path must start with an absolute move
+                vm._graGraphicsPathBuffer.push(`M${vm._graGraphicsX + vm._graOriginX} ${399 - vm._graGraphicsY - vm._graOriginY}`);
+            }
+
+            const isAbsolute = type === type.toUpperCase();
+            if (isAbsolute) {
+                vm._graGraphicsX = x;
+                vm._graGraphicsY = y;
+                x = vm._graGraphicsX + vm._graOriginX;
+                y = 399 - vm._graGraphicsY - vm._graOriginY;
+            } else {
+                vm._graGraphicsX += x;
+                vm._graGraphicsY += y;
+                y = -y;
+            }
+
+            const svgPathCmd = (type === "P" || type === "p")
+                ? `${isAbsolute ? "M" : "m"}${x} ${y}h1v1h-1v-1`
+                : `${type}${x} ${y}`;
+
+            vm._graGraphicsPathBuffer.push(svgPathCmd);
+        },
+
+        graFlushGraphicsPath: (): void => {
+            if (vm._graGraphicsPathBuffer.length) {
+                const strokeStr = vm._graCurrGraphicsPen >= 0 ? `stroke="${vm.graGetRgbColorStringForPen(vm._graCurrGraphicsPen)}" ` : "";
+                vm._graGraphicsBuffer.push(`<path ${strokeStr}d="${vm._graGraphicsPathBuffer.join("")}" />`);
+                vm._graGraphicsPathBuffer.length = 0;
+            }
+        },
+
+        graGetFlushedGraphics: (): string => {
+            vm.graFlushGraphicsPath();
+            if (vm._graGraphicsBuffer.length) {
+                const graphicsBufferStr = vm._graGraphicsBuffer.join("\n");
+                const strokeWith = vm._cpcStrokeWidthForMode[vm._graCurrMode] + "px";
+                vm._graGraphicsBuffer.length = 0;
+                return vm.graGetTagInSvg(graphicsBufferStr, strokeWith, vm._graBackgroundColor);
+            }
+            return "";
+        },
+
+        graGetStrokeAndFillStr: (fill: number): string => {
+            const currGraphicsPen = vm._graCurrGraphicsPen;
+            const strokeStr = currGraphicsPen >= 0 ? ` stroke="${vm.graGetRgbColorStringForPen(currGraphicsPen)}"` : "";
+            const fillStr = fill >= 0 ? ` fill="${vm.graGetRgbColorStringForPen(fill)}"` : "";
+            return `${strokeStr}${fillStr}`;
+        },
+
+        graGetTagInSvg: (content: string, strokeWidth: string, backgroundColor: string) => {
+            const backgroundColorStr = backgroundColor !== "" ? ` style="background-color:${backgroundColor}"` : '';
+            return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" shape-rendering="optimizeSpeed" stroke="currentColor" stroke-width="${strokeWidth}"${backgroundColorStr}>\n${content}\n</svg>\n`;
+        },
+
+        graGetRgbColorStringForPen: (pen: number): string => {
+            return vm._cpcColors[vm._graColorsForPens[pen]];
+        },
+
+        graPrintGraphicsText: (text: string): void => {
+            const yOffset = 16;
+            const colorStyleStr = vm._graCurrGraphicsPen >= 0 ? `; color: ${vm.graGetRgbColorStringForPen(vm._graCurrGraphicsPen)}` : "";
+            vm.graAddGraphicsElement(`<text x="${vm._graGraphicsX + vm._graOriginX}" y="${399 - vm._graGraphicsY - vm._graOriginY + yOffset}" style="white-space: pre${colorStyleStr}">${text}</text>`);
+            vm._graGraphicsX += text.length * 8; // assuming 8px width per character
+        },
+
+        graSetOutputGraphicsIndex: (): void => {
+            if (vm._graOutputGraphicsIndex < 0) {
+                vm._graOutputGraphicsIndex = vm._output.length;
+            }
+        },
+
         handleTrailingNewline: (str: string) => {
             return vm._isTerminal ? str.replace(/\n$/, "") : str;
         },
 
         getFlushedTextandGraphics: () => {
             const textOutput = vm.handleTrailingNewline(vm.getFlushedText());
-            const graphicsOutput = vm.handleTrailingNewline(vm._gra.getFlushedGraphics());
-            const outputGraphicsIndex = vm._gra._outputGraphicsIndex;
+            const graphicsOutput = vm.handleTrailingNewline(vm.graGetFlushedGraphics());
+            const outputGraphicsIndex = vm._graOutputGraphicsIndex;
             const hasGraphics = outputGraphicsIndex >= 0;
             const output = hasGraphics ? textOutput.substring(0, outputGraphicsIndex) + graphicsOutput + textOutput.substring(outputGraphicsIndex) : textOutput;
             return output;
         },
 
         graphicsPen: (num: number) => {
-            return vm._gra.graphicsPen(num);
+            if (num !== vm._graCurrGraphicsPen) {
+                vm.graFlushGraphicsPath();
+                vm._graCurrGraphicsPen = num;
+            }
         },
 
         hex$: (num: number, pad?: number) => {
             return num.toString(16).toUpperCase().padStart(pad || 0, "0");
         },
-        ink: (num: number, col: number) => {
-            vm._gra.ink(num, col);
+
+        ink: (num: number, col: number): void => {
+            vm._graColorsForPens[num] = col;
+            // we modify inks, so set default pens and papers
+            if (vm._graCurrGraphicsPen < 0) {
+                vm.graphicsPen(1);
+            }
+            if (num === 0) {
+                vm._graBackgroundColor = vm.graGetRgbColorStringForPen(0);
+            }
         },
+
         inkey$: async () => {
             await vm.frame();
             if (vm._keyCharBufferString.length) {
@@ -545,7 +452,7 @@ ${content}
 
         keyDef: (num: number, repeat: number, ...codes: number[]): void => {
             if (num === 78 && repeat === 1) {
-                postMessage({ type: 'keyDef', codes });
+                vm.postMessage({ type: 'keyDef', codes });
             }
         },
         left$: (str: string, num: number) => {
@@ -561,7 +468,7 @@ ${content}
                 vm._inputResolvedFn = resolve;
             });
             await vm.frame();
-            postMessage({ type: 'input', prompt });
+            vm.postMessage({ type: 'input', prompt });
 
             const input = await inputPromise;
             if (input === null) {
@@ -600,17 +507,19 @@ ${content}
         },
 
         mode: (num: number) => {
-            vm._gra.mode(num);
+            vm._graCurrMode = num;
+            vm.origin(0, 0);
             vm.cls();
         },
         move: (x: number, y: number, pen?: number) => {
-            vm._gra.drawMovePlot("M", x, y, pen);
+            vm.graDrawMovePlot("M", x, y, pen);
         },
         mover: (x: number, y: number, pen?: number) => {
-            vm._gra.drawMovePlot("m", x, y, pen);
+            vm.graDrawMovePlot("m", x, y, pen);
         },
-        origin: (x: number, y: number) => {
-            vm._gra.origin(x, y);
+        origin: (x: number, y: number): void => {
+            vm._graOriginX = x;
+            vm._graOriginY = y;
         },
 
         paper: (n: number): void => {
@@ -619,7 +528,7 @@ ${content}
                 vm._paperValue = n;
                 if (vm._isTerminal) {
                     const backgroundAdd = 10;
-                    const ansicolorCode = ansiColorCodes[vm._gra._colorsForPens[n]] + backgroundAdd;
+                    const ansicolorCode = vm.getAnsiColorCodeForPen(n) + backgroundAdd;
                     vm._output += `\x1b[${ansicolorCode}m`;
                     return;
                 }
@@ -636,12 +545,12 @@ ${content}
 
                 // Open new paper span
                 vm._paperSpanPos = vm._penSpanPos + 1;
-                vm._output += `<span style="background-color: ${cpcColors[vm._gra._colorsForPens[n]]}">`;
+                vm._output += `<span style="background-color: ${vm.graGetRgbColorStringForPen(n)}">`;
 
                 // If pen was open before, reopen it inside
                 if (vm._penValue >= 0 && vm._penSpanPos === -1) {
                     vm._penSpanPos = vm._paperSpanPos + 1;
-                    vm._output += `<span style="color: ${cpcColors[vm._gra._colorsForPens[vm._penValue]]}">`;
+                    vm._output += `<span style="color: ${vm.graGetRgbColorStringForPen(vm._penValue)}">`;
                 }
             }
         },
@@ -650,8 +559,7 @@ ${content}
             if (n !== vm._penValue) {
                 vm._penValue = n;
                 if (vm._isTerminal) {
-                    const ansicolorCode = ansiColorCodes[vm._gra._colorsForPens[n]];
-                    vm._output += `\x1b[${ansicolorCode}m`;
+                    vm._output += `\x1b[${vm.getAnsiColorCodeForPen(n)}m`;
                     return;
                 }
 
@@ -667,12 +575,12 @@ ${content}
 
                 // Open new pen span
                 vm._penSpanPos = vm._paperSpanPos + 1;
-                vm._output += `<span style="color: ${cpcColors[vm._gra._colorsForPens[n]]}">`;
+                vm._output += `<span style="color: ${vm.graGetRgbColorStringForPen(n)}">`;
 
                 // If paper was open before, reopen it inside
                 if (vm._paperValue >= 0 && vm._paperSpanPos === -1) {
                     vm._paperSpanPos = vm._penSpanPos + 1;
-                    vm._output += `<span style="background-color: ${cpcColors[vm._gra._colorsForPens[vm._paperValue]]}">`;
+                    vm._output += `<span style="background-color: ${vm.graGetRgbColorStringForPen(vm._paperValue)}">`;
                 }
             }
         },
@@ -680,10 +588,10 @@ ${content}
         pi: Math.PI, // a constant!
 
         plot: (x: number, y: number, pen?: number) => {
-            vm._gra.drawMovePlot("P", x, y, pen);
+            vm.graDrawMovePlot("P", x, y, pen);
         },
         plotr: (x: number, y: number, pen?: number) => {
-            vm._gra.drawMovePlot("p", x, y, pen);
+            vm.graDrawMovePlot("p", x, y, pen);
         },
         pos: () => {
             return vm._pos + 1;
@@ -693,7 +601,7 @@ ${content}
             const formatNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
             const text = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg).join("");
             if (vm._tag) {
-                return vm._gra.printGraphicsText(vm.escapeText(text));
+                return vm.graPrintGraphicsText(vm.escapeText(text));
             }
             vm.printText(text);
         },
@@ -702,9 +610,9 @@ ${content}
             const formatNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
             const strArgs = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg);
             const formatCommaOrTab = (str: string) => {
-                if (str === CommaOpChar) {
+                if (str === vm._commaOpChar) {
                     return " ".repeat(vm._zone - (vm._pos % vm._zone));
-                } else if (str.charAt(0) === TabOpChar) {
+                } else if (str.charAt(0) === vm._tabOpChar) {
                     const tabSize = Number(str.substring(1));
                     if (isNaN(tabSize) || tabSize <= 0) {
                         return "";
@@ -715,7 +623,7 @@ ${content}
                 return str;
             };
             if (vm._tag) {
-                return vm._gra.printGraphicsText(vm.escapeText(strArgs.map(arg => formatCommaOrTab(arg)).join("")));
+                return vm.graPrintGraphicsText(vm.escapeText(strArgs.map(arg => formatCommaOrTab(arg)).join("")));
                 // For graphics output the text position does not change, so we can output all at once
             }
             for (const str of strArgs) {
@@ -772,19 +680,33 @@ ${content}
         },
 
         rsxArc: (...args: number[]) => { // 9x number, number?
-            vm._gra.rsxArc(args);
+            const [x, y, rx, ry, rotx, long, sweep, endx, endy, fill] = args.map((p) => Math.round(p as number));
+            const strokeAndFillStr = vm.graGetStrokeAndFillStr(fill);
+            const svgPathCmd = `M${x} ${399 - y} A${rx} ${ry} ${rotx} ${long} ${sweep} ${endx} ${399 - endy}`;
+            vm.graAddGraphicsElement(`<path d="${svgPathCmd}"${strokeAndFillStr} />`);
         },
 
         rsxCircle: (...args: number[]) => { // 3x number, number?
-            vm._gra.rsxCircle(args);
+            const [cx, cy, r, fill] = args.map((p) => Math.round(p as number));
+            const strokeAndFillStr = vm.graGetStrokeAndFillStr(fill);
+            vm.graAddGraphicsElement(`<circle cx="${cx}" cy="${399 - cy}" r="${r}"${strokeAndFillStr} />`);
         },
 
         rsxDate: (...args: string[]) => { // string
-            return vm._rsx.rsxDate(args);
+            const date = new Date();
+            const dayOfWeek = (date.getDay() + 1) % 7;
+            const day = date.getDate();
+            const month = date.getMonth() + 1;
+            const year = date.getFullYear() % 100;
+            const dateStr = `${String(dayOfWeek).padStart(2, '0')} ${String(day).padStart(2, '0')} ${String(month).padStart(2, '0')} ${String(year).padStart(2, '0')}`;
+            args[0] = dateStr;
+            return args;
         },
 
         rsxEllipse: (...args: number[]) => {
-            vm._gra.rsxEllipse(args);
+            const [cx, cy, rx, ry, fill] = args.map((p) => Math.round(p as number));
+            const strokeAndFillStr = vm.graGetStrokeAndFillStr(fill);
+            vm.graAddGraphicsElement(`<ellipse cx="${cx}" cy="${399 - cy}" rx="${rx}" ry="${ry}"${strokeAndFillStr} />`);
         },
 
         rsxGeolocation: (...args: string[]) => {
@@ -799,28 +721,41 @@ ${content}
                 }
                 return args;
             });
-            vm._rsx.rsxGeolocation();
+            vm.postMessage({ type: 'geolocation' });
             return promise;
         },
 
-        rsxPitch: (...args: number[]) => {
-            vm._rsx.rsxPitch(args);
+        rsxPitch: (args: number[]) => {
+            vm._rsxPitch = args[0] / 10;
         },
 
         rsxRect: (...args: number[]) => { // 4x number, number?
-            vm._gra.rsxRect(args);
+            const [x1, y1, x2, y2, fill] = args.map((p) => Math.round(p as number));
+            const x = Math.min(x1, x2);
+            const y = Math.max(y1, y2);
+            const width = Math.abs(x2 - x1);
+            const height = Math.abs(y2 - y1);
+            const strokeAndFillStr = vm.graGetStrokeAndFillStr(fill);
+            vm.graAddGraphicsElement(`<rect x="${x}" y="${399 - y}" width="${width}" height="${height}"${strokeAndFillStr} />`);
         },
 
         rsxSay: (...args: string[]) => {
             const promise = new Promise<string>((resolve) => {
                 vm._waitResolvedFn = resolve;
             });
-            vm._rsx.rsxSay(args);
+            const message = args[0];
+            vm.postMessage({ type: 'speak', message, pitch: vm._rsxPitch });
             return promise;
         },
 
         rsxTime: (...args: string[]) => { // string
-            return vm._rsx.rsxTime(args);
+            const date = new Date();
+            const hours = date.getHours();
+            const minutes = date.getMinutes();
+            const seconds = date.getSeconds();
+            const timeStr = `${String(hours).padStart(2, '0')} ${String(minutes).padStart(2, '0')} ${String(seconds).padStart(2, '0')}`;
+            args[0] = timeStr;
+            return args;
         },
 
         sgn: (num: number) => {
@@ -908,16 +843,16 @@ ${content}
         write: (...args: (string | number)[]) => {
             const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
             if (vm._tag) {
-                return vm._gra.printGraphicsText(vm.escapeText(text));
+                return vm.graPrintGraphicsText(vm.escapeText(text));
             }
             vm.printText(text);
         },
-        xpos: () => {
-            return vm._gra.xpos();
+        xpos: (): number => {
+            return vm._graGraphicsX;
         },
 
-        ypos: () => {
-            return vm._gra.ypos();
+        ypos: (): number => {
+            return vm._graGraphicsY;
         },
 
         zone: (num: number) => {
@@ -927,13 +862,14 @@ ${content}
 
     // Get the error event with line number from an synchronous, uncatched error.
     // It does not work for async functions with "unhandledrejection" event.
-    const errorEventHandler = (errorEvent: ErrorEvent) => {
+    const errorEventHandler = (event: Event) => {
+        const errorEvent = event as ErrorEvent;
         errorEvent.preventDefault();
         const { lineno, colno, message } = errorEvent;
         const plainErrorEventObj = { lineno, colno, message };
         const result = JSON.stringify(plainErrorEventObj);
         vm.remainAll();
-        postMessage({ type: 'result', result });
+        vm.postMessage({ type: 'result', result });
     };
 
     // this function must not be async to generate synchronous error
@@ -964,33 +900,33 @@ ${content}
             case 'run': {
                 vm.resetAll();
 
-                if (!parentPort) { // not for node.js
-                    self.addEventListener("error", errorEventHandler, { once: true });
+                if (!isNodeParentPort) { // not for node.js
+                    parentPort.addEventListener("error", errorEventHandler, { once: true } as EventListenerOptions);
                 }
                 const fnScript = new Function("_o", `"use strict"; return (async () => { ${data.code} })();`); // compile
-                if (!parentPort) {
-                    self.removeEventListener("error", errorEventHandler);
+                if (!isNodeParentPort) {
+                    parentPort.removeEventListener("error", errorEventHandler);
                 }
 
                 fnScript(vm).then((result: string | undefined) => {
                     vm.remainAll();
                     const message = vm.getFlushedTextandGraphics();
                     if (message) {
-                        const hasGraphics = vm._gra._outputGraphicsIndex >= 0;
-                        postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
+                        const hasGraphics = vm._graOutputGraphicsIndex >= 0;
+                        vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
                     }
                     result = result ?? "";
-                    postMessage({ type: 'result', result });
+                    vm.postMessage({ type: 'result', result });
                 }).catch((err: unknown) => {
                     vm.remainAll();
                     console.warn(err instanceof Error ? err.stack : String(err));
                     const result = String(err);
                     const message = vm.getFlushedTextandGraphics();
                     if (message) {
-                        const hasGraphics = vm._gra._outputGraphicsIndex >= 0;
-                        postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
+                        const hasGraphics = vm._graOutputGraphicsIndex >= 0;
+                        vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
                     }
-                    postMessage({ type: 'result', result });
+                    vm.postMessage({ type: 'result', result });
                 });
                 break;
             }
@@ -1005,15 +941,15 @@ ${content}
         }
     };
 
-    if (parentPort) {
+    if (isNodeParentPort) {
         parentPort.on('message', onMessageHandler);
     } else {
-        self.onmessage = (event) => {
-            const data = event.data as MessageToWorker;
+        parentPort.addEventListener('message', (event: Event) => {
+            const data = (event as unknown as MessageEventType).data;
             onMessageHandler(data);
-        };
+        });
     }
-    return vm; // for testing
+    return vm;
 };
 
 if (typeof require !== "undefined") { // node.js worker environment
@@ -1024,5 +960,5 @@ if (typeof require !== "undefined") { // node.js worker environment
         }
     })();
 } else if (typeof self !== "undefined" && typeof Window === "undefined") { // web worker environment
-    workerFn();
+    workerFn(self);
 }

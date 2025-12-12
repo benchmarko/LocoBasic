@@ -3,7 +3,7 @@ import { Parser } from "./Parser";
 import { arithmetic } from "./arithmetic";
 import { Semantics } from "./Semantics";
 import { SemanticsHelper } from "./SemanticsHelper";
-import { CommaOpChar, TabOpChar } from "./Constants";
+//import { CommaOpChar, TabOpChar } from "./Constants";
 import { ScriptCreator } from "./ScriptCreator";
 
 function fnHereDoc(fn: () => void) {
@@ -193,12 +193,15 @@ export class Core implements ICore {
     }
 
     public prepareWorkerFnString(workerFnString: string): string {
+        /*
         const constants = `
     const CommaOpChar = "${CommaOpChar}";
     const TabOpChar = "${TabOpChar}";
 `;
         const workerStringWithConstants = workerFnString.replace(/const postMessage =/, `${constants}    const postMessage =`); // fast hack: get constants into worker string
         return workerStringWithConstants;
+        */
+        return workerFnString; // currently no modification
     }
 
     public createStandaloneScript(workerString: string, compiledScript: string, usedInstrMap: Record<string, number>): string {

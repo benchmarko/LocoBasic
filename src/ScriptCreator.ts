@@ -277,24 +277,6 @@ export class ScriptCreator {
         const usedInstrList = Object.keys(usedInstrMap);
         workerString = this.filterWorkerFnString(workerString, usedInstrList, 'const vm = ', 'vm');
 
-        const scanVmRsxInVm = this.scanVmFunctionReferences(workerString, 'const vm = ', 'vm._rsx');
-        const usedVmRsxInVm: Record<string, boolean> = {};
-        for (const [, props] of scanVmRsxInVm.functions) {
-            for (const dep of props.deps) {
-                usedVmRsxInVm[dep] = true;
-            }
-        }
-        workerString = this.filterWorkerFnString(workerString, Object.keys(usedVmRsxInVm), 'const vmRsx = ', 'vmRsx');
-
-        const scanVmGraInVm = this.scanVmFunctionReferences(workerString, 'const vm = ', 'vm._gra');
-        const usedVmGraInVm: Record<string, boolean> = {};
-        for (const [, props] of scanVmGraInVm.functions) {
-            for (const dep of props.deps) {
-                usedVmGraInVm[dep] = true;
-            }
-        }
-        workerString = this.filterWorkerFnString(workerString, Object.keys(usedVmGraInVm), 'const vmGra = ', 'vmGra');
-
         const inFrame = this.compiledCodeInFrame(compiledScript, workerString);
         return inFrame;
     }

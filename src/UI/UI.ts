@@ -901,7 +901,7 @@ export class UI implements IUI {
         if (isFileProtocol) {
             const locoVmWorker = await this.getLocoVmWorker(locoVmWorkerName);
             const preparedWorkerFnString = this.getCore().prepareWorkerFnString(`${locoVmWorker.workerFn}`);
-            const workerScript = `(${preparedWorkerFnString})();`;
+            const workerScript = `(${preparedWorkerFnString})(self);`;
 
             // Use Blob for file:// protocol
             const blob = new Blob([workerScript], { type: "text/javascript" });
