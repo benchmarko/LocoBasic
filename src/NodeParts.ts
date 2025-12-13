@@ -1,4 +1,4 @@
-import type { DatabaseType, ExampleType, ICore, INodeParts, MessageFromWorker, NodeWorkerType } from "./Interfaces";
+import type { DatabaseType, ExampleType, ICore, INodeParts, MessageFromWorker, NodeWorkerFnType, NodeWorkerType } from "./Interfaces";
 import { NodeVmMain } from "./NodeVmMain";
 
 interface NodePath {
@@ -42,10 +42,6 @@ type NodeKeyPressType = {
     ctrl: boolean;
     meta: boolean;
     shift: boolean;
-}
-
-type NodeWorkerFnType = {
-    workerFn: () => unknown
 }
 
 declare function require(name: string): NodeFs | NodeHttps | NodeModule | NodePath | NodeReadline | NodeVm | NodeWorkerThreads | NodeWorkerFnType;
@@ -154,12 +150,11 @@ export class NodeParts implements INodeParts {
         return worker;
     }
 
-    private createNodeWorkerAsString(workerFile: string): string {
+    public getNodeWorkerFn(workerFile: string): NodeWorkerFnType {
         const path = this.getNodePath();
         const workerFnPath = path.resolve(__dirname, workerFile);
         const workerFn = require(workerFnPath) as NodeWorkerFnType;
-        const workerFnString = `${workerFn.workerFn}`;
-        return workerFnString;
+        return workerFn;
     }
 
     private loadScript(fileOrUrl: string): Promise<string> {
@@ -306,10 +301,10 @@ export class NodeParts implements INodeParts {
             return this.keepRunning(async () => {
                 return this.startRun(core, compiledScript);
             }, 5000);
-        } else {
-            const workerString = this.createNodeWorkerAsString(this.locoVmWorkerName);
+        } else { // compile only: output standalone script
+            const workerFn = this.getNodeWorkerFn(this.locoVmWorkerName);
             const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
-            const inFrame = core.createStandaloneScript(workerString, compiledScript, usedInstrMap);
+            const inFrame = core.createStandaloneScript(workerFn, compiledScript, Object.keys(usedInstrMap));
             console.log(inFrame);
         }
     }

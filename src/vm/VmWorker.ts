@@ -1,5 +1,4 @@
 import type { BrowserWorkerThreadsType, MessageFromWorker, MessageToWorker, NodeWorkerThreadsType } from "../Interfaces";
-//import { CommaOpChar, TabOpChar } from "../Constants";
 
 declare function require(name: string): NodeWorkerThreadsType;
 
@@ -87,7 +86,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             "#00FF80" //  31 Sea Green (same as 19)
         ],
         _cpcDefaultColorsForPens: [
-        1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
+            1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
         ],
         _cpcStrokeWidthForMode: [4, 2, 1, 1],
 
@@ -97,7 +96,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         _dataPtr: 0,
 
         _graBackgroundColor: "",
-        _graColorsForPens: [] as number[], // make sure to initialize with resetAll (or resetGra)
+        _graColorsForPens: [] as number[], // make sure to initialize with resetColorsForPens before usage
         _graCurrGraphicsPen: -1,
         _graCurrMode: 1,
         _graOriginX: 0,
@@ -132,6 +131,48 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             Object.keys(items).forEach(key => delete items[key]); // eslint-disable-line @typescript-eslint/no-dynamic-delete
         },
 
+        formatCommaOrTab: (str: string) => {
+            if (str === vm._commaOpChar) {
+                return " ".repeat(vm._zone - (vm._pos % vm._zone));
+            } else if (str.charAt(0) === vm._tabOpChar) {
+                const tabSize = Number(str.substring(1));
+                if (isNaN(tabSize) || tabSize <= 0) {
+                    return "";
+                }
+                const len = tabSize - 1 - vm._pos;
+                return len >= 0 ? " ".repeat(len) : "\n" + " ".repeat(tabSize - 1);
+            }
+            return str;
+        },
+
+        formatNumber: (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `),
+
+        onMessageHandler: (data: MessageToWorker) => {
+            switch (data.type) {
+                case 'config':
+                    vm._isTerminal = data.isTerminal;
+                    if (!vm._graColorsForPens.length) {
+                        vm.resetColorsForPens(); // make sure it is initialized
+                    }
+                    break;
+                case 'continue':
+                    vm.resolveWait(data.result);
+                    break;
+
+                case 'input':
+                    vm.resolveInput(data.prompt);
+                    break;
+
+                case 'putKeys':
+                    vm._keyCharBufferString += data.keys;
+                    break;
+
+                case 'stop':
+                    vm._stopRequested = true;
+                    break;
+            }
+        },
+
         postMessage: (message: MessageFromWorker) => {
             parentPort.postMessage(message);
         },
@@ -149,41 +190,47 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             vm.remainAll();
         },
 
-        resetGra: () => {
+        resetColorsForPens: () => {
             vm._graColorsForPens.length = 0;
             vm._graColorsForPens.push(...vm._cpcDefaultColorsForPens);
+        },
+
+        resetGra: () => {
+            vm.resetColorsForPens();
             vm._graBackgroundColor = "";
             vm.graCls();
         },
 
-        abs: (num: number) => {
-            return Math.abs(num);
+        resolveInput: (input: string | null): void => {
+            if (vm._inputResolvedFn) {
+                vm._inputResolvedFn(input);
+                vm._inputResolvedFn = null;
+            }
         },
+
+        resolveWait: (result: string): void => {
+            if (vm._waitResolvedFn) {
+                vm._waitResolvedFn(result);
+                vm._waitResolvedFn = null;
+            }
+        },
+
+        abs: (num: number) => Math.abs(num),
 
         after: (timeout: number, timer: number, fn: () => void) => {
             vm.remain(timer);
             vm._timerMap[timer] = setTimeout(() => fn(), timeout * 20);
         },
 
-        asc: (str: string) => {
-            return str.charCodeAt(0);
-        },
+        asc: (str: string) => str.charCodeAt(0),
 
-        atn: (num: number) => {
-            return Math.atan(num);
-        },
+        atn: (num: number) => Math.atan(num),
 
-        bin$: (num: number, pad: number = 0): string => {
-            return num.toString(2).toUpperCase().padStart(pad, "0");
-        },
+        bin$: (num: number, pad: number = 0): string => num.toString(2).toUpperCase().padStart(pad, "0"),
 
-        chr$: (num: number) => {
-            return String.fromCharCode(num);
-        },
+        chr$: (num: number) => String.fromCharCode(num),
 
-        cint: (num: number) => {
-            return Math.round(num)
-        },
+        cint: (num: number) => Math.round(num),
 
         clearInput: () => {
             vm._keyCharBufferString = "";
@@ -204,13 +251,9 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             vm._needCls = true;
         },
 
-        cos: (num: number) => {
-            return Math.cos(num);
-        },
+        cos: (num: number) => Math.cos(num),
 
-        creal: (num: number) => {
-            return num; // nothing
-        },
+        creal: (num: number) => num,
 
         dec$: (num: number, format: string) => {
             const decimals = (format.split(".")[1] || "").length;
@@ -236,48 +279,40 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             return createRecursiveArray(0);
         },
 
-        dim1: (dim: number, value: number = 0): number[] => {
-            return new Array(dim + 1).fill(value);
-        },
+        dim1: (dim: number, value: number = 0): number[] => new Array(dim + 1).fill(value),
 
-        draw: (x: number, y: number, pen?: number) => {
-            vm.graDrawMovePlot("L", x, y, pen);
-        },
-        drawr: (x: number, y: number, pen?: number) => {
-            vm.graDrawMovePlot("l", x, y, pen);
-        },
-        end: () => {
-            vm.frame();
-            return "";
-        },
+        draw: (x: number, y: number, pen?: number) => vm.graDrawMovePlot("L", x, y, pen),
 
-        escapeText: (str: string): string => {
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-        },
+        drawr: (x: number, y: number, pen?: number) => vm.graDrawMovePlot("l", x, y, pen),
+
+        end: () => vm.flush(),
+
+        escapeText: (str: string): string => str.replace(/&/g, "&amp;").replace(/</g, "&lt;"),
 
         every: (timeout: number, timer: number, fn: () => void) => {
             vm.remain(timer);
             vm._timerMap[timer] = setInterval(() => fn(), timeout * 20);
         },
 
-        exp: (num: number) => {
-            return Math.exp(num);
-        },
+        exp: (num: number) => Math.exp(num),
 
-        fix: (num: number) => {
-            return Math.trunc(num);
+        fix: (num: number) => Math.trunc(num),
+
+        flush: () => {
+            const message = vm.getFlushedTextandGraphics();
+            if (message) {
+                const hasGraphics = vm._graOutputGraphicsIndex >= 0;
+                vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls }); // TODO: change type to flush?
+                vm._needCls = false;
+            }
+            return ""; // Test
         },
 
         frame: async () => {
             if (vm._stopRequested) {
                 throw new Error("INFO: Program stopped");
             }
-            const message = vm.getFlushedTextandGraphics();
-            if (message) {
-                const hasGraphics = vm._graOutputGraphicsIndex >= 0;
-                vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
-                vm._needCls = false;
-            }
+            vm.flush();
             return new Promise<void>(resolve => setTimeout(() => resolve(), Date.now() % 50));
         },
 
@@ -350,9 +385,8 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             vm.graFlushGraphicsPath();
             if (vm._graGraphicsBuffer.length) {
                 const graphicsBufferStr = vm._graGraphicsBuffer.join("\n");
-                const strokeWith = vm._cpcStrokeWidthForMode[vm._graCurrMode] + "px";
                 vm._graGraphicsBuffer.length = 0;
-                return vm.graGetTagInSvg(graphicsBufferStr, strokeWith, vm._graBackgroundColor);
+                return vm.graGetTagInSvg(graphicsBufferStr);
             }
             return "";
         },
@@ -364,8 +398,9 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             return `${strokeStr}${fillStr}`;
         },
 
-        graGetTagInSvg: (content: string, strokeWidth: string, backgroundColor: string) => {
-            const backgroundColorStr = backgroundColor !== "" ? ` style="background-color:${backgroundColor}"` : '';
+        graGetTagInSvg: (content: string) => {
+            const backgroundColorStr = vm._graBackgroundColor !== "" ? ` style="background-color:${vm._graBackgroundColor}"` : '';
+            const strokeWidth = vm._cpcStrokeWidthForMode[vm._graCurrMode] + "px";
             return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" shape-rendering="optimizeSpeed" stroke="currentColor" stroke-width="${strokeWidth}"${backgroundColorStr}>\n${content}\n</svg>\n`;
         },
 
@@ -406,9 +441,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             }
         },
 
-        hex$: (num: number, pad?: number) => {
-            return num.toString(16).toUpperCase().padStart(pad || 0, "0");
-        },
+        hex$: (num: number, pad?: number) => num.toString(16).toUpperCase().padStart(pad || 0, "0"),
 
         ink: (num: number, col: number): void => {
             vm._graColorsForPens[num] = col;
@@ -446,22 +479,16 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             return str.indexOf(find, len !== undefined ? len - 1 : len) + 1;
         },
 
-        int: (num: number) => {
-            return Math.floor(num);
-        },
+        int: (num: number) => Math.floor(num),
 
         keyDef: (num: number, repeat: number, ...codes: number[]): void => {
             if (num === 78 && repeat === 1) {
                 vm.postMessage({ type: 'keyDef', codes });
             }
         },
-        left$: (str: string, num: number) => {
-            return str.slice(0, num);
-        },
+        left$: (str: string, num: number) => str.slice(0, num),
 
-        len: (str: string) => {
-            return str.length;
-        },
+        len: (str: string) => str.length,
 
         lineInput: async (prompt: string): Promise<string> => {
             const inputPromise = new Promise<string | null>((resolve) => {
@@ -477,46 +504,33 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             return input;
         },
 
-        log: (num: number) => {
-            return Math.log(num);
-        },
+        log: (num: number) => Math.log(num),
 
-        log10: (num: number) => {
-            return Math.log10(num);
-        },
+        log10: (num: number) => Math.log10(num),
 
-        lower$: (str: string) => {
-            return str.toLowerCase();
-        },
+        lower$: (str: string) => str.toLowerCase(),
 
-        max: (...nums: number[]) => {
-            return Math.max.apply(null, nums);
-        },
+        max: (...nums: number[]) => Math.max.apply(null, nums),
 
-        mid$: (str: string, pos: number, len?: number) => {
-            return str.substr(pos - 1, len);
-        },
+        mid$: (str: string, pos: number, len?: number) => str.substr(pos - 1, len),
+
         mid$Assign: (s: string, start: number, newString: string, len?: number) => {
             start -= 1;
             len = Math.min(len ?? newString.length, newString.length, s.length - start);
             return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
         },
 
-        min: (...nums: number[]) => {
-            return Math.min.apply(null, nums);
-        },
+        min: (...nums: number[]) => Math.min.apply(null, nums),
 
         mode: (num: number) => {
             vm._graCurrMode = num;
             vm.origin(0, 0);
             vm.cls();
         },
-        move: (x: number, y: number, pen?: number) => {
-            vm.graDrawMovePlot("M", x, y, pen);
-        },
-        mover: (x: number, y: number, pen?: number) => {
-            vm.graDrawMovePlot("m", x, y, pen);
-        },
+        move: (x: number, y: number, pen?: number) => vm.graDrawMovePlot("M", x, y, pen),
+
+        mover: (x: number, y: number, pen?: number) => vm.graDrawMovePlot("m", x, y, pen),
+
         origin: (x: number, y: number): void => {
             vm._graOriginX = x;
             vm._graOriginY = y;
@@ -587,19 +601,14 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
 
         pi: Math.PI, // a constant!
 
-        plot: (x: number, y: number, pen?: number) => {
-            vm.graDrawMovePlot("P", x, y, pen);
-        },
-        plotr: (x: number, y: number, pen?: number) => {
-            vm.graDrawMovePlot("p", x, y, pen);
-        },
-        pos: () => {
-            return vm._pos + 1;
-        },
+        plot: (x: number, y: number, pen?: number) => vm.graDrawMovePlot("P", x, y, pen),
+
+        plotr: (x: number, y: number, pen?: number) => vm.graDrawMovePlot("p", x, y, pen),
+
+        pos: () => vm._pos + 1,
 
         print: (...args: (string | number)[]) => {
-            const formatNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
-            const text = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg).join("");
+            const text = args.map((arg) => (typeof arg === "number") ? vm.formatNumber(arg) : arg).join("");
             if (vm._tag) {
                 return vm.graPrintGraphicsText(vm.escapeText(text));
             }
@@ -607,27 +616,13 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         },
 
         printTab: (...args: (string | number)[]) => {
-            const formatNumber = (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
-            const strArgs = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg);
-            const formatCommaOrTab = (str: string) => {
-                if (str === vm._commaOpChar) {
-                    return " ".repeat(vm._zone - (vm._pos % vm._zone));
-                } else if (str.charAt(0) === vm._tabOpChar) {
-                    const tabSize = Number(str.substring(1));
-                    if (isNaN(tabSize) || tabSize <= 0) {
-                        return "";
-                    }
-                    const len = tabSize - 1 - vm._pos;
-                    return len >= 0 ? " ".repeat(len) : "\n" + " ".repeat(tabSize - 1);
-                }
-                return str;
-            };
+            const strArgs = args.map((arg) => (typeof arg === "number") ? vm.formatNumber(arg) : arg);
             if (vm._tag) {
-                return vm.graPrintGraphicsText(vm.escapeText(strArgs.map(arg => formatCommaOrTab(arg)).join("")));
+                return vm.graPrintGraphicsText(vm.escapeText(strArgs.map(arg => vm.formatCommaOrTab(arg)).join("")));
                 // For graphics output the text position does not change, so we can output all at once
             }
             for (const str of strArgs) {
-                vm.printText(formatCommaOrTab(str));
+                vm.printText(vm.formatCommaOrTab(str));
             }
         },
         printText: (text: string) => {
@@ -663,21 +658,13 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         restore: (label: string) => {
             vm._dataPtr = vm._restoreMap[label];
         },
-        right$: (str: string, num: number) => {
-            return str.substring(str.length - num);
-        },
+        right$: (str: string, num: number) => str.substring(str.length - num),
 
-        rnd: () => {
-            return Math.random();
-        },
+        rnd: () => Math.random(),
 
-        round1: (num: number) => {
-            return Math.round(num);
-        },
+        round1: (num: number) => Math.round(num),
 
-        round: (num: number, dec: number) => {
-            return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
-        },
+        round: (num: number, dec: number) => Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec),
 
         rsxArc: (...args: number[]) => { // 9x number, number?
             const [x, y, rx, ry, rotx, long, sweep, endx, endy, fill] = args.map((p) => Math.round(p as number));
@@ -758,41 +745,23 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             return args;
         },
 
-        sgn: (num: number) => {
-            return Math.sign(num);
-        },
+        sgn: (num: number) => Math.sign(num),
 
-        sin: (num: number) => {
-            return Math.sin(num);
-        },
+        sin: (num: number) => Math.sin(num),
 
-        space$: (num: number) => {
-            return " ".repeat(num);
-        },
+        space$: (num: number) => " ".repeat(num),
 
-        spc: (num: number) => { // same as space$
-            return " ".repeat(num);
-        },
+        spc: (num: number) => " ".repeat(num),
 
-        sqr: (num: number) => {
-            return Math.sqrt(num);
-        },
+        sqr: (num: number) => Math.sqrt(num),
 
-        stop: () => {
-            vm.frame();
-            return ""; //"stop";
-        },
-        str$: (num: number) => {
-            return num >= 0 ? ` ${num}` : String(num);
-        },
+        stop: () => vm.flush(),
 
-        string$Num: (len: number, num: number) => {
-            return String.fromCharCode(num).repeat(len);
-        },
+        str$: (num: number) => num >= 0 ? ` ${num}` : String(num),
 
-        string$Str: (len: number, str: string) => {
-            return str.repeat(len);
-        },
+        string$Num: (len: number, num: number) => String.fromCharCode(num).repeat(len),
+
+        string$Str: (len: number, str: string) => str.repeat(len),
 
         tag: () => {
             vm._tag = true;
@@ -802,44 +771,28 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             vm._tag = false;
         },
 
-        tan: (num: number) => {
-            return Math.tan(num);
-        },
+        tan: (num: number) => Math.tan(num),
 
-        time: () => {
-            return ((Date.now() - vm._startTime) * 3 / 10) | 0;
-        },
+        time: () => ((Date.now() - vm._startTime) * 3 / 10) | 0,
 
-        toDeg: (num: number) => {
-            return num * 180 / Math.PI;
-        },
+        toDeg: (num: number) => num * 180 / Math.PI,
 
-        toRad: (num: number) => {
-            return num * Math.PI / 180;
-        },
+        toRad: (num: number) => num * Math.PI / 180,
 
         using: (format: string, ...args: number[]) => {
             return args.map((arg) => vm.dec$(arg, format)).join('');
         },
 
-        unt: (num: number) => {
-            return num;
-        },
+        unt: (num: number) => num,
 
-        upper$: (str: string) => {
-            return str.toUpperCase();
-        },
+        upper$: (str: string) => str.toUpperCase(),
 
-        val1: (str: string) => {
-            return Number(str);
-        },
+        val1: (str: string) => Number(str),
 
-        val: (str: string) => {
-            return Number(str.replace("&x", "0b").replace("&", "0x"));
-        },
-        vpos: () => {
-            return vm._vpos + 1;
-        },
+        val: (str: string) => Number(str.replace("&x", "0b").replace("&", "0x")),
+
+        vpos: () => vm._vpos + 1,
+
         write: (...args: (string | number)[]) => {
             const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
             if (vm._tag) {
@@ -847,13 +800,9 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             }
             vm.printText(text);
         },
-        xpos: (): number => {
-            return vm._graGraphicsX;
-        },
+        xpos: () => vm._graGraphicsX,
 
-        ypos: (): number => {
-            return vm._graGraphicsY;
-        },
+        ypos: () => vm._graGraphicsY,
 
         zone: (num: number) => {
             vm._zone = num;
@@ -872,72 +821,45 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         vm.postMessage({ type: 'result', result });
     };
 
+    const onRun = (code: string) => {
+        vm.resetAll();
+
+        if (!isNodeParentPort) { // not for node.js
+            parentPort.addEventListener("error", errorEventHandler, { once: true } as EventListenerOptions);
+        }
+        const fnScript = new Function("_o", `"use strict"; return (async () => { ${code} })();`); // compile
+        if (!isNodeParentPort) {
+            parentPort.removeEventListener("error", errorEventHandler);
+        }
+
+        fnScript(vm).then((result: string | undefined) => {
+            vm.remainAll();
+            const message = vm.getFlushedTextandGraphics();
+            if (message) {
+                const hasGraphics = vm._graOutputGraphicsIndex >= 0;
+                vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
+            }
+            result = result ?? "";
+            vm.postMessage({ type: 'result', result });
+        }).catch((err: unknown) => {
+            vm.remainAll();
+            console.warn(err instanceof Error ? err.stack : String(err));
+            const result = String(err);
+            const message = vm.getFlushedTextandGraphics();
+            if (message) {
+                const hasGraphics = vm._graOutputGraphicsIndex >= 0;
+                vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
+            }
+            vm.postMessage({ type: 'result', result });
+        });
+    }
+
     // this function must not be async to generate synchronous error
     const onMessageHandler = (data: MessageToWorker) => {
-        switch (data.type) {
-            case 'config':
-                vm._isTerminal = data.isTerminal;
-                break;
-            case 'continue':
-                if (vm._waitResolvedFn) {
-                    vm._waitResolvedFn(data.result);
-                    vm._waitResolvedFn = null;
-                }
-                break;
-
-            case 'input':
-                // resolve waiting input
-                if (vm._inputResolvedFn) {
-                    vm._inputResolvedFn(data.prompt);
-                    vm._inputResolvedFn = null;
-                }
-                break;
-
-            case 'putKeys':
-                vm._keyCharBufferString += data.keys;
-                break;
-
-            case 'run': {
-                vm.resetAll();
-
-                if (!isNodeParentPort) { // not for node.js
-                    parentPort.addEventListener("error", errorEventHandler, { once: true } as EventListenerOptions);
-                }
-                const fnScript = new Function("_o", `"use strict"; return (async () => { ${data.code} })();`); // compile
-                if (!isNodeParentPort) {
-                    parentPort.removeEventListener("error", errorEventHandler);
-                }
-
-                fnScript(vm).then((result: string | undefined) => {
-                    vm.remainAll();
-                    const message = vm.getFlushedTextandGraphics();
-                    if (message) {
-                        const hasGraphics = vm._graOutputGraphicsIndex >= 0;
-                        vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
-                    }
-                    result = result ?? "";
-                    vm.postMessage({ type: 'result', result });
-                }).catch((err: unknown) => {
-                    vm.remainAll();
-                    console.warn(err instanceof Error ? err.stack : String(err));
-                    const result = String(err);
-                    const message = vm.getFlushedTextandGraphics();
-                    if (message) {
-                        const hasGraphics = vm._graOutputGraphicsIndex >= 0;
-                        vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
-                    }
-                    vm.postMessage({ type: 'result', result });
-                });
-                break;
-            }
-
-            case 'stop':
-                vm._stopRequested = true;
-                break;
-
-            default:
-                // Unknown message type
-                break;
+        if (data.type === 'run') {
+            onRun(data.code);
+        } else {
+            vm.onMessageHandler(data);
         }
     };
 

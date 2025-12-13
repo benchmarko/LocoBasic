@@ -1,9 +1,8 @@
-import type { CompileResultType, ConfigEntryType, ConfigType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore } from "./Interfaces";
+import type { CompileResultType, ConfigEntryType, ConfigType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore, NodeWorkerFnType } from "./Interfaces";
 import { Parser } from "./Parser";
 import { arithmetic } from "./arithmetic";
 import { Semantics } from "./Semantics";
 import { SemanticsHelper } from "./SemanticsHelper";
-//import { CommaOpChar, TabOpChar } from "./Constants";
 import { ScriptCreator } from "./ScriptCreator";
 
 function fnHereDoc(fn: () => void) {
@@ -192,24 +191,11 @@ export class Core implements ICore {
         return config;
     }
 
-    public prepareWorkerFnString(workerFnString: string): string {
-        /*
-        const constants = `
-    const CommaOpChar = "${CommaOpChar}";
-    const TabOpChar = "${TabOpChar}";
-`;
-        const workerStringWithConstants = workerFnString.replace(/const postMessage =/, `${constants}    const postMessage =`); // fast hack: get constants into worker string
-        return workerStringWithConstants;
-        */
-        return workerFnString; // currently no modification
-    }
-
-    public createStandaloneScript(workerString: string, compiledScript: string, usedInstrMap: Record<string, number>): string {
+    public createStandaloneScript(workerFn: NodeWorkerFnType, compiledScript: string, usedInstr: string[]): string {
         if (!this.scriptCreator) {
             this.scriptCreator = new ScriptCreator(this.config.debug);
         }
-        workerString = this.prepareWorkerFnString(workerString);
-        const inFrame = this.scriptCreator.createStandaloneScript(workerString, compiledScript, usedInstrMap);
+        const inFrame = this.scriptCreator.createStandaloneScript(workerFn, compiledScript, usedInstr);
         return inFrame;
     }
 }

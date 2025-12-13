@@ -75,8 +75,7 @@ export interface ICore {
     addIndex: (dir: string, input: Record<string, ExampleType[]> | (() => void)) => void;
     addItem(key: string, input: string | (() => void)): void;
     parseArgs(args: string[], config: Record<string, ConfigEntryType>): void;
-    prepareWorkerFnString(workerFnString: string): string;
-    createStandaloneScript(workerString: string, compiledScript: string, usedInstrMap: Record<string, number>): string;
+    createStandaloneScript(workerFn: NodeWorkerFnType, compiledScript: string, usedInstr: string[]): string;
 }
 
 
@@ -95,6 +94,12 @@ export type MessageFromWorker =
     | { type: 'keyDef'; codes: number[] }
     | { type: 'result'; result: string }
     | { type: 'speak'; message: string; pitch: number };
+
+export type VMObject = Record<string, unknown>;
+
+export type NodeWorkerFnType = {
+    workerFn: (parentPort: NodeWorkerThreadsType["parentPort"]) => VMObject;
+}
 
 export interface NodeWorkerType {
     on: (event: string, listener: (data: MessageFromWorker) => void) => void;
