@@ -623,11 +623,10 @@
             };
             this.onStandaloneButtonClick = async () => {
                 const locoVmWorker = await this.getLocoVmWorker(this.locoVmWorkerName);
-                const workerString = `${locoVmWorker.workerFn}`;
                 const core = this.getCore();
                 const compiledScript = this.getCompiledCm().getValue();
                 const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
-                const output = core.createStandaloneScript(workerString, compiledScript, usedInstrMap);
+                const output = core.createStandaloneScript(locoVmWorker, compiledScript, Object.keys(usedInstrMap));
                 const blob = new Blob([output], { type: "text/javascript" });
                 const objectURL = window.URL.createObjectURL(blob);
                 const win = window.open(objectURL, "Standalone Script", "width=640,height=300,resizable=yes,scrollbars=yes,dependent=yes");
@@ -1097,7 +1096,7 @@
             const isFileProtocol = window.location.protocol === 'file:';
             if (isFileProtocol) {
                 const locoVmWorker = await this.getLocoVmWorker(locoVmWorkerName);
-                const preparedWorkerFnString = this.getCore().prepareWorkerFnString(`${locoVmWorker.workerFn}`);
+                const preparedWorkerFnString = String(locoVmWorker.workerFn);
                 const workerScript = `(${preparedWorkerFnString})(self);`;
                 // Use Blob for file:// protocol
                 const blob = new Blob([workerScript], { type: "text/javascript" });

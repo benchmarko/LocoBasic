@@ -3045,157 +3045,69 @@ ${dataList.join(",\n")}
         constructor(debug) {
             this.debug = debug;
         }
-        scanBoundaries(mainString, startPos) {
-            // Find opening and closing braces of function or object (need to match braces properly)
-            let endPos = -1;
-            let braceCount = 0;
-            let inString = false;
-            let stringChar = '';
-            let foundOpenBrace = false;
-            //for (let i = startPos + searchString.length; i < mainString.length && (!foundOpenBrace || braceCount > 0); i += 1) {
-            for (let i = startPos; i < mainString.length && (!foundOpenBrace || braceCount > 0); i += 1) {
-                const ch = mainString[i];
-                const prevCh = i > 0 ? mainString[i - 1] : '';
-                // Handle string literals
-                if ((ch === '"' || ch === '`' || ch === "'") && prevCh !== '\\') {
-                    if (!inString) {
-                        inString = true;
-                        stringChar = ch;
-                    }
-                    else if (ch === stringChar) {
-                        inString = false;
+        // Build dependency map by analyzing vm properties
+        analyzeDependencies(vmObj) {
+            const depMap = {};
+            for (const key in vmObj) {
+                const value = vmObj[key];
+                const valueStr = String(value);
+                const deps = [];
+                // Find all vm.propertyName references
+                const regex = /vm\.([\w$]+)/g;
+                let match;
+                while ((match = regex.exec(valueStr)) !== null) {
+                    const refProp = match[1];
+                    if (!deps.includes(refProp)) {
+                        deps.push(refProp);
                     }
                 }
-                if (!inString) {
-                    if (ch === '{') {
-                        if (!foundOpenBrace) {
-                            foundOpenBrace = true;
-                        }
-                        braceCount++;
-                    }
-                    else if (ch === '}') {
-                        braceCount--;
-                        if (foundOpenBrace && braceCount === 0) {
-                            endPos = i;
-                        }
-                    }
-                }
+                depMap[key] = deps;
             }
-            return { startPos, endPos };
+            return depMap;
         }
-        scanFunctionOrObjectBoundaries(mainString, searchString) {
-            // Find function or object boundaries
-            const startPos = mainString.indexOf(searchString);
-            if (startPos === -1) {
-                const endPos = -1;
-                return { startPos, endPos };
-            }
-            return this.scanBoundaries(mainString, startPos + searchString.length);
-        }
-        /**
-         * Scans vm object for function references (dependencies)
-         * Returns a map of function names to their dependencies and positions
-         */
-        scanVmFunctionReferences(workerFnString, objectString, refPrefix) {
-            // Find vm object boundaries
-            const { startPos: vmObjectStart, endPos: vmObjectEnd } = this.scanFunctionOrObjectBoundaries(workerFnString, objectString); // e.g. 'const vm = '
-            const result = {
-                functions: new Map(),
-                vmObjectStart,
-                vmObjectEnd
-            };
-            if (vmObjectStart < 0 || vmObjectEnd < 0) {
-                return result;
-            }
-            result.vmObjectStart = vmObjectStart;
-            result.vmObjectEnd = vmObjectEnd;
-            const vmObjectStr = workerFnString.substring(vmObjectStart, vmObjectEnd + 1);
-            // Pattern to match: key: [async] (...) => {
-            const funcPattern = /([\w$]+)\s*:\s*(async\s+)?\([^)]*\)\s*=>\s*\{/g;
-            const vmRefPattern = new RegExp(`${refPrefix}\\.([\\w$]+)`, "g"); // e.g. vm\.(\w+)
-            let match;
-            while ((match = funcPattern.exec(vmObjectStr)) !== null) {
-                const funcName = match[1];
-                const isAsync = Boolean(match[2]);
-                const startPos = match.index + match[0].length;
-                const { endPos } = this.scanBoundaries(vmObjectStr, startPos - 1); // -1 to include the opening brace
-                const functionBody = vmObjectStr.substring(startPos, endPos);
-                // Extract all <refPrefix>.xxx references in the function body
-                const deps = new Set();
-                let vmMatch;
-                while ((vmMatch = vmRefPattern.exec(functionBody)) !== null) {
-                    const refName = vmMatch[1];
-                    deps.add(refName); // add dependency (we assume no self-reference)
+        ;
+        // Calculate transitive closure of dependencies
+        getTransitiveDeps(usedFunctions, depMap) {
+            const result = new Set(usedFunctions);
+            let changed = true;
+            while (changed) {
+                changed = false;
+                for (const fn of Array.from(result)) {
+                    const deps = depMap[fn] || [];
+                    for (const dep of deps) {
+                        if (!result.has(dep)) {
+                            result.add(dep);
+                            changed = true;
+                        }
+                    }
                 }
-                result.functions.set(funcName, {
-                    startPos: vmObjectStart + match.index,
-                    endPos: vmObjectStart + endPos + 1,
-                    async: isAsync,
-                    deps
-                });
+            }
+            return result;
+        }
+        // Filter vm object based on used functions
+        filterVM(vmObj, usedFunctions) {
+            const depMap = this.analyzeDependencies(vmObj);
+            if (this.debug) {
+                const allKeys = Object.keys(vmObj);
+                for (const fn of usedFunctions) {
+                    if (!allKeys.includes(fn)) {
+                        console.warn(`Warning: Function '${fn}' does not exist in vm object`);
+                    }
+                }
+            }
+            // Get transitive closure
+            const includeKeys = this.getTransitiveDeps(usedFunctions, depMap);
+            // Build filtered object (maintain original vm order)
+            const filtered = {};
+            for (const key in vmObj) {
+                if (includeKeys.has(key)) {
+                    filtered[key] = vmObj[key];
+                }
             }
             if (this.debug >= 2) {
-                let output = "";
-                output += `Scanned functions for objectString '${objectString}', refPrefix '${refPrefix}': ${result.functions.size}\n`;
-                for (const [funcName, funcInfo] of result.functions) {
-                    output += `// Function: ${funcName}, async: ${funcInfo.async}, deps: [${[...funcInfo.deps].join(", ")}], startPos: ${funcInfo.startPos}, endPos: ${funcInfo.endPos}, body:\n${workerFnString.substring(funcInfo.startPos, funcInfo.endPos)}\n`;
-                }
-                console.log(output);
+                console.log(`Filtered VM object, included keys: [${Array.from(includeKeys).join(", ")}]`);
             }
-            return result;
-        }
-        /**
-         * Filters worker function string to remove unused vm functions
-         * based on the instruction map from compilation
-         */
-        filterWorkerFnString(workerFnString, usedInstrList, objectString, refPrefix) {
-            const scanVm = this.scanVmFunctionReferences(workerFnString, objectString, refPrefix); // e.g. 'const vm = ', 'vm'
-            const vmFunctionMap = scanVm.functions;
-            if (vmFunctionMap.size === 0) {
-                return workerFnString;
-            }
-            // Build set of functions to keep using breadth-first search (transitive closure)
-            const functionsToKeep = new Set();
-            const queue = [...usedInstrList];
-            while (queue.length > 0) {
-                const funcName = queue.shift();
-                if (!funcName || functionsToKeep.has(funcName)) {
-                    continue;
-                }
-                functionsToKeep.add(funcName);
-                const funcInfo = vmFunctionMap.get(funcName);
-                if (funcInfo) {
-                    for (const dep of funcInfo.deps) {
-                        if (!functionsToKeep.has(dep) && vmFunctionMap.has(dep)) {
-                            queue.push(dep);
-                        }
-                    }
-                }
-            }
-            // Collect positions to remove, sorted in descending order
-            const functionsToRemove = [];
-            for (const [funcName, funcInfo] of vmFunctionMap.entries()) {
-                if (!functionsToKeep.has(funcName)) {
-                    functionsToRemove.push({
-                        startPos: funcInfo.startPos,
-                        endPos: funcInfo.endPos
-                    });
-                }
-            }
-            // Sort by position (descending) so we can remove from end to start
-            functionsToRemove.sort((a, b) => b.startPos - a.startPos);
-            // Apply removals from end to start to preserve positions
-            let result = workerFnString;
-            for (const removal of functionsToRemove) {
-                // Find the actual end position including trailing comma/whitespace
-                let endPos = removal.endPos;
-                // Look for trailing comma and/or whitespace
-                while (endPos < result.length && /[,\s\n\r]/.test(result[endPos])) {
-                    endPos++;
-                }
-                result = result.substring(0, removal.startPos) + result.substring(endPos);
-            }
-            return result;
+            return filtered;
         }
         createParentPort() {
             const parentPort = new class {
@@ -3253,27 +3165,50 @@ ${dataList.join(",\n")}
             };
             return parentPort;
         }
+        // Generate source code for filtered vm object
+        generateSource(vmObj) {
+            const indent = " ".repeat(8);
+            let output = "";
+            const keys = Object.keys(vmObj);
+            for (const [index, key] of keys.entries()) {
+                const value = vmObj[key];
+                const comma = index === keys.length - 1 ? "" : ",";
+                const valueStr = typeof value === "function" ? String(value) : JSON.stringify(value);
+                output += `${indent}${key}: ${valueStr}${comma}\n`;
+            }
+            return output;
+        }
         compiledCodeInFrame(compiledScript, workerFnString) {
             const asyncStr = compiledScript.includes("await ") ? "async " : ""; // fast hack: check if we need async function
             const parentPort = this.createParentPort();
-            let postMessageStr = String(parentPort.postMessage);
+            const parentFns = [];
+            parentFns.push(String(parentPort.on));
+            parentFns.push(String(parentPort.postMessage));
             // replace indentation
-            postMessageStr = postMessageStr.replace(/\n\s{12}/g, "\n");
-            let onStr = String(parentPort.on);
-            onStr = onStr.replace(/\n\s{12}/g, "\n");
+            const parentPortStr = parentFns.map((fnStr) => fnStr.replace(/\n\s{12}/g, "\n")).join(",\n    ");
             const inFrame = `(${asyncStr}function(_o) {
     ${compiledScript}
 })(
-    (${workerFnString})({
-        ${onStr},
-        ${postMessageStr}
+    ((parentPort) => {
+        const vm = {
+${workerFnString}
+        };
+        parentPort.on('message', (data) => vm.onMessageHandler(data));
+        return vm;
+    })({
+    ${parentPortStr}
     })
 );`;
             return inFrame;
         }
-        createStandaloneScript(workerString, compiledScript, usedInstrMap) {
-            const usedInstrList = Object.keys(usedInstrMap);
-            workerString = this.filterWorkerFnString(workerString, usedInstrList, 'const vm = ', 'vm');
+        createStandaloneScript(workerFn, compiledScript, usedInstr) {
+            const mockParent = {
+                on: () => undefined,
+                postMessage: () => undefined,
+            };
+            const vmObj = workerFn.workerFn(mockParent);
+            const filteredVM = this.filterVM(vmObj, [...usedInstr, "onMessageHandler"]);
+            const workerString = this.generateSource(filteredVM);
             const inFrame = this.compiledCodeInFrame(compiledScript, workerString);
             return inFrame;
         }
@@ -3434,23 +3369,11 @@ ${dataList.join(",\n")}
             }
             return config;
         }
-        prepareWorkerFnString(workerFnString) {
-            /*
-            const constants = `
-        const CommaOpChar = "${CommaOpChar}";
-        const TabOpChar = "${TabOpChar}";
-    `;
-            const workerStringWithConstants = workerFnString.replace(/const postMessage =/, `${constants}    const postMessage =`); // fast hack: get constants into worker string
-            return workerStringWithConstants;
-            */
-            return workerFnString; // currently no modification
-        }
-        createStandaloneScript(workerString, compiledScript, usedInstrMap) {
+        createStandaloneScript(workerFn, compiledScript, usedInstr) {
             if (!this.scriptCreator) {
                 this.scriptCreator = new ScriptCreator(this.config.debug);
             }
-            workerString = this.prepareWorkerFnString(workerString);
-            const inFrame = this.scriptCreator.createStandaloneScript(workerString, compiledScript, usedInstrMap);
+            const inFrame = this.scriptCreator.createStandaloneScript(workerFn, compiledScript, usedInstr);
             return inFrame;
         }
     }
@@ -3735,12 +3658,11 @@ ${dataList.join(",\n")}
             const worker = new nodeWorkerThreads.Worker(path.resolve(__dirname, workerFile));
             return worker;
         }
-        createNodeWorkerAsString(workerFile) {
+        getNodeWorkerFn(workerFile) {
             const path = this.getNodePath();
             const workerFnPath = path.resolve(__dirname, workerFile);
             const workerFn = require(workerFnPath);
-            const workerFnString = `${workerFn.workerFn}`;
-            return workerFnString;
+            return workerFn;
         }
         loadScript(fileOrUrl) {
             if (isUrl(fileOrUrl)) {
@@ -3874,10 +3796,10 @@ ${dataList.join(",\n")}
                     return this.startRun(core, compiledScript);
                 }, 5000);
             }
-            else {
-                const workerString = this.createNodeWorkerAsString(this.locoVmWorkerName);
+            else { // compile only: output standalone script
+                const workerFn = this.getNodeWorkerFn(this.locoVmWorkerName);
                 const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
-                const inFrame = core.createStandaloneScript(workerString, compiledScript, usedInstrMap);
+                const inFrame = core.createStandaloneScript(workerFn, compiledScript, Object.keys(usedInstrMap));
                 console.log(inFrame);
             }
         }

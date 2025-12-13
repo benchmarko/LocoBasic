@@ -80,12 +80,11 @@ export class NodeParts {
         const worker = new nodeWorkerThreads.Worker(path.resolve(__dirname, workerFile));
         return worker;
     }
-    createNodeWorkerAsString(workerFile) {
+    getNodeWorkerFn(workerFile) {
         const path = this.getNodePath();
         const workerFnPath = path.resolve(__dirname, workerFile);
         const workerFn = require(workerFnPath);
-        const workerFnString = `${workerFn.workerFn}`;
-        return workerFnString;
+        return workerFn;
     }
     loadScript(fileOrUrl) {
         if (isUrl(fileOrUrl)) {
@@ -219,10 +218,10 @@ export class NodeParts {
                 return this.startRun(core, compiledScript);
             }, 5000);
         }
-        else {
-            const workerString = this.createNodeWorkerAsString(this.locoVmWorkerName);
+        else { // compile only: output standalone script
+            const workerFn = this.getNodeWorkerFn(this.locoVmWorkerName);
             const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
-            const inFrame = core.createStandaloneScript(workerString, compiledScript, usedInstrMap);
+            const inFrame = core.createStandaloneScript(workerFn, compiledScript, Object.keys(usedInstrMap));
             console.log(inFrame);
         }
     }

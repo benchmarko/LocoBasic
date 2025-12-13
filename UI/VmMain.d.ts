@@ -1,11 +1,9 @@
-import type { MessageToWorker } from "../Interfaces";
+import type { MessageToWorker, NodeWorkerFnType } from "../Interfaces";
 import type { VmMessageHandlerCallbacks } from "../VmMessageHandler";
 import { VmMainBase } from "../VmMainBase";
 declare global {
     interface Window {
-        locoVmWorker: {
-            workerFn: () => unknown;
-        };
+        locoVmWorker: NodeWorkerFnType;
     }
 }
 export declare class VmMain extends VmMainBase {

@@ -1,20 +1,13 @@
+import { NodeWorkerFnType, VMObject } from "./Interfaces";
 export declare class ScriptCreator {
     private debug;
     constructor(debug: number);
-    private scanBoundaries;
-    private scanFunctionOrObjectBoundaries;
-    /**
-     * Scans vm object for function references (dependencies)
-     * Returns a map of function names to their dependencies and positions
-     */
-    private scanVmFunctionReferences;
-    /**
-     * Filters worker function string to remove unused vm functions
-     * based on the instruction map from compilation
-     */
-    private filterWorkerFnString;
+    analyzeDependencies(vmObj: VMObject): Record<string, string[]>;
+    getTransitiveDeps(usedFunctions: string[], depMap: Record<string, string[]>): Set<string>;
+    filterVM(vmObj: VMObject, usedFunctions: string[]): Partial<VMObject>;
     private createParentPort;
+    generateSource(vmObj: Partial<VMObject>): string;
     private compiledCodeInFrame;
-    createStandaloneScript(workerString: string, compiledScript: string, usedInstrMap: Record<string, number>): string;
+    createStandaloneScript(workerFn: NodeWorkerFnType, compiledScript: string, usedInstr: string[]): string;
 }
 //# sourceMappingURL=ScriptCreator.d.ts.map

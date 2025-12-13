@@ -1,4 +1,4 @@
-import type { CompileResultType, ConfigEntryType, ConfigType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore } from "./Interfaces";
+import type { CompileResultType, ConfigEntryType, ConfigType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore, NodeWorkerFnType } from "./Interfaces";
 import { Semantics } from "./Semantics";
 export declare class Core implements ICore {
     private readonly defaultConfig;
@@ -21,7 +21,6 @@ export declare class Core implements ICore {
     addIndex: (dir: string, input: Record<string, ExampleType[]> | (() => void)) => void;
     addItem: (key: string, input: string | (() => void)) => void;
     parseArgs(args: string[], config: Record<string, ConfigEntryType>): Record<string, ConfigEntryType>;
-    prepareWorkerFnString(workerFnString: string): string;
-    createStandaloneScript(workerString: string, compiledScript: string, usedInstrMap: Record<string, number>): string;
+    createStandaloneScript(workerFn: NodeWorkerFnType, compiledScript: string, usedInstr: string[]): string;
 }
 //# sourceMappingURL=Core.d.ts.map

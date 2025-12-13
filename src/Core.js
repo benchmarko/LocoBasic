@@ -1,7 +1,6 @@
 import { Parser } from "./Parser";
 import { arithmetic } from "./arithmetic";
 import { Semantics } from "./Semantics";
-//import { CommaOpChar, TabOpChar } from "./Constants";
 import { ScriptCreator } from "./ScriptCreator";
 function fnHereDoc(fn) {
     return String(fn).replace(/^[^/]+\/\*\S*/, "").replace(/\*\/[^/]+$/, "");
@@ -158,23 +157,11 @@ export class Core {
         }
         return config;
     }
-    prepareWorkerFnString(workerFnString) {
-        /*
-        const constants = `
-    const CommaOpChar = "${CommaOpChar}";
-    const TabOpChar = "${TabOpChar}";
-`;
-        const workerStringWithConstants = workerFnString.replace(/const postMessage =/, `${constants}    const postMessage =`); // fast hack: get constants into worker string
-        return workerStringWithConstants;
-        */
-        return workerFnString; // currently no modification
-    }
-    createStandaloneScript(workerString, compiledScript, usedInstrMap) {
+    createStandaloneScript(workerFn, compiledScript, usedInstr) {
         if (!this.scriptCreator) {
             this.scriptCreator = new ScriptCreator(this.config.debug);
         }
-        workerString = this.prepareWorkerFnString(workerString);
-        const inFrame = this.scriptCreator.createStandaloneScript(workerString, compiledScript, usedInstrMap);
+        const inFrame = this.scriptCreator.createStandaloneScript(workerFn, compiledScript, usedInstr);
         return inFrame;
     }
 }

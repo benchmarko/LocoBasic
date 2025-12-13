@@ -1,4 +1,4 @@
-import type { ICore, INodeParts, NodeWorkerType } from "./Interfaces";
+import type { ICore, INodeParts, NodeWorkerFnType, NodeWorkerType } from "./Interfaces";
 export declare class NodeParts implements INodeParts {
     private nodeVmMain?;
     private locoVmWorkerName;
@@ -19,7 +19,7 @@ export declare class NodeParts implements INodeParts {
     private nodeReadFile;
     private nodeReadUrl;
     createNodeWorker(workerFile: string): NodeWorkerType;
-    private createNodeWorkerAsString;
+    getNodeWorkerFn(workerFile: string): NodeWorkerFnType;
     private loadScript;
     private keepRunning;
     private putKeyInBuffer;

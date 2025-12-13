@@ -87,7 +87,7 @@
             _data: [],
             _dataPtr: 0,
             _graBackgroundColor: "",
-            _graColorsForPens: [], // make sure to initialize with resetAll (or resetGra)
+            _graColorsForPens: [], // make sure to initialize with resetColorsForPens before usage
             _graCurrGraphicsPen: -1,
             _graCurrMode: 1,
             _graOriginX: 0,
@@ -118,6 +118,43 @@
             deleteAllItems: (items) => {
                 Object.keys(items).forEach(key => delete items[key]); // eslint-disable-line @typescript-eslint/no-dynamic-delete
             },
+            formatCommaOrTab: (str) => {
+                if (str === vm._commaOpChar) {
+                    return " ".repeat(vm._zone - (vm._pos % vm._zone));
+                }
+                else if (str.charAt(0) === vm._tabOpChar) {
+                    const tabSize = Number(str.substring(1));
+                    if (isNaN(tabSize) || tabSize <= 0) {
+                        return "";
+                    }
+                    const len = tabSize - 1 - vm._pos;
+                    return len >= 0 ? " ".repeat(len) : "\n" + " ".repeat(tabSize - 1);
+                }
+                return str;
+            },
+            formatNumber: (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `),
+            onMessageHandler: (data) => {
+                switch (data.type) {
+                    case 'config':
+                        vm._isTerminal = data.isTerminal;
+                        if (!vm._graColorsForPens.length) {
+                            vm.resetColorsForPens(); // make sure it is initialized
+                        }
+                        break;
+                    case 'continue':
+                        vm.resolveWait(data.result);
+                        break;
+                    case 'input':
+                        vm.resolveInput(data.prompt);
+                        break;
+                    case 'putKeys':
+                        vm._keyCharBufferString += data.keys;
+                        break;
+                    case 'stop':
+                        vm._stopRequested = true;
+                        break;
+                }
+            },
             postMessage: (message) => {
                 parentPort.postMessage(message);
             },
@@ -133,34 +170,37 @@
                 vm._stopRequested = false;
                 vm.remainAll();
             },
-            resetGra: () => {
+            resetColorsForPens: () => {
                 vm._graColorsForPens.length = 0;
                 vm._graColorsForPens.push(...vm._cpcDefaultColorsForPens);
+            },
+            resetGra: () => {
+                vm.resetColorsForPens();
                 vm._graBackgroundColor = "";
                 vm.graCls();
             },
-            abs: (num) => {
-                return Math.abs(num);
+            resolveInput: (input) => {
+                if (vm._inputResolvedFn) {
+                    vm._inputResolvedFn(input);
+                    vm._inputResolvedFn = null;
+                }
             },
+            resolveWait: (result) => {
+                if (vm._waitResolvedFn) {
+                    vm._waitResolvedFn(result);
+                    vm._waitResolvedFn = null;
+                }
+            },
+            abs: (num) => Math.abs(num),
             after: (timeout, timer, fn) => {
                 vm.remain(timer);
                 vm._timerMap[timer] = setTimeout(() => fn(), timeout * 20);
             },
-            asc: (str) => {
-                return str.charCodeAt(0);
-            },
-            atn: (num) => {
-                return Math.atan(num);
-            },
-            bin$: (num, pad = 0) => {
-                return num.toString(2).toUpperCase().padStart(pad, "0");
-            },
-            chr$: (num) => {
-                return String.fromCharCode(num);
-            },
-            cint: (num) => {
-                return Math.round(num);
-            },
+            asc: (str) => str.charCodeAt(0),
+            atn: (num) => Math.atan(num),
+            bin$: (num, pad = 0) => num.toString(2).toUpperCase().padStart(pad, "0"),
+            chr$: (num) => String.fromCharCode(num),
+            cint: (num) => Math.round(num),
             clearInput: () => {
                 vm._keyCharBufferString = "";
             },
@@ -177,12 +217,8 @@
                 vm.graCls();
                 vm._needCls = true;
             },
-            cos: (num) => {
-                return Math.cos(num);
-            },
-            creal: (num) => {
-                return num; // nothing
-            },
+            cos: (num) => Math.cos(num),
+            creal: (num) => num,
             dec$: (num, format) => {
                 const decimals = (format.split(".")[1] || "").length;
                 const str = num.toFixed(decimals);
@@ -206,42 +242,31 @@
                 };
                 return createRecursiveArray(0);
             },
-            dim1: (dim, value = 0) => {
-                return new Array(dim + 1).fill(value);
-            },
-            draw: (x, y, pen) => {
-                vm.graDrawMovePlot("L", x, y, pen);
-            },
-            drawr: (x, y, pen) => {
-                vm.graDrawMovePlot("l", x, y, pen);
-            },
-            end: () => {
-                vm.frame();
-                return "";
-            },
-            escapeText: (str) => {
-                return str.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-            },
+            dim1: (dim, value = 0) => new Array(dim + 1).fill(value),
+            draw: (x, y, pen) => vm.graDrawMovePlot("L", x, y, pen),
+            drawr: (x, y, pen) => vm.graDrawMovePlot("l", x, y, pen),
+            end: () => vm.flush(),
+            escapeText: (str) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;"),
             every: (timeout, timer, fn) => {
                 vm.remain(timer);
                 vm._timerMap[timer] = setInterval(() => fn(), timeout * 20);
             },
-            exp: (num) => {
-                return Math.exp(num);
-            },
-            fix: (num) => {
-                return Math.trunc(num);
+            exp: (num) => Math.exp(num),
+            fix: (num) => Math.trunc(num),
+            flush: () => {
+                const message = vm.getFlushedTextandGraphics();
+                if (message) {
+                    const hasGraphics = vm._graOutputGraphicsIndex >= 0;
+                    vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls }); // TODO: change type to flush?
+                    vm._needCls = false;
+                }
+                return ""; // Test
             },
             frame: async () => {
                 if (vm._stopRequested) {
                     throw new Error("INFO: Program stopped");
                 }
-                const message = vm.getFlushedTextandGraphics();
-                if (message) {
-                    const hasGraphics = vm._graOutputGraphicsIndex >= 0;
-                    vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
-                    vm._needCls = false;
-                }
+                vm.flush();
                 return new Promise(resolve => setTimeout(() => resolve(), Date.now() % 50));
             },
             getAnsiColorCodeForPen: (pen) => {
@@ -304,9 +329,8 @@
                 vm.graFlushGraphicsPath();
                 if (vm._graGraphicsBuffer.length) {
                     const graphicsBufferStr = vm._graGraphicsBuffer.join("\n");
-                    const strokeWith = vm._cpcStrokeWidthForMode[vm._graCurrMode] + "px";
                     vm._graGraphicsBuffer.length = 0;
-                    return vm.graGetTagInSvg(graphicsBufferStr, strokeWith, vm._graBackgroundColor);
+                    return vm.graGetTagInSvg(graphicsBufferStr);
                 }
                 return "";
             },
@@ -316,8 +340,9 @@
                 const fillStr = fill >= 0 ? ` fill="${vm.graGetRgbColorStringForPen(fill)}"` : "";
                 return `${strokeStr}${fillStr}`;
             },
-            graGetTagInSvg: (content, strokeWidth, backgroundColor) => {
-                const backgroundColorStr = backgroundColor !== "" ? ` style="background-color:${backgroundColor}"` : '';
+            graGetTagInSvg: (content) => {
+                const backgroundColorStr = vm._graBackgroundColor !== "" ? ` style="background-color:${vm._graBackgroundColor}"` : '';
+                const strokeWidth = vm._cpcStrokeWidthForMode[vm._graCurrMode] + "px";
                 return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" shape-rendering="optimizeSpeed" stroke="currentColor" stroke-width="${strokeWidth}"${backgroundColorStr}>\n${content}\n</svg>\n`;
             },
             graGetRgbColorStringForPen: (pen) => {
@@ -351,9 +376,7 @@
                     vm._graCurrGraphicsPen = num;
                 }
             },
-            hex$: (num, pad) => {
-                return num.toString(16).toUpperCase().padStart(pad || 0, "0");
-            },
+            hex$: (num, pad) => num.toString(16).toUpperCase().padStart(pad || 0, "0"),
             ink: (num, col) => {
                 vm._graColorsForPens[num] = col;
                 // we modify inks, so set default pens and papers
@@ -386,20 +409,14 @@
             instr: (str, find, len) => {
                 return str.indexOf(find, len !== undefined ? len - 1 : len) + 1;
             },
-            int: (num) => {
-                return Math.floor(num);
-            },
+            int: (num) => Math.floor(num),
             keyDef: (num, repeat, ...codes) => {
                 if (num === 78 && repeat === 1) {
                     vm.postMessage({ type: 'keyDef', codes });
                 }
             },
-            left$: (str, num) => {
-                return str.slice(0, num);
-            },
-            len: (str) => {
-                return str.length;
-            },
+            left$: (str, num) => str.slice(0, num),
+            len: (str) => str.length,
             lineInput: async (prompt) => {
                 const inputPromise = new Promise((resolve) => {
                     vm._inputResolvedFn = resolve;
@@ -412,40 +429,24 @@
                 }
                 return input;
             },
-            log: (num) => {
-                return Math.log(num);
-            },
-            log10: (num) => {
-                return Math.log10(num);
-            },
-            lower$: (str) => {
-                return str.toLowerCase();
-            },
-            max: (...nums) => {
-                return Math.max.apply(null, nums);
-            },
-            mid$: (str, pos, len) => {
-                return str.substr(pos - 1, len);
-            },
+            log: (num) => Math.log(num),
+            log10: (num) => Math.log10(num),
+            lower$: (str) => str.toLowerCase(),
+            max: (...nums) => Math.max.apply(null, nums),
+            mid$: (str, pos, len) => str.substr(pos - 1, len),
             mid$Assign: (s, start, newString, len) => {
                 start -= 1;
                 len = Math.min(len !== null && len !== void 0 ? len : newString.length, newString.length, s.length - start);
                 return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
             },
-            min: (...nums) => {
-                return Math.min.apply(null, nums);
-            },
+            min: (...nums) => Math.min.apply(null, nums),
             mode: (num) => {
                 vm._graCurrMode = num;
                 vm.origin(0, 0);
                 vm.cls();
             },
-            move: (x, y, pen) => {
-                vm.graDrawMovePlot("M", x, y, pen);
-            },
-            mover: (x, y, pen) => {
-                vm.graDrawMovePlot("m", x, y, pen);
-            },
+            move: (x, y, pen) => vm.graDrawMovePlot("M", x, y, pen),
+            mover: (x, y, pen) => vm.graDrawMovePlot("m", x, y, pen),
             origin: (x, y) => {
                 vm._graOriginX = x;
                 vm._graOriginY = y;
@@ -506,46 +507,24 @@
                 }
             },
             pi: Math.PI, // a constant!
-            plot: (x, y, pen) => {
-                vm.graDrawMovePlot("P", x, y, pen);
-            },
-            plotr: (x, y, pen) => {
-                vm.graDrawMovePlot("p", x, y, pen);
-            },
-            pos: () => {
-                return vm._pos + 1;
-            },
+            plot: (x, y, pen) => vm.graDrawMovePlot("P", x, y, pen),
+            plotr: (x, y, pen) => vm.graDrawMovePlot("p", x, y, pen),
+            pos: () => vm._pos + 1,
             print: (...args) => {
-                const formatNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
-                const text = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg).join("");
+                const text = args.map((arg) => (typeof arg === "number") ? vm.formatNumber(arg) : arg).join("");
                 if (vm._tag) {
                     return vm.graPrintGraphicsText(vm.escapeText(text));
                 }
                 vm.printText(text);
             },
             printTab: (...args) => {
-                const formatNumber = (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `);
-                const strArgs = args.map((arg) => (typeof arg === "number") ? formatNumber(arg) : arg);
-                const formatCommaOrTab = (str) => {
-                    if (str === vm._commaOpChar) {
-                        return " ".repeat(vm._zone - (vm._pos % vm._zone));
-                    }
-                    else if (str.charAt(0) === vm._tabOpChar) {
-                        const tabSize = Number(str.substring(1));
-                        if (isNaN(tabSize) || tabSize <= 0) {
-                            return "";
-                        }
-                        const len = tabSize - 1 - vm._pos;
-                        return len >= 0 ? " ".repeat(len) : "\n" + " ".repeat(tabSize - 1);
-                    }
-                    return str;
-                };
+                const strArgs = args.map((arg) => (typeof arg === "number") ? vm.formatNumber(arg) : arg);
                 if (vm._tag) {
-                    return vm.graPrintGraphicsText(vm.escapeText(strArgs.map(arg => formatCommaOrTab(arg)).join("")));
+                    return vm.graPrintGraphicsText(vm.escapeText(strArgs.map(arg => vm.formatCommaOrTab(arg)).join("")));
                     // For graphics output the text position does not change, so we can output all at once
                 }
                 for (const str of strArgs) {
-                    vm.printText(formatCommaOrTab(str));
+                    vm.printText(vm.formatCommaOrTab(str));
                 }
             },
             printText: (text) => {
@@ -583,18 +562,10 @@
             restore: (label) => {
                 vm._dataPtr = vm._restoreMap[label];
             },
-            right$: (str, num) => {
-                return str.substring(str.length - num);
-            },
-            rnd: () => {
-                return Math.random();
-            },
-            round1: (num) => {
-                return Math.round(num);
-            },
-            round: (num, dec) => {
-                return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec);
-            },
+            right$: (str, num) => str.substring(str.length - num),
+            rnd: () => Math.random(),
+            round1: (num) => Math.round(num),
+            round: (num, dec) => Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec),
             rsxArc: (...args) => {
                 const [x, y, rx, ry, rotx, long, sweep, endx, endy, fill] = args.map((p) => Math.round(p));
                 const strokeAndFillStr = vm.graGetStrokeAndFillStr(fill);
@@ -665,70 +636,33 @@
                 args[0] = timeStr;
                 return args;
             },
-            sgn: (num) => {
-                return Math.sign(num);
-            },
-            sin: (num) => {
-                return Math.sin(num);
-            },
-            space$: (num) => {
-                return " ".repeat(num);
-            },
-            spc: (num) => {
-                return " ".repeat(num);
-            },
-            sqr: (num) => {
-                return Math.sqrt(num);
-            },
-            stop: () => {
-                vm.frame();
-                return ""; //"stop";
-            },
-            str$: (num) => {
-                return num >= 0 ? ` ${num}` : String(num);
-            },
-            string$Num: (len, num) => {
-                return String.fromCharCode(num).repeat(len);
-            },
-            string$Str: (len, str) => {
-                return str.repeat(len);
-            },
+            sgn: (num) => Math.sign(num),
+            sin: (num) => Math.sin(num),
+            space$: (num) => " ".repeat(num),
+            spc: (num) => " ".repeat(num),
+            sqr: (num) => Math.sqrt(num),
+            stop: () => vm.flush(),
+            str$: (num) => num >= 0 ? ` ${num}` : String(num),
+            string$Num: (len, num) => String.fromCharCode(num).repeat(len),
+            string$Str: (len, str) => str.repeat(len),
             tag: () => {
                 vm._tag = true;
             },
             tagoff: () => {
                 vm._tag = false;
             },
-            tan: (num) => {
-                return Math.tan(num);
-            },
-            time: () => {
-                return ((Date.now() - vm._startTime) * 3 / 10) | 0;
-            },
-            toDeg: (num) => {
-                return num * 180 / Math.PI;
-            },
-            toRad: (num) => {
-                return num * Math.PI / 180;
-            },
+            tan: (num) => Math.tan(num),
+            time: () => ((Date.now() - vm._startTime) * 3 / 10) | 0,
+            toDeg: (num) => num * 180 / Math.PI,
+            toRad: (num) => num * Math.PI / 180,
             using: (format, ...args) => {
                 return args.map((arg) => vm.dec$(arg, format)).join('');
             },
-            unt: (num) => {
-                return num;
-            },
-            upper$: (str) => {
-                return str.toUpperCase();
-            },
-            val1: (str) => {
-                return Number(str);
-            },
-            val: (str) => {
-                return Number(str.replace("&x", "0b").replace("&", "0x"));
-            },
-            vpos: () => {
-                return vm._vpos + 1;
-            },
+            unt: (num) => num,
+            upper$: (str) => str.toUpperCase(),
+            val1: (str) => Number(str),
+            val: (str) => Number(str.replace("&x", "0b").replace("&", "0x")),
+            vpos: () => vm._vpos + 1,
             write: (...args) => {
                 const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
                 if (vm._tag) {
@@ -736,12 +670,8 @@
                 }
                 vm.printText(text);
             },
-            xpos: () => {
-                return vm._graGraphicsX;
-            },
-            ypos: () => {
-                return vm._graGraphicsY;
-            },
+            xpos: () => vm._graGraphicsX,
+            ypos: () => vm._graGraphicsY,
             zone: (num) => {
                 vm._zone = num;
             },
@@ -757,62 +687,43 @@
             vm.remainAll();
             vm.postMessage({ type: 'result', result });
         };
+        const onRun = (code) => {
+            vm.resetAll();
+            if (!isNodeParentPort) { // not for node.js
+                parentPort.addEventListener("error", errorEventHandler, { once: true });
+            }
+            const fnScript = new Function("_o", `"use strict"; return (async () => { ${code} })();`); // compile
+            if (!isNodeParentPort) {
+                parentPort.removeEventListener("error", errorEventHandler);
+            }
+            fnScript(vm).then((result) => {
+                vm.remainAll();
+                const message = vm.getFlushedTextandGraphics();
+                if (message) {
+                    const hasGraphics = vm._graOutputGraphicsIndex >= 0;
+                    vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
+                }
+                result = result !== null && result !== void 0 ? result : "";
+                vm.postMessage({ type: 'result', result });
+            }).catch((err) => {
+                vm.remainAll();
+                console.warn(err instanceof Error ? err.stack : String(err));
+                const result = String(err);
+                const message = vm.getFlushedTextandGraphics();
+                if (message) {
+                    const hasGraphics = vm._graOutputGraphicsIndex >= 0;
+                    vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
+                }
+                vm.postMessage({ type: 'result', result });
+            });
+        };
         // this function must not be async to generate synchronous error
         const onMessageHandler = (data) => {
-            switch (data.type) {
-                case 'config':
-                    vm._isTerminal = data.isTerminal;
-                    break;
-                case 'continue':
-                    if (vm._waitResolvedFn) {
-                        vm._waitResolvedFn(data.result);
-                        vm._waitResolvedFn = null;
-                    }
-                    break;
-                case 'input':
-                    // resolve waiting input
-                    if (vm._inputResolvedFn) {
-                        vm._inputResolvedFn(data.prompt);
-                        vm._inputResolvedFn = null;
-                    }
-                    break;
-                case 'putKeys':
-                    vm._keyCharBufferString += data.keys;
-                    break;
-                case 'run': {
-                    vm.resetAll();
-                    if (!isNodeParentPort) { // not for node.js
-                        parentPort.addEventListener("error", errorEventHandler, { once: true });
-                    }
-                    const fnScript = new Function("_o", `"use strict"; return (async () => { ${data.code} })();`); // compile
-                    if (!isNodeParentPort) {
-                        parentPort.removeEventListener("error", errorEventHandler);
-                    }
-                    fnScript(vm).then((result) => {
-                        vm.remainAll();
-                        const message = vm.getFlushedTextandGraphics();
-                        if (message) {
-                            const hasGraphics = vm._graOutputGraphicsIndex >= 0;
-                            vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
-                        }
-                        result = result !== null && result !== void 0 ? result : "";
-                        vm.postMessage({ type: 'result', result });
-                    }).catch((err) => {
-                        vm.remainAll();
-                        console.warn(err instanceof Error ? err.stack : String(err));
-                        const result = String(err);
-                        const message = vm.getFlushedTextandGraphics();
-                        if (message) {
-                            const hasGraphics = vm._graOutputGraphicsIndex >= 0;
-                            vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
-                        }
-                        vm.postMessage({ type: 'result', result });
-                    });
-                    break;
-                }
-                case 'stop':
-                    vm._stopRequested = true;
-                    break;
+            if (data.type === 'run') {
+                onRun(data.code);
+            }
+            else {
+                vm.onMessageHandler(data);
             }
         };
         if (isNodeParentPort) {

@@ -1,4 +1,4 @@
-import type { BrowserWorkerThreadsType, MessageFromWorker, NodeWorkerThreadsType } from "../Interfaces";
+import type { BrowserWorkerThreadsType, MessageFromWorker, MessageToWorker, NodeWorkerThreadsType } from "../Interfaces";
 type RecursiveArray<T> = T | RecursiveArray<T>[];
 type RestoreMapType = Record<string, number>;
 export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] | BrowserWorkerThreadsType["parentPort"]) => {
@@ -41,9 +41,15 @@ export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] 
     _inputResolvedFn: ((value: string | null) => void) | null;
     _waitResolvedFn: ((value: string) => void) | null;
     deleteAllItems: (items: Record<string, unknown>) => void;
+    formatCommaOrTab: (str: string) => string;
+    formatNumber: (arg: number) => string;
+    onMessageHandler: (data: MessageToWorker) => void;
     postMessage: (message: MessageFromWorker) => void;
     resetAll: () => void;
+    resetColorsForPens: () => void;
     resetGra: () => void;
+    resolveInput: (input: string | null) => void;
+    resolveWait: (result: string) => void;
     abs: (num: number) => number;
     after: (timeout: number, timer: number, fn: () => void) => void;
     asc: (str: string) => number;
@@ -65,6 +71,7 @@ export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] 
     every: (timeout: number, timer: number, fn: () => void) => void;
     exp: (num: number) => number;
     fix: (num: number) => number;
+    flush: () => string;
     frame: () => Promise<void>;
     getAnsiColorCodeForPen: (pen: number) => number;
     getFlushedText: () => string;
@@ -74,7 +81,7 @@ export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] 
     graFlushGraphicsPath: () => void;
     graGetFlushedGraphics: () => string;
     graGetStrokeAndFillStr: (fill: number) => string;
-    graGetTagInSvg: (content: string, strokeWidth: string, backgroundColor: string) => string;
+    graGetTagInSvg: (content: string) => string;
     graGetRgbColorStringForPen: (pen: number) => string;
     graPrintGraphicsText: (text: string) => void;
     graSetOutputGraphicsIndex: () => void;
