@@ -189,13 +189,40 @@ describe("VmWorker.vm core methods", () => {
     });
 
     it("rsx calls", async () => {
-        const vm = workerFn(getMockParentPort());
+        const mockParentPort = getMockParentPort();
+        const vm = workerFn(mockParentPort);
 
         const date = vm.rsxDate("")[0];
         expect(date).toMatch(/^\d{2} \d{2} \d{2} \d{2}$/); // dayOfWeek day month year
 
         const time = vm.rsxTime("")[0];
         expect(time).toMatch(/^\d{2} \d{2} \d{2}$/); // hh mm ss
+
+        const geolocationPromise = vm.rsxGeolocation("");
+        expect(geolocationPromise).toStrictEqual(new Promise(() => undefined));
+        expect(mockParentPort._testMessage).toEqual({
+            type: 'geolocation'
+        });
+
+        vm.rsxSay("test1");
+        expect(mockParentPort._testMessage).toEqual({
+            type: 'speak',
+            message: "test1",
+            pitch: 1
+        });
+
+        vm.rsxPitch(20);
+        expect(vm._rsxPitch).toBe(2);
+
+        vm.rsxSay("test2");
+        expect(mockParentPort._testMessage).toEqual({
+            type: 'speak',
+            message: "test2",
+            pitch: 2
+        });
+
+        vm.rsxPitch(10);
+        expect(vm._rsxPitch).toBe(1);
 
         //expect(vm.rsxRect(1,2,3,4,5));
         //await expect(vm.rsxCall("unknown")).rejects.toThrow();

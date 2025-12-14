@@ -712,7 +712,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             return promise;
         },
 
-        rsxPitch: (args: number[]) => {
+        rsxPitch: (...args: number[]) => {
             vm._rsxPitch = args[0] / 10;
         },
 
