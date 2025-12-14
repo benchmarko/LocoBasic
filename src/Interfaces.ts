@@ -78,11 +78,11 @@ export interface ICore {
     createStandaloneScript(workerFn: NodeWorkerFnType, compiledScript: string, usedInstr: string[]): string;
 }
 
-
 export type MessageToWorker =
     | { type: 'config'; isTerminal: boolean }
     | { type: 'continue', result: string }
-    | { type: 'input'; prompt: string | null }
+    | { type: 'frameTime', time: number }
+    | { type: 'input'; input: string | null }
     | { type: 'putKeys'; keys: string }
     | { type: 'run'; code: string }
     | { type: 'stop' };

@@ -122,7 +122,7 @@ export class ScriptCreator {
                         console.log(data.prompt);
                         this.onMessageHandler({
                             type: "input",
-                            prompt: ""
+                            input: ""
                         });
                         break;
                     case 'keyDef':

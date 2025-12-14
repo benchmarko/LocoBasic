@@ -252,7 +252,7 @@ describe("VmWorker.vm core methods", () => {
         const arr1 = vm.input("Prompt?", "s");
 
         // Simulate input response
-        mockParentPort._messageHandler({ type: 'input', prompt: "hello" });
+        mockParentPort._messageHandler({ type: 'input', input: "hello" });
 
         await expect(arr1).resolves.toStrictEqual(["hello"]);
         expect(mockParentPort._testMessage).toEqual({
@@ -268,7 +268,7 @@ describe("VmWorker.vm core methods", () => {
         const arr1 = vm.input("Prompt?", "ssn");
 
         // Simulate input response
-        mockParentPort._messageHandler({ type: 'input', prompt: "hello, world!,42" });
+        mockParentPort._messageHandler({ type: 'input', input: "hello, world!,42" });
 
         await expect(arr1).resolves.toStrictEqual(["hello", " world!", 42]);
     });
@@ -280,7 +280,7 @@ describe("VmWorker.vm core methods", () => {
         const p = vm.lineInput("Prompt?");
 
         // Simulate input response
-        mockParentPort._messageHandler({ type: 'input', prompt: "hello, world!" });
+        mockParentPort._messageHandler({ type: 'input', input: "hello, world!" });
 
         await expect(p).resolves.toBe("hello, world!");
     });

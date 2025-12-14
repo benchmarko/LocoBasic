@@ -39,6 +39,10 @@ export abstract class VmMainBase {
         return finishedPromise;
     }
 
+    public frameTime(time: number) {
+        this.postMessage({ type: 'frameTime', time });
+    }
+
     public stop() {
         console.log("stop: Stop requested.");
         this.postMessage({ type: 'stop' });

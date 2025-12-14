@@ -36,8 +36,8 @@ export class VmMain extends VmMainBase {
                 this.addOutputText(message, needCls, hasGraphics);
             },
             onInput: (prompt: string) => {
-                const userInput = window.prompt(prompt);
-                this.postMessage({ type: 'input', prompt: userInput });
+                const input = window.prompt(prompt);
+                this.postMessage({ type: 'input', input });
             },
             onGeolocation: () => this.onGeolocationFn(),
             onSpeak: (message: string, pitch: number) => this.onSpeakFn(message, pitch),

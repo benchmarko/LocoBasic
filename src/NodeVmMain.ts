@@ -25,8 +25,8 @@ export class NodeVmMain extends VmMainBase {
             onInput: (prompt: string) => {
                 setTimeout(() => {
                     this.nodeParts.consolePrint(prompt);
-                    const userInput = ""; //TODO
-                    this.postMessage({ type: 'input', prompt: userInput });
+                    const input = ""; //TODO
+                    this.postMessage({ type: 'input', input });
                 }, 50); // 50ms delay to allow UI update
             },
             onGeolocation: async () => {

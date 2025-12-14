@@ -466,6 +466,12 @@ export class UI implements IUI {
         this.cancelSpeech();
         this.clickStartSpeechButton(); // we just did a user interaction
         this.getVmMain().reset();
+
+        const frameInput = window.document.getElementById("frameInput") as HTMLInputElement;
+        if (Number(frameInput.value) !== 50) {
+            frameInput.value = "50"; // default frame rate
+            frameInput.dispatchEvent(new Event("change"));
+        }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -503,6 +509,15 @@ export class UI implements IUI {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onBasicSearchInputChange = (_event: Event): void => { // bound this
         this.getBasicCm().execCommand("clearSearch");
+    }
+
+    private onFrameInputChange = (event: Event): void => { // bound this
+        const frameInput = event.target as HTMLInputElement;
+        const value = Number(frameInput.value);
+        this.getVmMain().frameTime(value);
+
+        const frameInputLabel = window.document.getElementById("frameInputLabel") as HTMLLabelElement;
+        frameInputLabel.innerText = `Frame ${frameInput.value} ms`;
     }
 
     private static addLabels(input: string) {
@@ -950,6 +965,7 @@ export class UI implements IUI {
             databaseSelect: this.onDatabaseSelectChange,
             exampleSelect: this.onExampleSelectChange,
             basicSearchInput: this.onBasicSearchInputChange,
+            frameInput: this.onFrameInputChange,
         };
 
         // Attach event listeners for buttons

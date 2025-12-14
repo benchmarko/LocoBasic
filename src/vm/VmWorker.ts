@@ -91,6 +91,8 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         _cpcStrokeWidthForMode: [4, 2, 1, 1],
 
         _isTerminal: false, // output for terminal
+        _frameTime: 50,
+        _lastInkeyTime: 0,
 
         _data: [] as (string | number)[],
         _dataPtr: 0,
@@ -158,9 +160,13 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
                 case 'continue':
                     vm.resolveWait(data.result);
                     break;
+                
+                case 'frameTime':
+                    vm._frameTime = data.time;
+                    break;
 
                 case 'input':
-                    vm.resolveInput(data.prompt);
+                    vm.resolveInput(data.input);
                     break;
 
                 case 'putKeys':
@@ -178,6 +184,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         },
 
         resetAll: () => {
+            vm._lastInkeyTime = 0;
             vm._rsxPitch = 1;
             vm.resetGra();
             vm.cls();
@@ -312,7 +319,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
                 throw new Error("INFO: Program stopped");
             }
             vm.flush();
-            return new Promise<void>(resolve => setTimeout(() => resolve(), Date.now() % 50));
+            return new Promise<void>(resolve => setTimeout(() => resolve(), Date.now() % vm._frameTime));
         },
 
         getAnsiColorCodeForPen: (pen: number) => {
@@ -454,11 +461,17 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         },
 
         inkey$: async () => {
-            await vm.frame();
             if (vm._keyCharBufferString.length) {
                 const key = vm._keyCharBufferString.charAt(0);
                 vm._keyCharBufferString = vm._keyCharBufferString.substring(1);
                 return key;
+            }
+
+            const oldInkeyTime = vm._lastInkeyTime;
+            vm._lastInkeyTime = Date.now();
+            const frameTimeMs = 1000 / 50; // 50 Hz => 20 ms (do we need to use frametime here?)
+            if ((vm._lastInkeyTime - oldInkeyTime) < frameTimeMs) {
+                await vm.frame();
             }
             return "";
         },
