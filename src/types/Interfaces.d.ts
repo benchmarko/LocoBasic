@@ -72,8 +72,11 @@ export type MessageToWorker = {
     type: 'continue';
     result: string;
 } | {
+    type: 'frameTime';
+    time: number;
+} | {
     type: 'input';
-    prompt: string | null;
+    input: string | null;
 } | {
     type: 'putKeys';
     keys: string;

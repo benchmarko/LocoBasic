@@ -18,6 +18,9 @@ export class VmMainBase {
         this.postMessage({ type: 'run', code });
         return finishedPromise;
     }
+    frameTime(time) {
+        this.postMessage({ type: 'frameTime', time });
+    }
     stop() {
         console.log("stop: Stop requested.");
         this.postMessage({ type: 'stop' });

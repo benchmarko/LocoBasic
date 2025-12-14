@@ -265,6 +265,9 @@
             this.postMessage({ type: 'run', code });
             return finishedPromise;
         }
+        frameTime(time) {
+            this.postMessage({ type: 'frameTime', time });
+        }
         stop() {
             console.log("stop: Stop requested.");
             this.postMessage({ type: 'stop' });
@@ -309,8 +312,8 @@
                     this.addOutputText(message, needCls, hasGraphics);
                 },
                 onInput: (prompt) => {
-                    const userInput = window.prompt(prompt);
-                    this.postMessage({ type: 'input', prompt: userInput });
+                    const input = window.prompt(prompt);
+                    this.postMessage({ type: 'input', input });
                 },
                 onGeolocation: () => this.onGeolocationFn(),
                 onSpeak: (message, pitch) => this.onSpeakFn(message, pitch),
@@ -504,6 +507,11 @@
                 this.cancelSpeech();
                 this.clickStartSpeechButton(); // we just did a user interaction
                 this.getVmMain().reset();
+                const frameInput = window.document.getElementById("frameInput");
+                if (Number(frameInput.value) !== 50) {
+                    frameInput.value = "50"; // default frame rate
+                    frameInput.dispatchEvent(new Event("change"));
+                }
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onConvertButtonClick = (_event) => {
@@ -534,6 +542,13 @@
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onBasicSearchInputChange = (_event) => {
                 this.getBasicCm().execCommand("clearSearch");
+            };
+            this.onFrameInputChange = (event) => {
+                const frameInput = event.target;
+                const value = Number(frameInput.value);
+                this.getVmMain().frameTime(value);
+                const frameInputLabel = window.document.getElementById("frameInputLabel");
+                frameInputLabel.innerText = `Frame ${frameInput.value} ms`;
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onLabelAddButtonClick = (_event) => {
@@ -1145,6 +1160,7 @@
                 databaseSelect: this.onDatabaseSelectChange,
                 exampleSelect: this.onExampleSelectChange,
                 basicSearchInput: this.onBasicSearchInputChange,
+                frameInput: this.onFrameInputChange,
             };
             // Attach event listeners for buttons
             Object.entries(buttonHandlers).forEach(([id, handler]) => {

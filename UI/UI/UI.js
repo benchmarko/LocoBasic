@@ -163,6 +163,11 @@ export class UI {
             this.cancelSpeech();
             this.clickStartSpeechButton(); // we just did a user interaction
             this.getVmMain().reset();
+            const frameInput = window.document.getElementById("frameInput");
+            if (Number(frameInput.value) !== 50) {
+                frameInput.value = "50"; // default frame rate
+                frameInput.dispatchEvent(new Event("change"));
+            }
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onConvertButtonClick = (_event) => {
@@ -193,6 +198,13 @@ export class UI {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onBasicSearchInputChange = (_event) => {
             this.getBasicCm().execCommand("clearSearch");
+        };
+        this.onFrameInputChange = (event) => {
+            const frameInput = event.target;
+            const value = Number(frameInput.value);
+            this.getVmMain().frameTime(value);
+            const frameInputLabel = window.document.getElementById("frameInputLabel");
+            frameInputLabel.innerText = `Frame ${frameInput.value} ms`;
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onLabelAddButtonClick = (_event) => {
@@ -804,6 +816,7 @@ export class UI {
             databaseSelect: this.onDatabaseSelectChange,
             exampleSelect: this.onExampleSelectChange,
             basicSearchInput: this.onBasicSearchInputChange,
+            frameInput: this.onFrameInputChange,
         };
         // Attach event listeners for buttons
         Object.entries(buttonHandlers).forEach(([id, handler]) => {

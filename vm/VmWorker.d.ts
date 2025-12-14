@@ -9,6 +9,8 @@ export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] 
     _cpcDefaultColorsForPens: number[];
     _cpcStrokeWidthForMode: number[];
     _isTerminal: boolean;
+    _frameTime: number;
+    _lastInkeyTime: number;
     _data: (string | number)[];
     _dataPtr: number;
     _graBackgroundColor: string;

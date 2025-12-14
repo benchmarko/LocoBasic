@@ -14,6 +14,7 @@ export declare abstract class VmMainBase {
     protected abstract getOrCreateWorker(): Promise<WorkerType> | WorkerType;
     protected abstract postMessage(message: MessageToWorker): void;
     run(code: string): Promise<string>;
+    frameTime(time: number): void;
     stop(): void;
     reset(): void;
     putKeys(keys: string): void;

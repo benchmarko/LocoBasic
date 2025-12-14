@@ -59,6 +59,7 @@ export declare class UI implements IUI {
     private onBasicSearchNextButtonClick;
     private onBasicSearchPrevButtonClick;
     private onBasicSearchInputChange;
+    private onFrameInputChange;
     private static addLabels;
     private static removeUnusedLabels;
     private onLabelAddButtonClick;

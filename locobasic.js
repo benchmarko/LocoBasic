@@ -3144,7 +3144,7 @@ ${dataList.join(",\n")}
                             console.log(data.prompt);
                             this.onMessageHandler({
                                 type: "input",
-                                prompt: ""
+                                input: ""
                             });
                             break;
                         case 'keyDef':
@@ -3503,6 +3503,9 @@ ${workerFnString}
             this.postMessage({ type: 'run', code });
             return finishedPromise;
         }
+        frameTime(time) {
+            this.postMessage({ type: 'frameTime', time });
+        }
         stop() {
             console.log("stop: Stop requested.");
             this.postMessage({ type: 'stop' });
@@ -3542,8 +3545,8 @@ ${workerFnString}
                 onInput: (prompt) => {
                     setTimeout(() => {
                         this.nodeParts.consolePrint(prompt);
-                        const userInput = ""; //TODO
-                        this.postMessage({ type: 'input', prompt: userInput });
+                        const input = ""; //TODO
+                        this.postMessage({ type: 'input', input });
                     }, 50); // 50ms delay to allow UI update
                 },
                 onGeolocation: async () => {
