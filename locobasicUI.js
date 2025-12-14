@@ -143,34 +143,27 @@
     ];
 
     class VmMessageHandler {
-        constructor(callbacks) {
+        constructor(callbacks, postMessage) {
             this.code = "";
             this.callbacks = callbacks;
-        }
-        setPostMessageFn(postMessageFn) {
-            this.postMessageFn = postMessageFn;
+            this.postMessage = postMessage;
         }
         setCode(code) {
             this.code = code;
         }
-        setFinishedResolver(resolver) {
-            this.finishedResolverFn = resolver;
+        setFinishedResolver(finishedResolverFn) {
+            this.finishedResolverFn = finishedResolverFn;
         }
-        getFinishedResolver() {
-            return this.finishedResolverFn;
-        }
-        clearFinishedResolver() {
-            this.finishedResolverFn = undefined;
+        onResultResolved(message = "") {
+            if (this.finishedResolverFn) {
+                this.finishedResolverFn(message);
+                this.finishedResolverFn = undefined;
+            }
         }
         static describeError(stringToEval, lineno, colno) {
             const lines = stringToEval.split("\n");
             const line = lines[lineno - 1];
             return `${line}\n${" ".repeat(colno - 1) + "^"}`;
-        }
-        postMessageToWorker(message) {
-            if (this.postMessageFn) {
-                this.postMessageFn(message);
-            }
         }
         async handleMessage(data) {
             switch (data.type) {
@@ -179,19 +172,20 @@
                     break;
                 case 'geolocation': {
                     try {
-                        const str = await this.callbacks.onGeolocation();
-                        this.postMessageToWorker({ type: 'continue', result: str });
+                        const result = await this.callbacks.onGeolocation();
+                        this.postMessage({ type: 'continue', result });
                     }
                     catch (msg) {
                         console.error(msg);
-                        this.postMessageToWorker({ type: 'stop' });
-                        this.postMessageToWorker({ type: 'continue', result: '' });
+                        this.postMessage({ type: 'stop' });
+                        this.postMessage({ type: 'continue', result: '' });
                     }
                     break;
                 }
                 case 'input': {
-                    setTimeout(() => {
-                        this.callbacks.onInput(data.prompt);
+                    setTimeout(async () => {
+                        const input = await this.callbacks.onInput(data.prompt);
+                        this.postMessage({ type: 'input', input });
                     }, 50); // 50ms delay to allow UI update
                     break;
                 }
@@ -221,21 +215,18 @@
                             res += ": " + basicErrors[Number(match1[1])];
                         }
                     }
-                    if (this.finishedResolverFn) {
-                        this.callbacks.onResultResolved(res);
-                        this.finishedResolverFn = undefined;
-                    }
+                    this.onResultResolved(res);
                     break;
                 }
                 case 'speak': {
                     try {
                         await this.callbacks.onSpeak(data.message, data.pitch);
-                        this.postMessageToWorker({ type: 'continue', result: '' });
+                        this.postMessage({ type: 'continue', result: '' });
                     }
                     catch (msg) {
                         console.log(msg);
-                        this.postMessageToWorker({ type: 'stop' });
-                        this.postMessageToWorker({ type: 'continue', result: '' });
+                        this.postMessage({ type: 'stop' });
+                        this.postMessage({ type: 'continue', result: '' });
                     }
                     break;
                 }
@@ -246,20 +237,40 @@
         }
     }
 
-    class VmMainBase {
-        constructor() {
-            const callbacks = this.createCallbacks();
-            this.messageHandler = new VmMessageHandler(callbacks);
-            this.messageHandler.setPostMessageFn((message) => this.postMessage(message));
+    class VmMain {
+        constructor(callbacks, createWebWorker) {
+            this.workerOnMessageHandler = (event) => {
+                const data = event.data;
+                this.messageHandler.handleMessage(data);
+            };
+            this.handleBeforeUnload = () => {
+                var _a;
+                (_a = this.worker) === null || _a === void 0 ? void 0 : _a.terminate();
+            };
+            this.messageHandler = new VmMessageHandler(callbacks, (message) => this.postMessage(message));
+            this.createWebWorker = createWebWorker;
+            window.addEventListener('beforeunload', this.handleBeforeUnload, { once: true });
+        }
+        postMessage(message) {
+            if (this.worker) {
+                this.worker.postMessage(message);
+            }
+        }
+        async getOrCreateWorker() {
+            if (!this.worker) {
+                this.worker = await this.createWebWorker();
+                this.worker.onmessage = this.workerOnMessageHandler;
+                // this.postMessage({ type: 'config', isTerminal: false }); // is default: isTerminal: false
+            }
+            return this.worker;
         }
         async run(code) {
             if (!code.endsWith("\n")) {
-                code += "\n"; // make sure the script end with a new line (needed for line comment in last line)
+                code += "\n"; // make sure the script ends with a new line (needed for line comment in last line)
             }
             this.messageHandler.setCode(code); // for error message
             await this.getOrCreateWorker();
             const finishedPromise = new Promise((resolve) => {
-                this.finishedResolverFn = resolve;
                 this.messageHandler.setFinishedResolver(resolve);
             });
             this.postMessage({ type: 'run', code });
@@ -277,70 +288,10 @@
                 this.worker.terminate();
                 this.worker = undefined;
             }
-            if (this.finishedResolverFn) {
-                this.finishedResolverFn("terminated.");
-                this.finishedResolverFn = undefined;
-            }
+            this.messageHandler.onResultResolved("terminated.");
         }
         putKeys(keys) {
             this.postMessage({ type: 'putKeys', keys });
-        }
-    }
-
-    class VmMain extends VmMainBase {
-        constructor(locoVmWorkerName, createWebWorker, addOutputText, setUiKeysFn, onGeolocationFn, onSpeakFn) {
-            super();
-            this.workerOnMessageHandler = (event) => {
-                const data = event.data;
-                this.messageHandler.handleMessage(data);
-            };
-            this.handleBeforeUnload = () => {
-                var _a;
-                (_a = this.worker) === null || _a === void 0 ? void 0 : _a.terminate();
-            };
-            this.locoVmWorkerName = locoVmWorkerName;
-            this.createWebWorker = createWebWorker;
-            this.addOutputText = addOutputText;
-            this.setUiKeysFn = setUiKeysFn;
-            this.onSpeakFn = onSpeakFn;
-            this.onGeolocationFn = onGeolocationFn;
-            window.addEventListener('beforeunload', this.handleBeforeUnload, { once: true });
-        }
-        createCallbacks() {
-            return {
-                onFlush: (message, needCls, hasGraphics) => {
-                    this.addOutputText(message, needCls, hasGraphics);
-                },
-                onInput: (prompt) => {
-                    const input = window.prompt(prompt);
-                    this.postMessage({ type: 'input', input });
-                },
-                onGeolocation: () => this.onGeolocationFn(),
-                onSpeak: (message, pitch) => this.onSpeakFn(message, pitch),
-                onKeyDef: (codes) => {
-                    this.setUiKeysFn(codes);
-                },
-                onResultResolved: (message) => {
-                    if (this.finishedResolverFn) {
-                        this.finishedResolverFn(message);
-                        this.finishedResolverFn = undefined;
-                    }
-                }
-            };
-        }
-        postMessage(message) {
-            if (this.worker) {
-                this.worker.postMessage(message);
-            }
-        }
-        async getOrCreateWorker() {
-            if (!this.worker) {
-                this.worker = await this.createWebWorker(this.locoVmWorkerName);
-                this.worker.onmessage = this.workerOnMessageHandler;
-                // Send config message to initialize worker
-                //this.postMessage({ type: 'config', isTerminal: false });
-            }
-            return this.worker;
         }
     }
 
@@ -637,7 +588,7 @@
                 UI.fnDownloadBlob(svgBlob, filename);
             };
             this.onStandaloneButtonClick = async () => {
-                const locoVmWorker = await this.getLocoVmWorker(this.locoVmWorkerName);
+                const locoVmWorker = await this.getLocoVmWorker();
                 const core = this.getCore();
                 const compiledScript = this.getCompiledCm().getValue();
                 const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
@@ -1099,18 +1050,18 @@
                 input.dispatchEvent(new Event("change"));
             }
         }
-        async getLocoVmWorker(locoVmWorkerName) {
+        async getLocoVmWorker() {
             if (!window.locoVmWorker) {
-                await this.loadScript(locoVmWorkerName, "");
+                await this.loadScript(this.locoVmWorkerName, "");
             }
             return window.locoVmWorker;
         }
-        async createWebWorker(locoVmWorkerName) {
+        async createWebWorker() {
             let worker;
             // Detect if running on file:// protocol
             const isFileProtocol = window.location.protocol === 'file:';
             if (isFileProtocol) {
-                const locoVmWorker = await this.getLocoVmWorker(locoVmWorkerName);
+                const locoVmWorker = await this.getLocoVmWorker();
                 const preparedWorkerFnString = String(locoVmWorker.workerFn);
                 const workerScript = `(${preparedWorkerFnString})(self);`;
                 // Use Blob for file:// protocol
@@ -1121,17 +1072,34 @@
             }
             else {
                 // Use file-based worker for http/https
-                const workerUrl = new URL(locoVmWorkerName, window.location.href);
+                const workerUrl = new URL(this.locoVmWorkerName, window.location.href);
                 worker = new Worker(workerUrl);
             }
             return worker;
+        }
+        createMessageHandlerCallbacks() {
+            const callbacks = {
+                onFlush: (message, needCls, hasGraphics) => {
+                    this.addOutputText(message, needCls, hasGraphics);
+                },
+                onInput: (prompt) => {
+                    const input = window.prompt(prompt);
+                    return Promise.resolve(input);
+                },
+                onGeolocation: () => this.onGeolocation(),
+                onSpeak: (message, pitch) => this.onSpeak(message, pitch),
+                onKeyDef: (codes) => {
+                    this.onSetUiKeys(codes);
+                }
+            };
+            return callbacks;
         }
         onWindowLoadContinue(core, locoVmWorkerName) {
             this.core = core;
             const config = core.getConfigMap();
             const args = this.parseUri(config);
             core.parseArgs(args, config);
-            this.locoVmWorkerName = locoVmWorkerName; // not so nice to have it here as well
+            this.locoVmWorkerName = locoVmWorkerName;
             // Map of element IDs to event handlers
             const buttonHandlers = {
                 compileButton: this.onCompileButtonClick,
@@ -1201,7 +1169,8 @@
             window.document.addEventListener("click", () => {
                 this.initialUserAction = true;
             }, { once: true });
-            this.vmMain = new VmMain(locoVmWorkerName, (workerName) => this.createWebWorker(workerName), this.addOutputText, this.onSetUiKeys, this.onGeolocation, this.onSpeak);
+            const messageHandlerCallbacks = this.createMessageHandlerCallbacks();
+            this.vmMain = new VmMain(messageHandlerCallbacks, () => this.createWebWorker());
             // Initialize database and examples
             UI.asyncDelay(() => {
                 const databaseMap = core.initDatabaseMap();

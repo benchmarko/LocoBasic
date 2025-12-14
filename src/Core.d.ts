@@ -5,7 +5,7 @@ export declare class Core implements ICore {
     private readonly config;
     private readonly semantics;
     private readonly databaseMap;
-    private arithmeticParser;
+    private arithmeticParser?;
     private scriptCreator?;
     constructor(defaultConfig: ConfigType);
     getDefaultConfigMap(): ConfigType;

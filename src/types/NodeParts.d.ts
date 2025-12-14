@@ -1,5 +1,5 @@
-import type { ICore, INodeParts, NodeWorkerFnType, NodeWorkerType } from "./Interfaces";
-export declare class NodeParts implements INodeParts {
+import type { ICore } from "./Interfaces";
+export declare class NodeParts {
     private nodeVmMain?;
     private locoVmWorkerName;
     private nodeFs?;
@@ -8,8 +8,6 @@ export declare class NodeParts implements INodeParts {
     private nodeWorkerThreads?;
     private modulePath;
     private nodeReadline?;
-    private readonly keyBuffer;
-    private escape;
     private fnOnKeyPressHandler?;
     private getNodeFs;
     private getNodeHttps;
@@ -18,17 +16,13 @@ export declare class NodeParts implements INodeParts {
     private nodeGetAbsolutePath;
     private nodeReadFile;
     private nodeReadUrl;
-    createNodeWorker(workerFile: string): NodeWorkerType;
-    getNodeWorkerFn(workerFile: string): NodeWorkerFnType;
+    private createNodeWorker;
+    private getNodeWorkerFn;
     private loadScript;
     private keepRunning;
-    private putKeyInBuffer;
     private fnOnKeypress;
     private initKeyboardInput;
-    getKeyFromBuffer(): string;
-    getEscape(): boolean;
-    consoleClear(): void;
-    consolePrint(msg: string): void;
+    private createMessageHandlerCallbacks;
     private getNodeVmMain;
     private startRun;
     private start;

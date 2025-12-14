@@ -6,8 +6,6 @@ export class NodeParts {
     constructor() {
         this.locoVmWorkerName = "";
         this.modulePath = "";
-        this.keyBuffer = []; // buffered pressed keys
-        this.escape = false;
     }
     getNodeFs() {
         if (!this.nodeFs) {
@@ -74,10 +72,10 @@ export class NodeParts {
             });
         });
     }
-    createNodeWorker(workerFile) {
+    createNodeWorker() {
         const nodeWorkerThreads = this.getNodeWorkerConstructor();
         const path = this.getNodePath();
-        const worker = new nodeWorkerThreads.Worker(path.resolve(__dirname, workerFile));
+        const worker = new nodeWorkerThreads.Worker(path.resolve(__dirname, this.locoVmWorkerName));
         return worker;
     }
     getNodeWorkerFn(workerFile) {
@@ -132,9 +130,6 @@ export class NodeParts {
         return output;
     }
     */
-    putKeyInBuffer(key) {
-        this.keyBuffer.push(key);
-    }
     fnOnKeypress(_chunk, key) {
         if (key) {
             const keySequenceCode = key.sequence.charCodeAt(0);
@@ -143,15 +138,18 @@ export class NodeParts {
                 process.exit();
             }
             else if (key.name === "escape") {
-                this.escape = true;
+                this.getNodeVmMain().stop(); // request stop
             }
             else if (keySequenceCode === 0x0d || (keySequenceCode >= 32 && keySequenceCode <= 128)) {
-                this.putKeyInBuffer(key.sequence);
+                //this.putKeyInBuffer(key.sequence);
+                this.getNodeVmMain().putKeys(key.sequence);
             }
         }
     }
     initKeyboardInput() {
-        this.nodeReadline = require('readline');
+        if (!this.nodeReadline) {
+            this.nodeReadline = require('readline');
+        }
         if (process.stdin.isTTY) {
             this.nodeReadline.emitKeypressEvents(process.stdin);
             process.stdin.setRawMode(true);
@@ -162,31 +160,54 @@ export class NodeParts {
             console.warn("initKeyboardInput: not a TTY", process.stdin);
         }
     }
-    getKeyFromBuffer() {
+    /*
+    private getKeyFromBuffer(): string {
         if (!this.nodeReadline) {
             this.initKeyboardInput();
         }
-        const key = this.keyBuffer.length ? this.keyBuffer.shift() : "";
+        const key = this.keyBuffer.length ? this.keyBuffer.shift() as string : "";
         return key;
     }
-    getEscape() {
-        return this.escape;
-    }
-    consoleClear() {
-        console.clear();
-    }
-    consolePrint(msg) {
-        console.log(msg);
+    */
+    createMessageHandlerCallbacks() {
+        const callbacks = {
+            onFlush: (message, needCls) => {
+                if (needCls) {
+                    console.clear();
+                }
+                console.log(message);
+            },
+            onInput: (prompt) => {
+                console.log(prompt);
+                const input = ""; //TODO
+                return Promise.resolve(input);
+            },
+            onGeolocation: async () => {
+                // TODO
+                return '';
+            },
+            onSpeak: async () => {
+                // TODO
+            },
+            onKeyDef: () => {
+                //TODO
+            }
+        };
+        return callbacks;
     }
     getNodeVmMain() {
         if (!this.nodeVmMain) {
-            this.nodeVmMain = new NodeVmMain(this, this.locoVmWorkerName);
+            const messageHandlerCallbacks = this.createMessageHandlerCallbacks();
+            this.nodeVmMain = new NodeVmMain(messageHandlerCallbacks, () => this.createNodeWorker());
         }
         return this.nodeVmMain;
     }
-    async startRun(core, compiledScript) {
+    async startRun(core, compiledScript, usedInstrMap) {
         if (core.getConfigMap().debug) {
             console.log("DEBUG: running compiled script...");
+        }
+        if (usedInstrMap["inkey$"]) { // do we need inkey$
+            this.initKeyboardInput();
         }
         const nodeVmMain = this.getNodeVmMain();
         const output = await nodeVmMain.run(compiledScript);
@@ -213,14 +234,14 @@ export class NodeParts {
         if (messages) {
             console.log(messages.join("\n"));
         }
+        const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
         if (actionConfig.includes("run")) {
             return this.keepRunning(async () => {
-                return this.startRun(core, compiledScript);
+                return this.startRun(core, compiledScript, usedInstrMap);
             }, 5000);
         }
         else { // compile only: output standalone script
             const workerFn = this.getNodeWorkerFn(this.locoVmWorkerName);
-            const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
             const inFrame = core.createStandaloneScript(workerFn, compiledScript, Object.keys(usedInstrMap));
             console.log(inFrame);
         }

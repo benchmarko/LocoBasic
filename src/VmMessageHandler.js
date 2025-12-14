@@ -1,33 +1,26 @@
 import { basicErrors } from "./Constants";
 export class VmMessageHandler {
-    constructor(callbacks) {
+    constructor(callbacks, postMessage) {
         this.code = "";
         this.callbacks = callbacks;
-    }
-    setPostMessageFn(postMessageFn) {
-        this.postMessageFn = postMessageFn;
+        this.postMessage = postMessage;
     }
     setCode(code) {
         this.code = code;
     }
-    setFinishedResolver(resolver) {
-        this.finishedResolverFn = resolver;
+    setFinishedResolver(finishedResolverFn) {
+        this.finishedResolverFn = finishedResolverFn;
     }
-    getFinishedResolver() {
-        return this.finishedResolverFn;
-    }
-    clearFinishedResolver() {
-        this.finishedResolverFn = undefined;
+    onResultResolved(message = "") {
+        if (this.finishedResolverFn) {
+            this.finishedResolverFn(message);
+            this.finishedResolverFn = undefined;
+        }
     }
     static describeError(stringToEval, lineno, colno) {
         const lines = stringToEval.split("\n");
         const line = lines[lineno - 1];
         return `${line}\n${" ".repeat(colno - 1) + "^"}`;
-    }
-    postMessageToWorker(message) {
-        if (this.postMessageFn) {
-            this.postMessageFn(message);
-        }
     }
     async handleMessage(data) {
         switch (data.type) {
@@ -36,19 +29,20 @@ export class VmMessageHandler {
                 break;
             case 'geolocation': {
                 try {
-                    const str = await this.callbacks.onGeolocation();
-                    this.postMessageToWorker({ type: 'continue', result: str });
+                    const result = await this.callbacks.onGeolocation();
+                    this.postMessage({ type: 'continue', result });
                 }
                 catch (msg) {
                     console.error(msg);
-                    this.postMessageToWorker({ type: 'stop' });
-                    this.postMessageToWorker({ type: 'continue', result: '' });
+                    this.postMessage({ type: 'stop' });
+                    this.postMessage({ type: 'continue', result: '' });
                 }
                 break;
             }
             case 'input': {
-                setTimeout(() => {
-                    this.callbacks.onInput(data.prompt);
+                setTimeout(async () => {
+                    const input = await this.callbacks.onInput(data.prompt);
+                    this.postMessage({ type: 'input', input });
                 }, 50); // 50ms delay to allow UI update
                 break;
             }
@@ -78,21 +72,18 @@ export class VmMessageHandler {
                         res += ": " + basicErrors[Number(match1[1])];
                     }
                 }
-                if (this.finishedResolverFn) {
-                    this.callbacks.onResultResolved(res);
-                    this.finishedResolverFn = undefined;
-                }
+                this.onResultResolved(res);
                 break;
             }
             case 'speak': {
                 try {
                     await this.callbacks.onSpeak(data.message, data.pitch);
-                    this.postMessageToWorker({ type: 'continue', result: '' });
+                    this.postMessage({ type: 'continue', result: '' });
                 }
                 catch (msg) {
                     console.log(msg);
-                    this.postMessageToWorker({ type: 'stop' });
-                    this.postMessageToWorker({ type: 'continue', result: '' });
+                    this.postMessage({ type: 'stop' });
+                    this.postMessage({ type: 'continue', result: '' });
                 }
                 break;
             }

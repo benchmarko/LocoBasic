@@ -1,4 +1,9 @@
-import type { ICore, IUI } from "../Interfaces";
+import type { ICore, IUI, NodeWorkerFnType } from "../Interfaces";
+declare global {
+    interface Window {
+        locoVmWorker: NodeWorkerFnType;
+    }
+}
 export declare class UI implements IUI {
     private core?;
     private vmMain?;
@@ -6,9 +11,9 @@ export declare class UI implements IUI {
     private compiledCm?;
     private compiledMessages;
     private initialUserAction;
-    private fnOnKeyPressHandler;
-    private fnOnClickHandler;
-    private fnOnUserKeyClickHandler;
+    private readonly fnOnKeyPressHandler;
+    private readonly fnOnClickHandler;
+    private readonly fnOnUserKeyClickHandler;
     private speechSynthesisUtterance?;
     private locoVmWorkerName;
     constructor();
@@ -87,7 +92,8 @@ export declare class UI implements IUI {
     private onCodeMirrorOpenDialog;
     private onCodeMirrorOpenConfirm;
     private getLocoVmWorker;
-    createWebWorker(locoVmWorkerName: string): Promise<Worker>;
+    createWebWorker(): Promise<Worker>;
+    private createMessageHandlerCallbacks;
     onWindowLoadContinue(core: ICore, locoVmWorkerName: string): void;
 }
 //# sourceMappingURL=UI.d.ts.map

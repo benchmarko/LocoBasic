@@ -3381,34 +3381,27 @@ ${workerFnString}
     }
 
     class VmMessageHandler {
-        constructor(callbacks) {
+        constructor(callbacks, postMessage) {
             this.code = "";
             this.callbacks = callbacks;
-        }
-        setPostMessageFn(postMessageFn) {
-            this.postMessageFn = postMessageFn;
+            this.postMessage = postMessage;
         }
         setCode(code) {
             this.code = code;
         }
-        setFinishedResolver(resolver) {
-            this.finishedResolverFn = resolver;
+        setFinishedResolver(finishedResolverFn) {
+            this.finishedResolverFn = finishedResolverFn;
         }
-        getFinishedResolver() {
-            return this.finishedResolverFn;
-        }
-        clearFinishedResolver() {
-            this.finishedResolverFn = undefined;
+        onResultResolved(message = "") {
+            if (this.finishedResolverFn) {
+                this.finishedResolverFn(message);
+                this.finishedResolverFn = undefined;
+            }
         }
         static describeError(stringToEval, lineno, colno) {
             const lines = stringToEval.split("\n");
             const line = lines[lineno - 1];
             return `${line}\n${" ".repeat(colno - 1) + "^"}`;
-        }
-        postMessageToWorker(message) {
-            if (this.postMessageFn) {
-                this.postMessageFn(message);
-            }
         }
         async handleMessage(data) {
             switch (data.type) {
@@ -3417,19 +3410,20 @@ ${workerFnString}
                     break;
                 case 'geolocation': {
                     try {
-                        const str = await this.callbacks.onGeolocation();
-                        this.postMessageToWorker({ type: 'continue', result: str });
+                        const result = await this.callbacks.onGeolocation();
+                        this.postMessage({ type: 'continue', result });
                     }
                     catch (msg) {
                         console.error(msg);
-                        this.postMessageToWorker({ type: 'stop' });
-                        this.postMessageToWorker({ type: 'continue', result: '' });
+                        this.postMessage({ type: 'stop' });
+                        this.postMessage({ type: 'continue', result: '' });
                     }
                     break;
                 }
                 case 'input': {
-                    setTimeout(() => {
-                        this.callbacks.onInput(data.prompt);
+                    setTimeout(async () => {
+                        const input = await this.callbacks.onInput(data.prompt);
+                        this.postMessage({ type: 'input', input });
                     }, 50); // 50ms delay to allow UI update
                     break;
                 }
@@ -3459,21 +3453,18 @@ ${workerFnString}
                             res += ": " + basicErrors[Number(match1[1])];
                         }
                     }
-                    if (this.finishedResolverFn) {
-                        this.callbacks.onResultResolved(res);
-                        this.finishedResolverFn = undefined;
-                    }
+                    this.onResultResolved(res);
                     break;
                 }
                 case 'speak': {
                     try {
                         await this.callbacks.onSpeak(data.message, data.pitch);
-                        this.postMessageToWorker({ type: 'continue', result: '' });
+                        this.postMessage({ type: 'continue', result: '' });
                     }
                     catch (msg) {
                         console.log(msg);
-                        this.postMessageToWorker({ type: 'stop' });
-                        this.postMessageToWorker({ type: 'continue', result: '' });
+                        this.postMessage({ type: 'stop' });
+                        this.postMessage({ type: 'continue', result: '' });
                     }
                     break;
                 }
@@ -3484,20 +3475,34 @@ ${workerFnString}
         }
     }
 
-    class VmMainBase {
-        constructor() {
-            const callbacks = this.createCallbacks();
-            this.messageHandler = new VmMessageHandler(callbacks);
-            this.messageHandler.setPostMessageFn((message) => this.postMessage(message));
+    class NodeVmMain {
+        constructor(callbacks, createNodeWorker) {
+            this.workerOnMessageHandler = (data) => {
+                this.messageHandler.handleMessage(data);
+            };
+            this.messageHandler = new VmMessageHandler(callbacks, (message) => this.postMessage(message));
+            this.createNodeWorker = createNodeWorker;
+        }
+        postMessage(message) {
+            if (this.worker) {
+                this.worker.postMessage(message);
+            }
+        }
+        getOrCreateWorker() {
+            if (!this.worker) {
+                this.worker = this.createNodeWorker();
+                this.worker.on('message', this.workerOnMessageHandler);
+                this.postMessage({ type: 'config', isTerminal: true });
+            }
+            return this.worker;
         }
         async run(code) {
             if (!code.endsWith("\n")) {
-                code += "\n"; // make sure the script end with a new line (needed for line comment in last line)
+                code += "\n"; // make sure the script ends with a new line (needed for line comment in last line)
             }
             this.messageHandler.setCode(code); // for error message
-            await this.getOrCreateWorker();
+            this.getOrCreateWorker();
             const finishedPromise = new Promise((resolve) => {
-                this.finishedResolverFn = resolve;
                 this.messageHandler.setFinishedResolver(resolve);
             });
             this.postMessage({ type: 'run', code });
@@ -3515,70 +3520,10 @@ ${workerFnString}
                 this.worker.terminate();
                 this.worker = undefined;
             }
-            if (this.finishedResolverFn) {
-                this.finishedResolverFn("terminated.");
-                this.finishedResolverFn = undefined;
-            }
+            this.messageHandler.onResultResolved("terminated.");
         }
         putKeys(keys) {
             this.postMessage({ type: 'putKeys', keys });
-        }
-    }
-
-    class NodeVmMain extends VmMainBase {
-        constructor(nodeParts, workerFile) {
-            super();
-            this.workerOnMessageHandler = (data) => {
-                this.messageHandler.handleMessage(data);
-            };
-            this.nodeParts = nodeParts;
-            this.workerFile = workerFile;
-        }
-        createCallbacks() {
-            return {
-                onFlush: (message, needCls) => {
-                    if (needCls) {
-                        this.nodeParts.consoleClear();
-                    }
-                    this.nodeParts.consolePrint(message);
-                },
-                onInput: (prompt) => {
-                    setTimeout(() => {
-                        this.nodeParts.consolePrint(prompt);
-                        const input = ""; //TODO
-                        this.postMessage({ type: 'input', input });
-                    }, 50); // 50ms delay to allow UI update
-                },
-                onGeolocation: async () => {
-                    // TODO
-                    return '';
-                },
-                onSpeak: async () => {
-                    // TODO
-                },
-                onKeyDef: () => {
-                    //TODO
-                },
-                onResultResolved: (message) => {
-                    if (this.finishedResolverFn) {
-                        this.finishedResolverFn(message);
-                        this.finishedResolverFn = undefined;
-                    }
-                }
-            };
-        }
-        postMessage(message) {
-            if (this.worker) {
-                this.worker.postMessage(message);
-            }
-        }
-        getOrCreateWorker() {
-            if (!this.worker) {
-                this.worker = this.nodeParts.createNodeWorker(this.workerFile);
-                this.worker.on('message', this.workerOnMessageHandler);
-                this.postMessage({ type: 'config', isTerminal: true });
-            }
-            return this.worker;
         }
     }
 
@@ -3589,8 +3534,6 @@ ${workerFnString}
         constructor() {
             this.locoVmWorkerName = "";
             this.modulePath = "";
-            this.keyBuffer = []; // buffered pressed keys
-            this.escape = false;
         }
         getNodeFs() {
             if (!this.nodeFs) {
@@ -3657,10 +3600,10 @@ ${workerFnString}
                 });
             });
         }
-        createNodeWorker(workerFile) {
+        createNodeWorker() {
             const nodeWorkerThreads = this.getNodeWorkerConstructor();
             const path = this.getNodePath();
-            const worker = new nodeWorkerThreads.Worker(path.resolve(__dirname, workerFile));
+            const worker = new nodeWorkerThreads.Worker(path.resolve(__dirname, this.locoVmWorkerName));
             return worker;
         }
         getNodeWorkerFn(workerFile) {
@@ -3715,9 +3658,6 @@ ${workerFnString}
             return output;
         }
         */
-        putKeyInBuffer(key) {
-            this.keyBuffer.push(key);
-        }
         fnOnKeypress(_chunk, key) {
             if (key) {
                 const keySequenceCode = key.sequence.charCodeAt(0);
@@ -3726,15 +3666,18 @@ ${workerFnString}
                     process.exit();
                 }
                 else if (key.name === "escape") {
-                    this.escape = true;
+                    this.getNodeVmMain().stop(); // request stop
                 }
                 else if (keySequenceCode === 0x0d || (keySequenceCode >= 32 && keySequenceCode <= 128)) {
-                    this.putKeyInBuffer(key.sequence);
+                    //this.putKeyInBuffer(key.sequence);
+                    this.getNodeVmMain().putKeys(key.sequence);
                 }
             }
         }
         initKeyboardInput() {
-            this.nodeReadline = require('readline');
+            if (!this.nodeReadline) {
+                this.nodeReadline = require('readline');
+            }
             if (process.stdin.isTTY) {
                 this.nodeReadline.emitKeypressEvents(process.stdin);
                 process.stdin.setRawMode(true);
@@ -3745,31 +3688,54 @@ ${workerFnString}
                 console.warn("initKeyboardInput: not a TTY", process.stdin);
             }
         }
-        getKeyFromBuffer() {
+        /*
+        private getKeyFromBuffer(): string {
             if (!this.nodeReadline) {
                 this.initKeyboardInput();
             }
-            const key = this.keyBuffer.length ? this.keyBuffer.shift() : "";
+            const key = this.keyBuffer.length ? this.keyBuffer.shift() as string : "";
             return key;
         }
-        getEscape() {
-            return this.escape;
-        }
-        consoleClear() {
-            console.clear();
-        }
-        consolePrint(msg) {
-            console.log(msg);
+        */
+        createMessageHandlerCallbacks() {
+            const callbacks = {
+                onFlush: (message, needCls) => {
+                    if (needCls) {
+                        console.clear();
+                    }
+                    console.log(message);
+                },
+                onInput: (prompt) => {
+                    console.log(prompt);
+                    const input = ""; //TODO
+                    return Promise.resolve(input);
+                },
+                onGeolocation: async () => {
+                    // TODO
+                    return '';
+                },
+                onSpeak: async () => {
+                    // TODO
+                },
+                onKeyDef: () => {
+                    //TODO
+                }
+            };
+            return callbacks;
         }
         getNodeVmMain() {
             if (!this.nodeVmMain) {
-                this.nodeVmMain = new NodeVmMain(this, this.locoVmWorkerName);
+                const messageHandlerCallbacks = this.createMessageHandlerCallbacks();
+                this.nodeVmMain = new NodeVmMain(messageHandlerCallbacks, () => this.createNodeWorker());
             }
             return this.nodeVmMain;
         }
-        async startRun(core, compiledScript) {
+        async startRun(core, compiledScript, usedInstrMap) {
             if (core.getConfigMap().debug) {
                 console.log("DEBUG: running compiled script...");
+            }
+            if (usedInstrMap["inkey$"]) { // do we need inkey$
+                this.initKeyboardInput();
             }
             const nodeVmMain = this.getNodeVmMain();
             const output = await nodeVmMain.run(compiledScript);
@@ -3796,14 +3762,14 @@ ${workerFnString}
             if (messages) {
                 console.log(messages.join("\n"));
             }
+            const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
             if (actionConfig.includes("run")) {
                 return this.keepRunning(async () => {
-                    return this.startRun(core, compiledScript);
+                    return this.startRun(core, compiledScript, usedInstrMap);
                 }, 5000);
             }
             else { // compile only: output standalone script
                 const workerFn = this.getNodeWorkerFn(this.locoVmWorkerName);
-                const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
                 const inFrame = core.createStandaloneScript(workerFn, compiledScript, Object.keys(usedInstrMap));
                 console.log(inFrame);
             }

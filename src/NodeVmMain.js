@@ -1,45 +1,11 @@
-import { VmMainBase } from "./VmMainBase";
-export class NodeVmMain extends VmMainBase {
-    constructor(nodeParts, workerFile) {
-        super();
+import { VmMessageHandler } from "./VmMessageHandler";
+export class NodeVmMain {
+    constructor(callbacks, createNodeWorker) {
         this.workerOnMessageHandler = (data) => {
             this.messageHandler.handleMessage(data);
         };
-        this.nodeParts = nodeParts;
-        this.workerFile = workerFile;
-    }
-    createCallbacks() {
-        return {
-            onFlush: (message, needCls) => {
-                if (needCls) {
-                    this.nodeParts.consoleClear();
-                }
-                this.nodeParts.consolePrint(message);
-            },
-            onInput: (prompt) => {
-                setTimeout(() => {
-                    this.nodeParts.consolePrint(prompt);
-                    const input = ""; //TODO
-                    this.postMessage({ type: 'input', input });
-                }, 50); // 50ms delay to allow UI update
-            },
-            onGeolocation: async () => {
-                // TODO
-                return '';
-            },
-            onSpeak: async () => {
-                // TODO
-            },
-            onKeyDef: () => {
-                //TODO
-            },
-            onResultResolved: (message) => {
-                if (this.finishedResolverFn) {
-                    this.finishedResolverFn(message);
-                    this.finishedResolverFn = undefined;
-                }
-            }
-        };
+        this.messageHandler = new VmMessageHandler(callbacks, (message) => this.postMessage(message));
+        this.createNodeWorker = createNodeWorker;
     }
     postMessage(message) {
         if (this.worker) {
@@ -48,11 +14,40 @@ export class NodeVmMain extends VmMainBase {
     }
     getOrCreateWorker() {
         if (!this.worker) {
-            this.worker = this.nodeParts.createNodeWorker(this.workerFile);
+            this.worker = this.createNodeWorker();
             this.worker.on('message', this.workerOnMessageHandler);
             this.postMessage({ type: 'config', isTerminal: true });
         }
         return this.worker;
+    }
+    async run(code) {
+        if (!code.endsWith("\n")) {
+            code += "\n"; // make sure the script ends with a new line (needed for line comment in last line)
+        }
+        this.messageHandler.setCode(code); // for error message
+        this.getOrCreateWorker();
+        const finishedPromise = new Promise((resolve) => {
+            this.messageHandler.setFinishedResolver(resolve);
+        });
+        this.postMessage({ type: 'run', code });
+        return finishedPromise;
+    }
+    frameTime(time) {
+        this.postMessage({ type: 'frameTime', time });
+    }
+    stop() {
+        console.log("stop: Stop requested.");
+        this.postMessage({ type: 'stop' });
+    }
+    reset() {
+        if (this.worker) {
+            this.worker.terminate();
+            this.worker = undefined;
+        }
+        this.messageHandler.onResultResolved("terminated.");
+    }
+    putKeys(keys) {
+        this.postMessage({ type: 'putKeys', keys });
     }
 }
 //# sourceMappingURL=NodeVmMain.js.map

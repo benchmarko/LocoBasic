@@ -1,7 +1,6 @@
-import { VmMainBase } from "../VmMainBase";
-export class VmMain extends VmMainBase {
-    constructor(locoVmWorkerName, createWebWorker, addOutputText, setUiKeysFn, onGeolocationFn, onSpeakFn) {
-        super();
+import { VmMessageHandler } from "../VmMessageHandler";
+export class VmMain {
+    constructor(callbacks, createWebWorker) {
         this.workerOnMessageHandler = (event) => {
             const data = event.data;
             this.messageHandler.handleMessage(data);
@@ -10,35 +9,9 @@ export class VmMain extends VmMainBase {
             var _a;
             (_a = this.worker) === null || _a === void 0 ? void 0 : _a.terminate();
         };
-        this.locoVmWorkerName = locoVmWorkerName;
+        this.messageHandler = new VmMessageHandler(callbacks, (message) => this.postMessage(message));
         this.createWebWorker = createWebWorker;
-        this.addOutputText = addOutputText;
-        this.setUiKeysFn = setUiKeysFn;
-        this.onSpeakFn = onSpeakFn;
-        this.onGeolocationFn = onGeolocationFn;
         window.addEventListener('beforeunload', this.handleBeforeUnload, { once: true });
-    }
-    createCallbacks() {
-        return {
-            onFlush: (message, needCls, hasGraphics) => {
-                this.addOutputText(message, needCls, hasGraphics);
-            },
-            onInput: (prompt) => {
-                const input = window.prompt(prompt);
-                this.postMessage({ type: 'input', input });
-            },
-            onGeolocation: () => this.onGeolocationFn(),
-            onSpeak: (message, pitch) => this.onSpeakFn(message, pitch),
-            onKeyDef: (codes) => {
-                this.setUiKeysFn(codes);
-            },
-            onResultResolved: (message) => {
-                if (this.finishedResolverFn) {
-                    this.finishedResolverFn(message);
-                    this.finishedResolverFn = undefined;
-                }
-            }
-        };
     }
     postMessage(message) {
         if (this.worker) {
@@ -47,12 +20,40 @@ export class VmMain extends VmMainBase {
     }
     async getOrCreateWorker() {
         if (!this.worker) {
-            this.worker = await this.createWebWorker(this.locoVmWorkerName);
+            this.worker = await this.createWebWorker();
             this.worker.onmessage = this.workerOnMessageHandler;
-            // Send config message to initialize worker
-            //this.postMessage({ type: 'config', isTerminal: false });
+            // this.postMessage({ type: 'config', isTerminal: false }); // is default: isTerminal: false
         }
         return this.worker;
+    }
+    async run(code) {
+        if (!code.endsWith("\n")) {
+            code += "\n"; // make sure the script ends with a new line (needed for line comment in last line)
+        }
+        this.messageHandler.setCode(code); // for error message
+        await this.getOrCreateWorker();
+        const finishedPromise = new Promise((resolve) => {
+            this.messageHandler.setFinishedResolver(resolve);
+        });
+        this.postMessage({ type: 'run', code });
+        return finishedPromise;
+    }
+    frameTime(time) {
+        this.postMessage({ type: 'frameTime', time });
+    }
+    stop() {
+        console.log("stop: Stop requested.");
+        this.postMessage({ type: 'stop' });
+    }
+    reset() {
+        if (this.worker) {
+            this.worker.terminate();
+            this.worker = undefined;
+        }
+        this.messageHandler.onResultResolved("terminated.");
+    }
+    putKeys(keys) {
+        this.postMessage({ type: 'putKeys', keys });
     }
 }
 //# sourceMappingURL=VmMain.js.map

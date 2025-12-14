@@ -293,7 +293,7 @@ export class UI {
             UI.fnDownloadBlob(svgBlob, filename);
         };
         this.onStandaloneButtonClick = async () => {
-            const locoVmWorker = await this.getLocoVmWorker(this.locoVmWorkerName);
+            const locoVmWorker = await this.getLocoVmWorker();
             const core = this.getCore();
             const compiledScript = this.getCompiledCm().getValue();
             const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
@@ -755,18 +755,18 @@ export class UI {
             input.dispatchEvent(new Event("change"));
         }
     }
-    async getLocoVmWorker(locoVmWorkerName) {
+    async getLocoVmWorker() {
         if (!window.locoVmWorker) {
-            await this.loadScript(locoVmWorkerName, "");
+            await this.loadScript(this.locoVmWorkerName, "");
         }
         return window.locoVmWorker;
     }
-    async createWebWorker(locoVmWorkerName) {
+    async createWebWorker() {
         let worker;
         // Detect if running on file:// protocol
         const isFileProtocol = window.location.protocol === 'file:';
         if (isFileProtocol) {
-            const locoVmWorker = await this.getLocoVmWorker(locoVmWorkerName);
+            const locoVmWorker = await this.getLocoVmWorker();
             const preparedWorkerFnString = String(locoVmWorker.workerFn);
             const workerScript = `(${preparedWorkerFnString})(self);`;
             // Use Blob for file:// protocol
@@ -777,17 +777,34 @@ export class UI {
         }
         else {
             // Use file-based worker for http/https
-            const workerUrl = new URL(locoVmWorkerName, window.location.href);
+            const workerUrl = new URL(this.locoVmWorkerName, window.location.href);
             worker = new Worker(workerUrl);
         }
         return worker;
+    }
+    createMessageHandlerCallbacks() {
+        const callbacks = {
+            onFlush: (message, needCls, hasGraphics) => {
+                this.addOutputText(message, needCls, hasGraphics);
+            },
+            onInput: (prompt) => {
+                const input = window.prompt(prompt);
+                return Promise.resolve(input);
+            },
+            onGeolocation: () => this.onGeolocation(),
+            onSpeak: (message, pitch) => this.onSpeak(message, pitch),
+            onKeyDef: (codes) => {
+                this.onSetUiKeys(codes);
+            }
+        };
+        return callbacks;
     }
     onWindowLoadContinue(core, locoVmWorkerName) {
         this.core = core;
         const config = core.getConfigMap();
         const args = this.parseUri(config);
         core.parseArgs(args, config);
-        this.locoVmWorkerName = locoVmWorkerName; // not so nice to have it here as well
+        this.locoVmWorkerName = locoVmWorkerName;
         // Map of element IDs to event handlers
         const buttonHandlers = {
             compileButton: this.onCompileButtonClick,
@@ -857,7 +874,8 @@ export class UI {
         window.document.addEventListener("click", () => {
             this.initialUserAction = true;
         }, { once: true });
-        this.vmMain = new VmMain(locoVmWorkerName, (workerName) => this.createWebWorker(workerName), this.addOutputText, this.onSetUiKeys, this.onGeolocation, this.onSpeak);
+        const messageHandlerCallbacks = this.createMessageHandlerCallbacks();
+        this.vmMain = new VmMain(messageHandlerCallbacks, () => this.createWebWorker());
         // Initialize database and examples
         UI.asyncDelay(() => {
             const databaseMap = core.initDatabaseMap();
