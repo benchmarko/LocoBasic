@@ -20,7 +20,7 @@ export class VmMain extends VmMainBase {
     }
     createCallbacks() {
         return {
-            onFrame: (message, needCls, hasGraphics) => {
+            onFlush: (message, needCls, hasGraphics) => {
                 this.addOutputText(message, needCls, hasGraphics);
             },
             onInput: (prompt) => {

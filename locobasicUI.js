@@ -174,8 +174,8 @@
         }
         async handleMessage(data) {
             switch (data.type) {
-                case 'frame':
-                    this.callbacks.onFrame(data.message, data.needCls, data.hasGraphics);
+                case 'flush':
+                    this.callbacks.onFlush(data.message, data.needCls, data.hasGraphics);
                     break;
                 case 'geolocation': {
                     try {
@@ -305,7 +305,7 @@
         }
         createCallbacks() {
             return {
-                onFrame: (message, needCls, hasGraphics) => {
+                onFlush: (message, needCls, hasGraphics) => {
                     this.addOutputText(message, needCls, hasGraphics);
                 },
                 onInput: (prompt) => {

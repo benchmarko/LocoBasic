@@ -86,7 +86,7 @@ export class ScriptCreator {
             // This method will be stringified into the standalone script
             postMessage(data) {
                 switch (data.type) {
-                    case 'frame':
+                    case 'flush':
                         if (data.needCls) {
                             console.clear();
                         }
@@ -137,14 +137,13 @@ export class ScriptCreator {
         return output;
     }
     compiledCodeInFrame(compiledScript, workerFnString) {
-        const asyncStr = compiledScript.includes("await ") ? "async " : ""; // fast hack: check if we need async function
         const parentPort = this.createParentPort();
         const parentFns = [];
         parentFns.push(String(parentPort.on));
         parentFns.push(String(parentPort.postMessage));
         // replace indentation
         const parentPortStr = parentFns.map((fnStr) => fnStr.replace(/\n\s{12}/g, "\n")).join(",\n    ");
-        const inFrame = `(${asyncStr}function(_o) {
+        const inFrame = `(async (_o) => {
     ${compiledScript}
 })(
     ((parentPort) => {
@@ -152,11 +151,14 @@ export class ScriptCreator {
 ${workerFnString}
         };
         parentPort.on('message', (data) => vm.onMessageHandler(data));
+        globalThis.LocoBasicVm = vm;
         return vm;
     })({
     ${parentPortStr}
     })
-);`;
+).then((result) => {
+    globalThis.LocoBasicVm.flush();
+});`;
         return inFrame;
     }
     createStandaloneScript(workerFn, compiledScript, usedInstr) {
@@ -165,7 +167,7 @@ ${workerFnString}
             postMessage: () => undefined,
         };
         const vmObj = workerFn.workerFn(mockParent);
-        const filteredVM = this.filterVM(vmObj, [...usedInstr, "onMessageHandler"]);
+        const filteredVM = this.filterVM(vmObj, [...usedInstr, "flush", "onMessageHandler"]);
         const workerString = this.generateSource(filteredVM);
         const inFrame = this.compiledCodeInFrame(compiledScript, workerString);
         return inFrame;

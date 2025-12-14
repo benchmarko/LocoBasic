@@ -3128,7 +3128,7 @@ ${dataList.join(",\n")}
                 // This method will be stringified into the standalone script
                 postMessage(data) {
                     switch (data.type) {
-                        case 'frame':
+                        case 'flush':
                             if (data.needCls) {
                                 console.clear();
                             }
@@ -3179,14 +3179,13 @@ ${dataList.join(",\n")}
             return output;
         }
         compiledCodeInFrame(compiledScript, workerFnString) {
-            const asyncStr = compiledScript.includes("await ") ? "async " : ""; // fast hack: check if we need async function
             const parentPort = this.createParentPort();
             const parentFns = [];
             parentFns.push(String(parentPort.on));
             parentFns.push(String(parentPort.postMessage));
             // replace indentation
             const parentPortStr = parentFns.map((fnStr) => fnStr.replace(/\n\s{12}/g, "\n")).join(",\n    ");
-            const inFrame = `(${asyncStr}function(_o) {
+            const inFrame = `(async (_o) => {
     ${compiledScript}
 })(
     ((parentPort) => {
@@ -3194,11 +3193,14 @@ ${dataList.join(",\n")}
 ${workerFnString}
         };
         parentPort.on('message', (data) => vm.onMessageHandler(data));
+        globalThis.LocoBasicVm = vm;
         return vm;
     })({
     ${parentPortStr}
     })
-);`;
+).then((result) => {
+    globalThis.LocoBasicVm.flush();
+});`;
             return inFrame;
         }
         createStandaloneScript(workerFn, compiledScript, usedInstr) {
@@ -3207,7 +3209,7 @@ ${workerFnString}
                 postMessage: () => undefined,
             };
             const vmObj = workerFn.workerFn(mockParent);
-            const filteredVM = this.filterVM(vmObj, [...usedInstr, "onMessageHandler"]);
+            const filteredVM = this.filterVM(vmObj, [...usedInstr, "flush", "onMessageHandler"]);
             const workerString = this.generateSource(filteredVM);
             const inFrame = this.compiledCodeInFrame(compiledScript, workerString);
             return inFrame;
@@ -3410,8 +3412,8 @@ ${workerFnString}
         }
         async handleMessage(data) {
             switch (data.type) {
-                case 'frame':
-                    this.callbacks.onFrame(data.message, data.needCls, data.hasGraphics);
+                case 'flush':
+                    this.callbacks.onFlush(data.message, data.needCls, data.hasGraphics);
                     break;
                 case 'geolocation': {
                     try {
@@ -3531,7 +3533,7 @@ ${workerFnString}
         }
         createCallbacks() {
             return {
-                onFrame: (message, needCls) => {
+                onFlush: (message, needCls) => {
                     if (needCls) {
                         this.nodeParts.consoleClear();
                     }
@@ -3920,6 +3922,8 @@ node dist/locobasic.js action='compile' input='PRINT "Hello!"' > hello1.js
 [Windows: Use node.exe when redirecting into a file; or npx ts-node ...]
 node hello1.js
 [When using async functions like FRAME or INPUT, redirect to hello1.mjs]
+- Combined:
+node dist/locobasic.js example=testpage action=compile | node
 `;
         }
     }

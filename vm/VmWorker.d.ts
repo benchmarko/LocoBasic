@@ -66,12 +66,12 @@ export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] 
     dim1: (dim: number, value?: number) => number[];
     draw: (x: number, y: number, pen?: number) => void;
     drawr: (x: number, y: number, pen?: number) => void;
-    end: () => string;
+    end: () => void;
     escapeText: (str: string) => string;
     every: (timeout: number, timer: number, fn: () => void) => void;
     exp: (num: number) => number;
     fix: (num: number) => number;
-    flush: () => string;
+    flush: () => void;
     frame: () => Promise<void>;
     getAnsiColorCodeForPen: (pen: number) => number;
     getFlushedText: () => string;
@@ -140,7 +140,7 @@ export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] 
     space$: (num: number) => string;
     spc: (num: number) => string;
     sqr: (num: number) => number;
-    stop: () => string;
+    stop: () => void;
     str$: (num: number) => string;
     string$Num: (len: number, num: number) => string;
     string$Str: (len: number, str: string) => string;

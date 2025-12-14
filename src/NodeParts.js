@@ -342,6 +342,8 @@ node dist/locobasic.js action='compile' input='PRINT "Hello!"' > hello1.js
 [Windows: Use node.exe when redirecting into a file; or npx ts-node ...]
 node hello1.js
 [When using async functions like FRAME or INPUT, redirect to hello1.mjs]
+- Combined:
+node dist/locobasic.js example=testpage action=compile | node
 `;
     }
 }

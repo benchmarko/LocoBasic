@@ -84,7 +84,7 @@ export type MessageToWorker = {
     type: 'stop';
 };
 export type MessageFromWorker = {
-    type: 'frame';
+    type: 'flush';
     message: string;
     hasGraphics: boolean;
     needCls?: boolean;

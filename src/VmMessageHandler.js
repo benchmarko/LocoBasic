@@ -31,8 +31,8 @@ export class VmMessageHandler {
     }
     async handleMessage(data) {
         switch (data.type) {
-            case 'frame':
-                this.callbacks.onFrame(data.message, data.needCls, data.hasGraphics);
+            case 'flush':
+                this.callbacks.onFlush(data.message, data.needCls, data.hasGraphics);
                 break;
             case 'geolocation': {
                 try {

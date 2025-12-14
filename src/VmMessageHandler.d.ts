@@ -1,6 +1,6 @@
 import type { MessageFromWorker, MessageToWorker } from "./Interfaces";
 export interface VmMessageHandlerCallbacks {
-    onFrame(message: string, needCls?: boolean, hasGraphics?: boolean): void;
+    onFlush(message: string, needCls?: boolean, hasGraphics?: boolean): void;
     onInput(prompt: string): void;
     onGeolocation(): Promise<string>;
     onSpeak(message: string, pitch: number): Promise<void>;

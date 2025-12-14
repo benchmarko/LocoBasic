@@ -6,7 +6,7 @@
 
     const workerFn = (parentPort) => {
         const isNodeParentPort = 'on' in parentPort;
-        // The vm object will be passed to the worker's code as `_o`. (Make sure you use arrow style:  fn: [async] (...) =>  { ... } )
+        // The vm object will be passed to the worker's code as `_o`
         const vm = {
             _commaOpChar: "\u2192", // Unicode arrow right (Constants.CommaOpChar)
             _tabOpChar: "\u21d2", // Unicode double arrow right (Constants.TabOpChar)
@@ -257,10 +257,9 @@
                 const message = vm.getFlushedTextandGraphics();
                 if (message) {
                     const hasGraphics = vm._graOutputGraphicsIndex >= 0;
-                    vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls }); // TODO: change type to flush?
+                    vm.postMessage({ type: 'flush', message, hasGraphics, needCls: vm._needCls });
                     vm._needCls = false;
                 }
-                return ""; // Test
             },
             frame: async () => {
                 if (vm._stopRequested) {
@@ -698,22 +697,14 @@
             }
             fnScript(vm).then((result) => {
                 vm.remainAll();
-                const message = vm.getFlushedTextandGraphics();
-                if (message) {
-                    const hasGraphics = vm._graOutputGraphicsIndex >= 0;
-                    vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
-                }
+                vm.flush();
                 result = result !== null && result !== void 0 ? result : "";
                 vm.postMessage({ type: 'result', result });
             }).catch((err) => {
                 vm.remainAll();
                 console.warn(err instanceof Error ? err.stack : String(err));
                 const result = String(err);
-                const message = vm.getFlushedTextandGraphics();
-                if (message) {
-                    const hasGraphics = vm._graOutputGraphicsIndex >= 0;
-                    vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
-                }
+                vm.flush();
                 vm.postMessage({ type: 'result', result });
             });
         };

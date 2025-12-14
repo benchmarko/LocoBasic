@@ -10,7 +10,7 @@ export class NodeVmMain extends VmMainBase {
     }
     createCallbacks() {
         return {
-            onFrame: (message, needCls) => {
+            onFlush: (message, needCls) => {
                 if (needCls) {
                     this.nodeParts.consoleClear();
                 }
