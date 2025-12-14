@@ -2,7 +2,7 @@ import type { MessageFromWorker, MessageToWorker } from "./Interfaces";
 import { basicErrors } from "./Constants";
 
 export interface VmMessageHandlerCallbacks {
-    onFrame(message: string, needCls?: boolean, hasGraphics?: boolean): void;
+    onFlush(message: string, needCls?: boolean, hasGraphics?: boolean): void;
     onInput(prompt: string): void;
     onGeolocation(): Promise<string>;
     onSpeak(message: string, pitch: number): Promise<void>;
@@ -54,8 +54,8 @@ export class VmMessageHandler {
 
     public async handleMessage(data: MessageFromWorker): Promise<void> {
         switch (data.type) {
-            case 'frame':
-                this.callbacks.onFrame(data.message, data.needCls, data.hasGraphics);
+            case 'flush':
+                this.callbacks.onFlush(data.message, data.needCls, data.hasGraphics);
                 break;
             case 'geolocation': {
                 try {

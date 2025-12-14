@@ -88,7 +88,7 @@ export type MessageToWorker =
     | { type: 'stop' };
 
 export type MessageFromWorker =
-    | { type: 'frame'; message: string; hasGraphics: boolean, needCls?: boolean }
+    | { type: 'flush'; message: string; hasGraphics: boolean, needCls?: boolean }
     | { type: 'geolocation' }
     | { type: 'input'; prompt: string }
     | { type: 'keyDef'; codes: number[] }

@@ -11,7 +11,7 @@ type MessageEventType = {
 export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | BrowserWorkerThreadsType["parentPort"]) => {
     const isNodeParentPort = 'on' in parentPort;
 
-    // The vm object will be passed to the worker's code as `_o`. (Make sure you use arrow style:  fn: [async] (...) =>  { ... } )
+    // The vm object will be passed to the worker's code as `_o`
     const vm = {
         _commaOpChar: "\u2192", // Unicode arrow right (Constants.CommaOpChar)
         _tabOpChar: "\u21d2", // Unicode double arrow right (Constants.TabOpChar)
@@ -302,10 +302,9 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             const message = vm.getFlushedTextandGraphics();
             if (message) {
                 const hasGraphics = vm._graOutputGraphicsIndex >= 0;
-                vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls }); // TODO: change type to flush?
+                vm.postMessage({ type: 'flush', message, hasGraphics, needCls: vm._needCls });
                 vm._needCls = false;
             }
-            return ""; // Test
         },
 
         frame: async () => {
@@ -834,22 +833,14 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
 
         fnScript(vm).then((result: string | undefined) => {
             vm.remainAll();
-            const message = vm.getFlushedTextandGraphics();
-            if (message) {
-                const hasGraphics = vm._graOutputGraphicsIndex >= 0;
-                vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
-            }
+            vm.flush();
             result = result ?? "";
             vm.postMessage({ type: 'result', result });
         }).catch((err: unknown) => {
             vm.remainAll();
             console.warn(err instanceof Error ? err.stack : String(err));
             const result = String(err);
-            const message = vm.getFlushedTextandGraphics();
-            if (message) {
-                const hasGraphics = vm._graOutputGraphicsIndex >= 0;
-                vm.postMessage({ type: 'frame', message, hasGraphics, needCls: vm._needCls });
-            }
+            vm.flush();
             vm.postMessage({ type: 'result', result });
         });
     }

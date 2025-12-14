@@ -16,7 +16,7 @@ export class NodeVmMain extends VmMainBase {
 
     protected createCallbacks(): VmMessageHandlerCallbacks {
         return {
-            onFrame: (message: string, needCls?: boolean) => {
+            onFlush: (message: string, needCls?: boolean) => {
                 if (needCls) {
                     this.nodeParts.consoleClear();
                 }

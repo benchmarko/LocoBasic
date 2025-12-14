@@ -32,7 +32,7 @@ export class VmMain extends VmMainBase {
 
     protected createCallbacks(): VmMessageHandlerCallbacks {
         return {
-            onFrame: (message: string, needCls?: boolean, hasGraphics?: boolean) => {
+            onFlush: (message: string, needCls?: boolean, hasGraphics?: boolean) => {
                 this.addOutputText(message, needCls, hasGraphics);
             },
             onInput: (prompt: string) => {
