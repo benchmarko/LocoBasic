@@ -131,7 +131,7 @@ export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] 
     rsxDate: (...args: string[]) => string[];
     rsxEllipse: (...args: number[]) => void;
     rsxGeolocation: (...args: string[]) => Promise<string[]>;
-    rsxPitch: (args: number[]) => void;
+    rsxPitch: (...args: number[]) => void;
     rsxRect: (...args: number[]) => void;
     rsxSay: (...args: string[]) => Promise<string>;
     rsxTime: (...args: string[]) => string[];

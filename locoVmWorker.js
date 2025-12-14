@@ -607,7 +607,7 @@
                 vm.postMessage({ type: 'geolocation' });
                 return promise;
             },
-            rsxPitch: (args) => {
+            rsxPitch: (...args) => {
                 vm._rsxPitch = args[0] / 10;
             },
             rsxRect: (...args) => {
