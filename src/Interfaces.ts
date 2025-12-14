@@ -122,14 +122,6 @@ export interface BrowserWorkerThreadsType {
     }
 }
 
-export interface INodeParts {
-    getEscape(): boolean;
-    getKeyFromBuffer(): string;
-    createNodeWorker(workerFile: string): NodeWorkerType;
-    consoleClear(): void;
-    consolePrint(msg: string): void;
-}
-
 export interface IUI {
     addOutputText(str: string, needCls?: boolean, hasGraphics?: boolean): void;
     getCurrentDataKey(): string;

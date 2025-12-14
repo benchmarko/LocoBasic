@@ -1,5 +1,6 @@
-import type { DatabaseType, ExampleType, ICore, INodeParts, MessageFromWorker, NodeWorkerFnType, NodeWorkerType } from "./Interfaces";
+import type { DatabaseType, ExampleType, ICore, MessageFromWorker, NodeWorkerFnType, NodeWorkerType } from "./Interfaces";
 import { NodeVmMain } from "./NodeVmMain";
+import { VmMessageHandlerCallbacks } from "./VmMessageHandler";
 
 interface NodePath {
     dirname: (dirname: string) => string;
@@ -50,7 +51,7 @@ function isUrl(s: string) {
     return s.startsWith("http"); // http or https
 }
 
-export class NodeParts implements INodeParts {
+export class NodeParts {
     private nodeVmMain?: NodeVmMain;
     private locoVmWorkerName = "";
 
@@ -60,8 +61,7 @@ export class NodeParts implements INodeParts {
     private nodeWorkerThreads?: NodeWorkerThreads;
     private modulePath = "";
     private nodeReadline?: NodeReadline;
-    private readonly keyBuffer: string[] = []; // buffered pressed keys
-    private escape = false;
+    //private readonly keyBuffer: string[] = []; // buffered pressed keys
     private fnOnKeyPressHandler?: (chunk: string, key: NodeKeyPressType) => void;
 
     private getNodeFs() {
@@ -142,15 +142,15 @@ export class NodeParts implements INodeParts {
         });
     }
 
-    public createNodeWorker(workerFile: string): NodeWorkerType {
+    private createNodeWorker(): NodeWorkerType {
         const nodeWorkerThreads = this.getNodeWorkerConstructor() as NodeWorkerThreads;
         const path = this.getNodePath();
 
-        const worker = new nodeWorkerThreads.Worker(path.resolve(__dirname, workerFile));
+        const worker = new nodeWorkerThreads.Worker(path.resolve(__dirname, this.locoVmWorkerName));
         return worker;
     }
 
-    public getNodeWorkerFn(workerFile: string): NodeWorkerFnType {
+    private getNodeWorkerFn(workerFile: string): NodeWorkerFnType {
         const path = this.getNodePath();
         const workerFnPath = path.resolve(__dirname, workerFile);
         const workerFn = require(workerFnPath) as NodeWorkerFnType;
@@ -204,10 +204,6 @@ export class NodeParts implements INodeParts {
     }
     */
 
-    private putKeyInBuffer(key: string): void {
-        this.keyBuffer.push(key);
-    }
-
     private fnOnKeypress(_chunk: string, key: NodeKeyPressType) {
         if (key) {
             const keySequenceCode = key.sequence.charCodeAt(0);
@@ -215,15 +211,18 @@ export class NodeParts implements INodeParts {
                 // key: '<char>' { sequence: '\x03', name: 'c', ctrl: true, meta: false, shift: false }
                 process.exit();
             } else if (key.name === "escape") {
-                this.escape = true;
+                this.getNodeVmMain().stop(); // request stop
             } else if (keySequenceCode === 0x0d || (keySequenceCode >= 32 && keySequenceCode <= 128)) {
-                this.putKeyInBuffer(key.sequence);
+                //this.putKeyInBuffer(key.sequence);
+                this.getNodeVmMain().putKeys(key.sequence);
             }
         }
     }
 
-    private initKeyboardInput(): void {
-        this.nodeReadline = require('readline') as NodeReadline;
+    private initKeyboardInput() {
+        if (!this.nodeReadline) {
+            this.nodeReadline = require('readline') as NodeReadline;
+        }
 
         if (process.stdin.isTTY) {
             this.nodeReadline.emitKeypressEvents(process.stdin);
@@ -236,37 +235,60 @@ export class NodeParts implements INodeParts {
         }
     }
 
-    public getKeyFromBuffer(): string {
+    /*
+    private getKeyFromBuffer(): string {
         if (!this.nodeReadline) {
             this.initKeyboardInput();
         }
         const key = this.keyBuffer.length ? this.keyBuffer.shift() as string : "";
         return key;
     }
+    */
 
-    public getEscape(): boolean {
-        return this.escape;
-    }
-
-    public consoleClear(): void {
-        console.clear();
-    }
-
-    public consolePrint(msg: string): void {
-        console.log(msg);
+    private createMessageHandlerCallbacks() {
+        const callbacks: VmMessageHandlerCallbacks = {
+            onFlush: (message: string, needCls?: boolean) => {
+                if (needCls) {
+                    console.clear();
+                }
+                console.log(message);
+            },
+            onInput: (prompt: string) => {
+                console.log(prompt);
+                const input = ""; //TODO
+                return Promise.resolve(input);
+            },
+            onGeolocation: async () => {
+                // TODO
+                return '';
+            },
+            onSpeak: async () => {
+                // TODO
+            },
+            onKeyDef: () => {
+                //TODO
+            }
+        };
+        return callbacks;
     }
 
     private getNodeVmMain() {
         if (!this.nodeVmMain) {
-            this.nodeVmMain = new NodeVmMain(this, this.locoVmWorkerName);
+            const messageHandlerCallbacks = this.createMessageHandlerCallbacks();
+            this.nodeVmMain = new NodeVmMain(messageHandlerCallbacks, () => this.createNodeWorker());
         }
         return this.nodeVmMain;
     }
 
-    private async startRun(core: ICore, compiledScript: string) {
+    private async startRun(core: ICore, compiledScript: string, usedInstrMap: Record<string, number>) {
         if (core.getConfigMap().debug) {
             console.log("DEBUG: running compiled script...");
         }
+
+        if (usedInstrMap["inkey$"]) { // do we need inkey$
+            this.initKeyboardInput();
+        }
+
         const nodeVmMain = this.getNodeVmMain();
         const output = await nodeVmMain.run(compiledScript);
         console.log(output.replace(/\n$/, ""));
@@ -297,13 +319,13 @@ export class NodeParts implements INodeParts {
             console.log(messages.join("\n"));
         }
 
+        const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
         if (actionConfig.includes("run")) {
             return this.keepRunning(async () => {
-                return this.startRun(core, compiledScript);
+                return this.startRun(core, compiledScript, usedInstrMap);
             }, 5000);
         } else { // compile only: output standalone script
             const workerFn = this.getNodeWorkerFn(this.locoVmWorkerName);
-            const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
             const inFrame = core.createStandaloneScript(workerFn, compiledScript, Object.keys(usedInstrMap));
             console.log(inFrame);
         }

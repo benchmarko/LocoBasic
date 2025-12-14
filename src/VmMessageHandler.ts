@@ -3,53 +3,42 @@ import { basicErrors } from "./Constants";
 
 export interface VmMessageHandlerCallbacks {
     onFlush(message: string, needCls?: boolean, hasGraphics?: boolean): void;
-    onInput(prompt: string): void;
+    onInput(prompt: string): Promise<string | null>;
     onGeolocation(): Promise<string>;
     onSpeak(message: string, pitch: number): Promise<void>;
     onKeyDef(codes: number[]): void;
-    onResultResolved(message: string): void;
 }
 
 export class VmMessageHandler {
+    private readonly callbacks: VmMessageHandlerCallbacks;
+    private readonly postMessage: (message: MessageToWorker) => void;
     private code = "";
-    private finishedResolverFn: ((msg: string) => void) | undefined;
-    private callbacks: VmMessageHandlerCallbacks;
-    private postMessageFn?: (message: MessageToWorker) => void;
+    private finishedResolverFn?: ((msg: string) => void);
 
-    constructor(callbacks: VmMessageHandlerCallbacks) {
+    constructor(callbacks: VmMessageHandlerCallbacks, postMessage: (message: MessageToWorker) => void) {
         this.callbacks = callbacks;
-    }
-
-    public setPostMessageFn(postMessageFn: (message: MessageToWorker) => void): void {
-        this.postMessageFn = postMessageFn;
+        this.postMessage = postMessage;
     }
 
     public setCode(code: string): void {
         this.code = code;
     }
 
-    public setFinishedResolver(resolver: (msg: string) => void): void {
-        this.finishedResolverFn = resolver;
+    public setFinishedResolver(finishedResolverFn: (msg: string) => void) {
+        this.finishedResolverFn = finishedResolverFn;
     }
 
-    public getFinishedResolver(): ((msg: string) => void) | undefined {
-        return this.finishedResolverFn;
-    }
-
-    public clearFinishedResolver(): void {
-        this.finishedResolverFn = undefined;
+    public onResultResolved(message = "") {
+        if (this.finishedResolverFn) {
+            this.finishedResolverFn(message);
+            this.finishedResolverFn = undefined;
+        }
     }
 
     private static describeError(stringToEval: string, lineno: number, colno: number): string {
         const lines = stringToEval.split("\n");
         const line = lines[lineno - 1];
         return `${line}\n${" ".repeat(colno - 1) + "^"}`;
-    }
-
-    private postMessageToWorker(message: MessageToWorker): void {
-        if (this.postMessageFn) {
-            this.postMessageFn(message);
-        }
     }
 
     public async handleMessage(data: MessageFromWorker): Promise<void> {
@@ -59,18 +48,19 @@ export class VmMessageHandler {
                 break;
             case 'geolocation': {
                 try {
-                    const str = await this.callbacks.onGeolocation();
-                    this.postMessageToWorker({ type: 'continue', result: str });
+                    const result = await this.callbacks.onGeolocation();
+                    this.postMessage({ type: 'continue', result });
                 } catch (msg) {
                     console.error(msg);
-                    this.postMessageToWorker({ type: 'stop' });
-                    this.postMessageToWorker({ type: 'continue', result: '' });
+                    this.postMessage({ type: 'stop' });
+                    this.postMessage({ type: 'continue', result: '' });
                 }
                 break;
             }
             case 'input': {
-                setTimeout(() => {
-                    this.callbacks.onInput(data.prompt);
+                setTimeout(async () => {
+                    const input = await this.callbacks.onInput(data.prompt);
+                    this.postMessage({ type: 'input', input });
                 }, 50); // 50ms delay to allow UI update
                 break;
             }
@@ -98,21 +88,17 @@ export class VmMessageHandler {
                         res += ": " + basicErrors[Number(match1[1])];
                     }
                 }
-
-                if (this.finishedResolverFn) {
-                    this.callbacks.onResultResolved(res);
-                    this.finishedResolverFn = undefined;
-                }
+                this.onResultResolved(res);
                 break;
             }
             case 'speak': {
                 try {
                     await this.callbacks.onSpeak(data.message, data.pitch);
-                    this.postMessageToWorker({ type: 'continue', result: '' });
+                    this.postMessage({ type: 'continue', result: '' });
                 } catch (msg) {
                     console.log(msg);
-                    this.postMessageToWorker({ type: 'stop' });
-                    this.postMessageToWorker({ type: 'continue', result: '' });
+                    this.postMessage({ type: 'stop' });
+                    this.postMessage({ type: 'continue', result: '' });
                 }
                 break;
             }

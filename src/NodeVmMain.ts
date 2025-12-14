@@ -1,54 +1,17 @@
-import type { INodeParts, MessageFromWorker, MessageToWorker, NodeWorkerType } from "./Interfaces";
-import type { VmMessageHandlerCallbacks } from "./VmMessageHandler";
-import { VmMainBase } from "./VmMainBase";
+import type { MessageFromWorker, MessageToWorker, NodeWorkerType } from "./Interfaces";
+import { VmMessageHandler, type VmMessageHandlerCallbacks } from "./VmMessageHandler";
 
+export class NodeVmMain {
+    private readonly messageHandler: VmMessageHandler;
+    private readonly createNodeWorker: () => NodeWorkerType;
+    private worker?: NodeWorkerType;
 
-export class NodeVmMain extends VmMainBase {
-
-    private nodeParts: INodeParts;
-    private workerFile: string;
-
-    constructor(nodeParts: INodeParts, workerFile: string) {
-        super();
-        this.nodeParts = nodeParts;
-        this.workerFile = workerFile;
+    constructor(callbacks: VmMessageHandlerCallbacks, createNodeWorker: () => NodeWorkerType) {
+        this.messageHandler = new VmMessageHandler(callbacks, (message: MessageToWorker) => this.postMessage(message));
+        this.createNodeWorker = createNodeWorker;
     }
 
-    protected createCallbacks(): VmMessageHandlerCallbacks {
-        return {
-            onFlush: (message: string, needCls?: boolean) => {
-                if (needCls) {
-                    this.nodeParts.consoleClear();
-                }
-                this.nodeParts.consolePrint(message);
-            },
-            onInput: (prompt: string) => {
-                setTimeout(() => {
-                    this.nodeParts.consolePrint(prompt);
-                    const input = ""; //TODO
-                    this.postMessage({ type: 'input', input });
-                }, 50); // 50ms delay to allow UI update
-            },
-            onGeolocation: async () => {
-                // TODO
-                return '';
-            },
-            onSpeak: async () => {
-                // TODO
-            },
-            onKeyDef: () => {
-                //TODO
-            },
-            onResultResolved: (message: string) => {
-                if (this.finishedResolverFn) {
-                    this.finishedResolverFn(message);
-                    this.finishedResolverFn = undefined;
-                }
-            }
-        };
-    }
-
-    protected postMessage(message: MessageToWorker) {
+    private postMessage(message: MessageToWorker) {
         if (this.worker) {
             (this.worker as NodeWorkerType).postMessage(message);
         }
@@ -58,12 +21,48 @@ export class NodeVmMain extends VmMainBase {
         this.messageHandler.handleMessage(data);
     };
 
-    protected getOrCreateWorker(): NodeWorkerType {
+    private getOrCreateWorker(): NodeWorkerType {
         if (!this.worker) {
-            this.worker = this.nodeParts.createNodeWorker(this.workerFile);
-            (this.worker as NodeWorkerType).on('message', this.workerOnMessageHandler);
+            this.worker = this.createNodeWorker();
+            this.worker.on('message', this.workerOnMessageHandler);
             this.postMessage({ type: 'config', isTerminal: true });
         }
-        return this.worker as NodeWorkerType;
+        return this.worker;
+    }
+
+    public async run(code: string) {
+        if (!code.endsWith("\n")) {
+            code += "\n"; // make sure the script ends with a new line (needed for line comment in last line)
+        }
+        this.messageHandler.setCode(code); // for error message
+        this.getOrCreateWorker();
+
+        const finishedPromise = new Promise<string>((resolve) => {
+            this.messageHandler.setFinishedResolver(resolve);
+        });
+
+        this.postMessage({ type: 'run', code });
+        return finishedPromise;
+    }
+
+    public frameTime(time: number) {
+        this.postMessage({ type: 'frameTime', time });
+    }
+
+    public stop() {
+        console.log("stop: Stop requested.");
+        this.postMessage({ type: 'stop' });
+    }
+
+    public reset() {
+        if (this.worker) {
+            this.worker.terminate();
+            this.worker = undefined;
+        }
+        this.messageHandler.onResultResolved("terminated.");
+    }
+
+    public putKeys(keys: string) {
+        this.postMessage({ type: 'putKeys', keys });
     }
 }

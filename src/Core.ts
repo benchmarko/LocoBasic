@@ -58,7 +58,7 @@ export class Core implements ICore {
     private readonly config: ConfigType;
     private readonly semantics = new Semantics();
     private readonly databaseMap: DatabaseMapType = {};
-    private arithmeticParser: Parser | undefined;
+    private arithmeticParser?: Parser;
     private scriptCreator?: ScriptCreator;
 
     constructor(defaultConfig: ConfigType) {

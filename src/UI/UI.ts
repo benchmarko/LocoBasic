@@ -1,7 +1,14 @@
 import type { Editor } from "codemirror";
-import type { ConfigEntryType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore, IUI } from "../Interfaces";
+import type { ConfigEntryType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore, IUI, NodeWorkerFnType } from "../Interfaces";
 import { LocoBasicMode } from "./LocoBasicMode";
 import { VmMain } from "./VmMain";
+import { VmMessageHandlerCallbacks } from "../VmMessageHandler";
+
+declare global {
+    interface Window {
+        locoVmWorker: NodeWorkerFnType
+    }
+}
 
 const escapeText = (str: string) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
@@ -14,9 +21,9 @@ export class UI implements IUI {
     private compiledCm?: Editor;
     private compiledMessages: string[] = [];
     private initialUserAction = false;
-    private fnOnKeyPressHandler: (event: KeyboardEvent) => void;
-    private fnOnClickHandler: (event: MouseEvent) => void;
-    private fnOnUserKeyClickHandler: (event: MouseEvent) => void;
+    private readonly fnOnKeyPressHandler: (event: KeyboardEvent) => void;
+    private readonly fnOnClickHandler: (event: MouseEvent) => void;
+    private readonly fnOnUserKeyClickHandler: (event: MouseEvent) => void;
     private speechSynthesisUtterance?: SpeechSynthesisUtterance;
     private locoVmWorkerName = "";
 
@@ -746,7 +753,7 @@ export class UI implements IUI {
     }
 
     private onStandaloneButtonClick = async () => { // bound this
-        const locoVmWorker = await this.getLocoVmWorker(this.locoVmWorkerName);
+        const locoVmWorker = await this.getLocoVmWorker();
         const core = this.getCore();
         const compiledScript = this.getCompiledCm().getValue();
         const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
@@ -899,20 +906,19 @@ export class UI implements IUI {
         */
     }
 
-    private async getLocoVmWorker(locoVmWorkerName: string) {
+    private async getLocoVmWorker() {
         if (!window.locoVmWorker) {
-            await this.loadScript(locoVmWorkerName, "");
-
+            await this.loadScript(this.locoVmWorkerName, "");
         }
         return window.locoVmWorker;
     }
 
-    public async createWebWorker(locoVmWorkerName: string) {
+    public async createWebWorker() {
         let worker: Worker;
         // Detect if running on file:// protocol
         const isFileProtocol = window.location.protocol === 'file:';
         if (isFileProtocol) {
-            const locoVmWorker = await this.getLocoVmWorker(locoVmWorkerName);
+            const locoVmWorker = await this.getLocoVmWorker();
             const preparedWorkerFnString = String(locoVmWorker.workerFn);
             const workerScript = `(${preparedWorkerFnString})(self);`;
 
@@ -923,10 +929,28 @@ export class UI implements IUI {
             window.URL.revokeObjectURL(objectURL);
         } else {
             // Use file-based worker for http/https
-            const workerUrl = new URL(locoVmWorkerName, window.location.href);
+            const workerUrl = new URL(this.locoVmWorkerName, window.location.href);
             worker = new Worker(workerUrl);
         }
         return worker;
+    }
+
+    private createMessageHandlerCallbacks() {
+        const callbacks: VmMessageHandlerCallbacks = {
+            onFlush: (message: string, needCls?: boolean, hasGraphics?: boolean) => {
+                this.addOutputText(message, needCls, hasGraphics);
+            },
+            onInput: (prompt: string) => {
+                const input = window.prompt(prompt);
+                return Promise.resolve(input);
+            },
+            onGeolocation: () => this.onGeolocation(),
+            onSpeak: (message: string, pitch: number) => this.onSpeak(message, pitch),
+            onKeyDef: (codes: number[]) => {
+                this.onSetUiKeys(codes);
+            }
+        };
+        return callbacks;
     }
 
     public onWindowLoadContinue(core: ICore, locoVmWorkerName: string): void {
@@ -934,7 +958,7 @@ export class UI implements IUI {
         const config = core.getConfigMap();
         const args = this.parseUri(config);
         core.parseArgs(args, config);
-        this.locoVmWorkerName = locoVmWorkerName; // not so nice to have it here as well
+        this.locoVmWorkerName = locoVmWorkerName;
 
         // Map of element IDs to event handlers
         const buttonHandlers: Record<string, EventListener> = {
@@ -1015,7 +1039,8 @@ export class UI implements IUI {
             this.initialUserAction = true;
         }, { once: true });
 
-        this.vmMain = new VmMain(locoVmWorkerName, (workerName: string) => this.createWebWorker(workerName), this.addOutputText, this.onSetUiKeys, this.onGeolocation, this.onSpeak);
+        const messageHandlerCallbacks = this.createMessageHandlerCallbacks();
+        this.vmMain = new VmMain(messageHandlerCallbacks, () => this.createWebWorker());
 
         // Initialize database and examples
         UI.asyncDelay(() => {
