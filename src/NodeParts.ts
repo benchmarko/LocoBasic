@@ -47,49 +47,22 @@ type NodeKeyPressType = {
 
 declare function require(name: string): NodeFs | NodeHttps | NodeModule | NodePath | NodeReadline | NodeVm | NodeWorkerThreads | NodeWorkerFnType;
 
-function isUrl(s: string) {
-    return s.startsWith("http"); // http or https
-}
-
 export class NodeParts {
     private nodeVmMain?: NodeVmMain;
     private locoVmWorkerName = "";
-
-    private nodeFs?: NodeFs;
-    private nodeHttps?: NodeHttps;
-    private nodePath?: NodePath;
-    private nodeWorkerThreads?: NodeWorkerThreads;
+    private readonly loadedNodeModules: Record<string, ReturnType<typeof require>> = {};
     private modulePath = "";
-    private nodeReadline?: NodeReadline;
-    //private readonly keyBuffer: string[] = []; // buffered pressed keys
     private fnOnKeyPressHandler?: (chunk: string, key: NodeKeyPressType) => void;
 
-    private getNodeFs() {
-        if (!this.nodeFs) {
-            this.nodeFs = require("fs") as NodeFs;
+    private getNodeModule<T>(module: string): T {
+        if (!this.loadedNodeModules[module]) {
+            this.loadedNodeModules[module] = require(module);
         }
-        return this.nodeFs;
-    }
-
-    private getNodeHttps() {
-        if (!this.nodeHttps) {
-            this.nodeHttps = require("https") as NodeHttps;
-        }
-        return this.nodeHttps;
+        return this.loadedNodeModules[module] as T;
     }
 
     private getNodePath() {
-        if (!this.nodePath) {
-            this.nodePath = require("path") as NodePath;
-        }
-        return this.nodePath;
-    }
-
-    private getNodeWorkerConstructor() {
-        if (!this.nodeWorkerThreads) {
-            this.nodeWorkerThreads = require('worker_threads') as NodeWorkerThreads;
-        }
-        return this.nodeWorkerThreads;
+        return this.getNodeModule<NodePath>("path");
     }
 
     private nodeGetAbsolutePath(name: string) {
@@ -97,22 +70,21 @@ export class NodeParts {
 
         // https://stackoverflow.com/questions/8817423/why-is-dirname-not-defined-in-node-repl
         const dirname = __dirname || path.dirname(__filename);
-        const absolutePath = path.resolve(dirname, name);
-
-        return absolutePath;
+        return path.resolve(dirname, name); // absolute path
     }
 
     private async nodeReadFile(name: string): Promise<string> {
-        const nodeFs = this.getNodeFs();
+        const nodeFs = this.getNodeModule<NodeFs>("fs");
 
         if (!module) {
-            const module = require("module") as NodeModule;
+            const module = this.getNodeModule<NodeModule>("module");
             this.modulePath = module.path || "";
 
             if (!this.modulePath) {
                 console.warn("nodeReadFile: Cannot determine module path");
             }
         }
+
         try {
             return await nodeFs.promises.readFile(name, "utf8");
         } catch (error) {
@@ -122,7 +94,7 @@ export class NodeParts {
     }
 
     private async nodeReadUrl(url: string): Promise<string> {
-        const nodeHttps = this.getNodeHttps();
+        const nodeHttps = this.getNodeModule<NodeHttps>("https");
 
         return new Promise((resolve, reject) => {
             nodeHttps.get(url, (resp) => {
@@ -143,26 +115,24 @@ export class NodeParts {
     }
 
     private createNodeWorker(): NodeWorkerType {
-        const nodeWorkerThreads = this.getNodeWorkerConstructor() as NodeWorkerThreads;
+        const nodeWorkerThreads = this.getNodeModule<NodeWorkerThreads>("worker_threads");
         const path = this.getNodePath();
 
-        const worker = new nodeWorkerThreads.Worker(path.resolve(__dirname, this.locoVmWorkerName));
-        return worker;
+        return new nodeWorkerThreads.Worker(path.resolve(__dirname, this.locoVmWorkerName));
     }
 
     private getNodeWorkerFn(workerFile: string): NodeWorkerFnType {
         const path = this.getNodePath();
         const workerFnPath = path.resolve(__dirname, workerFile);
-        const workerFn = require(workerFnPath) as NodeWorkerFnType;
-        return workerFn;
+        return this.getNodeModule<NodeWorkerFnType>(workerFnPath);
+    }
+
+    private static isUrl(s: string) {
+        return s.startsWith("http"); // http or https
     }
 
     private loadScript(fileOrUrl: string): Promise<string> {
-        if (isUrl(fileOrUrl)) {
-            return this.nodeReadUrl(fileOrUrl);
-        } else {
-            return this.nodeReadFile(fileOrUrl);
-        }
+        return NodeParts.isUrl(fileOrUrl) ? this.nodeReadUrl(fileOrUrl) : this.nodeReadFile(fileOrUrl);
     };
 
     private keepRunning(fn: () => void, timeout: number): Promise<void> {
@@ -220,12 +190,10 @@ export class NodeParts {
     }
 
     private initKeyboardInput() {
-        if (!this.nodeReadline) {
-            this.nodeReadline = require('readline') as NodeReadline;
-        }
+        const nodeReadline = this.getNodeModule<NodeReadline>("readline");
 
         if (process.stdin.isTTY) {
-            this.nodeReadline.emitKeypressEvents(process.stdin);
+            nodeReadline.emitKeypressEvents(process.stdin);
             process.stdin.setRawMode(true);
 
             this.fnOnKeyPressHandler = this.fnOnKeypress.bind(this);
@@ -234,16 +202,6 @@ export class NodeParts {
             console.warn("initKeyboardInput: not a TTY", process.stdin);
         }
     }
-
-    /*
-    private getKeyFromBuffer(): string {
-        if (!this.nodeReadline) {
-            this.initKeyboardInput();
-        }
-        const key = this.keyBuffer.length ? this.keyBuffer.shift() as string : "";
-        return key;
-    }
-    */
 
     private createMessageHandlerCallbacks() {
         const callbacks: VmMessageHandlerCallbacks = {
@@ -400,7 +358,7 @@ export class NodeParts {
             }
 
             return this.keepRunning(async () => {
-                if (!isUrl(databaseItem.source)) {
+                if (!NodeParts.isUrl(databaseItem.source)) {
                     databaseItem.source = this.nodeGetAbsolutePath(databaseItem.source);
                 }
 

@@ -36,7 +36,8 @@ export class UI implements IUI {
     private debounce<T extends (...args: unknown[]) => void | Promise<void>>(func: T, fngetDelay: () => number): (...args: Parameters<T>) => void {
         let timeoutId: ReturnType<typeof setTimeout>;
         return function (this: unknown, ...args: Parameters<T>) {
-            // Fast hack for CodeMittor changes: Use delay 0 when change comes from "setValue" (and not from CodeMirror "+input")
+            // Fast hack for CodeMirror changes: Use delay 0 when change comes from "setValue" (and not from CodeMirror "+input")
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const delay = (args as any)?.[1]?.[0]?.origin === "setValue" ? 0 : fngetDelay();
             clearTimeout(timeoutId);
             timeoutId = setTimeout(() => {
@@ -340,7 +341,6 @@ export class UI implements IUI {
         this.updateButtonStates(buttonStates);
 
         const outputText = document.getElementById("outputText") as HTMLPreElement;
-        //outputText.setAttribute("contenteditable", "false");
         outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.addEventListener("click", this.fnOnClickHandler, false);
 
@@ -352,7 +352,6 @@ export class UI implements IUI {
         const outputText = document.getElementById("outputText") as HTMLPreElement;
         outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.removeEventListener("click", this.fnOnClickHandler, false);
-        // do not change after rendering: outputText.setAttribute("contenteditable", "true");
         this.onSetUiKeys([0]); // remove user keys
 
         this.updateButtonStates({
@@ -777,14 +776,28 @@ export class UI implements IUI {
 
     private onOutputTextKeydown(event: KeyboardEvent): void {
         const key = event.key;
-        if (key === "Escape") {
+        let putKey = "";
+        if (key.length === 1) {
+            if (event.ctrlKey === false) {
+                putKey = key;
+            }
+        } else if (key === "Escape") {
             this.cancelSpeech();
             this.getVmMain().stop(); // request stop
         } else if (key === "Enter") {
-            this.putKeysInBuffer("\x0d");
-            event.preventDefault();
-        } else if (key.length === 1 && event.ctrlKey === false && event.altKey === false) {
-            this.putKeysInBuffer(key);
+            putKey = "\x0d";
+        } else if (key === "Dead") {
+            //const keyAndCode = `${key}-${event.code}`;
+            const code = event.code;
+            if (code === "KeyN") {
+                putKey = "~";
+            } else if (event.code === "IntlBackslash") {
+                putKey = "^";
+            }
+        }
+
+        if (putKey) {
+            this.putKeysInBuffer(putKey);
             event.preventDefault();
         }
     }
@@ -1041,6 +1054,9 @@ export class UI implements IUI {
 
         const messageHandlerCallbacks = this.createMessageHandlerCallbacks();
         this.vmMain = new VmMain(messageHandlerCallbacks, () => this.createWebWorker());
+
+        const outputText = document.getElementById("outputText") as HTMLPreElement;
+        outputText.setAttribute("contenteditable", "false");
 
         // Initialize database and examples
         UI.asyncDelay(() => {

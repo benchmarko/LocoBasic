@@ -147,7 +147,7 @@ export class ScriptCreator {
 
     // Generate source code for filtered vm object
     generateSource(vmObj: Partial<VMObject>): string {
-        const indent = " ".repeat(8); 
+        const indent = " ".repeat(8);
         let output = "";
 
         const keys = Object.keys(vmObj);

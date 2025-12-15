@@ -105,7 +105,7 @@ export class SemanticsHelper {
         name = name.toLowerCase();
         const matches = name.match(/\/\* not supported: [%|!] \*\//);
         if (matches) {
-            name = name.substring(0,matches.index);
+            name = name.substring(0, matches.index);
         }
 
         if (SemanticsHelper.reJsKeyword.test(name)) {

@@ -5,54 +5,6 @@ import { Semantics } from "./Semantics";
 import { SemanticsHelper } from "./SemanticsHelper";
 import { ScriptCreator } from "./ScriptCreator";
 
-function fnHereDoc(fn: () => void) {
-    return String(fn).replace(/^[^/]+\/\*\S*/, "").replace(/\*\/[^/]+$/, "");
-}
-
-function expandNextStatements(src: string, semanticsHelper: SemanticsHelper): string {
-    return src.split('\n').map((line, lineIdx) => {
-        // Find the first REM or ' that is not inside a string
-        let commentIdx = -1;
-        let inString = false;
-        for (let i = 0; i < line.length; i++) {
-            const c = line[i];
-            if (c === '"') inString = !inString;
-            // Check for REM (case-insensitive) or '
-            if (!inString) {
-                if (line.slice(i, i + 3).toUpperCase() === "REM" && (i === 0 || /\s/.test(line[i - 1]))) {
-                    commentIdx = i;
-                    break;
-                }
-                if (c === "'") {
-                    commentIdx = i;
-                    break;
-                }
-            }
-        }
-        let code = line;
-        let comment = "";
-        if (commentIdx !== -1) {
-            code = line.slice(0, commentIdx);
-            comment = line.slice(commentIdx);
-        }
-
-        // Replace NEXT i,j,k with NEXT i : NEXT j : NEXT k (not inside strings)
-        code = code.replace(/NEXT\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)+)/gi, (match, vars: string, offset: number) => {
-            const before = code.slice(0, offset);
-            const quoteCount = (before.match(/"/g) || []).length;
-            if (quoteCount % 2 !== 0) return match; // inside string, skip
-
-            const col = offset + 1;
-            semanticsHelper.addCompileMessage(
-                `WARNING: Not supported: Line ${lineIdx + 1}, col ${col}: Expanding NEXT statement: ${vars}\n`
-            );
-            return vars.split(/\s*,\s*/).map(v => `NEXT ${v}`).join(' : ');
-        });
-
-        return code + comment;
-    }).join('\n');
-}
-
 export class Core implements ICore {
     private readonly defaultConfig: ConfigType;
     private readonly config: ConfigType;
@@ -116,6 +68,50 @@ export class Core implements ICore {
         return exampleMap[name];
     }
 
+    private static expandNextStatements(src: string, semanticsHelper: SemanticsHelper): string {
+        return src.split('\n').map((line, lineIdx) => {
+            // Find the first REM or ' that is not inside a string
+            let commentIdx = -1;
+            let inString = false;
+            for (let i = 0; i < line.length; i++) {
+                const c = line[i];
+                if (c === '"') inString = !inString;
+                // Check for REM (case-insensitive) or '
+                if (!inString) {
+                    if (line.slice(i, i + 3).toUpperCase() === "REM" && (i === 0 || /\s/.test(line[i - 1]))) {
+                        commentIdx = i;
+                        break;
+                    }
+                    if (c === "'") {
+                        commentIdx = i;
+                        break;
+                    }
+                }
+            }
+            let code = line;
+            let comment = "";
+            if (commentIdx !== -1) {
+                code = line.slice(0, commentIdx);
+                comment = line.slice(commentIdx);
+            }
+
+            // Replace NEXT i,j,k with NEXT i : NEXT j : NEXT k (not inside strings)
+            code = code.replace(/NEXT\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)+)/gi, (match, vars: string, offset: number) => {
+                const before = code.slice(0, offset);
+                const quoteCount = (before.match(/"/g) || []).length;
+                if (quoteCount % 2 !== 0) return match; // inside string, skip
+
+                const col = offset + 1;
+                semanticsHelper.addCompileMessage(
+                    `WARNING: Not supported: Line ${lineIdx + 1}, col ${col}: Expanding NEXT statement: ${vars}\n`
+                );
+                return vars.split(/\s*,\s*/).map(v => `NEXT ${v}`).join(' : ');
+            });
+
+            return code + comment;
+        }).join('\n');
+    }
+
     public compileScript(script: string): CompileResultType {
         if (!this.arithmeticParser) {
             const semanticsActionDict = this.semantics.getSemanticsActionDict();
@@ -129,7 +125,7 @@ export class Core implements ICore {
         this.semantics.resetParser();
         const semanticsHelper = this.semantics.getHelper();
 
-        const preprocessedScript = expandNextStatements(script, semanticsHelper); // some preprocessing
+        const preprocessedScript = Core.expandNextStatements(script, semanticsHelper); // some preprocessing
 
         const compiledScript = this.arithmeticParser.parseAndEval(preprocessedScript);
         const messages = semanticsHelper.getCompileMessages();
@@ -140,10 +136,14 @@ export class Core implements ICore {
         return this.semantics;
     }
 
+    private static fnHereDoc(fn: () => void) {
+        return String(fn).replace(/^[^/]+\/\*\S*/, "").replace(/\*\/[^/]+$/, "");
+    }
+
     public addIndex = (dir: string, input: Record<string, ExampleType[]> | (() => void)): void => { // need property function because we need bound "this"
         if (typeof input === "function") {
             input = {
-                [dir]: JSON.parse(fnHereDoc(input).trim())
+                [dir]: JSON.parse(Core.fnHereDoc(input).trim())
             };
         }
 
@@ -159,7 +159,7 @@ export class Core implements ICore {
     };
 
     public addItem = (key: string, input: string | (() => void)): void => { // need property function because we need bound "this"
-        let inputString = typeof input !== "string" ? fnHereDoc(input) : input;
+        let inputString = typeof input !== "string" ? Core.fnHereDoc(input) : input;
         inputString = inputString.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
 
         if (!key) { // maybe ""

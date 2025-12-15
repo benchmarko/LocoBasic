@@ -100,8 +100,8 @@ describe("VmWorker.vm core methods", () => {
     it("dim and dim1 create correct arrays", () => {
         const vm = workerFn(getMockParentPort());
         const arr1 = vm.dim1(2, 7);
-        expect(arr1).toEqual([7,7,7]);
-        const numArr = vm.dim([1,2], 3) as number[][];
+        expect(arr1).toEqual([7, 7, 7]);
+        const numArr = vm.dim([1, 2], 3) as number[][];
         expect(Array.isArray(numArr)).toBe(true);
         expect(numArr[0][0]).toBe(3);
         expect(numArr[1][2]).toBe(3);
@@ -181,7 +181,7 @@ describe("VmWorker.vm core methods", () => {
 
     it("restore and read manage data pointer", () => {
         const vm = workerFn(getMockParentPort());
-        vm._data = [1,2,3];
+        vm._data = [1, 2, 3];
         vm._restoreMap["A"] = 1;
         vm.restore("A");
         expect(vm._dataPtr).toBe(1);
@@ -236,11 +236,13 @@ describe("VmWorker.vm core methods", () => {
     });
 
     it("inkey$ handles input logic", async () => {
-        const mockParentPort = getMockParentPort();
-        const vm = workerFn(mockParentPort);
-        vm._isTerminal = false;
+        const vm = workerFn(getMockParentPort());
+        //vm._isTerminal = false;
 
-        vm._keyCharBufferString = "A";
+        vm.onMessageHandler({
+            type: "putKeys",
+            keys: "A"
+        });
         const ch = vm.inkey$();
         await expect(ch).resolves.toBe("A");
     });
@@ -251,7 +253,7 @@ describe("VmWorker.vm core methods", () => {
         vm._isTerminal = false;
         const arr1 = vm.input("Prompt?", "s");
 
-        // Simulate input response
+        // simulate input
         mockParentPort._messageHandler({ type: 'input', input: "hello" });
 
         await expect(arr1).resolves.toStrictEqual(["hello"]);

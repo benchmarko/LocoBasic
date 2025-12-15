@@ -109,7 +109,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         _graGraphicsY: 0,
         _graOutputGraphicsIndex: -1,
 
-        _keyCharBufferString: "",
+        _keyBuffer: [] as string[], // buffered pressed keys
         _needCls: false,
         _output: "",
         _paperSpanPos: -1,
@@ -160,7 +160,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
                 case 'continue':
                     vm.resolveWait(data.result);
                     break;
-                
+
                 case 'frameTime':
                     vm._frameTime = data.time;
                     break;
@@ -170,7 +170,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
                     break;
 
                 case 'putKeys':
-                    vm._keyCharBufferString += data.keys;
+                    vm._keyBuffer.push(data.keys); // currently only one key
                     break;
 
                 case 'stop':
@@ -190,7 +190,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             vm.cls();
             vm._data.length = 0;
             vm._dataPtr = 0;
-            vm._keyCharBufferString = "";
+            vm._keyBuffer.length = 0;
             vm.deleteAllItems(vm._restoreMap);
             vm._startTime = Date.now();
             vm._stopRequested = false;
@@ -240,7 +240,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         cint: (num: number) => Math.round(num),
 
         clearInput: () => {
-            vm._keyCharBufferString = "";
+            vm._keyBuffer.length = 0;
         },
 
         cls: () => {
@@ -461,10 +461,8 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         },
 
         inkey$: async () => {
-            if (vm._keyCharBufferString.length) {
-                const key = vm._keyCharBufferString.charAt(0);
-                vm._keyCharBufferString = vm._keyCharBufferString.substring(1);
-                return key;
+            if (vm._keyBuffer.length) {
+                return vm._keyBuffer.shift() as string;
             }
 
             const oldInkeyTime = vm._lastInkeyTime;

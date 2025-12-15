@@ -12,9 +12,7 @@ export class NodeVmMain {
     }
 
     private postMessage(message: MessageToWorker) {
-        if (this.worker) {
-            (this.worker as NodeWorkerType).postMessage(message);
-        }
+        this.worker?.postMessage(message);
     }
 
     private workerOnMessageHandler = (data: MessageFromWorker): void => {
