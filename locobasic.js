@@ -3216,49 +3216,6 @@ ${workerFnString}
         }
     }
 
-    function fnHereDoc(fn) {
-        return String(fn).replace(/^[^/]+\/\*\S*/, "").replace(/\*\/[^/]+$/, "");
-    }
-    function expandNextStatements(src, semanticsHelper) {
-        return src.split('\n').map((line, lineIdx) => {
-            // Find the first REM or ' that is not inside a string
-            let commentIdx = -1;
-            let inString = false;
-            for (let i = 0; i < line.length; i++) {
-                const c = line[i];
-                if (c === '"')
-                    inString = !inString;
-                // Check for REM (case-insensitive) or '
-                if (!inString) {
-                    if (line.slice(i, i + 3).toUpperCase() === "REM" && (i === 0 || /\s/.test(line[i - 1]))) {
-                        commentIdx = i;
-                        break;
-                    }
-                    if (c === "'") {
-                        commentIdx = i;
-                        break;
-                    }
-                }
-            }
-            let code = line;
-            let comment = "";
-            if (commentIdx !== -1) {
-                code = line.slice(0, commentIdx);
-                comment = line.slice(commentIdx);
-            }
-            // Replace NEXT i,j,k with NEXT i : NEXT j : NEXT k (not inside strings)
-            code = code.replace(/NEXT\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)+)/gi, (match, vars, offset) => {
-                const before = code.slice(0, offset);
-                const quoteCount = (before.match(/"/g) || []).length;
-                if (quoteCount % 2 !== 0)
-                    return match; // inside string, skip
-                const col = offset + 1;
-                semanticsHelper.addCompileMessage(`WARNING: Not supported: Line ${lineIdx + 1}, col ${col}: Expanding NEXT statement: ${vars}\n`);
-                return vars.split(/\s*,\s*/).map(v => `NEXT ${v}`).join(' : ');
-            });
-            return code + comment;
-        }).join('\n');
-    }
     class Core {
         constructor(defaultConfig) {
             this.semantics = new Semantics();
@@ -3266,7 +3223,7 @@ ${workerFnString}
             this.addIndex = (dir, input) => {
                 if (typeof input === "function") {
                     input = {
-                        [dir]: JSON.parse(fnHereDoc(input).trim())
+                        [dir]: JSON.parse(Core.fnHereDoc(input).trim())
                     };
                 }
                 const exampleMap = {};
@@ -3279,7 +3236,7 @@ ${workerFnString}
                 this.setExampleMap(exampleMap);
             };
             this.addItem = (key, input) => {
-                let inputString = typeof input !== "string" ? fnHereDoc(input) : input;
+                let inputString = typeof input !== "string" ? Core.fnHereDoc(input) : input;
                 inputString = inputString.replace(/^\n/, "").replace(/\n$/, ""); // remove preceding and trailing newlines
                 if (!key) { // maybe ""
                     console.warn("addItem: no key!");
@@ -3333,6 +3290,46 @@ ${workerFnString}
             const exampleMap = this.getExampleMap();
             return exampleMap[name];
         }
+        static expandNextStatements(src, semanticsHelper) {
+            return src.split('\n').map((line, lineIdx) => {
+                // Find the first REM or ' that is not inside a string
+                let commentIdx = -1;
+                let inString = false;
+                for (let i = 0; i < line.length; i++) {
+                    const c = line[i];
+                    if (c === '"')
+                        inString = !inString;
+                    // Check for REM (case-insensitive) or '
+                    if (!inString) {
+                        if (line.slice(i, i + 3).toUpperCase() === "REM" && (i === 0 || /\s/.test(line[i - 1]))) {
+                            commentIdx = i;
+                            break;
+                        }
+                        if (c === "'") {
+                            commentIdx = i;
+                            break;
+                        }
+                    }
+                }
+                let code = line;
+                let comment = "";
+                if (commentIdx !== -1) {
+                    code = line.slice(0, commentIdx);
+                    comment = line.slice(commentIdx);
+                }
+                // Replace NEXT i,j,k with NEXT i : NEXT j : NEXT k (not inside strings)
+                code = code.replace(/NEXT\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)+)/gi, (match, vars, offset) => {
+                    const before = code.slice(0, offset);
+                    const quoteCount = (before.match(/"/g) || []).length;
+                    if (quoteCount % 2 !== 0)
+                        return match; // inside string, skip
+                    const col = offset + 1;
+                    semanticsHelper.addCompileMessage(`WARNING: Not supported: Line ${lineIdx + 1}, col ${col}: Expanding NEXT statement: ${vars}\n`);
+                    return vars.split(/\s*,\s*/).map(v => `NEXT ${v}`).join(' : ');
+                });
+                return code + comment;
+            }).join('\n');
+        }
         compileScript(script) {
             if (!this.arithmeticParser) {
                 const semanticsActionDict = this.semantics.getSemanticsActionDict();
@@ -3346,13 +3343,16 @@ ${workerFnString}
             }
             this.semantics.resetParser();
             const semanticsHelper = this.semantics.getHelper();
-            const preprocessedScript = expandNextStatements(script, semanticsHelper); // some preprocessing
+            const preprocessedScript = Core.expandNextStatements(script, semanticsHelper); // some preprocessing
             const compiledScript = this.arithmeticParser.parseAndEval(preprocessedScript);
             const messages = semanticsHelper.getCompileMessages();
             return { compiledScript, messages };
         }
         getSemantics() {
             return this.semantics;
+        }
+        static fnHereDoc(fn) {
+            return String(fn).replace(/^[^/]+\/\*\S*/, "").replace(/\*\/[^/]+$/, "");
         }
         parseArgs(args, config) {
             for (const arg of args) {
@@ -3484,9 +3484,8 @@ ${workerFnString}
             this.createNodeWorker = createNodeWorker;
         }
         postMessage(message) {
-            if (this.worker) {
-                this.worker.postMessage(message);
-            }
+            var _a;
+            (_a = this.worker) === null || _a === void 0 ? void 0 : _a.postMessage(message);
         }
         getOrCreateWorker() {
             if (!this.worker) {
@@ -3527,49 +3526,31 @@ ${workerFnString}
         }
     }
 
-    function isUrl(s) {
-        return s.startsWith("http"); // http or https
-    }
     class NodeParts {
         constructor() {
             this.locoVmWorkerName = "";
+            this.loadedNodeModules = {};
             this.modulePath = "";
         }
-        getNodeFs() {
-            if (!this.nodeFs) {
-                this.nodeFs = require("fs");
+        getNodeModule(module) {
+            if (!this.loadedNodeModules[module]) {
+                this.loadedNodeModules[module] = require(module);
             }
-            return this.nodeFs;
-        }
-        getNodeHttps() {
-            if (!this.nodeHttps) {
-                this.nodeHttps = require("https");
-            }
-            return this.nodeHttps;
+            return this.loadedNodeModules[module];
         }
         getNodePath() {
-            if (!this.nodePath) {
-                this.nodePath = require("path");
-            }
-            return this.nodePath;
-        }
-        getNodeWorkerConstructor() {
-            if (!this.nodeWorkerThreads) {
-                this.nodeWorkerThreads = require('worker_threads');
-            }
-            return this.nodeWorkerThreads;
+            return this.getNodeModule("path");
         }
         nodeGetAbsolutePath(name) {
             const path = this.getNodePath();
             // https://stackoverflow.com/questions/8817423/why-is-dirname-not-defined-in-node-repl
             const dirname = __dirname || path.dirname(__filename);
-            const absolutePath = path.resolve(dirname, name);
-            return absolutePath;
+            return path.resolve(dirname, name); // absolute path
         }
         async nodeReadFile(name) {
-            const nodeFs = this.getNodeFs();
+            const nodeFs = this.getNodeModule("fs");
             if (!module) {
-                const module = require("module");
+                const module = this.getNodeModule("module");
                 this.modulePath = module.path || "";
                 if (!this.modulePath) {
                     console.warn("nodeReadFile: Cannot determine module path");
@@ -3584,7 +3565,7 @@ ${workerFnString}
             }
         }
         async nodeReadUrl(url) {
-            const nodeHttps = this.getNodeHttps();
+            const nodeHttps = this.getNodeModule("https");
             return new Promise((resolve, reject) => {
                 nodeHttps.get(url, (resp) => {
                     let data = "";
@@ -3601,24 +3582,20 @@ ${workerFnString}
             });
         }
         createNodeWorker() {
-            const nodeWorkerThreads = this.getNodeWorkerConstructor();
+            const nodeWorkerThreads = this.getNodeModule("worker_threads");
             const path = this.getNodePath();
-            const worker = new nodeWorkerThreads.Worker(path.resolve(__dirname, this.locoVmWorkerName));
-            return worker;
+            return new nodeWorkerThreads.Worker(path.resolve(__dirname, this.locoVmWorkerName));
         }
         getNodeWorkerFn(workerFile) {
             const path = this.getNodePath();
             const workerFnPath = path.resolve(__dirname, workerFile);
-            const workerFn = require(workerFnPath);
-            return workerFn;
+            return this.getNodeModule(workerFnPath);
+        }
+        static isUrl(s) {
+            return s.startsWith("http"); // http or https
         }
         loadScript(fileOrUrl) {
-            if (isUrl(fileOrUrl)) {
-                return this.nodeReadUrl(fileOrUrl);
-            }
-            else {
-                return this.nodeReadFile(fileOrUrl);
-            }
+            return NodeParts.isUrl(fileOrUrl) ? this.nodeReadUrl(fileOrUrl) : this.nodeReadFile(fileOrUrl);
         }
         ;
         keepRunning(fn, timeout) {
@@ -3675,11 +3652,9 @@ ${workerFnString}
             }
         }
         initKeyboardInput() {
-            if (!this.nodeReadline) {
-                this.nodeReadline = require('readline');
-            }
+            const nodeReadline = this.getNodeModule("readline");
             if (process.stdin.isTTY) {
-                this.nodeReadline.emitKeypressEvents(process.stdin);
+                nodeReadline.emitKeypressEvents(process.stdin);
                 process.stdin.setRawMode(true);
                 this.fnOnKeyPressHandler = this.fnOnKeypress.bind(this);
                 process.stdin.on('keypress', this.fnOnKeyPressHandler);
@@ -3688,15 +3663,6 @@ ${workerFnString}
                 console.warn("initKeyboardInput: not a TTY", process.stdin);
             }
         }
-        /*
-        private getKeyFromBuffer(): string {
-            if (!this.nodeReadline) {
-                this.initKeyboardInput();
-            }
-            const key = this.keyBuffer.length ? this.keyBuffer.shift() as string : "";
-            return key;
-        }
-        */
         createMessageHandlerCallbacks() {
             const callbacks = {
                 onFlush: (message, needCls) => {
@@ -3839,7 +3805,7 @@ ${workerFnString}
                     return;
                 }
                 return this.keepRunning(async () => {
-                    if (!isUrl(databaseItem.source)) {
+                    if (!NodeParts.isUrl(databaseItem.source)) {
                         databaseItem.source = this.nodeGetAbsolutePath(databaseItem.source);
                     }
                     await this.getExampleMap(databaseItem, core);

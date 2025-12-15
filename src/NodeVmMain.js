@@ -8,9 +8,8 @@ export class NodeVmMain {
         this.createNodeWorker = createNodeWorker;
     }
     postMessage(message) {
-        if (this.worker) {
-            this.worker.postMessage(message);
-        }
+        var _a;
+        (_a = this.worker) === null || _a === void 0 ? void 0 : _a.postMessage(message);
     }
     getOrCreateWorker() {
         if (!this.worker) {

@@ -16,8 +16,10 @@ export declare class Core implements ICore {
     getExampleMap(): ExampleMapType;
     setExampleMap(exampleMap: ExampleMapType): void;
     getExample(name: string): ExampleType;
+    private static expandNextStatements;
     compileScript(script: string): CompileResultType;
     getSemantics(): Semantics;
+    private static fnHereDoc;
     addIndex: (dir: string, input: Record<string, ExampleType[]> | (() => void)) => void;
     addItem: (key: string, input: string | (() => void)) => void;
     parseArgs(args: string[], config: Record<string, ConfigEntryType>): Record<string, ConfigEntryType>;

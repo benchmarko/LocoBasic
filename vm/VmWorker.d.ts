@@ -24,7 +24,7 @@ export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] 
     _graGraphicsX: number;
     _graGraphicsY: number;
     _graOutputGraphicsIndex: number;
-    _keyCharBufferString: string;
+    _keyBuffer: string[];
     _needCls: boolean;
     _output: string;
     _paperSpanPos: number;

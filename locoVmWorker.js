@@ -99,7 +99,7 @@
             _graGraphicsX: 0,
             _graGraphicsY: 0,
             _graOutputGraphicsIndex: -1,
-            _keyCharBufferString: "",
+            _keyBuffer: [], // buffered pressed keys
             _needCls: false,
             _output: "",
             _paperSpanPos: -1,
@@ -153,7 +153,7 @@
                         vm.resolveInput(data.input);
                         break;
                     case 'putKeys':
-                        vm._keyCharBufferString += data.keys;
+                        vm._keyBuffer.push(data.keys); // currently only one key
                         break;
                     case 'stop':
                         vm._stopRequested = true;
@@ -170,7 +170,7 @@
                 vm.cls();
                 vm._data.length = 0;
                 vm._dataPtr = 0;
-                vm._keyCharBufferString = "";
+                vm._keyBuffer.length = 0;
                 vm.deleteAllItems(vm._restoreMap);
                 vm._startTime = Date.now();
                 vm._stopRequested = false;
@@ -208,7 +208,7 @@
             chr$: (num) => String.fromCharCode(num),
             cint: (num) => Math.round(num),
             clearInput: () => {
-                vm._keyCharBufferString = "";
+                vm._keyBuffer.length = 0;
             },
             cls: () => {
                 vm._output = "";
@@ -393,10 +393,8 @@
                 }
             },
             inkey$: async () => {
-                if (vm._keyCharBufferString.length) {
-                    const key = vm._keyCharBufferString.charAt(0);
-                    vm._keyCharBufferString = vm._keyCharBufferString.substring(1);
-                    return key;
+                if (vm._keyBuffer.length) {
+                    return vm._keyBuffer.shift();
                 }
                 const oldInkeyTime = vm._lastInkeyTime;
                 vm._lastInkeyTime = Date.now();

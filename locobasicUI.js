@@ -632,7 +632,8 @@
             let timeoutId;
             return function (...args) {
                 var _a, _b;
-                // Fast hack for CodeMittor changes: Use delay 0 when change comes from "setValue" (and not from CodeMirror "+input")
+                // Fast hack for CodeMirror changes: Use delay 0 when change comes from "setValue" (and not from CodeMirror "+input")
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const delay = ((_b = (_a = args === null || args === void 0 ? void 0 : args[1]) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.origin) === "setValue" ? 0 : fngetDelay();
                 clearTimeout(timeoutId);
                 timeoutId = setTimeout(() => {
@@ -820,7 +821,6 @@
             };
             this.updateButtonStates(buttonStates);
             const outputText = document.getElementById("outputText");
-            //outputText.setAttribute("contenteditable", "false");
             outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
             outputText.addEventListener("click", this.fnOnClickHandler, false);
             const userKeys = document.getElementById("userKeys");
@@ -830,7 +830,6 @@
             const outputText = document.getElementById("outputText");
             outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
             outputText.removeEventListener("click", this.fnOnClickHandler, false);
-            // do not change after rendering: outputText.setAttribute("contenteditable", "true");
             this.onSetUiKeys([0]); // remove user keys
             this.updateButtonStates({
                 enterButton: true,
@@ -959,16 +958,31 @@
         }
         onOutputTextKeydown(event) {
             const key = event.key;
-            if (key === "Escape") {
+            let putKey = "";
+            if (key.length === 1) {
+                if (event.ctrlKey === false) {
+                    putKey = key;
+                }
+            }
+            else if (key === "Escape") {
                 this.cancelSpeech();
                 this.getVmMain().stop(); // request stop
             }
             else if (key === "Enter") {
-                this.putKeysInBuffer("\x0d");
-                event.preventDefault();
+                putKey = "\x0d";
             }
-            else if (key.length === 1 && event.ctrlKey === false && event.altKey === false) {
-                this.putKeysInBuffer(key);
+            else if (key === "Dead") {
+                //const keyAndCode = `${key}-${event.code}`;
+                const code = event.code;
+                if (code === "KeyN") {
+                    putKey = "~";
+                }
+                else if (event.code === "IntlBackslash") {
+                    putKey = "^";
+                }
+            }
+            if (putKey) {
+                this.putKeysInBuffer(putKey);
                 event.preventDefault();
             }
         }
@@ -1171,6 +1185,8 @@
             }, { once: true });
             const messageHandlerCallbacks = this.createMessageHandlerCallbacks();
             this.vmMain = new VmMain(messageHandlerCallbacks, () => this.createWebWorker());
+            const outputText = document.getElementById("outputText");
+            outputText.setAttribute("contenteditable", "false");
             // Initialize database and examples
             UI.asyncDelay(() => {
                 const databaseMap = core.initDatabaseMap();
