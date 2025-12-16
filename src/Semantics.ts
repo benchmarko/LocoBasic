@@ -458,19 +458,19 @@ ${dataList.join(",\n")}
 
 		DefArgs(_open: Node, arrayIdents: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
 			const argList = evalChildren(arrayIdents.asIteration().children);
-
 			return `(${argList.join(", ")})`;
 		},
 
 		DefAssign(ident: Node, args: Node, _equal: Node, e: Node) {
-			const fnIdent = semanticsHelper.getVariable(`fn${ident.eval()}`);
-
-			semanticsHelper.setDefContext(true); // do not create global variables in this context
+			semanticsHelper.setDefContextStatus("start"); // do not create global variables in this context
+			const name = ident.eval();
+			semanticsHelper.setDefContextStatus("collect");
 			const argStr = evalChildren(args.children).join(", ") || "()";
-
+			semanticsHelper.setDefContextStatus("use");
 			const defBody = e.eval();
-			semanticsHelper.setDefContext(false);
+			semanticsHelper.setDefContextStatus("");
 
+			const fnIdent = semanticsHelper.getVariable(`fn${name}`);
 			return `${fnIdent} = ${argStr} => ${defBody}`;
 		},
 

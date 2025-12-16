@@ -19,7 +19,8 @@ export class SemanticsHelper {
     private static readonly reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;
     private readonly instrMap: Record<string, number> = {};
     private isDeg = false;
-    private isDefContext = false;
+    private defContextStatus = ""; // collect | use | ""
+    private readonly defContextVars: string[] = [];
 
     public addCompileMessage(message: string): void {
         this.compileMessages.push(message);
@@ -107,6 +108,15 @@ export class SemanticsHelper {
         return Object.keys(this.variables);
     }
 
+    private createVariableOrCount(name: string) {
+        this.variables[name] = (this.variables[name] || 0) + 1;
+        if (!this.variableScopes[name]) {
+            this.variableScopes[name] = {};
+        }
+        const variableScope = this.variableScopes[name];
+        variableScope[this.currentFunction] = (variableScope[this.currentFunction] || 0) + 1;
+    }
+
     public getVariable(name: string): string {
         name = name.toLowerCase();
         const matches = name.match(/\/\* not supported: [%|!] \*\//);
@@ -118,13 +128,15 @@ export class SemanticsHelper {
             name = `_${name}`;
         }
 
-        if (!this.isDefContext) {
-            this.variables[name] = (this.variables[name] || 0) + 1;
-            if (!this.variableScopes[name]) {
-                this.variableScopes[name] = {};
+        const defContextStatus = this.defContextStatus;
+        if (defContextStatus === "") { // not in defContext?
+            this.createVariableOrCount(name);
+        } else if (defContextStatus === "collect") {
+            this.defContextVars.push(name);
+        } else if (defContextStatus === "use") {
+            if (!this.defContextVars.includes(name)) { // variable not bound to DEF FN?
+                this.createVariableOrCount(name);
             }
-            const variableScope = this.variableScopes[name];
-            variableScope[this.currentFunction] = (variableScope[this.currentFunction] || 0) + 1;
         }
         return name + (matches ? matches[0] : "");
     }
@@ -137,8 +149,11 @@ export class SemanticsHelper {
         this.currentFunction = label;
     }
 
-    public setDefContext(isDef: boolean): void {
-        this.isDefContext = isDef;
+    public setDefContextStatus(status: string): void {
+        this.defContextStatus = status;
+        if (status === "collect" || status === "") {
+            this.defContextVars.length = 0;
+        }
     }
 
     private static deleteAllItems(items: Record<string, unknown>): void {
@@ -178,6 +193,7 @@ export class SemanticsHelper {
         SemanticsHelper.deleteAllItems(this.restoreMap);
         SemanticsHelper.deleteAllItems(this.instrMap);
         this.isDeg = false;
-        this.isDefContext = false;
+        this.defContextStatus = "";
+        this.defContextVars.length = 0;
     }
 }
