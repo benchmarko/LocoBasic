@@ -14,9 +14,7 @@ export class VmMain {
     }
 
     private postMessage(message: MessageToWorker) {
-        if (this.worker) {
-            this.worker.postMessage(message);
-        }
+        this.worker?.postMessage(message);
     }
 
     private workerOnMessageHandler = (event: MessageEvent): void => {

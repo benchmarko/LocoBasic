@@ -1,10 +1,16 @@
 import type { DefinedLabelEntryType, UsedLabelEntryType } from "./Interfaces";
 
+type VariableScopesEntryType = Record<string, number>;
+export type VariableScopesType = Record<string, VariableScopesEntryType>;
+
 export class SemanticsHelper {
     private lineIndex = 0;
     private indent = 0;
     private readonly compileMessages: string[] = [];
     private readonly variables: Record<string, number> = {};
+    private readonly variableScopes: VariableScopesType = {};
+
+    private currentFunction = "";
     private readonly definedLabels: DefinedLabelEntryType[] = [];
     private readonly usedLabels: Record<string, Record<string, UsedLabelEntryType>> = {};
     private readonly dataList: (string | number)[] = [];
@@ -114,8 +120,21 @@ export class SemanticsHelper {
 
         if (!this.isDefContext) {
             this.variables[name] = (this.variables[name] || 0) + 1;
+            if (!this.variableScopes[name]) {
+                this.variableScopes[name] = {};
+            }
+            const variableScope = this.variableScopes[name];
+            variableScope[this.currentFunction] = (variableScope[this.currentFunction] || 0) + 1;
         }
         return name + (matches ? matches[0] : "");
+    }
+
+    public getVariableScopes() {
+        return this.variableScopes;
+    }
+
+    public setCurrentFunction(label: string) {
+        this.currentFunction = label;
     }
 
     public setDefContext(isDef: boolean): void {
@@ -150,6 +169,8 @@ export class SemanticsHelper {
         this.indent = 0;
         this.compileMessages.length = 0;
         SemanticsHelper.deleteAllItems(this.variables);
+        SemanticsHelper.deleteAllItems(this.variableScopes);
+        this.currentFunction = "";
         this.definedLabels.length = 0;
         SemanticsHelper.deleteAllItems(this.usedLabels);
         this.dataList.length = 0;

@@ -1,6 +1,6 @@
 import type { ActionDict, Node } from "ohm-js";
 import type { DefinedLabelEntryType, ISemantics, UsedLabelEntryType } from "./Interfaces";
-import { SemanticsHelper } from "./SemanticsHelper";
+import { SemanticsHelper, VariableScopesType } from "./SemanticsHelper";
 import { CommaOpChar, TabOpChar } from "./Constants";
 
 function evalChildren(children: Node[]): string[] {
@@ -79,7 +79,7 @@ function getSemanticsActions(semanticsHelper: SemanticsHelper) {
 		return `/* not supported: ${name}${uncommentNotSupported(argStr)} */`;
 	};
 
-	function processSubroutines(lineList: string[], definedLabels: DefinedLabelEntryType[]): string[] {
+	function processSubroutines(lineList: string[], definedLabels: DefinedLabelEntryType[], variableList: string[], variableScopes: VariableScopesType): string[] {
 		const usedLabels = semanticsHelper.getUsedLabels();
 		const gosubLabels = usedLabels["gosub"] || {};
 
@@ -95,6 +95,15 @@ function getSemanticsActions(semanticsHelper: SemanticsHelper) {
 				const indent = lineList[first].search(/\S|$/);
 				const indentStr = " ".repeat(indent);
 
+				// determine which variables are local to this function only
+				const funcVars: string[] = [];
+				for (const varName of variableList) {
+					const usage = variableScopes[varName];
+					if (usage[subroutineStart.label] && Object.keys(usage).length === 1) {
+						funcVars.push(varName);
+					}
+				}
+
 				let hasAwait = false;
 				for (let i = first; i <= label.last; i += 1) {
 					if (lineList[i].includes("await ")) {
@@ -105,7 +114,13 @@ function getSemanticsActions(semanticsHelper: SemanticsHelper) {
 				}
 
 				const asyncStr = hasAwait ? "async " : "";
-				lineList[first] = `${indentStr}${asyncStr}function _${subroutineStart.label}() {${indentStr}\n` + lineList[first];
+				// Add function-local variable declarations if any
+				let funcVarDecl = "";
+				if (funcVars.length > 0) {
+					funcVarDecl = `\n${indentStr}  let ` + funcVars.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";";
+				}
+
+				lineList[first] = `${indentStr}${asyncStr}function _${subroutineStart.label}() {${funcVarDecl}${indentStr}\n` + lineList[first];
 				lineList[label.last] = lineList[label.last].replace(`${indentStr}  return;`, `${indentStr}}`); // end of subroutine: replace "return" by "}" (can also be on same line)
 
 				if (hasAwait) {
@@ -129,10 +144,19 @@ function getSemanticsActions(semanticsHelper: SemanticsHelper) {
 		Program(lines: Node) {
 			const lineList = evalChildren(lines.children);
 			const variableList = semanticsHelper.getVariables();
-			const variableDeclarations = variableList.length ? "let " + variableList.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
+			const variableScopes = semanticsHelper.getVariableScopes();
+
+			// Create global variable declarations (excluding function-local ones)
+			const globalVars = variableList.filter(varName => {
+				const usage = variableScopes[varName];
+				return usage[""] || Object.keys(usage).length !== 1;
+			});
+
+			const variableDeclarations = globalVars.length ? "let " + globalVars.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
+			//const variableDeclarations = variableList.length ? "let " + variableList.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
 
 			const definedLabels = semanticsHelper.getDefinedLabels();
-			const awaitLabels = processSubroutines(lineList, definedLabels);
+			const awaitLabels = processSubroutines(lineList, definedLabels, variableList, variableScopes);
 
 			const instrMap = semanticsHelper.getInstrMap();
 			const dataList = semanticsHelper.getDataList();
@@ -203,6 +227,13 @@ ${dataList.join(",\n")}
 
 			if (labelString) {
 				semanticsHelper.addDefinedLabel(labelString, currentLineIndex);
+
+				// Check if this is a gosub label and set it as current function
+				const usedLabels = semanticsHelper.getUsedLabels();
+				const gosubLabels = usedLabels["gosub"] || {};
+				if (gosubLabels[labelString]) {
+					semanticsHelper.setCurrentFunction(labelString);
+				}
 			}
 
 			const lineStr = stmts.eval();
@@ -217,6 +248,8 @@ ${dataList.join(",\n")}
 					const lastLabelItem = definedLabels[definedLabels.length - 1];
 					lastLabelItem.last = currentLineIndex;
 				}
+				// reset current function when returning
+				semanticsHelper.setCurrentFunction("");
 			}
 
 			const commentStr = comment.sourceString ? `; //${comment.sourceString.substring(1)}` : "";
