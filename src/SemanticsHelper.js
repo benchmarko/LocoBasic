@@ -4,6 +4,8 @@ export class SemanticsHelper {
         this.indent = 0;
         this.compileMessages = [];
         this.variables = {};
+        this.variableScopes = {};
+        this.currentFunction = "";
         this.definedLabels = [];
         this.usedLabels = {};
         this.dataList = [];
@@ -11,7 +13,8 @@ export class SemanticsHelper {
         this.restoreMap = {};
         this.instrMap = {};
         this.isDeg = false;
-        this.isDefContext = false;
+        this.defContextStatus = ""; // collect | use | ""
+        this.defContextVars = [];
     }
     addCompileMessage(message) {
         this.compileMessages.push(message);
@@ -82,6 +85,14 @@ export class SemanticsHelper {
     getVariables() {
         return Object.keys(this.variables);
     }
+    createVariableOrCount(name) {
+        this.variables[name] = (this.variables[name] || 0) + 1;
+        if (!this.variableScopes[name]) {
+            this.variableScopes[name] = {};
+        }
+        const variableScope = this.variableScopes[name];
+        variableScope[this.currentFunction] = (variableScope[this.currentFunction] || 0) + 1;
+    }
     getVariable(name) {
         name = name.toLowerCase();
         const matches = name.match(/\/\* not supported: [%|!] \*\//);
@@ -91,13 +102,31 @@ export class SemanticsHelper {
         if (SemanticsHelper.reJsKeyword.test(name)) {
             name = `_${name}`;
         }
-        if (!this.isDefContext) {
-            this.variables[name] = (this.variables[name] || 0) + 1;
+        const defContextStatus = this.defContextStatus;
+        if (defContextStatus === "") { // not in defContext?
+            this.createVariableOrCount(name);
+        }
+        else if (defContextStatus === "collect") {
+            this.defContextVars.push(name);
+        }
+        else if (defContextStatus === "use") {
+            if (!this.defContextVars.includes(name)) { // variable not bound to DEF FN?
+                this.createVariableOrCount(name);
+            }
         }
         return name + (matches ? matches[0] : "");
     }
-    setDefContext(isDef) {
-        this.isDefContext = isDef;
+    getVariableScopes() {
+        return this.variableScopes;
+    }
+    setCurrentFunction(label) {
+        this.currentFunction = label;
+    }
+    setDefContextStatus(status) {
+        this.defContextStatus = status;
+        if (status === "collect" || status === "") {
+            this.defContextVars.length = 0;
+        }
     }
     static deleteAllItems(items) {
         for (const name in items) {
@@ -122,6 +151,8 @@ export class SemanticsHelper {
         this.indent = 0;
         this.compileMessages.length = 0;
         SemanticsHelper.deleteAllItems(this.variables);
+        SemanticsHelper.deleteAllItems(this.variableScopes);
+        this.currentFunction = "";
         this.definedLabels.length = 0;
         SemanticsHelper.deleteAllItems(this.usedLabels);
         this.dataList.length = 0;
@@ -129,7 +160,8 @@ export class SemanticsHelper {
         SemanticsHelper.deleteAllItems(this.restoreMap);
         SemanticsHelper.deleteAllItems(this.instrMap);
         this.isDeg = false;
-        this.isDefContext = false;
+        this.defContextStatus = "";
+        this.defContextVars.length = 0;
     }
 }
 SemanticsHelper.reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;

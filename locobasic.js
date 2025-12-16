@@ -1679,6 +1679,8 @@
             this.indent = 0;
             this.compileMessages = [];
             this.variables = {};
+            this.variableScopes = {};
+            this.currentFunction = "";
             this.definedLabels = [];
             this.usedLabels = {};
             this.dataList = [];
@@ -1686,7 +1688,8 @@
             this.restoreMap = {};
             this.instrMap = {};
             this.isDeg = false;
-            this.isDefContext = false;
+            this.defContextStatus = ""; // collect | use | ""
+            this.defContextVars = [];
         }
         addCompileMessage(message) {
             this.compileMessages.push(message);
@@ -1757,6 +1760,14 @@
         getVariables() {
             return Object.keys(this.variables);
         }
+        createVariableOrCount(name) {
+            this.variables[name] = (this.variables[name] || 0) + 1;
+            if (!this.variableScopes[name]) {
+                this.variableScopes[name] = {};
+            }
+            const variableScope = this.variableScopes[name];
+            variableScope[this.currentFunction] = (variableScope[this.currentFunction] || 0) + 1;
+        }
         getVariable(name) {
             name = name.toLowerCase();
             const matches = name.match(/\/\* not supported: [%|!] \*\//);
@@ -1766,13 +1777,31 @@
             if (SemanticsHelper.reJsKeyword.test(name)) {
                 name = `_${name}`;
             }
-            if (!this.isDefContext) {
-                this.variables[name] = (this.variables[name] || 0) + 1;
+            const defContextStatus = this.defContextStatus;
+            if (defContextStatus === "") { // not in defContext?
+                this.createVariableOrCount(name);
+            }
+            else if (defContextStatus === "collect") {
+                this.defContextVars.push(name);
+            }
+            else if (defContextStatus === "use") {
+                if (!this.defContextVars.includes(name)) { // variable not bound to DEF FN?
+                    this.createVariableOrCount(name);
+                }
             }
             return name + (matches ? matches[0] : "");
         }
-        setDefContext(isDef) {
-            this.isDefContext = isDef;
+        getVariableScopes() {
+            return this.variableScopes;
+        }
+        setCurrentFunction(label) {
+            this.currentFunction = label;
+        }
+        setDefContextStatus(status) {
+            this.defContextStatus = status;
+            if (status === "collect" || status === "") {
+                this.defContextVars.length = 0;
+            }
         }
         static deleteAllItems(items) {
             for (const name in items) {
@@ -1797,6 +1826,8 @@
             this.indent = 0;
             this.compileMessages.length = 0;
             SemanticsHelper.deleteAllItems(this.variables);
+            SemanticsHelper.deleteAllItems(this.variableScopes);
+            this.currentFunction = "";
             this.definedLabels.length = 0;
             SemanticsHelper.deleteAllItems(this.usedLabels);
             this.dataList.length = 0;
@@ -1804,7 +1835,8 @@
             SemanticsHelper.deleteAllItems(this.restoreMap);
             SemanticsHelper.deleteAllItems(this.instrMap);
             this.isDeg = false;
-            this.isDefContext = false;
+            this.defContextStatus = "";
+            this.defContextVars.length = 0;
         }
     }
     SemanticsHelper.reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;
@@ -1911,7 +1943,7 @@
             semanticsHelper.addCompileMessage(`WARNING: Not supported: ${message}`);
             return `/* not supported: ${name}${uncommentNotSupported(argStr)} */`;
         };
-        function processSubroutines(lineList, definedLabels) {
+        function processSubroutines(lineList, definedLabels, variableList, variableScopes) {
             const usedLabels = semanticsHelper.getUsedLabels();
             const gosubLabels = usedLabels["gosub"] || {};
             const awaitLabels = [];
@@ -1924,6 +1956,14 @@
                     const first = subroutineStart.first;
                     const indent = lineList[first].search(/\S|$/);
                     const indentStr = " ".repeat(indent);
+                    // determine which variables are local to this function only
+                    const funcVars = [];
+                    for (const varName of variableList) {
+                        const usage = variableScopes[varName];
+                        if (usage[subroutineStart.label] && Object.keys(usage).length === 1) {
+                            funcVars.push(varName);
+                        }
+                    }
                     let hasAwait = false;
                     for (let i = first; i <= label.last; i += 1) {
                         if (lineList[i].includes("await ")) {
@@ -1933,7 +1973,12 @@
                         lineList[i] = lineList[i].replace(/\n/g, "\n  ");
                     }
                     const asyncStr = hasAwait ? "async " : "";
-                    lineList[first] = `${indentStr}${asyncStr}function _${subroutineStart.label}() {${indentStr}\n` + lineList[first];
+                    // Add function-local variable declarations if any
+                    let funcVarDecl = "";
+                    if (funcVars.length > 0) {
+                        funcVarDecl = `\n${indentStr}  let ` + funcVars.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";";
+                    }
+                    lineList[first] = `${indentStr}${asyncStr}function _${subroutineStart.label}() {${funcVarDecl}${indentStr}\n` + lineList[first];
                     lineList[label.last] = lineList[label.last].replace(`${indentStr}  return;`, `${indentStr}}`); // end of subroutine: replace "return" by "}" (can also be on same line)
                     if (hasAwait) {
                         awaitLabels.push(subroutineStart.label);
@@ -1953,9 +1998,16 @@
             Program(lines) {
                 const lineList = evalChildren(lines.children);
                 const variableList = semanticsHelper.getVariables();
-                const variableDeclarations = variableList.length ? "let " + variableList.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
+                const variableScopes = semanticsHelper.getVariableScopes();
+                // Create global variable declarations (excluding function-local ones)
+                const globalVars = variableList.filter(varName => {
+                    const usage = variableScopes[varName];
+                    return usage[""] || Object.keys(usage).length !== 1;
+                });
+                const variableDeclarations = globalVars.length ? "let " + globalVars.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
+                //const variableDeclarations = variableList.length ? "let " + variableList.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
                 const definedLabels = semanticsHelper.getDefinedLabels();
-                const awaitLabels = processSubroutines(lineList, definedLabels);
+                const awaitLabels = processSubroutines(lineList, definedLabels, variableList, variableScopes);
                 const instrMap = semanticsHelper.getInstrMap();
                 const dataList = semanticsHelper.getDataList();
                 // Prepare data definition snippet if needed
@@ -2014,6 +2066,12 @@ ${dataList.join(",\n")}
                 const currentLineIndex = semanticsHelper.incrementLineIndex() - 1;
                 if (labelString) {
                     semanticsHelper.addDefinedLabel(labelString, currentLineIndex);
+                    // Check if this is a gosub label and set it as current function
+                    const usedLabels = semanticsHelper.getUsedLabels();
+                    const gosubLabels = usedLabels["gosub"] || {};
+                    if (gosubLabels[labelString]) {
+                        semanticsHelper.setCurrentFunction(labelString);
+                    }
                 }
                 const lineStr = stmts.eval();
                 if (colons2.children.length) { // are there trailing colons?
@@ -2025,6 +2083,8 @@ ${dataList.join(",\n")}
                         const lastLabelItem = definedLabels[definedLabels.length - 1];
                         lastLabelItem.last = currentLineIndex;
                     }
+                    // reset current function when returning
+                    semanticsHelper.setCurrentFunction("");
                 }
                 const commentStr = comment.sourceString ? `; //${comment.sourceString.substring(1)}` : "";
                 const semi = lineStr === "" || lineStr.endsWith("{") || lineStr.endsWith("}") || lineStr.startsWith("//") || commentStr ? "" : ";";
@@ -2194,11 +2254,14 @@ ${dataList.join(",\n")}
                 return `(${argList.join(", ")})`;
             },
             DefAssign(ident, args, _equal, e) {
-                const fnIdent = semanticsHelper.getVariable(`fn${ident.eval()}`);
-                semanticsHelper.setDefContext(true); // do not create global variables in this context
+                semanticsHelper.setDefContextStatus("start"); // do not create global variables in this context
+                const name = ident.eval();
+                semanticsHelper.setDefContextStatus("collect");
                 const argStr = evalChildren(args.children).join(", ") || "()";
+                semanticsHelper.setDefContextStatus("use");
                 const defBody = e.eval();
-                semanticsHelper.setDefContext(false);
+                semanticsHelper.setDefContextStatus("");
+                const fnIdent = semanticsHelper.getVariable(`fn${name}`);
                 return `${fnIdent} = ${argStr} => ${defBody}`;
             },
             Defint(lit, letterRange) {

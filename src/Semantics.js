@@ -63,7 +63,7 @@ function getSemanticsActions(semanticsHelper) {
         semanticsHelper.addCompileMessage(`WARNING: Not supported: ${message}`);
         return `/* not supported: ${name}${uncommentNotSupported(argStr)} */`;
     };
-    function processSubroutines(lineList, definedLabels) {
+    function processSubroutines(lineList, definedLabels, variableList, variableScopes) {
         const usedLabels = semanticsHelper.getUsedLabels();
         const gosubLabels = usedLabels["gosub"] || {};
         const awaitLabels = [];
@@ -76,6 +76,14 @@ function getSemanticsActions(semanticsHelper) {
                 const first = subroutineStart.first;
                 const indent = lineList[first].search(/\S|$/);
                 const indentStr = " ".repeat(indent);
+                // determine which variables are local to this function only
+                const funcVars = [];
+                for (const varName of variableList) {
+                    const usage = variableScopes[varName];
+                    if (usage[subroutineStart.label] && Object.keys(usage).length === 1) {
+                        funcVars.push(varName);
+                    }
+                }
                 let hasAwait = false;
                 for (let i = first; i <= label.last; i += 1) {
                     if (lineList[i].includes("await ")) {
@@ -85,7 +93,12 @@ function getSemanticsActions(semanticsHelper) {
                     lineList[i] = lineList[i].replace(/\n/g, "\n  ");
                 }
                 const asyncStr = hasAwait ? "async " : "";
-                lineList[first] = `${indentStr}${asyncStr}function _${subroutineStart.label}() {${indentStr}\n` + lineList[first];
+                // Add function-local variable declarations if any
+                let funcVarDecl = "";
+                if (funcVars.length > 0) {
+                    funcVarDecl = `\n${indentStr}  let ` + funcVars.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";";
+                }
+                lineList[first] = `${indentStr}${asyncStr}function _${subroutineStart.label}() {${funcVarDecl}${indentStr}\n` + lineList[first];
                 lineList[label.last] = lineList[label.last].replace(`${indentStr}  return;`, `${indentStr}}`); // end of subroutine: replace "return" by "}" (can also be on same line)
                 if (hasAwait) {
                     awaitLabels.push(subroutineStart.label);
@@ -105,9 +118,16 @@ function getSemanticsActions(semanticsHelper) {
         Program(lines) {
             const lineList = evalChildren(lines.children);
             const variableList = semanticsHelper.getVariables();
-            const variableDeclarations = variableList.length ? "let " + variableList.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
+            const variableScopes = semanticsHelper.getVariableScopes();
+            // Create global variable declarations (excluding function-local ones)
+            const globalVars = variableList.filter(varName => {
+                const usage = variableScopes[varName];
+                return usage[""] || Object.keys(usage).length !== 1;
+            });
+            const variableDeclarations = globalVars.length ? "let " + globalVars.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
+            //const variableDeclarations = variableList.length ? "let " + variableList.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
             const definedLabels = semanticsHelper.getDefinedLabels();
-            const awaitLabels = processSubroutines(lineList, definedLabels);
+            const awaitLabels = processSubroutines(lineList, definedLabels, variableList, variableScopes);
             const instrMap = semanticsHelper.getInstrMap();
             const dataList = semanticsHelper.getDataList();
             // Prepare data definition snippet if needed
@@ -166,6 +186,12 @@ ${dataList.join(",\n")}
             const currentLineIndex = semanticsHelper.incrementLineIndex() - 1;
             if (labelString) {
                 semanticsHelper.addDefinedLabel(labelString, currentLineIndex);
+                // Check if this is a gosub label and set it as current function
+                const usedLabels = semanticsHelper.getUsedLabels();
+                const gosubLabels = usedLabels["gosub"] || {};
+                if (gosubLabels[labelString]) {
+                    semanticsHelper.setCurrentFunction(labelString);
+                }
             }
             const lineStr = stmts.eval();
             if (colons2.children.length) { // are there trailing colons?
@@ -177,6 +203,8 @@ ${dataList.join(",\n")}
                     const lastLabelItem = definedLabels[definedLabels.length - 1];
                     lastLabelItem.last = currentLineIndex;
                 }
+                // reset current function when returning
+                semanticsHelper.setCurrentFunction("");
             }
             const commentStr = comment.sourceString ? `; //${comment.sourceString.substring(1)}` : "";
             const semi = lineStr === "" || lineStr.endsWith("{") || lineStr.endsWith("}") || lineStr.startsWith("//") || commentStr ? "" : ";";
@@ -348,11 +376,14 @@ ${dataList.join(",\n")}
             return `(${argList.join(", ")})`;
         },
         DefAssign(ident, args, _equal, e) {
-            const fnIdent = semanticsHelper.getVariable(`fn${ident.eval()}`);
-            semanticsHelper.setDefContext(true); // do not create global variables in this context
+            semanticsHelper.setDefContextStatus("start"); // do not create global variables in this context
+            const name = ident.eval();
+            semanticsHelper.setDefContextStatus("collect");
             const argStr = evalChildren(args.children).join(", ") || "()";
+            semanticsHelper.setDefContextStatus("use");
             const defBody = e.eval();
-            semanticsHelper.setDefContext(false);
+            semanticsHelper.setDefContextStatus("");
+            const fnIdent = semanticsHelper.getVariable(`fn${name}`);
             return `${fnIdent} = ${argStr} => ${defBody}`;
         },
         Defint(lit, letterRange) {

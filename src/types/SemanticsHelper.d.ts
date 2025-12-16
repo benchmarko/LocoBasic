@@ -1,9 +1,13 @@
 import type { DefinedLabelEntryType, UsedLabelEntryType } from "./Interfaces";
+type VariableScopesEntryType = Record<string, number>;
+export type VariableScopesType = Record<string, VariableScopesEntryType>;
 export declare class SemanticsHelper {
     private lineIndex;
     private indent;
     private readonly compileMessages;
     private readonly variables;
+    private readonly variableScopes;
+    private currentFunction;
     private readonly definedLabels;
     private readonly usedLabels;
     private readonly dataList;
@@ -12,7 +16,8 @@ export declare class SemanticsHelper {
     private static readonly reJsKeyword;
     private readonly instrMap;
     private isDeg;
-    private isDefContext;
+    private defContextStatus;
+    private readonly defContextVars;
     addCompileMessage(message: string): void;
     getCompileMessages(): string[];
     getDeg(): boolean;
@@ -30,8 +35,11 @@ export declare class SemanticsHelper {
     getInstrMap(): Record<string, number>;
     addInstr(name: string): number;
     getVariables(): string[];
+    private createVariableOrCount;
     getVariable(name: string): string;
-    setDefContext(isDef: boolean): void;
+    getVariableScopes(): VariableScopesType;
+    setCurrentFunction(label: string): void;
+    setDefContextStatus(status: string): void;
     private static deleteAllItems;
     incrementLineIndex(): number;
     getRestoreMap(): Record<string, number>;
@@ -39,4 +47,5 @@ export declare class SemanticsHelper {
     getDataList(): (string | number)[];
     resetParser(): void;
 }
+export {};
 //# sourceMappingURL=SemanticsHelper.d.ts.map
