@@ -234,6 +234,7 @@ export declare class Semantics implements ISemantics {
         DimArrayArgs(args: Node): string;
         DimArrayIdent(ident: Node, _open: Node, indices: Node, _close: Node): string;
         StrArrayIdent(ident: Node, _open: Node, e: Node, _close: Node): string;
+        CondExp(e: Node): any;
         dataUnquoted(data: Node): string;
         decimalValue(value: Node): string;
         hexValue(_prefix: Node, value: Node): string;

@@ -1150,6 +1150,9 @@ ${dataList.join(",\n")}
         StrArrayIdent(ident, _open, e, _close) {
             return `${ident.eval()}[${e.eval()}]`;
         },
+        CondExp(e) {
+            return e.eval().replace(/^-?(\(.*\))$/, '$1'); // remove "-" in top-level condition
+        },
         dataUnquoted(data) {
             const str = data.sourceString;
             if (!isNaN(Number(str))) {
