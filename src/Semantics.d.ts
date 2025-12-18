@@ -47,7 +47,7 @@ export declare class Semantics implements ISemantics {
         Def(_defLit: Node, _fnLit: Node, assign: Node): string;
         DefArgs(_open: Node, arrayIdents: Node, _close: Node): string;
         DefAssign(ident: Node, args: Node, _equal: Node, e: Node): string;
-        Defint(lit: Node, letterRange: Node): string;
+        Defint(_lit: Node, letterRange: Node): string;
         Defreal(lit: Node, letterRange: Node): string;
         Defstr(lit: Node, letterRange: Node): string;
         Deg(_degLit: Node): string;

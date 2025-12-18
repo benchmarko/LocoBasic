@@ -7,6 +7,7 @@ export declare class SemanticsHelper {
     private readonly compileMessages;
     private readonly variables;
     private readonly variableScopes;
+    private readonly varLetterTypes;
     private currentFunction;
     private readonly definedLabels;
     private readonly usedLabels;
@@ -40,6 +41,8 @@ export declare class SemanticsHelper {
     getVariableScopes(): VariableScopesType;
     setCurrentFunction(label: string): void;
     setDefContextStatus(status: string): void;
+    setVarLetterTypes(letters: string[], type: string): void;
+    getVarType(name: string): string;
     private static deleteAllItems;
     incrementLineIndex(): number;
     getRestoreMap(): Record<string, number>;

@@ -248,7 +248,8 @@
                 };
                 return createRecursiveArray(0);
             },
-            dim1: (dim, value = 0) => new Array(dim + 1).fill(value),
+            dim1: (num, value = 0) => new Array(num + 1).fill(value),
+            dim1i16: (num) => new Int16Array(num + 1),
             draw: (x, y, pen) => vm.graDrawMovePlot("L", x, y, pen),
             drawr: (x, y, pen) => vm.graDrawMovePlot("l", x, y, pen),
             end: () => vm.flush(),
@@ -372,8 +373,7 @@
                 const graphicsOutput = vm.handleTrailingNewline(vm.graGetFlushedGraphics());
                 const outputGraphicsIndex = vm._graOutputGraphicsIndex;
                 const hasGraphics = outputGraphicsIndex >= 0;
-                const output = hasGraphics ? textOutput.substring(0, outputGraphicsIndex) + graphicsOutput + textOutput.substring(outputGraphicsIndex) : textOutput;
-                return output;
+                return hasGraphics ? textOutput.substring(0, outputGraphicsIndex) + graphicsOutput + textOutput.substring(outputGraphicsIndex) : textOutput;
             },
             graphicsPen: (num) => {
                 if (num !== vm._graCurrGraphicsPen) {

@@ -5,6 +5,7 @@ export class SemanticsHelper {
         this.compileMessages = [];
         this.variables = {};
         this.variableScopes = {};
+        this.varLetterTypes = {};
         this.currentFunction = "";
         this.definedLabels = [];
         this.usedLabels = {};
@@ -128,6 +129,15 @@ export class SemanticsHelper {
             this.defContextVars.length = 0;
         }
     }
+    setVarLetterTypes(letters, type) {
+        for (const letter of letters) {
+            this.varLetterTypes[letter] = type;
+        }
+    }
+    getVarType(name) {
+        const letter = name.charAt(0);
+        return this.varLetterTypes[letter] || "";
+    }
     static deleteAllItems(items) {
         for (const name in items) {
             delete items[name]; // eslint-disable-line @typescript-eslint/no-dynamic-delete
@@ -152,6 +162,7 @@ export class SemanticsHelper {
         this.compileMessages.length = 0;
         SemanticsHelper.deleteAllItems(this.variables);
         SemanticsHelper.deleteAllItems(this.variableScopes);
+        SemanticsHelper.deleteAllItems(this.varLetterTypes);
         this.currentFunction = "";
         this.definedLabels.length = 0;
         SemanticsHelper.deleteAllItems(this.usedLabels);

@@ -11,6 +11,13 @@ function evalOptionalArg(arg) {
 function createComparisonExpression(a, op, b) {
     return `-(${a.eval()} ${op} ${b.eval()})`;
 }
+function expandLetterRanges(lettersAndRanges) {
+    // a list of single letters "a" or range "a-b", expand to single letters
+    const letters = lettersAndRanges.flatMap(x => x.length === 1
+        ? x
+        : Array.from({ length: x.charCodeAt(2) - x.charCodeAt(0) + 1 }, (_, i) => String.fromCharCode(x.charCodeAt(0) + i)));
+    return letters;
+}
 function getSemanticsActions(semanticsHelper) {
     const adaptIdentName = (str) => str.replace(/\./g, "_");
     const drawMovePlot = (lit, x, _comma1, y, _comma2, pen, _comma3, mode) => {
@@ -386,8 +393,11 @@ ${dataList.join(",\n")}
             const fnIdent = semanticsHelper.getVariable(`fn${name}`);
             return `${fnIdent} = ${argStr} => ${defBody}`;
         },
-        Defint(lit, letterRange) {
-            return notSupported(lit, letterRange.asIteration());
+        Defint(_lit, letterRange) {
+            const lettersAndRanges = evalChildren(letterRange.asIteration().children); // a list of single letters "a" or range "a-b"
+            const letters = expandLetterRanges(lettersAndRanges);
+            semanticsHelper.setVarLetterTypes(letters, "I");
+            return `/* defint ${lettersAndRanges.join(",")} */`;
         },
         Defreal(lit, letterRange) {
             return notSupported(lit, letterRange.asIteration());
@@ -1139,13 +1149,21 @@ ${dataList.join(",\n")}
             const identStr = ident.eval();
             const indicesStr = indices.eval();
             const isMultiDimensional = indicesStr.includes(","); // also for expressions containing comma
-            const valueStr = identStr.endsWith("$") ? ', ""' : "";
-            if (isMultiDimensional) { // one value (not detected for expressions containing comma)
-                semanticsHelper.addInstr("dim");
-                return `${identStr} = dim([${indicesStr}]${valueStr})`;
+            const isStringIdent = identStr.endsWith("$");
+            const valueStr = isStringIdent ? ', ""' : "";
+            const indicesStr2 = isMultiDimensional ? `[${indicesStr}]` : indicesStr;
+            let instr = "";
+            if (isMultiDimensional) {
+                instr = "dim";
             }
-            semanticsHelper.addInstr("dim1");
-            return `${identStr} = dim1(${indicesStr}${valueStr})`;
+            else if (!isStringIdent && semanticsHelper.getVarType(identStr) === "I") { // defint seen?
+                instr = "dim1i16";
+            }
+            else {
+                instr = "dim1";
+            }
+            semanticsHelper.addInstr(instr);
+            return `${identStr} = ${instr}(${indicesStr2}${valueStr})`;
         },
         StrArrayIdent(ident, _open, e, _close) {
             return `${ident.eval()}[${e.eval()}]`;

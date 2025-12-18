@@ -65,7 +65,8 @@ export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] 
     creal: (num: number) => number;
     dec$: (num: number, format: string) => string;
     dim: (dims: number[], value?: string | number) => RecursiveArray<string | number>;
-    dim1: (dim: number, value?: number) => number[];
+    dim1: (num: number, value?: string | number) => any[];
+    dim1i16: (num: number) => Int16Array<ArrayBuffer>;
     draw: (x: number, y: number, pen?: number) => void;
     drawr: (x: number, y: number, pen?: number) => void;
     end: () => void;
