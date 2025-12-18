@@ -5,7 +5,7 @@
 cpcBasic.addItem("", `
 REM primebe3 - Prime Benchmark (Sieve of Eratosthenes)
 MODE 2
-'DEFINT a-s,u-z
+DEFINT s ' DEFINT a-s,u-z
 n=5000
 res=669 'expected result (669 for n=5000)
 PRINT "Prime Benchmark (Sieve of Eratosthenes)"

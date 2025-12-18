@@ -163,15 +163,15 @@ PRINT "DEF FN (and FN), ";
 '''def fx y=1
 '''a=FNf2(): 'this should not work
 '
-PRINT "DEFINT, ";
-DEFINT a
-DEFINT a-t
-DEFINT a-T
-DEFINT a,b,c
-DEFINT a,b-c,v,x-y
-DEFINT a: b=a+c
-DEFINT a: a=a+1
-DEFINT a: a!=a!+a%:a$="7"
+'PRINT "DEFINT, ";
+'DEFINT a
+'DEFINT a-t
+'DEFINT a-T
+'DEFINT a,b,c
+'DEFINT a,b-c,v,x-y
+'DEFINT a: b=a+c
+'DEFINT a: a=a+1
+'DEFINT a: a!=a!+a%:a$="7"
 ''DEFINT a: ab=ab+de[7] 'TTT
 ''1 DEFINT z-a
 '

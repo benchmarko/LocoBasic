@@ -286,7 +286,9 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             return createRecursiveArray(0);
         },
 
-        dim1: (dim: number, value: number = 0): number[] => new Array(dim + 1).fill(value),
+        dim1: (num: number, value: string | number = 0) => new Array(num + 1).fill(value),
+
+        dim1i16: (num: number) => new Int16Array(num + 1),
 
         draw: (x: number, y: number, pen?: number) => vm.graDrawMovePlot("L", x, y, pen),
 
@@ -436,8 +438,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             const graphicsOutput = vm.handleTrailingNewline(vm.graGetFlushedGraphics());
             const outputGraphicsIndex = vm._graOutputGraphicsIndex;
             const hasGraphics = outputGraphicsIndex >= 0;
-            const output = hasGraphics ? textOutput.substring(0, outputGraphicsIndex) + graphicsOutput + textOutput.substring(outputGraphicsIndex) : textOutput;
-            return output;
+            return hasGraphics ? textOutput.substring(0, outputGraphicsIndex) + graphicsOutput + textOutput.substring(outputGraphicsIndex) : textOutput;
         },
 
         graphicsPen: (num: number) => {

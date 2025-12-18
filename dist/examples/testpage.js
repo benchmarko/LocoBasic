@@ -325,6 +325,12 @@ a=FNf1(1,2,3):IF a<>6 THEN ERROR 33
 DEF FNf1$(num)=MID$(STR$(num),2): DEF FNf2$(zl,cnt)=STRING$(cnt-LEN(FNf1$(zl)),"0")+FNf1$(zl)
 a=67: a$=FNf2$(a, 4): IF a$<>"0067" THEN ERROR 33
 '
+PRINT "DEFINT, ";
+DEFINT m
+DEFINT m-o
+DEFINT m,o
+DEFINT m-n,o
+'
 ''DEFINT a
 ''DEFINT a-t
 ''DEFINT a-T
@@ -356,6 +362,7 @@ a=67: a$=FNf2$(a, 4): IF a$<>"0067" THEN ERROR 33
 ''DEFSTR a:ab=ab+de[7]
 ''1 DEFSTR z-a
 ''DEFSTR f:f(x)="w"
+PRINT "DEG, ";
 DEG
 ''DELETE
 ''DELETE -
@@ -448,7 +455,7 @@ a=FIX(2.77): IF a<>2 THEN ERROR 33
 a=FIX(-2.3): IF a<>-2 THEN ERROR 33
 a=FIX(123.466): IF a<>123 THEN ERROR 33
 '
-PRINT "FN, ";
+PRINT "FN"
 DEF FNclk=1: c=FNclk: c=FN clk
 DEF FNclk(a)=a: c=FNclk(a): c=FN clk(a)
 DEF FNclk(a,b)=a+b: c=FNclk(a,b): c=FN clk(a,b)
@@ -473,7 +480,7 @@ FOR a=2 TO 1 STEP -&X1:NEXT
 FOR next1=1 TO 10 STEP 3:NEXT next1
 ''FOR a=b TO c STEP s:a=0:NEXT
 '
-PRINT "FRAME"
+PRINT "FRAME, ";
 FRAME
 '
 ''a=FRE(0)
@@ -651,7 +658,7 @@ a$=LOWER$("String"): IF a$<>"string" THEN ERROR 33
 ''MASK a,b
 ''MASK ,b
 '
-PRINT "MAX, ";
+PRINT "MAX"
 a=MAX(0): IF a<>0 THEN ERROR 33
 a=MAX(0,4): IF a<>4 THEN ERROR 33
 a=MAX(-3.2,3.1,2.3): IF a<>3.1 THEN ERROR 33
@@ -704,7 +711,7 @@ a=2:b=1:a=MIN(a,7,b): IF a<>1 THEN ERROR 33
 ''1 a$=MIN("abc","d")
 ''a$=MIN("abc"): IF a$<>"abc" THEN ERROR 33
 '
-PRINT "MOD"
+PRINT "MOD, ";
 a=10 MOD 3: IF a<>1 THEN ERROR 33
 a=5:b=3:a=a MOD -b:IF a<>2 THEN ERROR 33
 '
@@ -805,7 +812,7 @@ a=PI: IF ROUND(a,8)<>3.14159265 THEN ERROR 33
 ''POKE &C000,23
 ''POKE adr,by
 PRINT "POS, ";
-a=POS(#0): IF a<>35 THEN ERROR 33
+a=POS(#0): IF a<>51 THEN ERROR 33
 ''a=POS(#stream)
 '
 PRINT

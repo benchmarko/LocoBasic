@@ -9,6 +9,7 @@ export class SemanticsHelper {
     private readonly compileMessages: string[] = [];
     private readonly variables: Record<string, number> = {};
     private readonly variableScopes: VariableScopesType = {};
+    private readonly varLetterTypes: Record<string, string> = {};
 
     private currentFunction = "";
     private readonly definedLabels: DefinedLabelEntryType[] = [];
@@ -156,6 +157,17 @@ export class SemanticsHelper {
         }
     }
 
+    public setVarLetterTypes(letters: string[], type: string) {
+        for (const letter of letters) {
+            this.varLetterTypes[letter] = type;
+        }
+    }
+
+    public getVarType(name: string) {
+        const letter = name.charAt(0);
+        return this.varLetterTypes[letter] || "";
+    }
+
     private static deleteAllItems(items: Record<string, unknown>): void {
         for (const name in items) {
             delete items[name]; // eslint-disable-line @typescript-eslint/no-dynamic-delete
@@ -185,6 +197,7 @@ export class SemanticsHelper {
         this.compileMessages.length = 0;
         SemanticsHelper.deleteAllItems(this.variables);
         SemanticsHelper.deleteAllItems(this.variableScopes);
+        SemanticsHelper.deleteAllItems(this.varLetterTypes);
         this.currentFunction = "";
         this.definedLabels.length = 0;
         SemanticsHelper.deleteAllItems(this.usedLabels);

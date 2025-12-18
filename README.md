@@ -140,6 +140,9 @@ LocoBasic can be run in a browser or as a Node.js application.
 - `DEF FNname[(arg1, ...)] = expression` Defines a function *FNname*.
   - Can be used as `FNname()` or `FN name()`.
   - If there are no arguments, do not use parentheses.
+- `DEFINT a`: Defines, that (numerical) array variables starting with letter "a" will be integer. That means, when you use DIM a(num), a typed Int16Array is created instead of an untyped Array.
+  - **Note:** In LocoBasic, the flag is used at compile time starting from its lexical position and not dynamically during execution. Has has only an effect for following *DIM* with one dimension, not on plain variables.
+    Do not rely on that the integer will be 16 bit. The implementation may use Int32Array or something else later.
 - `DEG` Switches to degrees mode for *ATN*, *COS*, *SIN*, *TAN*.
   - **Note:** In LocoBasic, the flag is used at compile time starting from its lexical position and not dynamically during execution. Therefore, it is recommended to place it at the top of the code.
 - `DIM arrayVariable(dim1 [, dim2, ...])` Initializes an array.
