@@ -1429,6 +1429,10 @@ ${dataList.join(",\n")}
 			return `${ident.eval()}[${e.eval()}]`;
 		},
 
+		CondExp(e: Node) {
+			return e.eval().replace(/^-?(\(.*\))$/, '$1'); // remove "-" in top-level condition
+		},
+
 		dataUnquoted(data: Node) {
 			const str = data.sourceString;
 			if (!isNaN(Number(str))) {

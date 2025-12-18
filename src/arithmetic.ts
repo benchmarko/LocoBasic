@@ -640,7 +640,7 @@ export const arithmetic = {
       = wend
 
     While
-      = while NumExp
+      = while CondExp
 
     WhileWendBlock
       = While LoopBlockContent* LoopBlockSeparator Wend
@@ -677,7 +677,7 @@ export const arithmetic = {
       | Goto
 
     If
-      = if NumExp IfThen (":"* else IfExp)?
+      = if CondExp IfThen (":"* else IfExp)?
 
     StrExp
       = StrAddExp
@@ -818,6 +818,9 @@ export const arithmetic = {
       | Vpos
       | Xpos
       | Ypos
+
+    CondExp
+      = NumExp
 
     ArrayArgs
       = NonemptyListOf<NumExp, ",">

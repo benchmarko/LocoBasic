@@ -18,14 +18,14 @@ t=0:r=1
 PRINT "Testing loops:";
 WHILE t<minms
   loops=loops*10:FRAME:PRINT STR$(loops);
-  x=1:GOSUB 500:IF x<>1 THEN ERROR 33
+  xr=1:GOSUB 500:IF xr<>1 THEN ERROR 33
 WEND
 PRINT
 GOSUB 400
 FRAME
 tput=tputMax+0.001
 WHILE r<=maxruns AND tput>tputMax
-  x=1:GOSUB 500:IF x<>1 THEN ERROR 33
+  xr=1:GOSUB 500:IF xr<>1 THEN ERROR 33
   GOSUB 400
   r=r+1
 WEND
@@ -42,11 +42,12 @@ RETURN
 '
 ' measurement
 500 ndiv2=INT(n/2)
-t=TIME:FOR l=1 TO loops:DIM s(ndiv2+1):GOSUB 1000:ERASE s:x=x-res+1:NEXT:t=(TIME-t)*10/3
+t=TIME:FOR l=1 TO loops:DIM s(ndiv2+1):GOSUB 1000:ERASE s:xr=xr-res+1:NEXT:t=(TIME-t)*10/3
 RETURN
 '
 ' compute primes x (using Sieve of Eratosthenes and a 2-wheel)
-1000 i=0:m=3:x=1
+1000 i=0:m=3
+x=1
 WHILE m*m<=n
   IF s(i)=0 THEN x=x+1: j=(m*m-3)\\2: WHILE j<ndiv2: s(j)=1: j=j+m: WEND
   i=i+1:m=m+2
@@ -55,5 +56,6 @@ WHILE m<=n
   IF s(i)=0 THEN x=x+1
   i=i+1:m=m+2
 WEND
+xr=x
 RETURN
 `);
