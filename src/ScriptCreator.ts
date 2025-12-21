@@ -14,9 +14,10 @@ export class ScriptCreator {
         const depMap: Record<string, string[]> = {};
 
         for (const key in vmObj) {
+            const deps: string[] = [];
+            const noPropertyDeps = key === "cls"; // no property deps for cls function
             const value = vmObj[key];
             const valueStr = String(value);
-            const deps: string[] = [];
 
             // Find all vm.propertyName references
             const regex = /vm\.([\w$]+)/g;
@@ -24,7 +25,9 @@ export class ScriptCreator {
             while ((match = regex.exec(valueStr)) !== null) {
                 const refProp = match[1];
                 if (!deps.includes(refProp)) {
-                    deps.push(refProp);
+                    if (!refProp.startsWith("_") || !noPropertyDeps) {
+                        deps.push(refProp);
+                    }
                 }
             }
 

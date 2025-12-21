@@ -239,8 +239,11 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         },
 
         cls: () => {
+            // no property deps
             vm._graCurrGraphicsPen = -1;
-            vm._graGraphicsBuffer.length = 0;
+            if ("_graGraphicsBuffer" in vm) {
+                vm._graGraphicsBuffer.length = 0;
+            }
             vm._graGraphicsX = 0;
             vm._graGraphicsY = 0;
             vm._graOutputGraphicsIndex = -1;
