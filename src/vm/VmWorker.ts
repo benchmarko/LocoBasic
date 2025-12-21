@@ -90,9 +90,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         ],
         _cpcStrokeWidthForMode: [4, 2, 1, 1],
 
-        _isTerminal: false, // output for terminal
         _frameTime: 50,
-        _lastInkeyTime: 0,
 
         _data: [] as (string | number)[],
         _dataPtr: 0,
@@ -101,15 +99,17 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         _graColorsForPens: [] as number[], // make sure to initialize with resetColorsForPens before usage
         _graCurrGraphicsPen: -1,
         _graCurrMode: 1,
-        _graOriginX: 0,
-        _graOriginY: 0,
         _graGraphicsBuffer: [] as string[],
         _graGraphicsPathBuffer: [] as string[],
         _graGraphicsX: 0,
         _graGraphicsY: 0,
         _graOutputGraphicsIndex: -1,
+        _graOriginX: 0,
+        _graOriginY: 0,
 
+        _isTerminal: false, // output for terminal
         _keyBuffer: [] as string[], // buffered pressed keys
+        _lastInkeyTime: 0,
         _needCls: false,
         _output: "",
         _paperSpanPos: -1,
@@ -184,28 +184,23 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         },
 
         resetAll: () => {
-            vm._lastInkeyTime = 0;
-            vm._rsxPitch = 1;
-            vm.resetGra();
-            vm.cls();
             vm._data.length = 0;
             vm._dataPtr = 0;
+            vm._lastInkeyTime = 0;
+            vm.resetColorsForPens();
+            vm._graBackgroundColor = "";
             vm._keyBuffer.length = 0;
             vm.deleteAllItems(vm._restoreMap);
+            vm._rsxPitch = 1;
             vm._startTime = Date.now();
             vm._stopRequested = false;
             vm.remainAll();
+            vm.cls();
         },
 
         resetColorsForPens: () => {
             vm._graColorsForPens.length = 0;
             vm._graColorsForPens.push(...vm._cpcDefaultColorsForPens);
-        },
-
-        resetGra: () => {
-            vm.resetColorsForPens();
-            vm._graBackgroundColor = "";
-            vm.graCls();
         },
 
         resolveInput: (input: string | null): void => {
@@ -244,6 +239,11 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         },
 
         cls: () => {
+            vm._graCurrGraphicsPen = -1;
+            vm._graGraphicsBuffer.length = 0;
+            vm._graGraphicsX = 0;
+            vm._graGraphicsY = 0;
+            vm._graOutputGraphicsIndex = -1;
             vm._output = "";
             vm._paperSpanPos = -1;
             vm._paperValue = -1;
@@ -254,7 +254,6 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             vm._vpos = 0;
             vm._zone = 13;
 
-            vm.graCls();
             vm._needCls = true;
         },
 
@@ -308,7 +307,11 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         fix: (num: number) => Math.trunc(num),
 
         flush: () => {
-            const message = vm.getFlushedTextandGraphics();
+            const textOutput = vm.handleTrailingNewline(vm.getFlushedText());
+            const graphicsOutput = vm.handleTrailingNewline(vm.graGetFlushedGraphics());
+            const outputGraphicsIndex = vm._graOutputGraphicsIndex;
+            const hasGraphics = outputGraphicsIndex >= 0;
+            const message = hasGraphics ? textOutput.substring(0, outputGraphicsIndex) + graphicsOutput + textOutput.substring(outputGraphicsIndex) : textOutput;
             if (message) {
                 const hasGraphics = vm._graOutputGraphicsIndex >= 0;
                 vm.postMessage({ type: 'flush', message, hasGraphics, needCls: vm._needCls });
@@ -338,15 +341,6 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             vm.graSetOutputGraphicsIndex();
             vm.graFlushGraphicsPath(); // maybe a path is open
             vm._graGraphicsBuffer.push(element);
-        },
-
-        graCls: (): void => {
-            vm._graGraphicsBuffer.length = 0;
-            vm._graGraphicsPathBuffer.length = 0;
-            vm._graCurrGraphicsPen = -1;
-            vm._graGraphicsX = 0;
-            vm._graGraphicsY = 0;
-            vm._graOutputGraphicsIndex = -1;
         },
 
         // type: M | m | P | p | L | l
@@ -394,9 +388,15 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             if (vm._graGraphicsBuffer.length) {
                 const graphicsBufferStr = vm._graGraphicsBuffer.join("\n");
                 vm._graGraphicsBuffer.length = 0;
-                return vm.graGetTagInSvg(graphicsBufferStr);
+                const backgroundColorStr = vm._graBackgroundColor !== "" ? ` style="background-color:${vm._graBackgroundColor}"` : '';
+                const strokeWidth = vm._cpcStrokeWidthForMode[vm._graCurrMode] + "px";
+                return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" shape-rendering="optimizeSpeed" stroke="currentColor" stroke-width="${strokeWidth}"${backgroundColorStr}>\n${graphicsBufferStr}\n</svg>\n`;
             }
             return "";
+        },
+
+        graGetRgbColorStringForPen: (pen: number): string => {
+            return vm._cpcColors[vm._graColorsForPens[pen]];
         },
 
         graGetStrokeAndFillStr: (fill: number): string => {
@@ -406,17 +406,8 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             return `${strokeStr}${fillStr}`;
         },
 
-        graGetTagInSvg: (content: string) => {
-            const backgroundColorStr = vm._graBackgroundColor !== "" ? ` style="background-color:${vm._graBackgroundColor}"` : '';
-            const strokeWidth = vm._cpcStrokeWidthForMode[vm._graCurrMode] + "px";
-            return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" shape-rendering="optimizeSpeed" stroke="currentColor" stroke-width="${strokeWidth}"${backgroundColorStr}>\n${content}\n</svg>\n`;
-        },
-
-        graGetRgbColorStringForPen: (pen: number): string => {
-            return vm._cpcColors[vm._graColorsForPens[pen]];
-        },
-
         graPrintGraphicsText: (text: string): void => {
+            text = vm.escapeText(text);
             const yOffset = 16;
             const colorStyleStr = vm._graCurrGraphicsPen >= 0 ? `; color: ${vm.graGetRgbColorStringForPen(vm._graCurrGraphicsPen)}` : "";
             vm.graAddGraphicsElement(`<text x="${vm._graGraphicsX + vm._graOriginX}" y="${399 - vm._graGraphicsY - vm._graOriginY + yOffset}" style="white-space: pre${colorStyleStr}">${text}</text>`);
@@ -431,14 +422,6 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
 
         handleTrailingNewline: (str: string) => {
             return vm._isTerminal ? str.replace(/\n$/, "") : str;
-        },
-
-        getFlushedTextandGraphics: () => {
-            const textOutput = vm.handleTrailingNewline(vm.getFlushedText());
-            const graphicsOutput = vm.handleTrailingNewline(vm.graGetFlushedGraphics());
-            const outputGraphicsIndex = vm._graOutputGraphicsIndex;
-            const hasGraphics = outputGraphicsIndex >= 0;
-            return hasGraphics ? textOutput.substring(0, outputGraphicsIndex) + graphicsOutput + textOutput.substring(outputGraphicsIndex) : textOutput;
         },
 
         graphicsPen: (num: number) => {
@@ -621,7 +604,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         print: (...args: (string | number)[]) => {
             const text = args.map((arg) => (typeof arg === "number") ? vm.formatNumber(arg) : arg).join("");
             if (vm._tag) {
-                return vm.graPrintGraphicsText(vm.escapeText(text));
+                return vm.graPrintGraphicsText(text);
             }
             vm.printText(text);
         },
@@ -629,7 +612,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         printTab: (...args: (string | number)[]) => {
             const strArgs = args.map((arg) => (typeof arg === "number") ? vm.formatNumber(arg) : arg);
             if (vm._tag) {
-                return vm.graPrintGraphicsText(vm.escapeText(strArgs.map(arg => vm.formatCommaOrTab(arg)).join("")));
+                return vm.graPrintGraphicsText(strArgs.map(arg => vm.formatCommaOrTab(arg)).join(""));
                 // For graphics output the text position does not change, so we can output all at once
             }
             for (const str of strArgs) {
@@ -807,7 +790,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         write: (...args: (string | number)[]) => {
             const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
             if (vm._tag) {
-                return vm.graPrintGraphicsText(vm.escapeText(text));
+                return vm.graPrintGraphicsText(text);
             }
             vm.printText(text);
         },
