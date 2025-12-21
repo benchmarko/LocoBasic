@@ -422,7 +422,7 @@ describe('Semantics Class', () => {
             const identNode = getEvalNode('myArray');
             const indexNode = getEvalNode('2');
             const result = actions.ArrayIdent(identNode, getDummyNode(), indexNode, getDummyNode());
-            expect(result).toBe('myArray[2]');
+            expect(result).toBe('myarray[2]');
         });
 
         it('should correctly evaluate the "DimArrayIdent" action for single dimension', () => {
@@ -431,7 +431,7 @@ describe('Semantics Class', () => {
             const identNode = getEvalNode('myArray');
             const indicesNode = getEvalNode('10');
             const result = actions.DimArrayIdent(identNode, getDummyNode(), indicesNode, getDummyNode());
-            expect(result).toBe('myArray = dim1(10)');
+            expect(result).toBe('myarray = dim1(10)');
         });
 
         it('should correctly evaluate the "DimArrayIdent" action for multi-dimension', () => {
@@ -440,7 +440,7 @@ describe('Semantics Class', () => {
             const identNode = getEvalNode('myArray');
             const indicesNode = getEvalNode('10, 20');
             const result = actions.DimArrayIdent(identNode, getDummyNode(), indicesNode, getDummyNode());
-            expect(result).toBe('myArray = dim([10, 20])');
+            expect(result).toBe('myarray = dim([10, 20])');
         });
 
 
@@ -481,13 +481,13 @@ describe('Semantics Class', () => {
         it('should correctly evaluate the "ident" action', () => {
             const actions = new Semantics().getSemanticsActions();
 
-            const valueNode = getSourceNode('myVariableName');
-            const suffixNode = getChildNode(undefined);
-            const result = actions.ident(valueNode, suffixNode);
+            const valueNode = getEvalNode('myVariableName');
+            //const suffixNode = getChildNode(undefined);
+            const result = actions.PlainIdent(valueNode);
             expect(result).toBe('myvariablename');
 
-            const valueNode2 = getSourceNode('void');
-            const result2 = actions.ident(valueNode2, suffixNode);
+            const valueNode2 = getEvalNode('void');
+            const result2 = actions.PlainIdent(valueNode2);
             expect(result2).toBe('_void');
         });
     });
