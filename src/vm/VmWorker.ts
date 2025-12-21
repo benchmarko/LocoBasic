@@ -268,7 +268,8 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             const decimals = (format.split(".")[1] || "").length;
             const str = num.toFixed(decimals);
             const pad = " ".repeat(Math.max(0, format.length - str.length));
-            return pad + str;
+            const str2 = pad + str;
+            return (str2.length > format.length ? "%" : "") + str2;
         },
 
         dim: (dims: number[], value: string | number = 0) => {

@@ -139,7 +139,7 @@ export class SemanticsHelper {
                 this.variables[name].type = type;
             }
         }
-        
+
         if (!this.variableScopes[name]) {
             this.variableScopes[name] = {};
         }
