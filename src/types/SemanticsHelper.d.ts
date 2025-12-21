@@ -40,7 +40,7 @@ export declare class SemanticsHelper {
     addInstr(name: string): number;
     getVariables(): string[];
     private createVariableOrCount;
-    getVariable(name: string): string;
+    getVariable(name: string, type?: string): string;
     getVariableScopes(): VariableScopesType;
     setCurrentFunction(label: string): void;
     setDefContextStatus(status: string): void;

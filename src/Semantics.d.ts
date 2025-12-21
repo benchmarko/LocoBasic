@@ -234,12 +234,15 @@ export declare class Semantics implements ISemantics {
         DimArrayArgs(args: Node): string;
         DimArrayIdent(ident: Node, _open: Node, indices: Node, _close: Node): string;
         StrArrayIdent(ident: Node, _open: Node, e: Node, _close: Node): string;
+        EraseIdent(ident: Node): string;
         CondExp(e: Node): any;
         dataUnquoted(data: Node): string;
         decimalValue(value: Node): string;
         hexValue(_prefix: Node, value: Node): string;
         binaryValue(_prefix: Node, value: Node): string;
         string(_quote1: Node, e: Node, quote2: Node): string;
+        PlainIdent(ident: Node): string;
+        StrPlainIdent(ident: Node): string;
         ident(ident: Node, suffix: Node): string;
         fnIdent(fn: Node, _space: Node, ident: Node, suffix: Node): string;
         strIdent(ident: Node, typeSuffix: Node): string;

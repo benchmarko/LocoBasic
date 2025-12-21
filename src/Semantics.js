@@ -1148,13 +1148,14 @@ ${dataList.join(",\n")}
             return evalChildren(args.asIteration().children).join("][");
         },
         ArrayIdent(ident, _open, e, _close) {
-            return `${ident.eval()}[${e.eval()}]`;
+            const name = semanticsHelper.getVariable(ident.eval(), "A");
+            return `${name}[${e.eval()}]`;
         },
         DimArrayArgs(args) {
             return evalChildren(args.asIteration().children).join(", ");
         },
         DimArrayIdent(ident, _open, indices, _close) {
-            const identStr = ident.eval();
+            const identStr = semanticsHelper.getVariable(ident.eval(), "A");
             const indicesStr = indices.eval();
             const isMultiDimensional = indicesStr.includes(","); // also for expressions containing comma
             const isStringIdent = identStr.endsWith("$");
@@ -1174,7 +1175,12 @@ ${dataList.join(",\n")}
             return `${identStr} = ${instr}(${indicesStr2}${valueStr})`;
         },
         StrArrayIdent(ident, _open, e, _close) {
-            return `${ident.eval()}[${e.eval()}]`;
+            const name = semanticsHelper.getVariable(ident.eval(), "A");
+            return `${name}[${e.eval()}]`;
+        },
+        EraseIdent(ident) {
+            const name = semanticsHelper.getVariable(ident.eval(), "A"); // for erase we have arrayvariables but withoutt indices
+            return name;
         },
         CondExp(e) {
             return e.eval().replace(/^-?(\(.*\))$/, '$1'); // remove "-" in top-level condition
@@ -1204,14 +1210,22 @@ ${dataList.join(",\n")}
             const varStr = quote2.sourceString !== '"' ? notSupported(quote2).replace("\n", "eol") : "";
             return `"${str}"${varStr}`;
         },
+        PlainIdent(ident) {
+            const name = ident.eval();
+            return semanticsHelper.getVariable(name);
+        },
+        StrPlainIdent(ident) {
+            const name = ident.eval();
+            return semanticsHelper.getVariable(name);
+        },
         ident(ident, suffix) {
             var _a;
             const name = adaptIdentName(ident.sourceString);
             const suffixStr = (_a = suffix.child(0)) === null || _a === void 0 ? void 0 : _a.sourceString;
             if (suffixStr !== undefined) { // real or integer suffix
-                return semanticsHelper.getVariable(name) + notSupported(suffix);
+                return name + notSupported(suffix);
             }
-            return semanticsHelper.getVariable(name);
+            return name; //semanticsHelper.getVariable(name);
         },
         fnIdent(fn, _space, ident, suffix) {
             var _a;
@@ -1224,7 +1238,7 @@ ${dataList.join(",\n")}
         },
         strIdent(ident, typeSuffix) {
             const name = adaptIdentName(ident.sourceString) + typeSuffix.sourceString;
-            return semanticsHelper.getVariable(name);
+            return name; //semanticsHelper.getVariable(name);
         },
         strFnIdent(fn, _space, ident, typeSuffix) {
             const name = fn.sourceString + adaptIdentName(ident.sourceString) + typeSuffix.sourceString;

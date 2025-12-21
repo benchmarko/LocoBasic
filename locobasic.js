@@ -210,8 +210,8 @@
       = atn "(" NumExp ")"
 
     Assign
-      = ident "=" NumExp
-      | strIdent "=" StrExp
+      = PlainIdent "=" NumExp
+      | StrPlainIdent "=" StrExp
 
     Auto
       = auto label? ("," digit+)?
@@ -293,8 +293,8 @@
       = "(" ListOf<SimpleIdent, ","> ")"
 
     DefAssign
-      = ident DefArgs? "=" NumExp
-      | strIdent DefArgs? "=" StrExp
+      = PlainIdent DefArgs? "=" NumExp
+      | StrPlainIdent DefArgs? "=" StrExp
 
     LabelRange
       = label ("-" label)?
@@ -354,7 +354,7 @@
       = eof
 
     Erase
-      = erase NonemptyListOf<SimpleIdent, ",">
+      = erase NonemptyListOf<EraseIdent, ",">
 
     Erl
       = erl
@@ -378,7 +378,7 @@
       = fix "(" NumExp ")"
 
     For
-      = for variable "=" NumExp to NumExp (step NumExp)?
+      = for PlainIdent "=" NumExp to NumExp (step NumExp)?
 
     ForNextBlock
       = For LoopBlockContent* LoopBlockSeparator Next
@@ -446,7 +446,7 @@
       = let (ArrayAssign | Assign)
 
     LineInput
-      = line input (StreamArg ",")? (string (";" | ","))? (StrArrayIdent | strIdent)
+      = line input (StreamArg ",")? (string (";" | ","))? (StrArrayIdent | StrPlainIdent)
 
     List
       = list LabelRange? ("," StreamArg)?
@@ -482,7 +482,7 @@
       = midS "(" StrExp "," NumExp ("," NumExp)? ")"
 
     MidSAssign
-      = midS "(" (StrArrayIdent | strIdent) "," NumExp ("," NumExp)? ")" "=" StrExp
+      = midS "(" (StrArrayIdent | StrPlainIdent) "," NumExp ("," NumExp)? ")" "=" StrExp
 
     Min
       = min "(" NonemptyListOf<NumExp, ","> ")"
@@ -500,7 +500,7 @@
       = new
 
     Next 
-      = next variable?
+      = next PlainIdent?
 
     On
       = on NumExp gosub NonemptyListOf<label, ","> -- numGosub
@@ -773,7 +773,7 @@
       | UpperS
       | StrFnIdent
       | StrArrayIdent
-      | strIdent
+      | StrPlainIdent
       | string
 
     NumExp
@@ -841,7 +841,7 @@
       | "-" PriExp   -- neg
       | FnIdent
       | ArrayIdent
-      | ident
+      | PlainIdent
       | number
       | Abs
       | AddressOf
@@ -891,6 +891,12 @@
     CondExp
       = NumExp
 
+    PlainIdent
+      = ident
+
+    StrPlainIdent
+      = strIdent
+
     ArrayArgs
       = NonemptyListOf<NumExp, ",">
 
@@ -911,15 +917,19 @@
       | ident "[" DimArrayArgs "]"
       | strIdent "[" DimArrayArgs "]"
 
+    EraseIdent
+     = strIdent
+     | ident
+
     SimpleIdent
-      = strIdent
-      | ident
+      = StrPlainIdent
+      | PlainIdent
 
     AnyIdent
       = StrArrayIdent
       | ArrayIdent
-      | strIdent
-      | ident
+      | StrPlainIdent
+      | PlainIdent
 
     FnIdent
       = fnIdent AnyFnArgs?
@@ -1290,8 +1300,6 @@
     identStart = letter
 
     identPart = alnum | "."
-
-    variable = ident
 
     strIdent
       = ~keyword identName "$"
@@ -1771,15 +1779,28 @@
         getVariables() {
             return Object.keys(this.variables);
         }
-        createVariableOrCount(name) {
-            this.variables[name] = (this.variables[name] || 0) + 1;
+        createVariableOrCount(name, type) {
+            if (!this.variables[name]) {
+                this.variables[name] = {
+                    count: 1,
+                    type
+                };
+            }
+            else {
+                this.variables[name].count += 1;
+                if (type !== this.variables[name].type) {
+                    console.warn(`Var type changed for '${name}': ${this.variables[name].type} => ${type}`);
+                    this.addCompileMessage(`WARNING: Variable has plain and array type: ${name}`);
+                    this.variables[name].type = type;
+                }
+            }
             if (!this.variableScopes[name]) {
                 this.variableScopes[name] = {};
             }
             const variableScope = this.variableScopes[name];
             variableScope[this.currentFunction] = (variableScope[this.currentFunction] || 0) + 1;
         }
-        getVariable(name) {
+        getVariable(name, type = "") {
             name = name.toLowerCase();
             const matches = name.match(/\/\* not supported: [%|!] \*\//);
             if (matches) {
@@ -1788,16 +1809,17 @@
             if (SemanticsHelper.reJsKeyword.test(name)) {
                 name = `_${name}`;
             }
+            //const type = isArray ? "A" : "";
             const defContextStatus = this.defContextStatus;
             if (defContextStatus === "") { // not in defContext?
-                this.createVariableOrCount(name);
+                this.createVariableOrCount(name, type);
             }
             else if (defContextStatus === "collect") {
                 this.defContextVars.push(name);
             }
             else if (defContextStatus === "use") {
                 if (!this.defContextVars.includes(name)) { // variable not bound to DEF FN?
-                    this.createVariableOrCount(name);
+                    this.createVariableOrCount(name, type);
                 }
             }
             return name + (matches ? matches[0] : "");
@@ -3048,13 +3070,14 @@ ${dataList.join(",\n")}
                 return evalChildren(args.asIteration().children).join("][");
             },
             ArrayIdent(ident, _open, e, _close) {
-                return `${ident.eval()}[${e.eval()}]`;
+                const name = semanticsHelper.getVariable(ident.eval(), "A");
+                return `${name}[${e.eval()}]`;
             },
             DimArrayArgs(args) {
                 return evalChildren(args.asIteration().children).join(", ");
             },
             DimArrayIdent(ident, _open, indices, _close) {
-                const identStr = ident.eval();
+                const identStr = semanticsHelper.getVariable(ident.eval(), "A");
                 const indicesStr = indices.eval();
                 const isMultiDimensional = indicesStr.includes(","); // also for expressions containing comma
                 const isStringIdent = identStr.endsWith("$");
@@ -3074,7 +3097,12 @@ ${dataList.join(",\n")}
                 return `${identStr} = ${instr}(${indicesStr2}${valueStr})`;
             },
             StrArrayIdent(ident, _open, e, _close) {
-                return `${ident.eval()}[${e.eval()}]`;
+                const name = semanticsHelper.getVariable(ident.eval(), "A");
+                return `${name}[${e.eval()}]`;
+            },
+            EraseIdent(ident) {
+                const name = semanticsHelper.getVariable(ident.eval(), "A"); // for erase we have arrayvariables but withoutt indices
+                return name;
             },
             CondExp(e) {
                 return e.eval().replace(/^-?(\(.*\))$/, '$1'); // remove "-" in top-level condition
@@ -3104,14 +3132,22 @@ ${dataList.join(",\n")}
                 const varStr = quote2.sourceString !== '"' ? notSupported(quote2).replace("\n", "eol") : "";
                 return `"${str}"${varStr}`;
             },
+            PlainIdent(ident) {
+                const name = ident.eval();
+                return semanticsHelper.getVariable(name);
+            },
+            StrPlainIdent(ident) {
+                const name = ident.eval();
+                return semanticsHelper.getVariable(name);
+            },
             ident(ident, suffix) {
                 var _a;
                 const name = adaptIdentName(ident.sourceString);
                 const suffixStr = (_a = suffix.child(0)) === null || _a === void 0 ? void 0 : _a.sourceString;
                 if (suffixStr !== undefined) { // real or integer suffix
-                    return semanticsHelper.getVariable(name) + notSupported(suffix);
+                    return name + notSupported(suffix);
                 }
-                return semanticsHelper.getVariable(name);
+                return name; //semanticsHelper.getVariable(name);
             },
             fnIdent(fn, _space, ident, suffix) {
                 var _a;
@@ -3124,7 +3160,7 @@ ${dataList.join(",\n")}
             },
             strIdent(ident, typeSuffix) {
                 const name = adaptIdentName(ident.sourceString) + typeSuffix.sourceString;
-                return semanticsHelper.getVariable(name);
+                return name; //semanticsHelper.getVariable(name);
             },
             strFnIdent(fn, _space, ident, typeSuffix) {
                 const name = fn.sourceString + adaptIdentName(ident.sourceString) + typeSuffix.sourceString;

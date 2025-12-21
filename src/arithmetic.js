@@ -140,8 +140,8 @@ export const arithmetic = {
       = atn "(" NumExp ")"
 
     Assign
-      = ident "=" NumExp
-      | strIdent "=" StrExp
+      = PlainIdent "=" NumExp
+      | StrPlainIdent "=" StrExp
 
     Auto
       = auto label? ("," digit+)?
@@ -223,8 +223,8 @@ export const arithmetic = {
       = "(" ListOf<SimpleIdent, ","> ")"
 
     DefAssign
-      = ident DefArgs? "=" NumExp
-      | strIdent DefArgs? "=" StrExp
+      = PlainIdent DefArgs? "=" NumExp
+      | StrPlainIdent DefArgs? "=" StrExp
 
     LabelRange
       = label ("-" label)?
@@ -284,7 +284,7 @@ export const arithmetic = {
       = eof
 
     Erase
-      = erase NonemptyListOf<SimpleIdent, ",">
+      = erase NonemptyListOf<EraseIdent, ",">
 
     Erl
       = erl
@@ -308,7 +308,7 @@ export const arithmetic = {
       = fix "(" NumExp ")"
 
     For
-      = for variable "=" NumExp to NumExp (step NumExp)?
+      = for PlainIdent "=" NumExp to NumExp (step NumExp)?
 
     ForNextBlock
       = For LoopBlockContent* LoopBlockSeparator Next
@@ -376,7 +376,7 @@ export const arithmetic = {
       = let (ArrayAssign | Assign)
 
     LineInput
-      = line input (StreamArg ",")? (string (";" | ","))? (StrArrayIdent | strIdent)
+      = line input (StreamArg ",")? (string (";" | ","))? (StrArrayIdent | StrPlainIdent)
 
     List
       = list LabelRange? ("," StreamArg)?
@@ -412,7 +412,7 @@ export const arithmetic = {
       = midS "(" StrExp "," NumExp ("," NumExp)? ")"
 
     MidSAssign
-      = midS "(" (StrArrayIdent | strIdent) "," NumExp ("," NumExp)? ")" "=" StrExp
+      = midS "(" (StrArrayIdent | StrPlainIdent) "," NumExp ("," NumExp)? ")" "=" StrExp
 
     Min
       = min "(" NonemptyListOf<NumExp, ","> ")"
@@ -430,7 +430,7 @@ export const arithmetic = {
       = new
 
     Next 
-      = next variable?
+      = next PlainIdent?
 
     On
       = on NumExp gosub NonemptyListOf<label, ","> -- numGosub
@@ -703,7 +703,7 @@ export const arithmetic = {
       | UpperS
       | StrFnIdent
       | StrArrayIdent
-      | strIdent
+      | StrPlainIdent
       | string
 
     NumExp
@@ -771,7 +771,7 @@ export const arithmetic = {
       | "-" PriExp   -- neg
       | FnIdent
       | ArrayIdent
-      | ident
+      | PlainIdent
       | number
       | Abs
       | AddressOf
@@ -821,6 +821,12 @@ export const arithmetic = {
     CondExp
       = NumExp
 
+    PlainIdent
+      = ident
+
+    StrPlainIdent
+      = strIdent
+
     ArrayArgs
       = NonemptyListOf<NumExp, ",">
 
@@ -841,15 +847,19 @@ export const arithmetic = {
       | ident "[" DimArrayArgs "]"
       | strIdent "[" DimArrayArgs "]"
 
+    EraseIdent
+     = strIdent
+     | ident
+
     SimpleIdent
-      = strIdent
-      | ident
+      = StrPlainIdent
+      | PlainIdent
 
     AnyIdent
       = StrArrayIdent
       | ArrayIdent
-      | strIdent
-      | ident
+      | StrPlainIdent
+      | PlainIdent
 
     FnIdent
       = fnIdent AnyFnArgs?
@@ -1220,8 +1230,6 @@ export const arithmetic = {
     identStart = letter
 
     identPart = alnum | "."
-
-    variable = ident
 
     strIdent
       = ~keyword identName "$"

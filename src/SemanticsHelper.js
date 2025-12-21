@@ -93,15 +93,28 @@ export class SemanticsHelper {
     getVariables() {
         return Object.keys(this.variables);
     }
-    createVariableOrCount(name) {
-        this.variables[name] = (this.variables[name] || 0) + 1;
+    createVariableOrCount(name, type) {
+        if (!this.variables[name]) {
+            this.variables[name] = {
+                count: 1,
+                type
+            };
+        }
+        else {
+            this.variables[name].count += 1;
+            if (type !== this.variables[name].type) {
+                console.warn(`Var type changed for '${name}': ${this.variables[name].type} => ${type}`);
+                this.addCompileMessage(`WARNING: Variable has plain and array type: ${name}`);
+                this.variables[name].type = type;
+            }
+        }
         if (!this.variableScopes[name]) {
             this.variableScopes[name] = {};
         }
         const variableScope = this.variableScopes[name];
         variableScope[this.currentFunction] = (variableScope[this.currentFunction] || 0) + 1;
     }
-    getVariable(name) {
+    getVariable(name, type = "") {
         name = name.toLowerCase();
         const matches = name.match(/\/\* not supported: [%|!] \*\//);
         if (matches) {
@@ -110,16 +123,17 @@ export class SemanticsHelper {
         if (SemanticsHelper.reJsKeyword.test(name)) {
             name = `_${name}`;
         }
+        //const type = isArray ? "A" : "";
         const defContextStatus = this.defContextStatus;
         if (defContextStatus === "") { // not in defContext?
-            this.createVariableOrCount(name);
+            this.createVariableOrCount(name, type);
         }
         else if (defContextStatus === "collect") {
             this.defContextVars.push(name);
         }
         else if (defContextStatus === "use") {
             if (!this.defContextVars.includes(name)) { // variable not bound to DEF FN?
-                this.createVariableOrCount(name);
+                this.createVariableOrCount(name, type);
             }
         }
         return name + (matches ? matches[0] : "");
