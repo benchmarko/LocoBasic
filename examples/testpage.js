@@ -294,7 +294,7 @@ a$=DEC$(3,"###.##"): IF a$<>"  3.00" THEN ERROR 33
 a$=DEC$(2.9949,"#.##"): IF a$<>"2.99" THEN ERROR 33
 ''a$=DEC$(8.575,"##.##"): IF a$<>" 8.58" THEN ERROR 33
 a$=DEC$(8.595,"##.##"): IF a$<>" 8.60" THEN ERROR 33
-a$=DEC$(15.355,"#.##"): IF a$<>"15.36" THEN ERROR 33
+a$=DEC$(15.355,"#.##"): IF a$<>"%15.36" THEN ERROR 33
 '
 PRINT "DEF FN (and FN), ";
 DEF FNclk=10
