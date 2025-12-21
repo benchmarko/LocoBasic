@@ -178,8 +178,8 @@ export declare class Semantics implements ISemantics {
         Symbol_def(lit: Node, args: Node): string;
         Symbol_after(lit: Node, afterLit: Node, num: Node): string;
         Tab(_lit: Node, _open: Node, num: Node, _close: Node): string;
-        Tag(_tagLit: Node, stream: Node): string;
-        Tagoff(_tagoffLit: Node, stream: Node): string;
+        Tag(lit: Node, stream: Node): string;
+        Tagoff(lit: Node, stream: Node): string;
         Tan: (lit: Node, _open: Node, num: Node, _close: Node) => string;
         Test(lit: Node, open: Node, num: Node, comma: Node, num2: Node, close: Node): string;
         Testr(lit: Node, open: Node, num: Node, comma: Node, num2: Node, close: Node): string;

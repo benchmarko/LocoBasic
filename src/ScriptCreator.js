@@ -7,16 +7,19 @@ export class ScriptCreator {
     analyzeDependencies(vmObj) {
         const depMap = {};
         for (const key in vmObj) {
+            const deps = [];
+            const noPropertyDeps = key === "cls"; // no property deps for cls function
             const value = vmObj[key];
             const valueStr = String(value);
-            const deps = [];
             // Find all vm.propertyName references
             const regex = /vm\.([\w$]+)/g;
             let match;
             while ((match = regex.exec(valueStr)) !== null) {
                 const refProp = match[1];
                 if (!deps.includes(refProp)) {
-                    deps.push(refProp);
+                    if (!refProp.startsWith("_") || !noPropertyDeps) {
+                        deps.push(refProp);
+                    }
                 }
             }
             depMap[key] = deps;

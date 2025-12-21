@@ -83,23 +83,23 @@
                 1, 24, 20, 6, 26, 0, 2, 8, 10, 12, 14, 16, 18, 22, 1, 16, 1
             ],
             _cpcStrokeWidthForMode: [4, 2, 1, 1],
-            _isTerminal: false, // output for terminal
             _frameTime: 50,
-            _lastInkeyTime: 0,
             _data: [],
             _dataPtr: 0,
             _graBackgroundColor: "",
             _graColorsForPens: [], // make sure to initialize with resetColorsForPens before usage
             _graCurrGraphicsPen: -1,
             _graCurrMode: 1,
-            _graOriginX: 0,
-            _graOriginY: 0,
             _graGraphicsBuffer: [],
             _graGraphicsPathBuffer: [],
             _graGraphicsX: 0,
             _graGraphicsY: 0,
             _graOutputGraphicsIndex: -1,
+            _graOriginX: 0,
+            _graOriginY: 0,
+            _isTerminal: false, // output for terminal
             _keyBuffer: [], // buffered pressed keys
+            _lastInkeyTime: 0,
             _needCls: false,
             _output: "",
             _paperSpanPos: -1,
@@ -111,7 +111,6 @@
             _rsxPitch: 1,
             _startTime: 0,
             _stopRequested: false,
-            _tag: false,
             _timerMap: {},
             _vpos: 0,
             _zone: 13,
@@ -134,7 +133,8 @@
                 }
                 return str;
             },
-            formatNumber: (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `),
+            formatNumber1: (arg) => (arg >= 0 ? ` ${arg} ` : `${arg} `),
+            formatNumberArgs: (args) => args.map((arg) => (typeof arg === "number") ? vm.formatNumber1(arg) : arg),
             onMessageHandler: (data) => {
                 switch (data.type) {
                     case 'config':
@@ -164,26 +164,22 @@
                 parentPort.postMessage(message);
             },
             resetAll: () => {
-                vm._lastInkeyTime = 0;
-                vm._rsxPitch = 1;
-                vm.resetGra();
-                vm.cls();
                 vm._data.length = 0;
                 vm._dataPtr = 0;
+                vm._lastInkeyTime = 0;
+                vm.resetColorsForPens();
+                vm._graBackgroundColor = "";
                 vm._keyBuffer.length = 0;
                 vm.deleteAllItems(vm._restoreMap);
+                vm._rsxPitch = 1;
                 vm._startTime = Date.now();
                 vm._stopRequested = false;
                 vm.remainAll();
+                vm.cls();
             },
             resetColorsForPens: () => {
                 vm._graColorsForPens.length = 0;
                 vm._graColorsForPens.push(...vm._cpcDefaultColorsForPens);
-            },
-            resetGra: () => {
-                vm.resetColorsForPens();
-                vm._graBackgroundColor = "";
-                vm.graCls();
             },
             resolveInput: (input) => {
                 if (vm._inputResolvedFn) {
@@ -211,16 +207,22 @@
                 vm._keyBuffer.length = 0;
             },
             cls: () => {
+                // no property deps
+                vm._graCurrGraphicsPen = -1;
+                if ("_graGraphicsBuffer" in vm) {
+                    vm._graGraphicsBuffer.length = 0;
+                }
+                vm._graGraphicsX = 0;
+                vm._graGraphicsY = 0;
+                vm._graOutputGraphicsIndex = -1;
                 vm._output = "";
                 vm._paperSpanPos = -1;
                 vm._paperValue = -1;
                 vm._penSpanPos = -1;
                 vm._penValue = -1;
                 vm._pos = 0;
-                vm._tag = false;
                 vm._vpos = 0;
                 vm._zone = 13;
-                vm.graCls();
                 vm._needCls = true;
             },
             cos: (num) => Math.cos(num),
@@ -261,7 +263,11 @@
             exp: (num) => Math.exp(num),
             fix: (num) => Math.trunc(num),
             flush: () => {
-                const message = vm.getFlushedTextandGraphics();
+                const textOutput = vm.handleTrailingNewline(vm.getFlushedText());
+                const graphicsOutput = vm.handleTrailingNewline(vm.graGetFlushedGraphics());
+                const outputGraphicsIndex = vm._graOutputGraphicsIndex;
+                const hasGraphics = outputGraphicsIndex >= 0;
+                const message = hasGraphics ? textOutput.substring(0, outputGraphicsIndex) + graphicsOutput + textOutput.substring(outputGraphicsIndex) : textOutput;
                 if (message) {
                     const hasGraphics = vm._graOutputGraphicsIndex >= 0;
                     vm.postMessage({ type: 'flush', message, hasGraphics, needCls: vm._needCls });
@@ -287,14 +293,6 @@
                 vm.graSetOutputGraphicsIndex();
                 vm.graFlushGraphicsPath(); // maybe a path is open
                 vm._graGraphicsBuffer.push(element);
-            },
-            graCls: () => {
-                vm._graGraphicsBuffer.length = 0;
-                vm._graGraphicsPathBuffer.length = 0;
-                vm._graCurrGraphicsPen = -1;
-                vm._graGraphicsX = 0;
-                vm._graGraphicsY = 0;
-                vm._graOutputGraphicsIndex = -1;
             },
             // type: M | m | P | p | L | l
             graDrawMovePlot: (type, x, y, pen) => {
@@ -336,9 +334,14 @@
                 if (vm._graGraphicsBuffer.length) {
                     const graphicsBufferStr = vm._graGraphicsBuffer.join("\n");
                     vm._graGraphicsBuffer.length = 0;
-                    return vm.graGetTagInSvg(graphicsBufferStr);
+                    const backgroundColorStr = vm._graBackgroundColor !== "" ? ` style="background-color:${vm._graBackgroundColor}"` : '';
+                    const strokeWidth = vm._cpcStrokeWidthForMode[vm._graCurrMode] + "px";
+                    return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" shape-rendering="optimizeSpeed" stroke="currentColor" stroke-width="${strokeWidth}"${backgroundColorStr}>\n${graphicsBufferStr}\n</svg>\n`;
                 }
                 return "";
+            },
+            graGetRgbColorStringForPen: (pen) => {
+                return vm._cpcColors[vm._graColorsForPens[pen]];
             },
             graGetStrokeAndFillStr: (fill) => {
                 const currGraphicsPen = vm._graCurrGraphicsPen;
@@ -346,15 +349,8 @@
                 const fillStr = fill >= 0 ? ` fill="${vm.graGetRgbColorStringForPen(fill)}"` : "";
                 return `${strokeStr}${fillStr}`;
             },
-            graGetTagInSvg: (content) => {
-                const backgroundColorStr = vm._graBackgroundColor !== "" ? ` style="background-color:${vm._graBackgroundColor}"` : '';
-                const strokeWidth = vm._cpcStrokeWidthForMode[vm._graCurrMode] + "px";
-                return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" shape-rendering="optimizeSpeed" stroke="currentColor" stroke-width="${strokeWidth}"${backgroundColorStr}>\n${content}\n</svg>\n`;
-            },
-            graGetRgbColorStringForPen: (pen) => {
-                return vm._cpcColors[vm._graColorsForPens[pen]];
-            },
             graPrintGraphicsText: (text) => {
+                text = vm.escapeText(text);
                 const yOffset = 16;
                 const colorStyleStr = vm._graCurrGraphicsPen >= 0 ? `; color: ${vm.graGetRgbColorStringForPen(vm._graCurrGraphicsPen)}` : "";
                 vm.graAddGraphicsElement(`<text x="${vm._graGraphicsX + vm._graOriginX}" y="${399 - vm._graGraphicsY - vm._graOriginY + yOffset}" style="white-space: pre${colorStyleStr}">${text}</text>`);
@@ -367,13 +363,6 @@
             },
             handleTrailingNewline: (str) => {
                 return vm._isTerminal ? str.replace(/\n$/, "") : str;
-            },
-            getFlushedTextandGraphics: () => {
-                const textOutput = vm.handleTrailingNewline(vm.getFlushedText());
-                const graphicsOutput = vm.handleTrailingNewline(vm.graGetFlushedGraphics());
-                const outputGraphicsIndex = vm._graOutputGraphicsIndex;
-                const hasGraphics = outputGraphicsIndex >= 0;
-                return hasGraphics ? textOutput.substring(0, outputGraphicsIndex) + graphicsOutput + textOutput.substring(outputGraphicsIndex) : textOutput;
             },
             graphicsPen: (num) => {
                 if (num !== vm._graCurrGraphicsPen) {
@@ -519,21 +508,21 @@
             plotr: (x, y, pen) => vm.graDrawMovePlot("p", x, y, pen),
             pos: () => vm._pos + 1,
             print: (...args) => {
-                const text = args.map((arg) => (typeof arg === "number") ? vm.formatNumber(arg) : arg).join("");
-                if (vm._tag) {
-                    return vm.graPrintGraphicsText(vm.escapeText(text));
-                }
-                vm.printText(text);
+                vm.printText(vm.formatNumberArgs(args).join(""));
+            },
+            printTag: (...args) => {
+                return vm.graPrintGraphicsText(vm.formatNumberArgs(args).join(""));
             },
             printTab: (...args) => {
-                const strArgs = args.map((arg) => (typeof arg === "number") ? vm.formatNumber(arg) : arg);
-                if (vm._tag) {
-                    return vm.graPrintGraphicsText(vm.escapeText(strArgs.map(arg => vm.formatCommaOrTab(arg)).join("")));
-                    // For graphics output the text position does not change, so we can output all at once
-                }
+                const strArgs = vm.formatNumberArgs(args);
                 for (const str of strArgs) {
                     vm.printText(vm.formatCommaOrTab(str));
                 }
+            },
+            printTabTag: (...args) => {
+                const strArgs = vm.formatNumberArgs(args);
+                return vm.graPrintGraphicsText(strArgs.map(arg => vm.formatCommaOrTab(arg)).join(""));
+                // For graphics output the text position does not change, so we can output all at once
             },
             printText: (text) => {
                 vm._output += vm._isTerminal ? text : vm.escapeText(text); // for node.js we do not need to escape (non-graphics) text
@@ -653,12 +642,6 @@
             str$: (num) => num >= 0 ? ` ${num}` : String(num),
             string$Num: (len, num) => String.fromCharCode(num).repeat(len),
             string$Str: (len, str) => str.repeat(len),
-            tag: () => {
-                vm._tag = true;
-            },
-            tagoff: () => {
-                vm._tag = false;
-            },
             tan: (num) => Math.tan(num),
             time: () => ((Date.now() - vm._startTime) * 3 / 10) | 0,
             toDeg: (num) => num * 180 / Math.PI,
@@ -673,10 +656,11 @@
             vpos: () => vm._vpos + 1,
             write: (...args) => {
                 const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
-                if (vm._tag) {
-                    return vm.graPrintGraphicsText(vm.escapeText(text));
-                }
                 vm.printText(text);
+            },
+            writeTag: (...args) => {
+                const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
+                return vm.graPrintGraphicsText(text);
             },
             xpos: () => vm._graGraphicsX,
             ypos: () => vm._graGraphicsY,

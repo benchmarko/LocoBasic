@@ -17,12 +17,15 @@ export declare class SemanticsHelper {
     private static readonly reJsKeyword;
     private readonly instrMap;
     private isDeg;
+    private isTag;
     private defContextStatus;
     private readonly defContextVars;
     addCompileMessage(message: string): void;
     getCompileMessages(): string[];
     getDeg(): boolean;
     setDeg(isDeg: boolean): void;
+    getTag(): boolean;
+    setTag(isTag: boolean): void;
     addIndent(num: number): number;
     setIndent(indent: number): void;
     getIndent(): number;

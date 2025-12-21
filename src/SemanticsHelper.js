@@ -14,6 +14,7 @@ export class SemanticsHelper {
         this.restoreMap = {};
         this.instrMap = {};
         this.isDeg = false;
+        this.isTag = false;
         this.defContextStatus = ""; // collect | use | ""
         this.defContextVars = [];
     }
@@ -28,6 +29,12 @@ export class SemanticsHelper {
     }
     setDeg(isDeg) {
         this.isDeg = isDeg;
+    }
+    getTag() {
+        return this.isTag;
+    }
+    setTag(isTag) {
+        this.isTag = isTag;
     }
     addIndent(num) {
         this.indent += num;
@@ -171,6 +178,7 @@ export class SemanticsHelper {
         SemanticsHelper.deleteAllItems(this.restoreMap);
         SemanticsHelper.deleteAllItems(this.instrMap);
         this.isDeg = false;
+        this.isTag = false;
         this.defContextStatus = "";
         this.defContextVars.length = 0;
     }

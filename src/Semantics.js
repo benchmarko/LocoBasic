@@ -788,18 +788,15 @@ ${dataList.join(",\n")}
             const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
             const argumentList = evalChildren(args.asIteration().children);
             const parameterString = argumentList.join(', ') || "";
+            const tag = semanticsHelper.getTag();
             const hasCommaOrTab = parameterString.includes(`"${CommaOpChar}`) || parameterString.includes(`"${TabOpChar}`);
-            if (hasCommaOrTab) {
-                semanticsHelper.addInstr("printTab");
-            }
-            else {
-                semanticsHelper.addInstr("print");
-            }
+            const printInstr = (hasCommaOrTab ? "printTab" : "print") + (tag ? "Tag" : "");
+            semanticsHelper.addInstr(printInstr);
             let newlineString = "";
             if (!semi.sourceString) {
                 newlineString = parameterString ? `, "\\n"` : `"\\n"`;
             }
-            return `${hasCommaOrTab ? "printTab" : "print"}(${streamStr}${parameterString}${newlineString})`;
+            return `${printInstr}(${streamStr}${parameterString}${newlineString})`;
         },
         Rad(_radLit) {
             semanticsHelper.setDeg(false);
@@ -961,17 +958,27 @@ ${dataList.join(",\n")}
         Tab(_lit, _open, num, _close) {
             return `"${TabOpChar}" + String(${num.eval()})`; // Unicode double arrow right
         },
-        Tag(_tagLit, stream) {
+        Tag(lit, stream) {
             var _a;
-            semanticsHelper.addInstr("tag");
+            //semanticsHelper.addInstr("tag");
+            semanticsHelper.setTag(true);
             const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
-            return `tag(${streamStr})`;
+            if (streamStr) {
+                return notSupported(lit, stream);
+            }
+            return `/* tag */`; // we assume to check it at compile time
+            //return `tag(${streamStr})`;
         },
-        Tagoff(_tagoffLit, stream) {
+        Tagoff(lit, stream) {
             var _a;
-            semanticsHelper.addInstr("tagoff");
+            //semanticsHelper.addInstr("tagoff");
+            semanticsHelper.setTag(false);
             const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
-            return `tagoff(${streamStr})`;
+            if (streamStr) {
+                return notSupported(lit, stream);
+            }
+            return `/* tagoff */`; // we assume to check it at compile time
+            //eturn `tagoff(${streamStr})`;
         },
         Tan: cosSinTan,
         Test(lit, open, num, comma, num2, close) {
@@ -1035,10 +1042,11 @@ ${dataList.join(",\n")}
         },
         Write(_printLit, stream, _comma, args) {
             var _a;
-            semanticsHelper.addInstr("write");
+            const writeInst = semanticsHelper.getTag() ? "writeTag" : "write";
+            semanticsHelper.addInstr(writeInst);
             const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
             const parameterString = evalChildren(args.asIteration().children).join(', ');
-            return `write(${streamStr}${parameterString})`;
+            return `${writeInst}(${streamStr}${parameterString})`;
         },
         Xpos(_xposLit) {
             semanticsHelper.addInstr("xpos");
