@@ -1,13 +1,20 @@
 import type { DefinedLabelEntryType, UsedLabelEntryType } from "./Interfaces";
 
+interface VariableEntryType {
+    count: number;
+    type: string;
+}
+
 type VariableScopesEntryType = Record<string, number>;
 export type VariableScopesType = Record<string, VariableScopesEntryType>;
+
+
 
 export class SemanticsHelper {
     private lineIndex = 0;
     private indent = 0;
     private readonly compileMessages: string[] = [];
-    private readonly variables: Record<string, number> = {};
+    private readonly variables: Record<string, VariableEntryType> = {};
     private readonly variableScopes: VariableScopesType = {};
     private readonly varLetterTypes: Record<string, string> = {};
 
@@ -118,8 +125,21 @@ export class SemanticsHelper {
         return Object.keys(this.variables);
     }
 
-    private createVariableOrCount(name: string) {
-        this.variables[name] = (this.variables[name] || 0) + 1;
+    private createVariableOrCount(name: string, type: string) {
+        if (!this.variables[name]) {
+            this.variables[name] = {
+                count: 1,
+                type
+            }
+        } else {
+            this.variables[name].count += 1;
+            if (type !== this.variables[name].type) {
+                console.warn(`Var type changed for '${name}': ${this.variables[name].type} => ${type}`);
+                this.addCompileMessage(`WARNING: Variable has plain and array type: ${name}`);
+                this.variables[name].type = type;
+            }
+        }
+        
         if (!this.variableScopes[name]) {
             this.variableScopes[name] = {};
         }
@@ -127,7 +147,7 @@ export class SemanticsHelper {
         variableScope[this.currentFunction] = (variableScope[this.currentFunction] || 0) + 1;
     }
 
-    public getVariable(name: string): string {
+    public getVariable(name: string, type = ""): string {
         name = name.toLowerCase();
         const matches = name.match(/\/\* not supported: [%|!] \*\//);
         if (matches) {
@@ -138,14 +158,16 @@ export class SemanticsHelper {
             name = `_${name}`;
         }
 
+        //const type = isArray ? "A" : "";
+
         const defContextStatus = this.defContextStatus;
         if (defContextStatus === "") { // not in defContext?
-            this.createVariableOrCount(name);
+            this.createVariableOrCount(name, type);
         } else if (defContextStatus === "collect") {
             this.defContextVars.push(name);
         } else if (defContextStatus === "use") {
             if (!this.defContextVars.includes(name)) { // variable not bound to DEF FN?
-                this.createVariableOrCount(name);
+                this.createVariableOrCount(name, type);
             }
         }
         return name + (matches ? matches[0] : "");

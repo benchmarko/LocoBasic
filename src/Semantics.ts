@@ -1428,7 +1428,8 @@ ${dataList.join(",\n")}
 		},
 
 		ArrayIdent(ident: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `${ident.eval()}[${e.eval()}]`;
+			const name = semanticsHelper.getVariable(ident.eval(), "A");
+			return `${name}[${e.eval()}]`;
 		},
 
 		DimArrayArgs(args: Node) {
@@ -1436,7 +1437,7 @@ ${dataList.join(",\n")}
 		},
 
 		DimArrayIdent(ident: Node, _open: Node, indices: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			const identStr = ident.eval();
+			const identStr = semanticsHelper.getVariable(ident.eval(), "A");
 			const indicesStr = indices.eval();
 			const isMultiDimensional = indicesStr.includes(","); // also for expressions containing comma
 			const isStringIdent = identStr.endsWith("$");
@@ -1457,7 +1458,13 @@ ${dataList.join(",\n")}
 		},
 
 		StrArrayIdent(ident: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			return `${ident.eval()}[${e.eval()}]`;
+			const name = semanticsHelper.getVariable(ident.eval(), "A");
+			return `${name}[${e.eval()}]`;
+		},
+
+		EraseIdent(ident: Node) {
+			const name = semanticsHelper.getVariable(ident.eval(), "A"); // for erase we have arrayvariables but withoutt indices
+			return name;
 		},
 
 		CondExp(e: Node) {
@@ -1494,13 +1501,23 @@ ${dataList.join(",\n")}
 			return `"${str}"${varStr}`;
 		},
 
+		PlainIdent(ident: Node) {
+			const name = ident.eval();
+			return semanticsHelper.getVariable(name);
+		},
+
+		StrPlainIdent(ident: Node) {
+			const name = ident.eval();
+			return semanticsHelper.getVariable(name);
+		},
+
 		ident(ident: Node, suffix: Node) {
 			const name = adaptIdentName(ident.sourceString);
 			const suffixStr = suffix.child(0)?.sourceString;
 			if (suffixStr !== undefined) { // real or integer suffix
-				return semanticsHelper.getVariable(name) + notSupported(suffix);
+				return name + notSupported(suffix);
 			}
-			return semanticsHelper.getVariable(name);
+			return name; //semanticsHelper.getVariable(name);
 		},
 
 		fnIdent(fn: Node, _space: Node, ident: Node, suffix: Node) {
@@ -1514,7 +1531,7 @@ ${dataList.join(",\n")}
 
 		strIdent(ident: Node, typeSuffix: Node) {
 			const name = adaptIdentName(ident.sourceString) + typeSuffix.sourceString;
-			return semanticsHelper.getVariable(name);
+			return name; //semanticsHelper.getVariable(name);
 		},
 
 		strFnIdent(fn: Node, _space: Node, ident: Node, typeSuffix: Node) {

@@ -87,25 +87,25 @@ in.ser.t.lin.e=2
 newline=7
 '
 PRINT "Arrays"
-DIM a(2), a$(2)
-a(2)=1.4: IF a(2)<>1.4 THEN ERROR 33
-a(2)=1.5: IF a(2)<>1.5 THEN ERROR 33
-a$(2)="1.4": IF a$(2)<>"1.4" THEN ERROR 33
-ERASE a,a$
-DIM a$[2]:a$[2]="1.5": IF a$[2]<>"1.5" THEN ERROR 33
-a$[2]="1.4"
-ERASE a$
-DIM a(9),b(1,2):b(1,2)=3:a(9)=b(1,2): IF a(9)<>3 THEN ERROR 33
-ERASE a,b
-DIM a[9],b[1,2]:b[1,2]=4:a[9]=b[1,2]: IF a(9)<>4 THEN ERROR 33
-a[9]=b[1,2]
-DIM a(10,10,10),b(10,9):a(10,10,10)=b(10,9)
-ERASE a,b
-DIM a(2),b(2,2,1)
-b(2,2,1)=4:a(ROUND(1.4))=b(ROUND(1.5),ROUND(2.4),1): IF a(1)<>4 THEN ERROR 33
-i=1:b(1,2,1)=5:a(i+1)=b(i,i*2,ROUND(i-0.5)): IF a(i+1)<>5 THEN ERROR 33
-i=1:b(1,2,0)=6:a(i-1)=b(INT(i),i*2,(i-1+&C) MOD 2): IF a(i-1)<>6 THEN ERROR 33
-ERASE a,b
+DIM r(2), r$(2)
+r(2)=1.4: IF r(2)<>1.4 THEN ERROR 33
+r(2)=1.5: IF r(2)<>1.5 THEN ERROR 33
+r$(2)="1.4": IF r$(2)<>"1.4" THEN ERROR 33
+ERASE r,r$
+DIM r$[2]:r$[2]="1.5": IF r$[2]<>"1.5" THEN ERROR 33
+r$[2]="1.4"
+ERASE r$
+DIM r(9),s(1,2):s(1,2)=3:r(9)=s(1,2): IF r(9)<>3 THEN ERROR 33
+ERASE r,s
+DIM r[9],s[1,2]:s[1,2]=4:r[9]=s[1,2]: IF r(9)<>4 THEN ERROR 33
+r[9]=s[1,2]
+DIM r(10,10,10),s(10,9):r(10,10,10)=s(10,9)
+ERASE r,s
+DIM r(2),s(2,2,1)
+s(2,2,1)=4:r(ROUND(1.4))=s(ROUND(1.5),ROUND(2.4),1): IF r(1)<>4 THEN ERROR 33
+i=1:s(1,2,1)=5:r(i+1)=s(i,i*2,ROUND(i-0.5)): IF r(i+1)<>5 THEN ERROR 33
+i=1:s(1,2,0)=6:r(i-1)=s(INT(i),i*2,(i-1+&C) MOD 2): IF r(i-1)<>6 THEN ERROR 33
+ERASE r,s
 '
 PRINT "Expressions, Operators +-*..."
 a=1+2+3: IF a<>6 THEN ERROR 33
@@ -379,21 +379,21 @@ DEG
 ''DI
 '
 PRINT "DIM, ";
-DIM a(1)
-''DIM a!(1)
-''DIM a%(1)
-ERASE a
-DIM a$(1)
-DIM b(2,13)
-ERASE a$,b
-i=1:DIM a(2,13+7),b$(3),c(2*i,7)
-ERASE a,b$,c
-''DIM a[2,13)
-''DIM a(4):FOR i=0 TO 4:a(i)=i:NEXT
-''a=0:FOR i=0 TO 4:a=a+a(i):NEXT:IF a<>10 THEN ERROR 33
-DIM a(4):FOR i=0 TO 4:a(i)=i:NEXT
-b=0:FOR i=0 TO 4:b=b+a(i):NEXT:IF b<>10 THEN ERROR 33
-ERASE a
+DIM r(1)
+''DIM r!(1)
+''DIM r%(1)
+ERASE r
+DIM r$(1)
+DIM s(2,13)
+ERASE r$,s
+i=1:DIM r(2,13+7),s$(3),t(2*i,7)
+ERASE r,s$,t
+''DIM r[2,13)
+''DIM r(4):FOR i=0 TO 4:r(i)=i:NEXT
+''a=0:FOR i=0 TO 4:a=a+r(i):NEXT:IF a<>10 THEN ERROR 33
+DIM r(4):FOR i=0 TO 4:r(i)=i:NEXT
+b=0:FOR i=0 TO 4:b=b+r(i):NEXT:IF b<>10 THEN ERROR 33
+ERASE r
 '
 ''DRAW 10,20
 ''DRAW -10,-20,7
@@ -425,9 +425,9 @@ ERASE a
 ''a=EOF
 '
 PRINT "ERASE, ";
-DIM a(1):ERASE a
-DIM a$(1):ERASE a$
-DIM a(1),a$(1):ERASE a,a$
+DIM r(1):ERASE r
+DIM r$(1):ERASE r$
+DIM r(1),r$(1):ERASE r,r$
 '''1 ERASE 5
 '
 ''a=ERL
