@@ -982,18 +982,17 @@ ${dataList.join(",\n")}
 			const argumentList = evalChildren(args.asIteration().children);
 			const parameterString = argumentList.join(', ') || "";
 
+			const tag = semanticsHelper.getTag();
 			const hasCommaOrTab = parameterString.includes(`"${CommaOpChar}`) || parameterString.includes(`"${TabOpChar}`);
-			if (hasCommaOrTab) {
-				semanticsHelper.addInstr("printTab");
-			} else {
-				semanticsHelper.addInstr("print");
-			}
+			const printInstr = (hasCommaOrTab ? "printTab" : "print") + (tag ? "Tag" : "");
+
+			semanticsHelper.addInstr(printInstr);
 
 			let newlineString = "";
 			if (!semi.sourceString) {
 				newlineString = parameterString ? `, "\\n"` : `"\\n"`;
 			}
-			return `${hasCommaOrTab ? "printTab" : "print"}(${streamStr}${parameterString}${newlineString})`;
+			return `${printInstr}(${streamStr}${parameterString}${newlineString})`;
 		},
 
 		Rad(_radLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -1202,16 +1201,26 @@ ${dataList.join(",\n")}
 			return `"${TabOpChar}" + String(${num.eval()})`; // Unicode double arrow right
 		},
 
-		Tag(_tagLit: Node, stream: Node) {
-			semanticsHelper.addInstr("tag");
+		Tag(lit: Node, stream: Node) {
+			//semanticsHelper.addInstr("tag");
+			semanticsHelper.setTag(true);
 			const streamStr = stream.child(0)?.eval() || "";
-			return `tag(${streamStr})`;
+			if (streamStr) {
+				return notSupported(lit, stream);
+			}
+			return `/* tag */`; // we assume to check it at compile time
+			//return `tag(${streamStr})`;
 		},
 
-		Tagoff(_tagoffLit: Node, stream: Node) {
-			semanticsHelper.addInstr("tagoff");
+		Tagoff(lit: Node, stream: Node) {
+			//semanticsHelper.addInstr("tagoff");
+			semanticsHelper.setTag(false);
 			const streamStr = stream.child(0)?.eval() || "";
-			return `tagoff(${streamStr})`;
+			if (streamStr) {
+				return notSupported(lit, stream);
+			}
+			return `/* tagoff */`; // we assume to check it at compile time
+			//eturn `tagoff(${streamStr})`;
 		},
 
 		Tan: cosSinTan,
@@ -1293,10 +1302,11 @@ ${dataList.join(",\n")}
 		},
 
 		Write(_printLit: Node, stream: Node, _comma: Node, args: Node) {
-			semanticsHelper.addInstr("write");
+			const writeInst = semanticsHelper.getTag() ? "writeTag" : "write";
+			semanticsHelper.addInstr(writeInst);
 			const streamStr = stream.child(0)?.eval() || "";
 			const parameterString = evalChildren(args.asIteration().children).join(', ');
-			return `write(${streamStr}${parameterString})`;
+			return `${writeInst}(${streamStr}${parameterString})`;
 		},
 
 		Xpos(_xposLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars

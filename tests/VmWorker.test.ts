@@ -154,6 +154,7 @@ describe("VmWorker.vm core methods", () => {
         expect(vm._graBackgroundColor).toBeDefined();
     });
 
+    /*
     it("tag enables graphics text output", () => {
         const vm = workerFn(getMockParentPort());
         vm.tag();
@@ -161,6 +162,7 @@ describe("VmWorker.vm core methods", () => {
         expect(vm._graGraphicsBuffer.join("")).toContain("abc"); // <text x="0" y="415" style="white-space: pre">abc</text>
         vm.tagoff();
     });
+    */
 
     it("escapeText escapes HTML", () => {
         const vm = workerFn(getMockParentPort());
@@ -287,12 +289,10 @@ describe("VmWorker.vm core methods", () => {
         await expect(p).resolves.toBe("hello, world!");
     });
 
-    it("print handles _tag graphics mode", () => {
+    it("printTag handles graphics mode", () => {
         const vm = workerFn(getMockParentPort());
-        vm.tag();
-        vm.print("hello");
+        vm.printTag("hello");
         expect(vm._graGraphicsBuffer.join("")).toContain("hello");
-        vm.tagoff();
     });
 
     it("paper and pen handle browser and terminal output", () => {

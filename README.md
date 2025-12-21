@@ -241,7 +241,9 @@ LocoBasic can be run in a browser or as a Node.js application.
 - `STRING$(number, character | ASCIInumber)` Returns *character* (or `CHR$(ASCIInumber)`) repeated *number* times.
 - `TAB(number)` In *PRINT*, outputs the next argument at position *number*.
 - `TAG` Activates text at graphics mode. *PRINT* uses graphics cursor position and graphics color.
+  - **Note:** In LocoBasic, the flag is used at compile time starting from its lexical position and not dynamically during execution.
 - `TAGOFF` Deactivates text at graphics mode. *PRINT* uses text at text positions with text pen again.
+  - **Note:** In LocoBasic, the flag is used at compile time starting from its lexical position and not dynamically during execution.
 - `TAN(number)` Returns the tangent of the given *number*.
   - *number* should be in radians (when *RAD* is active) or in degrees (when *DEG* is active).
 - `TIME` Returns the current system time in 1/300 sec.

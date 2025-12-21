@@ -121,7 +121,6 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         _rsxPitch: 1,
         _startTime: 0,
         _stopRequested: false,
-        _tag: false,
         _timerMap: {} as Record<number, (number | NodeJS.Timeout)>,
         _vpos: 0,
         _zone: 13,
@@ -147,7 +146,9 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             return str;
         },
 
-        formatNumber: (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `),
+        formatNumber1: (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `),
+
+        formatNumberArgs: (args: (string | number)[]) => args.map((arg) => (typeof arg === "number") ? vm.formatNumber1(arg) : arg),
 
         onMessageHandler: (data: MessageToWorker) => {
             switch (data.type) {
@@ -253,7 +254,6 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             vm._penSpanPos = -1;
             vm._penValue = -1;
             vm._pos = 0;
-            vm._tag = false;
             vm._vpos = 0;
             vm._zone = 13;
 
@@ -605,22 +605,23 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         pos: () => vm._pos + 1,
 
         print: (...args: (string | number)[]) => {
-            const text = args.map((arg) => (typeof arg === "number") ? vm.formatNumber(arg) : arg).join("");
-            if (vm._tag) {
-                return vm.graPrintGraphicsText(text);
-            }
-            vm.printText(text);
+            vm.printText(vm.formatNumberArgs(args).join(""));
+        },
+
+        printTag: (...args: (string | number)[]) => {
+            return vm.graPrintGraphicsText(vm.formatNumberArgs(args).join(""));
         },
 
         printTab: (...args: (string | number)[]) => {
-            const strArgs = args.map((arg) => (typeof arg === "number") ? vm.formatNumber(arg) : arg);
-            if (vm._tag) {
-                return vm.graPrintGraphicsText(strArgs.map(arg => vm.formatCommaOrTab(arg)).join(""));
-                // For graphics output the text position does not change, so we can output all at once
-            }
+            const strArgs = vm.formatNumberArgs(args);
             for (const str of strArgs) {
                 vm.printText(vm.formatCommaOrTab(str));
             }
+        },
+        printTabTag: (...args: (string | number)[]) => {
+            const strArgs = vm.formatNumberArgs(args);
+            return vm.graPrintGraphicsText(strArgs.map(arg => vm.formatCommaOrTab(arg)).join(""));
+            // For graphics output the text position does not change, so we can output all at once
         },
         printText: (text: string) => {
             vm._output += vm._isTerminal ? text : vm.escapeText(text); // for node.js we do not need to escape (non-graphics) text
@@ -760,14 +761,6 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
 
         string$Str: (len: number, str: string) => str.repeat(len),
 
-        tag: () => {
-            vm._tag = true;
-        },
-
-        tagoff: () => {
-            vm._tag = false;
-        },
-
         tan: (num: number) => Math.tan(num),
 
         time: () => ((Date.now() - vm._startTime) * 3 / 10) | 0,
@@ -792,10 +785,11 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
 
         write: (...args: (string | number)[]) => {
             const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
-            if (vm._tag) {
-                return vm.graPrintGraphicsText(text);
-            }
             vm.printText(text);
+        },
+        writeTag: (...args: (string | number)[]) => {
+            const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
+            return vm.graPrintGraphicsText(text);
         },
         xpos: () => vm._graGraphicsX,
 

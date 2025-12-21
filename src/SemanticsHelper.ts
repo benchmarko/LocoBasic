@@ -20,6 +20,7 @@ export class SemanticsHelper {
     private static readonly reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;
     private readonly instrMap: Record<string, number> = {};
     private isDeg = false;
+    private isTag = false;
     private defContextStatus = ""; // collect | use | ""
     private readonly defContextVars: string[] = [];
 
@@ -37,6 +38,14 @@ export class SemanticsHelper {
 
     public setDeg(isDeg: boolean): void {
         this.isDeg = isDeg;
+    }
+
+    public getTag(): boolean {
+        return this.isTag;
+    }
+
+    public setTag(isTag: boolean): void {
+        this.isTag = isTag;
     }
 
     public addIndent(num: number): number {
@@ -206,6 +215,7 @@ export class SemanticsHelper {
         SemanticsHelper.deleteAllItems(this.restoreMap);
         SemanticsHelper.deleteAllItems(this.instrMap);
         this.isDeg = false;
+        this.isTag = false;
         this.defContextStatus = "";
         this.defContextVars.length = 0;
     }
