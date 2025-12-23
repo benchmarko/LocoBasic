@@ -861,7 +861,7 @@ ${dataList.join(",\n")}
             var _a;
             const cmdString = adaptIdentName(cmd.sourceString).toLowerCase();
             const rsxArgs = ((_a = e.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
-            const knownRsx = ["arc", "circle", "date", "ellipse", "geolocation", "pitch", "rect", "say", "time"];
+            const knownRsx = ["arc", "circle", "date", "ellipse", "geolocation", "pitch", "polygon", "rect", "say", "time"];
             if (!knownRsx.includes(cmdString)) {
                 return notSupported(_rsxLit, cmd, e);
             }

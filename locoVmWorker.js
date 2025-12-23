@@ -608,6 +608,12 @@
             rsxPitch: (...args) => {
                 vm._rsxPitch = args[0] / 10;
             },
+            rsxPolygon: (...args) => {
+                const fill = args.length % 2 ? args.pop() : -1;
+                const points = args.map((p) => Math.round(p)).map((p, index) => index % 2 ? 399 - p : p);
+                const strokeAndFillStr = vm.graGetStrokeAndFillStr(fill);
+                vm.graAddGraphicsElement(`<polygon points="${points}"${strokeAndFillStr} />`);
+            },
             rsxRect: (...args) => {
                 const [x1, y1, x2, y2, fill] = args.map((p) => Math.round(p));
                 const x = Math.min(x1, x2);

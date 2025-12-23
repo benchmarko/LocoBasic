@@ -32,6 +32,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Animate a pendulum (graphical)"
 		},
 		{
+			"key": "antipri",
+			"title": "Anti-primes"
+		},
+		{
 			"key": "archidr",
 			"title": "Little Architect Draw Examples"
 		},
@@ -262,6 +266,10 @@ cpcBasic.addIndex("./examples", {
 		{
 			"key": "testsub",
 			"title": "Test Subroutines"
+		},
+		{
+			"key": "xmastree",
+			"title": "Christmas tree"
 		},
 		{
 			"key": "yinyang",
