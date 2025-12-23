@@ -715,6 +715,13 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             vm._rsxPitch = args[0] / 10;
         },
 
+        rsxPolygon: (...args: number[]) => {
+            const fill = args.length % 2 ? args.pop() as number : -1;
+            const points = args.map((p) => Math.round(p as number)).map((p, index) => index % 2 ? 399 - p : p);
+            const strokeAndFillStr = vm.graGetStrokeAndFillStr(fill);
+            vm.graAddGraphicsElement(`<polygon points="${points}"${strokeAndFillStr} />`);
+        },
+
         rsxRect: (...args: number[]) => { // 4x number, number?
             const [x1, y1, x2, y2, fill] = args.map((p) => Math.round(p as number));
             const x = Math.min(x1, x2);

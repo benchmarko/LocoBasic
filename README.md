@@ -274,6 +274,7 @@ Notes:
 - `|ELLIPSE.cx,cy,rx,ry[,fillPen]` Draws an ellipse, creating shape [SVG ellipse](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/ellipse).
 - `lat=0.0: lon=0.0: |GEOLOCATION,@lat,@lon` Gets the geolocation (if available).
 - `|PITCH,n` Sets the speech synthesis pitch (1-20; default: 10)
+- `|POLYGON,x1,y1,...,xn,yn[,fillPen]` Draws a polygon, creating shape [SVG polygon](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/polygon).
 - `|RECT,x,y,x2,y2[,fillPen]` Draws a rectangle, creating shape [SVG rect](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/rect). See also: *|CIRCLE*.
 - `|SAY,"Hello"` Says "Hello" using speech synthesis. See also: *|PITCH*.
 - `t$=SPACE$(8): |TIME,@t$` Returns a time string in the format "HH MM SS" from the Real Time Clock (RTC).
