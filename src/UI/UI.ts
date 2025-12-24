@@ -92,6 +92,24 @@ export class UI implements IUI {
         return element.hidden;
     }
 
+    private closeAllPopoversExcept(id: string): void {
+        const popovers = document.querySelectorAll<HTMLElement>(".popover");
+        popovers.forEach(popover => {
+            const id2 = popover.getAttribute("id");
+            if (id2 !== id) {
+                popover.hidden = true;
+            }
+        });
+    }
+
+    private togglePopoverHidden(id: string) {
+        const visible = this.toggleElementHidden(id);
+        if (visible) {
+            this.closeAllPopoversExcept(id);
+        }
+        return visible;
+    }
+
     private setButtonOrSelectDisabled(id: string, disabled: boolean) {
         const element = window.document.getElementById(id) as HTMLButtonElement | HTMLSelectElement;
         element.disabled = disabled;
@@ -481,8 +499,36 @@ export class UI implements IUI {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onOutputOptionsButtonClick = (_event: Event): void => { // bound this
+        this.togglePopoverHidden("outputOptionsArea");
+
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onExecuteOptionsButtonClick = (_event: Event): void => { // bound this
+        this.togglePopoverHidden("executeOptionsArea");
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onConvertButtonClick = (_event: Event): void => { // bound this
-        this.toggleElementHidden("convertArea");
+        this.togglePopoverHidden("convertArea");
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onBasicOptionsButtonClick = (_event: Event): void => { // bound this
+        this.togglePopoverHidden("basicOptionsArea");
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onCompiledOptionsButtonClick = (_event: Event): void => { // bound this
+        this.togglePopoverHidden("compiledOptionsArea");
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onBasicSearchButtonClick = (_event: Event): void => { // bound this
+        if (!this.togglePopoverHidden("basicSearchArea")) {
+            this.getBasicCm().execCommand("clearSearch");
+        }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -493,13 +539,6 @@ export class UI implements IUI {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onBasicReplaceAllButtonClick = (_event: Event): void => { // bound this
         this.getBasicCm().execCommand("replaceAll");
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    private onBasicSearchButtonClick = (_event: Event): void => { // bound this
-        if (!this.toggleElementHidden("basicSearchArea")) {
-            this.getBasicCm().execCommand("clearSearch");
-        }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -517,13 +556,28 @@ export class UI implements IUI {
         this.getBasicCm().execCommand("clearSearch");
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onFullscreenButtonClick = async (_event: Event) => { // bound this
+        const id = "outputText";
+        const outputText = document.getElementById(id) as HTMLPreElement;
+        const fullscreenchangedHandler = (event: Event) => {
+            const target = event.target as HTMLElement;
+            if (!document.fullscreenElement) {
+                target.removeEventListener("fullscreenchange", fullscreenchangedHandler);
+            }
+        };
+
+        outputText.addEventListener("fullscreenchange", fullscreenchangedHandler); // { once: true}?
+        await outputText.requestFullscreen.call(outputText); // can we ALLOW_KEYBOARD_INPUT?
+    }
+
     private onFrameInputChange = (event: Event): void => { // bound this
         const frameInput = event.target as HTMLInputElement;
         const value = Number(frameInput.value);
         this.getVmMain().frameTime(value);
 
         const frameInputLabel = window.document.getElementById("frameInputLabel") as HTMLLabelElement;
-        frameInputLabel.innerText = `Frame ${frameInput.value} ms`;
+        frameInputLabel.innerText = `${frameInput.value} ms`;
     }
 
     private static addLabels(input: string) {
@@ -975,6 +1029,10 @@ export class UI implements IUI {
 
         // Map of element IDs to event handlers
         const buttonHandlers: Record<string, EventListener> = {
+            outputOptionsButton: this.onOutputOptionsButtonClick,
+            executeOptionsButton: this.onExecuteOptionsButtonClick,
+            basicOptionsButton: this.onBasicOptionsButtonClick,
+            compiledOptionsButton: this.onCompiledOptionsButtonClick,
             compileButton: this.onCompileButtonClick,
             enterButton: this.onEnterButtonClick,
             executeButton: this.onExecuteButtonClick,
@@ -990,6 +1048,7 @@ export class UI implements IUI {
             labelRemoveButton: this.onLabelRemoveButtonClick,
             helpButton: this.onHelpButtonClick,
             exportSvgButton: this.onExportSvgButtonClick,
+            fullscreenButton: this.onFullscreenButtonClick,
             standaloneButton: this.onStandaloneButtonClick
         };
 

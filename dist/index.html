@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="locobasic.css">
-  <title>LocoBasic v0.4.52</title>
+  <title>LocoBasic v0.4.53</title>
 </head>
 
 <body>
@@ -15,12 +15,24 @@
         <span class="legendTitle" title="LocoBasic">LocoBasic</span>
         <select id="databaseSelect" title="Database"></select>
         <select id="exampleSelect" title="Example"></select>
-        <button id="helpButton" title="Open LocoBasic Readme">Help</button>
-        <button id="exportSvgButton" title="Export SVG">SVG</button>
         <span class="toolbarLineItemRight">
-          <input id="showOutputInput" type="checkbox" title="Show Output" checked>
-          <label for="showOutputInput" title="Show Output">Output</label>
-        </span>
+          <span class="buttonPopoverContainer">
+            <button id="outputOptionsButton" class="popoverButton" title="Output Options">Output Options</button>
+            <span id="outputOptionsArea" class="popover right-align" hidden>
+              <fieldset>
+                <legend title="Output">Output</legend>
+                <input id="showOutputInput" type="checkbox" title="Show Output" checked>
+                <label for="showOutputInput" title="Show Output">Show</label>
+              </fieldset>
+              <fieldset>
+                <legend title="Export">Export</legend>
+                <button id="exportSvgButton" title="Export SVG (Vector)">SVG</button>
+                <!-- <button id="exportPngButton" title="Export PNG (Pixel)">PNG</button> -->
+              </fieldset>
+              <button id="fullscreenButton" title="Toggle Fullscreen">Fullscreen</button>
+              <button id="helpButton" title="Open LocoBasic Readme">Help</button>
+            </span>
+          </span>
       </div>
     </div>
   </div>
@@ -32,10 +44,7 @@
   <div id="executeToolbarArea" class="area">
     <div class="toolbarAreaInner">
       <div class="toolbarLine">
-        <span>
-          <input id="autoExecuteInput" type="checkbox" title="Automatic execute" checked>
-          <button id="executeButton" title="Execute JavaScript">Execute</button>
-        </span>
+        <button id="executeButton" title="Execute JavaScript">Execute</button>
         <button id="stopButton" title="Stop Execution" disabled>Stop</button>
         <button id="resetButton" title="Terminate Execution">Reset</button>
         <span>
@@ -43,11 +52,24 @@
           <button id="enterButton" title="Enter" disabled>Enter</button>
         </span>
         <span id="userKeys"></span>
-        <span class="toolbarLineItemRight" title="Execute and Input">Execute</span>
+        <span class="toolbarLineItemRight" title="Execute and Input">
+          <span class="buttonPopoverContainer">
+            <button id="executeOptionsButton" class="popoverButton" title="Execute Options">Execute Options</button>
+            <span id="executeOptionsArea" class="popover right-align" hidden>
+              <fieldset>
+                <legend title="Execute">Execute</legend>
+                <input id="autoExecuteInput" type="checkbox" title="Automatic Execute" checked>
+                <label id="autoExecuteInputLabel" for="autoExecuteInput" title="Automatic Execute on change">Auto Execute</label>
+              </fieldset>
+              <fieldset>
+                <legend title="Frame Time">Frame Time</legend>
+                <input id="frameInput" type="range" min="1" max="500" step="1" value="50" title="Frame Time">
+                <br>
+                <label id="frameInputLabel" for="frameInput" title="Frame Time">50 ms</label>
+              </fieldset>
+            </span>
+          </span>
         </span>
-        <span>
-          <input id="frameInput" type="range" min="1" max="500" step="1" value="50" title="Frame Time">
-				  <label id="frameInputLabel" for="frameInput" title="Frame Time">Frame</label>
         </span>
       </div>
     </div>
@@ -59,40 +81,41 @@
         <span class="buttonPopoverContainer">
           <button id="convertButton" class="popoverButton" title="Convert BASIC source">Convert</button>
           <span id="convertArea" class="popover" hidden>
-            <span id="convertAreaInner">
-              <fieldset>
-                <legend title="Line Numbers">Line Numbers</legend>
-                <button id="labelAddButton" class="popoverElement" title="Add line numbers">Add</button>
-                <button id="labelRemoveButton" class="popoverElement" title="Remove line numbers" disabled>Remove</button>
-              </fieldset>
-            </span>
+            <fieldset>
+              <legend title="Line Numbers">Line&nbsp;Numbers</legend>
+              <button id="labelAddButton" class="popoverElement" title="Add line numbers">Add</button>
+              <button id="labelRemoveButton" class="popoverElement" title="Remove line numbers" disabled>Remove</button>
+            </fieldset>
           </span>
         </span>
         <button id="startSpeechButton" title="Start Speech" hidden>Start Speech</button>
         <span class="toolbarLineItemRight">
           <span class="buttonPopoverContainer">
-          <button id="basicSearchButton" class="popoverButton" title="Search">Search</button>
+            <button id="basicSearchButton" class="popoverButton" title="Search">Search</button>
             <span id="basicSearchArea" class="popover" hidden>
-              <span id="basicSearchAreaInner">
-                <fieldset>
-                  <input id="basicSearchInput" title="Find text (or /re/)" type="text" size="10" placeholder="Find" autocomplete="off">
-                  <br>
-                  <span>
-                    <button id="basicSearchPrevButton" class="popoverElement" title="Find previous (Shift-[Ctrl|Cmd]-G)">⌃</button>
-                    <button id="basicSearchNextButton" class="popoverElement" title="Find Next ([Ctrl|Cmd]-G)">⌵</button>
-                  </span>
-                  <br>
-                  <input id="basicReplaceInput" title="Replace text" type="text" size="10" placeholder="Replace" autocomplete="off">
-                  <br>
-                  <button id="basicReplaceButton" class="popoverElement" title="Replace">Repl.</button>
-                  <button id="basicReplaceAllButton" class="popoverElement" title="Replace All">All</button>
-                  <!-- <br> <input id="jumpLineInput" title="Jump to line" type="number" size="5" min="1" max="999999" placeholder="line"> -->
-                </fieldset>
-              </span>
+              <fieldset>
+                <input id="basicSearchInput" title="Find text (or /re/)" type="text" size="10" placeholder="Find" autocomplete="off">
+                <br>
+                <button id="basicSearchPrevButton" class="popoverElement" title="Find previous (Shift-[Ctrl|Cmd]-G)">⌃</button>
+                <button id="basicSearchNextButton" class="popoverElement" title="Find Next ([Ctrl|Cmd]-G)">⌵</button>
+                <br>
+                <input id="basicReplaceInput" title="Replace text" type="text" size="10" placeholder="Replace" autocomplete="off">
+                <br>
+                <button id="basicReplaceButton" class="popoverElement" title="Replace">Repl.</button>
+                <button id="basicReplaceAllButton" class="popoverElement" title="Replace All">All</button>
+              </fieldset>
             </span>
           </span>
-          <input id="showBasicInput" type="checkbox" title="Show Basic" checked>
-          <label for="showBasicInput" title="Show Basic">Basic</label>
+          <span class="buttonPopoverContainer">
+            <button id="basicOptionsButton" class="popoverButton" title="BASIC Options">BASIC Options</button>
+            <span id="basicOptionsArea" class="popover right-align" hidden>
+              <fieldset>
+                <legend title="Loco BASIC">BASIC</legend>
+                <input id="showBasicInput" type="checkbox" title="Show BASIC" checked>
+                <label for="showBasicInput" title="Show BASIC">Show</label>
+              </fieldset>
+            </span>
+          </span>
         </span>
       </div>
     </div>
@@ -105,17 +128,25 @@
   <div id="compiledToolbarArea" class="area">
     <div class="toolbarAreaInner">
       <div class="toolbarLine">
-        <span>
-          <input id="autoCompileInput" type="checkbox" title="Automatic compile on change" checked>
-          <button id="compileButton" title="Compile to JavaScript">Compile</button>
-        </span>
-        <span>
-          <button id="standaloneButton" title="Create Standalone Script">Standalone Script</button>
-        </span>
+        <button id="compileButton" title="Compile to JavaScript">Compile</button>
         <span class="toolbarLineItemRight">
-          <input id="showCompiledInput" type="checkbox" title="Show JavaScript">
-          <label for="showCompiledInput" title="Show JavaScript">JavaScript</label>
-        </span>
+          <span class="buttonPopoverContainer">
+            <button id="compiledOptionsButton" class="popoverButton" title="JavaScript Options">JavaScript Options</button>
+            <span id="compiledOptionsArea" class="popover right-align" hidden>
+              <fieldset>
+                <legend title="JavaScript">JavaScript</legend>
+                <input id="showCompiledInput" type="checkbox" title="Show JavaScript">
+                <label for="showCompiledInput" title="Show JavaScript">Show</label>
+                <br>
+                <input id="autoCompileInput" type="checkbox" title="Automatic compile on change" checked>
+                <label id="autoCompileInputLabel" for="autoCompileInput" title="Automatic Compile on change">Auto Compile</label>
+              </fieldset>
+              <fieldset>
+                <legend title="Standalone Script">Standalone</legend>
+                <button id="standaloneButton" title="Create Standalone Script">Create</button>
+              </fieldset>
+            </span>
+          </span>
       </div>
     </div>
   </div>
@@ -124,21 +155,15 @@
     <div id="compiledEditor" class="CodeMirror"></div>
   </div>
 
-  <script language="javascript" type="text/javascript"
-    src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
-  <script language="javascript" type="text/javascript"
-    src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js" defer></script>
-  <script language="javascript" type="text/javascript"
-    src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/search/search.min.js" defer></script>
-  <script language="javascript" type="text/javascript"
-    src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/search/searchcursor.min.js" defer></script>
+  <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
+  <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js" defer></script>
+  <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/search/search.min.js" defer></script>
+  <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/search/searchcursor.min.js" defer></script>
   <!-- <script language="javascript" type="text/javascript"
     src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/dialog/dialog.min.js" defer></script> -->
-  <link rel="stylesheet" type="text/css"
-    href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
+  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
   </link>
-  <link rel="stylesheet" type="text/css"
-    href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/dialog/dialog.css">
+  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/dialog/dialog.css">
   </link>
 
   <script src="https://unpkg.com/ohm-js@17/dist/ohm.min.js"></script>
@@ -153,4 +178,5 @@
   <script src="locobasicUI.js"></script>
   <script src="locobasic.js"></script>
 </body>
+
 </html>
