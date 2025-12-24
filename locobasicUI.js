@@ -467,22 +467,27 @@
             this.onOutputOptionsButtonClick = (_event) => {
                 this.togglePopoverHidden("outputOptionsArea");
             };
+            /*
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onExecuteOptionsButtonClick = (_event) => {
+            private onExecuteOptionsButtonClick = (_event: Event): void => { // bound this
                 this.togglePopoverHidden("executeOptionsArea");
-            };
+            }
+            */
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onConvertButtonClick = (_event) => {
                 this.togglePopoverHidden("convertArea");
             };
+            /*
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onBasicOptionsButtonClick = (_event) => {
+            private onBasicOptionsButtonClick = (_event: Event): void => { // bound this
                 this.togglePopoverHidden("basicOptionsArea");
-            };
+            }
+        
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onCompiledOptionsButtonClick = (_event) => {
+            private onCompiledOptionsButtonClick = (_event: Event): void => { // bound this
                 this.togglePopoverHidden("compiledOptionsArea");
-            };
+            }
+            */
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onBasicSearchButtonClick = (_event) => {
                 if (!this.togglePopoverHidden("basicSearchArea")) {
@@ -1161,9 +1166,9 @@
             // Map of element IDs to event handlers
             const buttonHandlers = {
                 outputOptionsButton: this.onOutputOptionsButtonClick,
-                executeOptionsButton: this.onExecuteOptionsButtonClick,
-                basicOptionsButton: this.onBasicOptionsButtonClick,
-                compiledOptionsButton: this.onCompiledOptionsButtonClick,
+                //executeOptionsButton: this.onExecuteOptionsButtonClick,
+                //basicOptionsButton: this.onBasicOptionsButtonClick,
+                //compiledOptionsButton: this.onCompiledOptionsButtonClick,
                 compileButton: this.onCompileButtonClick,
                 enterButton: this.onEnterButtonClick,
                 executeButton: this.onExecuteButtonClick,

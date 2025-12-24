@@ -32,6 +32,13 @@ body {
   align-items: center;
 }
 
+.toolbarTitle {
+	padding-left: 2px;
+  padding-right: 2px;
+	background-color: bisque;
+	user-select: none;
+}
+
 #outputText {
   overflow: auto;
   height: 34em;

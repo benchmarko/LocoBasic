@@ -60,10 +60,7 @@ export declare class UI implements IUI {
     private onStopButtonClick;
     private onResetButtonClick;
     private onOutputOptionsButtonClick;
-    private onExecuteOptionsButtonClick;
     private onConvertButtonClick;
-    private onBasicOptionsButtonClick;
-    private onCompiledOptionsButtonClick;
     private onBasicSearchButtonClick;
     private onBasicReplaceButtonClick;
     private onBasicReplaceAllButtonClick;
