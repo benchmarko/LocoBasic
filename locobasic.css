@@ -18,10 +18,18 @@ body {
 
 .toolbarLine {
   padding: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
 }
 
 .toolbarLineItemRight {
-  float: right;
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
 }
 
 #outputText {
@@ -78,4 +86,15 @@ body {
 
 #startSpeechButton:hover {
   background-color: #45a049;
+}
+
+@media (max-width: 768px) {
+  .area {
+    max-width: 100%;
+  }
+  
+  .toolbarLineItemRight {
+    margin-left: 0;
+    justify-content: flex-end;
+  }
 }
