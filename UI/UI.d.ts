@@ -26,6 +26,8 @@ export declare class UI implements IUI {
     private cancelSpeech;
     private toggleElementHidden;
     private setElementHidden;
+    private closeAllPopoversExcept;
+    private togglePopoverHidden;
     private setButtonOrSelectDisabled;
     private fnLoadScriptOrStyle;
     private loadScript;
@@ -57,13 +59,18 @@ export declare class UI implements IUI {
     private clickStartSpeechButton;
     private onStopButtonClick;
     private onResetButtonClick;
+    private onOutputOptionsButtonClick;
+    private onExecuteOptionsButtonClick;
     private onConvertButtonClick;
+    private onBasicOptionsButtonClick;
+    private onCompiledOptionsButtonClick;
+    private onBasicSearchButtonClick;
     private onBasicReplaceButtonClick;
     private onBasicReplaceAllButtonClick;
-    private onBasicSearchButtonClick;
     private onBasicSearchNextButtonClick;
     private onBasicSearchPrevButtonClick;
     private onBasicSearchInputChange;
+    private onFullscreenButtonClick;
     private onFrameInputChange;
     private static addLabels;
     private static removeUnusedLabels;

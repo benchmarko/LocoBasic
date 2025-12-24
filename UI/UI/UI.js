@@ -170,8 +170,30 @@ export class UI {
             }
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onOutputOptionsButtonClick = (_event) => {
+            this.togglePopoverHidden("outputOptionsArea");
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onExecuteOptionsButtonClick = (_event) => {
+            this.togglePopoverHidden("executeOptionsArea");
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onConvertButtonClick = (_event) => {
-            this.toggleElementHidden("convertArea");
+            this.togglePopoverHidden("convertArea");
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onBasicOptionsButtonClick = (_event) => {
+            this.togglePopoverHidden("basicOptionsArea");
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onCompiledOptionsButtonClick = (_event) => {
+            this.togglePopoverHidden("compiledOptionsArea");
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onBasicSearchButtonClick = (_event) => {
+            if (!this.togglePopoverHidden("basicSearchArea")) {
+                this.getBasicCm().execCommand("clearSearch");
+            }
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onBasicReplaceButtonClick = (_event) => {
@@ -180,12 +202,6 @@ export class UI {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onBasicReplaceAllButtonClick = (_event) => {
             this.getBasicCm().execCommand("replaceAll");
-        };
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        this.onBasicSearchButtonClick = (_event) => {
-            if (!this.toggleElementHidden("basicSearchArea")) {
-                this.getBasicCm().execCommand("clearSearch");
-            }
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onBasicSearchNextButtonClick = (_event) => {
@@ -199,12 +215,25 @@ export class UI {
         this.onBasicSearchInputChange = (_event) => {
             this.getBasicCm().execCommand("clearSearch");
         };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onFullscreenButtonClick = async (_event) => {
+            const id = "outputText";
+            const outputText = document.getElementById(id);
+            const fullscreenchangedHandler = (event) => {
+                const target = event.target;
+                if (!document.fullscreenElement) {
+                    target.removeEventListener("fullscreenchange", fullscreenchangedHandler);
+                }
+            };
+            outputText.addEventListener("fullscreenchange", fullscreenchangedHandler); // { once: true}?
+            await outputText.requestFullscreen.call(outputText); // can we ALLOW_KEYBOARD_INPUT?
+        };
         this.onFrameInputChange = (event) => {
             const frameInput = event.target;
             const value = Number(frameInput.value);
             this.getVmMain().frameTime(value);
             const frameInputLabel = window.document.getElementById("frameInputLabel");
-            frameInputLabel.innerText = `Frame ${frameInput.value} ms`;
+            frameInputLabel.innerText = `${frameInput.value} ms`;
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onLabelAddButtonClick = (_event) => {
@@ -383,6 +412,22 @@ export class UI {
             element.hidden = hidden;
         }
         return element.hidden;
+    }
+    closeAllPopoversExcept(id) {
+        const popovers = document.querySelectorAll(".popover");
+        popovers.forEach(popover => {
+            const id2 = popover.getAttribute("id");
+            if (id2 !== id) {
+                popover.hidden = true;
+            }
+        });
+    }
+    togglePopoverHidden(id) {
+        const visible = this.toggleElementHidden(id);
+        if (visible) {
+            this.closeAllPopoversExcept(id);
+        }
+        return visible;
     }
     setButtonOrSelectDisabled(id, disabled) {
         const element = window.document.getElementById(id);
@@ -821,6 +866,10 @@ export class UI {
         this.locoVmWorkerName = locoVmWorkerName;
         // Map of element IDs to event handlers
         const buttonHandlers = {
+            outputOptionsButton: this.onOutputOptionsButtonClick,
+            executeOptionsButton: this.onExecuteOptionsButtonClick,
+            basicOptionsButton: this.onBasicOptionsButtonClick,
+            compiledOptionsButton: this.onCompiledOptionsButtonClick,
             compileButton: this.onCompileButtonClick,
             enterButton: this.onEnterButtonClick,
             executeButton: this.onExecuteButtonClick,
@@ -836,6 +885,7 @@ export class UI {
             labelRemoveButton: this.onLabelRemoveButtonClick,
             helpButton: this.onHelpButtonClick,
             exportSvgButton: this.onExportSvgButtonClick,
+            fullscreenButton: this.onFullscreenButtonClick,
             standaloneButton: this.onStandaloneButtonClick
         };
         const inputAndSelectHandlers = {

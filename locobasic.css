@@ -40,20 +40,36 @@ body {
 }
 
 .buttonPopoverContainer {
-	display: inline-flex;
+  display: inline-flex;
+  position: relative;
+}
+
+.popoverButton {
+  background-color: LightBlue;
+  user-select: none;
+}
+
+.popoverButton:hover {
+  background-color: CornflowerBlue;
 }
 
 .popover {
-	margin-top: 1.5em;
-	padding: 2px;
-	border: 0.5px solid #7A7A7A;
-	position: absolute;
-	background-color: WhiteSmoke;
+  padding: 2px;
+  border: 0.5px solid #7A7A7A;
+  position: absolute;
+  background-color: WhiteSmoke;
   z-index: 16;
+  margin-top: 1.5em;
+}
+
+.popover.right-align {
+  right: 0;
+  top: 100%;
+  margin-top: 5px;
 }
 
 .popoverElement {
-	margin: 3px;
+  margin: 3px;
 }
 
 #startSpeechButton {
