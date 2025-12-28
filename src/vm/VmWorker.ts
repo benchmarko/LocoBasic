@@ -121,6 +121,8 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         _rsxPitch: 1,
         _startTime: 0,
         _stopRequested: false,
+        _pauseRequested: false,
+        _pauseResolvedFn: null as ((value: string) => void) | null,
         _timerMap: {} as Record<number, (number | NodeJS.Timeout)>,
         _vpos: 0,
         _zone: 13,
@@ -170,8 +172,16 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
                     vm.resolveInput(data.input);
                     break;
 
+                case 'pause':
+                    vm._pauseRequested = true;
+                    break;
+
                 case 'putKeys':
                     vm._keyBuffer.push(data.keys); // currently only one key
+                    break;
+
+                case 'resume':
+                    vm.resolvePause();
                     break;
 
                 case 'stop':
@@ -195,6 +205,8 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             vm._rsxPitch = 1;
             vm._startTime = Date.now();
             vm._stopRequested = false;
+            vm._pauseRequested = false;
+            vm._pauseResolvedFn = null;
             vm.remainAll();
             vm.cls();
         },
@@ -216,6 +228,14 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
                 vm._waitResolvedFn(result);
                 vm._waitResolvedFn = null;
             }
+        },
+
+        resolvePause: (): void => {
+            if (vm._pauseResolvedFn) {
+                vm._pauseResolvedFn("");
+                vm._pauseResolvedFn = null;
+            }
+            vm._pauseRequested = false;
         },
 
         abs: (num: number) => Math.abs(num),
@@ -328,6 +348,14 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
                 throw new Error("INFO: Program stopped");
             }
             vm.flush();
+            
+            // Handle pause
+            if (vm._pauseRequested) {
+                await new Promise<void>((resolve) => {
+                    vm._pauseResolvedFn = () => resolve();
+                });
+            }
+            
             return new Promise<void>(resolve => setTimeout(() => resolve(), Date.now() % vm._frameTime));
         },
 

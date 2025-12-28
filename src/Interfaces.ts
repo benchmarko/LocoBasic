@@ -83,7 +83,9 @@ export type MessageToWorker =
     | { type: 'continue', result: string }
     | { type: 'frameTime', time: number }
     | { type: 'input'; input: string | null }
+    | { type: 'pause' }
     | { type: 'putKeys'; keys: string }
+    | { type: 'resume' }
     | { type: 'run'; code: string }
     | { type: 'stop' };
 

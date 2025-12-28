@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="locobasic.css">
-  <title>LocoBasic v0.4.59</title>
+  <title>LocoBasic v0.5.0</title>
 </head>
 
 <body>
@@ -69,11 +69,12 @@
       <div class="toolbarLine">
         <span class="buttonPopoverContainer">
           <button id="executeButton" title="Execute JavaScript">Execute</button>
+          <button id="pauseButton" title="Pause Execution" disabled>Pause</button>
+          <button id="resumeButton" title="Resume Execution" disabled>Resume</button>
           <button id="stopButton" title="Stop Execution" disabled>Stop</button>
           <button id="resetButton" title="Terminate Execution">Reset</button>
-          <span>
-            <button id="enterButton" title="Enter" disabled>Enter</button>
-          </span>
+          &nbsp; &vert; &nbsp;
+          <button id="enterButton" title="Enter" disabled>Enter</button>
           <span id="userKeys"></span>
           <span class="toolbarLineItemRight" title="Execute and Input">
 

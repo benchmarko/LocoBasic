@@ -1,4 +1,4 @@
-import type { Editor } from "codemirror";
+import type { CommandActions, Editor } from "codemirror";
 import type { ConfigEntryType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore, IUI, NodeWorkerFnType } from "../Interfaces";
 import { LocoBasicMode } from "./LocoBasicMode";
 import { VmMain } from "./VmMain";
@@ -8,6 +8,10 @@ declare global {
     interface Window {
         locoVmWorker: NodeWorkerFnType
     }
+}
+
+interface CommandActionsWithFind extends CommandActions {
+    find: () => void
 }
 
 const escapeText = (str: string) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;");
@@ -121,6 +125,11 @@ export class UI implements IUI {
             this.closeAllPopoversExcept(id);
         }
         return visible;
+    }
+
+    private getButtonOrSelectDisabled(id: string) {
+        const element = window.document.getElementById(id) as HTMLButtonElement | HTMLSelectElement;
+        return element.disabled;
     }
 
     private setButtonOrSelectDisabled(id: string, disabled: boolean) {
@@ -411,6 +420,8 @@ export class UI implements IUI {
             enterButton: false,
             executeButton: true,
             stopButton: false,
+            pauseButton: false,
+            resumeButton: true,
             convertButton: true,
             databaseSelect: true,
             exampleSelect: true
@@ -435,6 +446,8 @@ export class UI implements IUI {
             enterButton: true,
             executeButton: false,
             stopButton: true,
+            pauseButton: true,
+            resumeButton: true,
             convertButton: false,
             databaseSelect: false,
             exampleSelect: false
@@ -541,12 +554,35 @@ export class UI implements IUI {
         this.cancelSpeech(); // maybe a speech was waiting
         this.clickStartSpeechButton(); // we just did a user interaction
         this.setButtonOrSelectDisabled("stopButton", true);
+        this.setButtonOrSelectDisabled("pauseButton", true);
+        if (!this.getButtonOrSelectDisabled("resumeButton")) {
+            this.getVmMain().resume();
+        }
+        this.setButtonOrSelectDisabled("resumeButton", true);
         // Resolve any pending input promise
         if (this.pendingInputResolver) {
             this.pendingInputResolver(null);
             this.pendingInputResolver = undefined;
         }
         this.getVmMain().stop();
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onPauseButtonClick = (_event: Event): void => { // bound this
+        this.cancelSpeech(); // maybe a speech was waiting
+        this.clickStartSpeechButton(); // we just did a user interaction
+        this.setButtonOrSelectDisabled("pauseButton", true);
+        this.setButtonOrSelectDisabled("resumeButton", false);
+        this.getVmMain().pause();
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onResumeButtonClick = (_event: Event): void => { // bound this
+        this.cancelSpeech(); // maybe a speech was waiting
+        this.clickStartSpeechButton(); // we just did a user interaction
+        this.setButtonOrSelectDisabled("resumeButton", true);
+        this.setButtonOrSelectDisabled("pauseButton", false);
+        this.getVmMain().resume();
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -1221,6 +1257,8 @@ export class UI implements IUI {
             enterButton: this.onEnterButtonClick,
             executeButton: this.onExecuteButtonClick,
             stopButton: this.onStopButtonClick,
+            pauseButton: this.onPauseButtonClick,
+            resumeButton: this.onResumeButtonClick,
             resetButton: this.onResetButtonClick,
             convertButton: this.onConvertButtonClick,
             basicReplaceButton: this.onBasicReplaceButtonClick,
@@ -1275,7 +1313,7 @@ export class UI implements IUI {
             this.basicCm = this.initializeEditor("basicEditor", "lbasic", this.onBasicTextChange, config.debounceCompile);
             this.compiledCm = this.initializeEditor("compiledEditor", "javascript", this.onCompiledTextChange, config.debounceExecute);
 
-            (WinCodeMirror.commands as any).find = (_cm: unknown) => { // Ctrl/Cmd-F
+            (WinCodeMirror.commands as CommandActionsWithFind).find = () => { // Ctrl-f / Cmd-f
                 if (this.getElementHidden("basicSearchArea")) {
                     const basicSearchButton = window.document.getElementById("basicSearchButton") as HTMLSelectElement;
                     basicSearchButton.dispatchEvent(new Event("click"));
