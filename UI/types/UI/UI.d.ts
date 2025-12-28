@@ -27,6 +27,7 @@ export declare class UI implements IUI {
     private getCompiledCm;
     private cancelSpeech;
     private toggleElementHidden;
+    private getElementHidden;
     private setElementHidden;
     private closeAllPopoversExcept;
     private togglePopoverHidden;
@@ -70,6 +71,7 @@ export declare class UI implements IUI {
     private onBasicSearchNextButtonClick;
     private onBasicSearchPrevButtonClick;
     private onBasicSearchInputChange;
+    private onBasicSearchInputKeydown;
     private onFullscreenButtonClick;
     private onFrameInputChange;
     private static addLabels;
@@ -96,8 +98,6 @@ export declare class UI implements IUI {
     private parseUri;
     private initializeEditor;
     private syncInputState;
-    private onCodeMirrorOpenDialog;
-    private onCodeMirrorOpenConfirm;
     private getLocoVmWorker;
     createWebWorker(): Promise<Worker>;
     private createMessageHandlerCallbacks;

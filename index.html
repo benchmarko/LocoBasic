@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="locobasic.css">
-  <title>LocoBasic v0.4.58</title>
+  <title>LocoBasic v0.4.59</title>
 </head>
 
 <body>
@@ -104,15 +104,18 @@
               <button id="basicSearchButton" class="popoverButton" title="Search">Search</button>
               <span id="basicSearchArea" class="popover right-align" hidden>
                 <fieldset>
-                  <input id="basicSearchInput" title="Find text (or /re/)" type="text" size="10" placeholder="Find" autocomplete="off">
-                  <br>
+                  <input id="basicSearchInput" title="Find text (or /re/)" type="text" size="12" placeholder="Find" autocomplete="off">
                   <button id="basicSearchPrevButton" class="popoverElement" title="Find previous (Shift-[Ctrl|Cmd]-G)">⌃</button>
                   <button id="basicSearchNextButton" class="popoverElement" title="Find Next ([Ctrl|Cmd]-G)">⌵</button>
-                  <br>
-                  <input id="basicReplaceInput" title="Replace text" type="text" size="10" placeholder="Replace" autocomplete="off">
+                  <details>
+                    <summary>Replace</summary>
+                    <div>
+                  <input id="basicReplaceInput" title="Replace text" type="text" size="12" placeholder="Replace" autocomplete="off">
                   <br>
                   <button id="basicReplaceButton" class="popoverElement" title="Replace">Repl.</button>
                   <button id="basicReplaceAllButton" class="popoverElement" title="Replace All">All</button>
+                  </div>
+                  </details>
                 </fieldset>
               </span>
             </span>
@@ -140,13 +143,7 @@
 
   <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
   <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js" defer></script>
-  <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/search/search.min.js" defer></script>
-  <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/search/searchcursor.min.js" defer></script>
-  <!-- <script language="javascript" type="text/javascript"
-    src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/dialog/dialog.min.js" defer></script> -->
   <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
-  </link>
-  <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/addon/dialog/dialog.css">
   </link>
 
   <script src="https://unpkg.com/ohm-js@17/dist/ohm.min.js"></script>

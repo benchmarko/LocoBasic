@@ -477,52 +477,170 @@
             this.onOutputOptionsButtonClick = (_event) => {
                 this.togglePopoverHidden("outputOptionsArea");
             };
-            /*
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            private onExecuteOptionsButtonClick = (_event: Event): void => { // bound this
-                this.togglePopoverHidden("executeOptionsArea");
-            }
-            */
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onConvertButtonClick = (_event) => {
                 this.togglePopoverHidden("convertArea");
             };
-            /*
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            private onBasicOptionsButtonClick = (_event: Event): void => { // bound this
-                this.togglePopoverHidden("basicOptionsArea");
-            }
-        
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            private onCompiledOptionsButtonClick = (_event: Event): void => { // bound this
-                this.togglePopoverHidden("compiledOptionsArea");
-            }
-            */
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onBasicSearchButtonClick = (_event) => {
-                if (!this.togglePopoverHidden("basicSearchArea")) {
-                    this.getBasicCm().execCommand("clearSearch");
+                if (!this.togglePopoverHidden("basicSearchArea")) ;
+                else {
+                    const basicSearchInput = document.getElementById("basicSearchInput");
+                    basicSearchInput.focus();
                 }
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onBasicReplaceButtonClick = (_event) => {
-                this.getBasicCm().execCommand("replace");
+                const basicSearchInput = document.getElementById("basicSearchInput");
+                const basicReplaceInput = document.getElementById("basicReplaceInput");
+                const editor = this.getBasicCm();
+                const searchText = basicSearchInput.value;
+                const replaceText = basicReplaceInput.value;
+                if (!searchText)
+                    return;
+                // Get current cursor position
+                const cursor = editor.getCursor("from");
+                const content = editor.getValue();
+                const lines = content.split("\n");
+                // Calculate offset from start
+                let offset = 0;
+                for (let i = 0; i < cursor.line; i++) {
+                    offset += lines[i].length + 1; // +1 for newline
+                }
+                offset += cursor.ch;
+                // Find from current position
+                const index = content.indexOf(searchText, offset);
+                if (index !== -1) {
+                    // Calculate the line and character position of the found text
+                    let currentOffset = 0;
+                    let lineNum = 0;
+                    for (let i = 0; i < lines.length; i++) {
+                        if (currentOffset + lines[i].length >= index) {
+                            lineNum = i;
+                            break;
+                        }
+                        currentOffset += lines[i].length + 1;
+                    }
+                    const chStart = index - currentOffset;
+                    const chEnd = chStart + searchText.length;
+                    // Replace the found text
+                    editor.replaceRange(replaceText, { line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
+                    // Move cursor to after the replacement
+                    editor.setCursor({ line: lineNum, ch: chStart + replaceText.length });
+                }
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onBasicReplaceAllButtonClick = (_event) => {
-                this.getBasicCm().execCommand("replaceAll");
+                const basicSearchInput = document.getElementById("basicSearchInput");
+                const basicReplaceInput = document.getElementById("basicReplaceInput");
+                const editor = this.getBasicCm();
+                const searchText = basicSearchInput.value;
+                const replaceText = basicReplaceInput.value;
+                if (!searchText)
+                    return;
+                // Replace all occurrences
+                const content = editor.getValue();
+                const newContent = content.split(searchText).join(replaceText);
+                if (newContent !== content) {
+                    editor.setValue(newContent);
+                }
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onBasicSearchNextButtonClick = (_event) => {
-                this.getBasicCm().execCommand("findNext");
+                const basicSearchInput = document.getElementById("basicSearchInput");
+                const editor = this.getBasicCm();
+                const searchText = basicSearchInput.value;
+                if (!searchText)
+                    return;
+                // Get current cursor position
+                const cursor = editor.getCursor("to");
+                const content = editor.getValue();
+                const lines = content.split("\n");
+                // Calculate offset from start
+                let offset = 0;
+                for (let i = 0; i < cursor.line; i++) {
+                    offset += lines[i].length + 1; // +1 for newline
+                }
+                offset += cursor.ch;
+                // Find from current position
+                const index = content.indexOf(searchText, offset);
+                if (index !== -1) {
+                    // Calculate the line and character position of the found text
+                    let currentOffset = 0;
+                    let lineNum = 0;
+                    for (let i = 0; i < lines.length; i++) {
+                        if (currentOffset + lines[i].length >= index) {
+                            lineNum = i;
+                            break;
+                        }
+                        currentOffset += lines[i].length + 1;
+                    }
+                    const chStart = index - currentOffset;
+                    const chEnd = chStart + searchText.length;
+                    // Select the found text
+                    editor.setSelection({ line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
+                    // Scroll into view
+                    editor.scrollIntoView({ line: lineNum, ch: chStart });
+                }
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onBasicSearchPrevButtonClick = (_event) => {
-                this.getBasicCm().execCommand("findPrev");
+                const basicSearchInput = document.getElementById("basicSearchInput");
+                const editor = this.getBasicCm();
+                const searchText = basicSearchInput.value;
+                if (!searchText)
+                    return;
+                // Get current cursor position
+                const cursor = editor.getCursor("from");
+                const content = editor.getValue();
+                const lines = content.split("\n");
+                // Calculate offset from start
+                let offset = 0;
+                for (let i = 0; i < cursor.line; i++) {
+                    offset += lines[i].length + 1; // +1 for newline
+                }
+                offset += cursor.ch;
+                // Search backwards from current position
+                const searchContent = content.substring(0, offset);
+                const index = searchContent.lastIndexOf(searchText);
+                if (index !== -1) {
+                    // Calculate the line and character position of the found text
+                    let currentOffset = 0;
+                    let lineNum = 0;
+                    for (let i = 0; i < lines.length; i++) {
+                        if (currentOffset + lines[i].length >= index) {
+                            lineNum = i;
+                            break;
+                        }
+                        currentOffset += lines[i].length + 1;
+                    }
+                    const chStart = index - currentOffset;
+                    const chEnd = chStart + searchText.length;
+                    // Select the found text
+                    editor.setSelection({ line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
+                    // Scroll into view
+                    editor.scrollIntoView({ line: lineNum, ch: chStart });
+                }
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onBasicSearchInputChange = (_event) => {
-                this.getBasicCm().execCommand("clearSearch");
+                // Update search as user types (CodeMirror search addon will handle this)
+            };
+            this.onBasicSearchInputKeydown = (event) => {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    // Check if Shift is pressed for previous search
+                    if (event.shiftKey) {
+                        this.onBasicSearchPrevButtonClick(event);
+                    }
+                    else {
+                        this.onBasicSearchNextButtonClick(event);
+                    }
+                }
+                else if (event.key === "f" && (event.metaKey === true || event.ctrlKey === true)) {
+                    event.preventDefault();
+                    this.onBasicSearchNextButtonClick(event);
+                }
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onFullscreenButtonClick = async (_event) => {
@@ -643,29 +761,6 @@
                 }
                 window.URL.revokeObjectURL(objectURL);
             };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onCodeMirrorOpenDialog = (_template, callback, _options) => {
-                // see: https://codemirror.net/5/addon/dialog/dialog.js
-                this.setElementHidden("basicSearchArea", false);
-                const basicSearchInput = document.getElementById("basicSearchInput");
-                if (basicSearchInput.value) {
-                    callback(basicSearchInput.value, new Event(""));
-                }
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onCodeMirrorOpenConfirm = (_template, callbacks, _options) => {
-                const callback = callbacks[0];
-                //TTT callback("bla", new Event("")); // we need to call the callback with some value, otherwise the dialog will not close
-                console.log("TTT", callback);
-                /*
-                this.setElementHidden("basicSearchArea", false);
-                
-                const basicSearchInput = document.getElementById("basicSearchInput") as HTMLInputElement;
-                if (basicSearchInput.value) {
-                    callback(basicSearchInput.value, new Event(""));
-                }
-                */
-            };
             this.fnOnKeyPressHandler = (event) => this.onOutputTextKeydown(event);
             this.fnOnClickHandler = (event) => this.onOutputTextClick(event);
             this.fnOnUserKeyClickHandler = (event) => this.onUserKeyClick(event);
@@ -718,6 +813,10 @@
                 editor.refresh();
             }
             return !element.hidden;
+        }
+        getElementHidden(id) {
+            const element = document.getElementById(id);
+            return element.hidden;
         }
         setElementHidden(id, hidden) {
             const element = document.getElementById(id);
@@ -1218,9 +1317,6 @@
             // Map of element IDs to event handlers
             const buttonHandlers = {
                 outputOptionsButton: this.onOutputOptionsButtonClick,
-                //executeOptionsButton: this.onExecuteOptionsButtonClick,
-                //basicOptionsButton: this.onBasicOptionsButtonClick,
-                //compiledOptionsButton: this.onCompiledOptionsButtonClick,
                 compileButton: this.onCompileButtonClick,
                 enterButton: this.onEnterButtonClick,
                 executeButton: this.onExecuteButtonClick,
@@ -1260,6 +1356,11 @@
                 const element = window.document.getElementById(id);
                 element.addEventListener("change", handler, false); // handler.bind(this)
             });
+            // Attach keydown listener for basicSearchInput to handle Enter key
+            const basicSearchInput = window.document.getElementById("basicSearchInput");
+            if (basicSearchInput) {
+                basicSearchInput.addEventListener("keydown", this.onBasicSearchInputKeydown, false);
+            }
             // Initialize CodeMirror editors
             const WinCodeMirror = window.CodeMirror;
             if (WinCodeMirror) {
@@ -1267,8 +1368,17 @@
                 WinCodeMirror.defineMode("lbasic", getModeFn);
                 this.basicCm = this.initializeEditor("basicEditor", "lbasic", this.onBasicTextChange, config.debounceCompile);
                 this.compiledCm = this.initializeEditor("compiledEditor", "javascript", this.onCompiledTextChange, config.debounceExecute);
-                WinCodeMirror.defineExtension("openDialog", this.onCodeMirrorOpenDialog);
-                WinCodeMirror.defineExtension("openConfirm", this.onCodeMirrorOpenConfirm);
+                WinCodeMirror.commands.find = (_cm) => {
+                    if (this.getElementHidden("basicSearchArea")) {
+                        const basicSearchButton = window.document.getElementById("basicSearchButton");
+                        basicSearchButton.dispatchEvent(new Event("click"));
+                    }
+                    else {
+                        const basicSearchNextButton = window.document.getElementById("basicSearchButton");
+                        basicSearchNextButton.dispatchEvent(new Event("click"));
+                    }
+                };
+                // find, findNext, findPrev, clearSearch, replace, replaceAll
             }
             // Handle browser navigation (popstate)
             window.addEventListener("popstate", (event) => {
