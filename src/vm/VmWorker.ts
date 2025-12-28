@@ -838,8 +838,12 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             vm.postMessage({ type: 'result', result });
         }).catch((err: unknown) => {
             vm.remainAll();
-            console.warn(err instanceof Error ? err.stack : String(err));
             const result = String(err);
+            if (result.startsWith("Error: INFO:")) {
+                console.log(result.replace("Error: ", ""));
+            } else {
+                console.warn(err instanceof Error ? err.stack : result);
+            }
             vm.flush();
             vm.postMessage({ type: 'result', result });
         });
