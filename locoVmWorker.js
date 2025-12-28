@@ -111,6 +111,8 @@
             _rsxPitch: 1,
             _startTime: 0,
             _stopRequested: false,
+            _pauseRequested: false,
+            _pauseResolvedFn: null,
             _timerMap: {},
             _vpos: 0,
             _zone: 13,
@@ -152,8 +154,14 @@
                     case 'input':
                         vm.resolveInput(data.input);
                         break;
+                    case 'pause':
+                        vm._pauseRequested = true;
+                        break;
                     case 'putKeys':
                         vm._keyBuffer.push(data.keys); // currently only one key
+                        break;
+                    case 'resume':
+                        vm.resolvePause();
                         break;
                     case 'stop':
                         vm._stopRequested = true;
@@ -174,6 +182,8 @@
                 vm._rsxPitch = 1;
                 vm._startTime = Date.now();
                 vm._stopRequested = false;
+                vm._pauseRequested = false;
+                vm._pauseResolvedFn = null;
                 vm.remainAll();
                 vm.cls();
             },
@@ -192,6 +202,13 @@
                     vm._waitResolvedFn(result);
                     vm._waitResolvedFn = null;
                 }
+            },
+            resolvePause: () => {
+                if (vm._pauseResolvedFn) {
+                    vm._pauseResolvedFn("");
+                    vm._pauseResolvedFn = null;
+                }
+                vm._pauseRequested = false;
             },
             abs: (num) => Math.abs(num),
             after: (timeout, timer, fn) => {
@@ -280,6 +297,12 @@
                     throw new Error("INFO: Program stopped");
                 }
                 vm.flush();
+                // Handle pause
+                if (vm._pauseRequested) {
+                    await new Promise((resolve) => {
+                        vm._pauseResolvedFn = () => resolve();
+                    });
+                }
                 return new Promise(resolve => setTimeout(() => resolve(), Date.now() % vm._frameTime));
             },
             getAnsiColorCodeForPen: (pen) => {

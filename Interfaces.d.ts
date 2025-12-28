@@ -78,8 +78,12 @@ export type MessageToWorker = {
     type: 'input';
     input: string | null;
 } | {
+    type: 'pause';
+} | {
     type: 'putKeys';
     keys: string;
+} | {
+    type: 'resume';
 } | {
     type: 'run';
     code: string;

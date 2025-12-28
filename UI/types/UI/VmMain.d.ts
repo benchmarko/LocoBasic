@@ -11,6 +11,8 @@ export declare class VmMain {
     run(code: string): Promise<string>;
     frameTime(time: number): void;
     stop(): void;
+    pause(): void;
+    resume(): void;
     reset(): void;
     putKeys(keys: string): void;
 }

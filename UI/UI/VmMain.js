@@ -44,6 +44,14 @@ export class VmMain {
         console.log("stop: Stop requested.");
         this.postMessage({ type: 'stop' });
     }
+    pause() {
+        console.log("pause: Pause requested.");
+        this.postMessage({ type: 'pause' });
+    }
+    resume() {
+        console.log("resume: Resume requested.");
+        this.postMessage({ type: 'resume' });
+    }
     reset() {
         if (this.worker) {
             this.worker.terminate();

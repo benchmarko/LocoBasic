@@ -36,6 +36,8 @@ export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] 
     _rsxPitch: number;
     _startTime: number;
     _stopRequested: boolean;
+    _pauseRequested: boolean;
+    _pauseResolvedFn: ((value: string) => void) | null;
     _timerMap: Record<number, (number | NodeJS.Timeout)>;
     _vpos: number;
     _zone: number;
@@ -51,6 +53,7 @@ export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] 
     resetColorsForPens: () => void;
     resolveInput: (input: string | null) => void;
     resolveWait: (result: string) => void;
+    resolvePause: () => void;
     abs: (num: number) => number;
     after: (timeout: number, timer: number, fn: () => void) => void;
     asc: (str: string) => number;

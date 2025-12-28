@@ -156,12 +156,33 @@ export class UI {
             this.cancelSpeech(); // maybe a speech was waiting
             this.clickStartSpeechButton(); // we just did a user interaction
             this.setButtonOrSelectDisabled("stopButton", true);
+            this.setButtonOrSelectDisabled("pauseButton", true);
+            if (!this.getButtonOrSelectDisabled("resumeButton")) {
+                this.getVmMain().resume();
+            }
+            this.setButtonOrSelectDisabled("resumeButton", true);
             // Resolve any pending input promise
             if (this.pendingInputResolver) {
                 this.pendingInputResolver(null);
                 this.pendingInputResolver = undefined;
             }
             this.getVmMain().stop();
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onPauseButtonClick = (_event) => {
+            this.cancelSpeech(); // maybe a speech was waiting
+            this.clickStartSpeechButton(); // we just did a user interaction
+            this.setButtonOrSelectDisabled("pauseButton", true);
+            this.setButtonOrSelectDisabled("resumeButton", false);
+            this.getVmMain().pause();
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onResumeButtonClick = (_event) => {
+            this.cancelSpeech(); // maybe a speech was waiting
+            this.clickStartSpeechButton(); // we just did a user interaction
+            this.setButtonOrSelectDisabled("resumeButton", true);
+            this.setButtonOrSelectDisabled("pauseButton", false);
+            this.getVmMain().resume();
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onResetButtonClick = (_event) => {
@@ -549,6 +570,10 @@ export class UI {
         }
         return visible;
     }
+    getButtonOrSelectDisabled(id) {
+        const element = window.document.getElementById(id);
+        return element.disabled;
+    }
     setButtonOrSelectDisabled(id, disabled) {
         const element = window.document.getElementById(id);
         element.disabled = disabled;
@@ -723,6 +748,8 @@ export class UI {
             enterButton: false,
             executeButton: true,
             stopButton: false,
+            pauseButton: false,
+            resumeButton: true,
             convertButton: true,
             databaseSelect: true,
             exampleSelect: true
@@ -743,6 +770,8 @@ export class UI {
             enterButton: true,
             executeButton: false,
             stopButton: true,
+            pauseButton: true,
+            resumeButton: true,
             convertButton: false,
             databaseSelect: false,
             exampleSelect: false
@@ -1029,6 +1058,8 @@ export class UI {
             enterButton: this.onEnterButtonClick,
             executeButton: this.onExecuteButtonClick,
             stopButton: this.onStopButtonClick,
+            pauseButton: this.onPauseButtonClick,
+            resumeButton: this.onResumeButtonClick,
             resetButton: this.onResetButtonClick,
             convertButton: this.onConvertButtonClick,
             basicReplaceButton: this.onBasicReplaceButtonClick,
@@ -1076,7 +1107,7 @@ export class UI {
             WinCodeMirror.defineMode("lbasic", getModeFn);
             this.basicCm = this.initializeEditor("basicEditor", "lbasic", this.onBasicTextChange, config.debounceCompile);
             this.compiledCm = this.initializeEditor("compiledEditor", "javascript", this.onCompiledTextChange, config.debounceExecute);
-            WinCodeMirror.commands.find = (_cm) => {
+            WinCodeMirror.commands.find = () => {
                 if (this.getElementHidden("basicSearchArea")) {
                     const basicSearchButton = window.document.getElementById("basicSearchButton");
                     basicSearchButton.dispatchEvent(new Event("click"));
