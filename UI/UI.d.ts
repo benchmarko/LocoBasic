@@ -16,7 +16,9 @@ export declare class UI implements IUI {
     private readonly fnOnUserKeyClickHandler;
     private speechSynthesisUtterance?;
     private locoVmWorkerName;
+    private pendingInputResolver?;
     constructor();
+    private isCodeMirrorSetValue;
     private debounce;
     private static asyncDelay;
     private getCore;
@@ -38,6 +40,7 @@ export declare class UI implements IUI {
     private onSetUiKeys;
     private waitForVoices;
     private waitForUserInteraction;
+    private showConsoleInput;
     private logVoiceDebugInfo;
     private getSpeechSynthesisUtterance;
     private onGeolocation;

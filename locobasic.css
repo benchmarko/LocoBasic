@@ -40,6 +40,8 @@ body {
 }
 
 #outputText {
+  font-family: monospace;
+  white-space: pre;
   overflow: auto;
   height: 34em;
   padding: 2px;
@@ -104,4 +106,23 @@ body {
     margin-left: 0;
     justify-content: flex-end;
   }
+}
+
+/* Console input for interactive programs */
+.console-input {
+  display: block;
+  margin: 8px 0;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: monospace;
+  font-size: 14px;
+}
+
+.console-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 4px rgba(0, 123, 255, 0.5);
 }

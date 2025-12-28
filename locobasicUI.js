@@ -450,12 +450,22 @@
                 this.cancelSpeech(); // maybe a speech was waiting
                 this.clickStartSpeechButton(); // we just did a user interaction
                 this.setButtonOrSelectDisabled("stopButton", true);
+                // Resolve any pending input promise
+                if (this.pendingInputResolver) {
+                    this.pendingInputResolver(null);
+                    this.pendingInputResolver = undefined;
+                }
                 this.getVmMain().stop();
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onResetButtonClick = (_event) => {
                 this.cancelSpeech();
                 this.clickStartSpeechButton(); // we just did a user interaction
+                // Resolve any pending input promise
+                if (this.pendingInputResolver) {
+                    this.pendingInputResolver(null);
+                    this.pendingInputResolver = undefined;
+                }
                 this.getVmMain().reset();
                 const frameInput = window.document.getElementById("frameInput");
                 if (Number(frameInput.value) !== 50) {
@@ -516,8 +526,7 @@
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onFullscreenButtonClick = async (_event) => {
-                const id = "outputText";
-                const outputText = document.getElementById(id);
+                const outputText = document.getElementById("outputText");
                 const fullscreenchangedHandler = (event) => {
                     const target = event.target;
                     if (!document.fullscreenElement) {
@@ -661,16 +670,21 @@
             this.fnOnClickHandler = (event) => this.onOutputTextClick(event);
             this.fnOnUserKeyClickHandler = (event) => this.onUserKeyClick(event);
         }
-        debounce(func, fngetDelay) {
+        isCodeMirrorSetValue(args) {
+            var _a;
+            // CodeMirror passes change metadata in args[1][0].origin
+            // "setValue" indicates programmatic change (not user input)
+            const changeMetadata = (_a = args === null || args === void 0 ? void 0 : args[1]) === null || _a === void 0 ? void 0 : _a[0];
+            return (changeMetadata === null || changeMetadata === void 0 ? void 0 : changeMetadata.origin) === "setValue";
+        }
+        debounce(func, getDelay) {
             let timeoutId;
-            return function (...args) {
-                var _a, _b;
-                // Fast hack for CodeMirror changes: Use delay 0 when change comes from "setValue" (and not from CodeMirror "+input")
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const delay = ((_b = (_a = args === null || args === void 0 ? void 0 : args[1]) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.origin) === "setValue" ? 0 : fngetDelay();
+            return (...args) => {
+                // Use immediate delay (0ms) for programmatic changes, normal delay for user input
+                const delay = this.isCodeMirrorSetValue(args) ? 0 : getDelay();
                 clearTimeout(timeoutId);
                 timeoutId = setTimeout(() => {
-                    func.apply(this, args); // we expect "this" to be null
+                    func(...args);
                 }, delay);
             };
         }
@@ -792,6 +806,44 @@
                     this.setElementHidden(buttonId, true);
                     resolve();
                 }, { once: true });
+            });
+        }
+        showConsoleInput(prompt) {
+            return new Promise((resolve) => {
+                const outputText = document.getElementById("outputText");
+                // Store the resolver for potential cancellation
+                this.pendingInputResolver = resolve;
+                // Add prompt to output
+                const promptDiv = document.createElement("div");
+                promptDiv.textContent = prompt;
+                outputText.appendChild(promptDiv);
+                // Create input field
+                const input = document.createElement("input");
+                input.type = "text";
+                input.className = "console-input";
+                outputText.appendChild(input);
+                // Auto-scroll to input
+                this.scrollToBottom("outputText");
+                input.focus();
+                const handleSubmit = () => {
+                    const value = input.value;
+                    // Replace input with submitted value
+                    input.replaceWith(document.createTextNode(value + "\n"));
+                    this.scrollToBottom("outputText");
+                    this.pendingInputResolver = undefined;
+                    resolve(value);
+                };
+                input.addEventListener("keypress", (e) => {
+                    e.stopPropagation(); // Prevent event from bubbling to outputText listeners
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSubmit();
+                    }
+                });
+                // Also stop keydown propagation
+                input.addEventListener("keydown", (e) => {
+                    e.stopPropagation();
+                });
             });
         }
         logVoiceDebugInfo(selectedVoice) {
@@ -1145,9 +1197,9 @@
                 onFlush: (message, needCls, hasGraphics) => {
                     this.addOutputText(message, needCls, hasGraphics);
                 },
-                onInput: (prompt) => {
-                    const input = window.prompt(prompt);
-                    return Promise.resolve(input);
+                onInput: async (prompt) => {
+                    const input = await this.showConsoleInput(prompt);
+                    return input;
                 },
                 onGeolocation: () => this.onGeolocation(),
                 onSpeak: (message, pitch) => this.onSpeak(message, pitch),
@@ -1239,8 +1291,6 @@
             }, { once: true });
             const messageHandlerCallbacks = this.createMessageHandlerCallbacks();
             this.vmMain = new VmMain(messageHandlerCallbacks, () => this.createWebWorker());
-            const outputText = document.getElementById("outputText");
-            outputText.setAttribute("contenteditable", "false");
             // Initialize database and examples
             UI.asyncDelay(() => {
                 const databaseMap = core.initDatabaseMap();
