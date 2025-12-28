@@ -33,15 +33,24 @@ export class UI implements IUI {
         this.fnOnUserKeyClickHandler = (event: MouseEvent) => this.onUserKeyClick(event);
     }
 
-    private debounce<T extends (...args: unknown[]) => void | Promise<void>>(func: T, fngetDelay: () => number): (...args: Parameters<T>) => void {
+    private isCodeMirrorSetValue(args: unknown[]): boolean {
+        // CodeMirror passes change metadata in args[1][0].origin
+        // "setValue" indicates programmatic change (not user input)
+        const changeMetadata = (args?.[1] as unknown[])?.[0] as Record<string, unknown> | undefined;
+        return changeMetadata?.origin === "setValue";
+    }
+
+    private debounce<T extends (...args: unknown[]) => void | Promise<void>>(
+        func: T,
+        getDelay: () => number
+    ): (...args: Parameters<T>) => void {
         let timeoutId: ReturnType<typeof setTimeout>;
-        return function (this: unknown, ...args: Parameters<T>) {
-            // Fast hack for CodeMirror changes: Use delay 0 when change comes from "setValue" (and not from CodeMirror "+input")
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const delay = (args as any)?.[1]?.[0]?.origin === "setValue" ? 0 : fngetDelay();
+        return (...args: Parameters<T>) => {
+            // Use immediate delay (0ms) for programmatic changes, normal delay for user input
+            const delay = this.isCodeMirrorSetValue(args as unknown[]) ? 0 : getDelay();
             clearTimeout(timeoutId);
             timeoutId = setTimeout(() => {
-                func.apply(this, args); // we expect "this" to be null
+                func(...args);
             }, delay);
         };
     }
