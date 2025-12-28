@@ -2,6 +2,8 @@
 
 body {
   background-color: beige;
+  font-family: system-ui, sans-serif;
+  font-size: small;
 }
 
 .area {
@@ -37,6 +39,7 @@ body {
   padding-right: 2px;
 	background-color: bisque;
 	user-select: none;
+  font-size: medium;
 }
 
 #outputText {
