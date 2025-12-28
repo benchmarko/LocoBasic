@@ -40,6 +40,8 @@ body {
 }
 
 #outputText {
+  font-family: monospace;
+  white-space: pre;
   overflow: auto;
   height: 34em;
   padding: 2px;

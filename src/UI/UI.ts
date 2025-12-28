@@ -159,7 +159,7 @@ export class UI implements IUI {
     }
 
     addOutputText = (str: string, needCls?: boolean, hasGraphics?: boolean) => { // bound this
-        const outputText = document.getElementById("outputText") as HTMLPreElement;
+        const outputText = document.getElementById("outputText") as HTMLDivElement;
         if (needCls) {
             outputText.innerHTML = str;
             if (!hasGraphics) {
@@ -358,7 +358,7 @@ export class UI implements IUI {
         };
         this.updateButtonStates(buttonStates);
 
-        const outputText = document.getElementById("outputText") as HTMLPreElement;
+        const outputText = document.getElementById("outputText") as HTMLDivElement;
         outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.addEventListener("click", this.fnOnClickHandler, false);
 
@@ -367,7 +367,7 @@ export class UI implements IUI {
     }
 
     private afterExecute() {
-        const outputText = document.getElementById("outputText") as HTMLPreElement;
+        const outputText = document.getElementById("outputText") as HTMLDivElement;
         outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.removeEventListener("click", this.fnOnClickHandler, false);
         this.onSetUiKeys([0]); // remove user keys
@@ -562,8 +562,7 @@ export class UI implements IUI {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onFullscreenButtonClick = async (_event: Event) => { // bound this
-        const id = "outputText";
-        const outputText = document.getElementById(id) as HTMLPreElement;
+        const outputText = document.getElementById("outputText") as HTMLDivElement;
         const fullscreenchangedHandler = (event: Event) => {
             const target = event.target as HTMLElement;
             if (!document.fullscreenElement) {
@@ -1117,9 +1116,6 @@ export class UI implements IUI {
 
         const messageHandlerCallbacks = this.createMessageHandlerCallbacks();
         this.vmMain = new VmMain(messageHandlerCallbacks, () => this.createWebWorker());
-
-        const outputText = document.getElementById("outputText") as HTMLPreElement;
-        outputText.setAttribute("contenteditable", "false");
 
         // Initialize database and examples
         UI.asyncDelay(() => {
