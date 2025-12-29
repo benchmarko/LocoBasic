@@ -129,7 +129,7 @@ function getSemanticsActions(semanticsHelper: SemanticsHelper) {
 				// Add function-local variable declarations if any
 				let funcVarDecl = "";
 				if (funcVars.length > 0) {
-					funcVarDecl = `\n${indentStr}  let ` + funcVars.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";";
+					funcVarDecl = `\n${indentStr}  let ` + funcVars.map((v) => semanticsHelper.getVariableEntry(v)?.type === "A" ? `${v} = []` : v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";";
 				}
 
 				lineList[first] = `${indentStr}${asyncStr}function _${subroutineStart.label}() {${funcVarDecl}${indentStr}\n` + lineList[first];
@@ -164,8 +164,7 @@ function getSemanticsActions(semanticsHelper: SemanticsHelper) {
 				return usage[""] || Object.keys(usage).length !== 1;
 			});
 
-			const variableDeclarations = globalVars.length ? "let " + globalVars.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
-			//const variableDeclarations = variableList.length ? "let " + variableList.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
+			const variableDeclarations = globalVars.length ? "let " + globalVars.map((v) => semanticsHelper.getVariableEntry(v)?.type === "A" ? `${v} = []` : v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
 
 			const definedLabels = semanticsHelper.getDefinedLabels();
 			const awaitLabels = processSubroutines(lineList, definedLabels, variableList, variableScopes);
@@ -1447,7 +1446,7 @@ ${dataList.join(",\n")}
 			let instr = "";
 			if (isMultiDimensional) {
 				instr = "dim";
-			} else if (!isStringIdent && semanticsHelper.getVarType(identStr) === "I") { // defint seen?
+			} else if (!isStringIdent && semanticsHelper.getVarLetterType(identStr) === "I") { // defint seen?
 				instr = "dim1i16";
 			} else {
 				instr = "dim1";

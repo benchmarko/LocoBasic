@@ -8,8 +8,6 @@ interface VariableEntryType {
 type VariableScopesEntryType = Record<string, number>;
 export type VariableScopesType = Record<string, VariableScopesEntryType>;
 
-
-
 export class SemanticsHelper {
     private lineIndex = 0;
     private indent = 0;
@@ -158,8 +156,6 @@ export class SemanticsHelper {
             name = `_${name}`;
         }
 
-        //const type = isArray ? "A" : "";
-
         const defContextStatus = this.defContextStatus;
         if (defContextStatus === "") { // not in defContext?
             this.createVariableOrCount(name, type);
@@ -171,6 +167,10 @@ export class SemanticsHelper {
             }
         }
         return name + (matches ? matches[0] : "");
+    }
+
+    public getVariableEntry(name: string): VariableEntryType {
+        return this.variables[name];
     }
 
     public getVariableScopes() {
@@ -194,7 +194,7 @@ export class SemanticsHelper {
         }
     }
 
-    public getVarType(name: string) {
+    public getVarLetterType(name: string) {
         const letter = name.charAt(0);
         return this.varLetterTypes[letter] || "";
     }

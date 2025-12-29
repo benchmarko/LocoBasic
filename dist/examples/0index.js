@@ -224,6 +224,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Sierpinski triangle (graphical)"
 		},
 		{
+			"key": "snowflak",
+			"title": "Snowflake"
+		},
+		{
 			"key": "striart",
 			"title": "String Art"
 		},

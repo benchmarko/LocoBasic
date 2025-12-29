@@ -463,6 +463,10 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             }
         },
 
+        handleControlCodes: (str: string) => {
+            return str.replace(/\t/g, " "); // replace tab by single space
+        },
+
         hex$: (num: number, pad?: number) => num.toString(16).toUpperCase().padStart(pad || 0, "0"),
 
         ink: (num: number, col: number): void => {
@@ -653,6 +657,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             // For graphics output the text position does not change, so we can output all at once
         },
         printText: (text: string) => {
+            text = vm.handleControlCodes(text);
             vm._output += vm._isTerminal ? text : vm.escapeText(text); // for node.js we do not need to escape (non-graphics) text
             const lines = text.split("\n");
             if (lines.length > 1) {
