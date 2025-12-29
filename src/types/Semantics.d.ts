@@ -78,7 +78,7 @@ export declare class Semantics implements ISemantics {
         For(_forLit: Node, variable: Node, _eqSign: Node, start: Node, _dirLit: Node, end: Node, _stepLit: Node, step: Node): string;
         ForNextBlock: (startNode: Node, content: Node, separator: Node, endNode: Node) => string;
         Frame(_frameLit: Node): string;
-        Gosub(_gosubLit: Node, e: Node): string;
+        Gosub(_gosubLit: Node, label: Node): string;
         Goto(lit: Node, label: Node): string;
         GraphicsPaper(lit: Node, paperLit: Node, num: Node): string;
         GraphicsPen(_graphicsLit: Node, _penLit: Node, num: Node, _comma: Node, mode: Node): string;

@@ -2440,12 +2440,14 @@ ${dataList.join(",\n")}
                 semanticsHelper.addInstr("frame");
                 return `await frame()`;
             },
-            Gosub(_gosubLit, e) {
-                const labelString = e.sourceString;
+            Gosub(_gosubLit, label) {
+                const labelString = label.sourceString;
                 semanticsHelper.addUsedLabel(labelString, "gosub");
                 return `_${labelString}()`;
             },
             Goto(lit, label) {
+                const labelString = label.sourceString;
+                semanticsHelper.addUsedLabel(labelString, "goto"); // set label so that we do not remove it
                 return notSupported(lit, label);
             },
             GraphicsPaper(lit, paperLit, num) {
@@ -2464,6 +2466,8 @@ ${dataList.join(",\n")}
                 return notSupported(lit) + "0";
             },
             IfExp_label(label) {
+                const labelString = label.sourceString;
+                semanticsHelper.addUsedLabel(labelString, "goto"); // set label so that we do not remove it
                 return notSupported(label);
             },
             IfThen_then(_thenLit, thenStat) {
@@ -2629,18 +2633,27 @@ ${dataList.join(",\n")}
                 return `([${argumentList.map((label) => `_${label}`).join(",")}]?.[${index} - 1] || (() => undefined))()`; // 1-based index
             },
             On_numGoto(_lit, _num, gotoLit, labels) {
+                const argumentList = labels.asIteration().children.map(child => child.sourceString);
+                for (let i = 0; i < argumentList.length; i += 1) {
+                    const labelString = argumentList[i];
+                    semanticsHelper.addUsedLabel(labelString, "goto");
+                }
                 return notSupported(gotoLit, labels.asIteration());
             },
             On_breakCont(lit, breakLit, contLit) {
                 return notSupported(lit, breakLit, contLit);
             },
             On_breakGosub(lit, breakLit, gosubLit, label) {
+                const labelString = label.sourceString;
+                semanticsHelper.addUsedLabel(labelString, "gosub");
                 return notSupported(lit, breakLit, gosubLit, label);
             },
             On_breakStop(lit, breakLit, stopLit) {
                 return notSupported(lit, breakLit, stopLit);
             },
             On_errorGoto(lit, errorLit, gotoLit, label) {
+                const labelString = label.sourceString;
+                semanticsHelper.addUsedLabel(labelString, "goto");
                 return notSupported(lit, errorLit, gotoLit, label);
             },
             Openin(lit, file) {
@@ -2755,6 +2768,10 @@ ${dataList.join(",\n")}
                 return `restore(${labelString})`;
             },
             Resume(lit, labelOrNext) {
+                const labelString = labelOrNext.sourceString;
+                if (labelString.toLowerCase() !== "next") {
+                    semanticsHelper.addUsedLabel(labelString, "goto");
+                }
                 return notSupported(lit, labelOrNext);
             },
             Return(_returnLit) {
@@ -2813,11 +2830,14 @@ ${dataList.join(",\n")}
                 }
                 // Build the result string
                 const assignments = assignList.length ? `[${assignList.join(", ")}] = ` : "";
-                //const result = `${assignments}<RSXFUNCTION>, ${argumentListNoAddr.join(", ")}`;
                 const result = `${assignments}<RSXFUNCTION>${argumentListNoAddr.join(", ")}`;
                 return result;
             },
             Run(lit, labelOrFileOrNoting) {
+                const labelString = labelOrFileOrNoting.sourceString;
+                if (labelString !== "" && !labelString.startsWith('"')) {
+                    semanticsHelper.addUsedLabel(labelString, "goto");
+                }
                 return notSupported(lit, labelOrFileOrNoting);
             },
             Save(lit, file, comma, type, comma2, num, comma3, num2, comma4, num3) {

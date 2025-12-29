@@ -192,6 +192,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Ray Eclipse"
 		},
 		{
+			"key": "raytrac",
+			"title": "Raytracing"
+		},
+		{
 			"key": "rectangl",
 			"title": "Rectangles Test"
 		},
