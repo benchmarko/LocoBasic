@@ -90,6 +90,7 @@ export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] 
     graSetOutputGraphicsIndex: () => void;
     handleTrailingNewline: (str: string) => string;
     graphicsPen: (num: number) => void;
+    handleControlCodes: (str: string) => string;
     hex$: (num: number, pad?: number) => string;
     ink: (num: number, col: number) => void;
     inkey$: () => Promise<string>;

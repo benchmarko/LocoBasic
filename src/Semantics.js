@@ -103,7 +103,7 @@ function getSemanticsActions(semanticsHelper) {
                 // Add function-local variable declarations if any
                 let funcVarDecl = "";
                 if (funcVars.length > 0) {
-                    funcVarDecl = `\n${indentStr}  let ` + funcVars.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";";
+                    funcVarDecl = `\n${indentStr}  let ` + funcVars.map((v) => { var _a; return ((_a = semanticsHelper.getVariableEntry(v)) === null || _a === void 0 ? void 0 : _a.type) === "A" ? `${v} = []` : v.endsWith("$") ? `${v} = ""` : `${v} = 0`; }).join(", ") + ";";
                 }
                 lineList[first] = `${indentStr}${asyncStr}function _${subroutineStart.label}() {${funcVarDecl}${indentStr}\n` + lineList[first];
                 lineList[label.last] = lineList[label.last].replace(`${indentStr}  return;`, `${indentStr}}`); // end of subroutine: replace "return" by "}" (can also be on same line)
@@ -131,8 +131,7 @@ function getSemanticsActions(semanticsHelper) {
                 const usage = variableScopes[varName];
                 return usage[""] || Object.keys(usage).length !== 1;
             });
-            const variableDeclarations = globalVars.length ? "let " + globalVars.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
-            //const variableDeclarations = variableList.length ? "let " + variableList.map((v) => v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
+            const variableDeclarations = globalVars.length ? "let " + globalVars.map((v) => { var _a; return ((_a = semanticsHelper.getVariableEntry(v)) === null || _a === void 0 ? void 0 : _a.type) === "A" ? `${v} = []` : v.endsWith("$") ? `${v} = ""` : `${v} = 0`; }).join(", ") + ";" : "";
             const definedLabels = semanticsHelper.getDefinedLabels();
             const awaitLabels = processSubroutines(lineList, definedLabels, variableList, variableScopes);
             const instrMap = semanticsHelper.getInstrMap();
@@ -1165,7 +1164,7 @@ ${dataList.join(",\n")}
             if (isMultiDimensional) {
                 instr = "dim";
             }
-            else if (!isStringIdent && semanticsHelper.getVarType(identStr) === "I") { // defint seen?
+            else if (!isStringIdent && semanticsHelper.getVarLetterType(identStr) === "I") { // defint seen?
                 instr = "dim1i16";
             }
             else {

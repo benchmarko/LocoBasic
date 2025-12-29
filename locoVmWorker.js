@@ -394,6 +394,9 @@
                     vm._graCurrGraphicsPen = num;
                 }
             },
+            handleControlCodes: (str) => {
+                return str.replace(/\t/g, " "); // replace tab by single space
+            },
             hex$: (num, pad) => num.toString(16).toUpperCase().padStart(pad || 0, "0"),
             ink: (num, col) => {
                 vm._graColorsForPens[num] = col;
@@ -549,6 +552,7 @@
                 // For graphics output the text position does not change, so we can output all at once
             },
             printText: (text) => {
+                text = vm.handleControlCodes(text);
                 vm._output += vm._isTerminal ? text : vm.escapeText(text); // for node.js we do not need to escape (non-graphics) text
                 const lines = text.split("\n");
                 if (lines.length > 1) {

@@ -123,7 +123,6 @@ export class SemanticsHelper {
         if (SemanticsHelper.reJsKeyword.test(name)) {
             name = `_${name}`;
         }
-        //const type = isArray ? "A" : "";
         const defContextStatus = this.defContextStatus;
         if (defContextStatus === "") { // not in defContext?
             this.createVariableOrCount(name, type);
@@ -137,6 +136,9 @@ export class SemanticsHelper {
             }
         }
         return name + (matches ? matches[0] : "");
+    }
+    getVariableEntry(name) {
+        return this.variables[name];
     }
     getVariableScopes() {
         return this.variableScopes;
@@ -155,7 +157,7 @@ export class SemanticsHelper {
             this.varLetterTypes[letter] = type;
         }
     }
-    getVarType(name) {
+    getVarLetterType(name) {
         const letter = name.charAt(0);
         return this.varLetterTypes[letter] || "";
     }

@@ -1,4 +1,8 @@
 import type { DefinedLabelEntryType, UsedLabelEntryType } from "./Interfaces";
+interface VariableEntryType {
+    count: number;
+    type: string;
+}
 type VariableScopesEntryType = Record<string, number>;
 export type VariableScopesType = Record<string, VariableScopesEntryType>;
 export declare class SemanticsHelper {
@@ -41,11 +45,12 @@ export declare class SemanticsHelper {
     getVariables(): string[];
     private createVariableOrCount;
     getVariable(name: string, type?: string): string;
+    getVariableEntry(name: string): VariableEntryType;
     getVariableScopes(): VariableScopesType;
     setCurrentFunction(label: string): void;
     setDefContextStatus(status: string): void;
     setVarLetterTypes(letters: string[], type: string): void;
-    getVarType(name: string): string;
+    getVarLetterType(name: string): string;
     private static deleteAllItems;
     incrementLineIndex(): number;
     getRestoreMap(): Record<string, number>;
