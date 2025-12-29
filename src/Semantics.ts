@@ -642,14 +642,17 @@ ${dataList.join(",\n")}
 			return `await frame()`;
 		},
 
-		Gosub(_gosubLit: Node, e: Node) {
-			const labelString = e.sourceString;
+		Gosub(_gosubLit: Node, label: Node) {
+			const labelString = label.sourceString;
 			semanticsHelper.addUsedLabel(labelString, "gosub");
 
 			return `_${labelString}()`;
 		},
 
 		Goto(lit: Node, label: Node) {
+			const labelString = label.sourceString;
+			semanticsHelper.addUsedLabel(labelString, "goto"); // set label so that we do not remove it
+
 			return notSupported(lit, label);
 		},
 
@@ -673,6 +676,9 @@ ${dataList.join(",\n")}
 		},
 
 		IfExp_label(label: Node) {
+			const labelString = label.sourceString;
+			semanticsHelper.addUsedLabel(labelString, "goto"); // set label so that we do not remove it
+
 			return notSupported(label);
 		},
 
@@ -880,6 +886,12 @@ ${dataList.join(",\n")}
 		},
 
 		On_numGoto(_lit: Node, _num: Node, gotoLit: Node, labels: Node) {
+				const argumentList = labels.asIteration().children.map(child => child.sourceString);
+
+			for (let i = 0; i < argumentList.length; i += 1) {
+				const labelString = argumentList[i];
+				semanticsHelper.addUsedLabel(labelString, "goto");
+			}
 			return notSupported(gotoLit, labels.asIteration());
 		},
 
@@ -888,6 +900,8 @@ ${dataList.join(",\n")}
 		},
 
 		On_breakGosub(lit: Node, breakLit: Node, gosubLit: Node, label: Node) {
+			const labelString = label.sourceString;
+			semanticsHelper.addUsedLabel(labelString, "gosub");
 			return notSupported(lit, breakLit, gosubLit, label);
 		},
 
@@ -896,6 +910,8 @@ ${dataList.join(",\n")}
 		},
 
 		On_errorGoto(lit: Node, errorLit: Node, gotoLit: Node, label: Node) {
+			const labelString = label.sourceString;
+			semanticsHelper.addUsedLabel(labelString, "goto");
 			return notSupported(lit, errorLit, gotoLit, label);
 		},
 
@@ -1037,6 +1053,10 @@ ${dataList.join(",\n")}
 		},
 
 		Resume(lit: Node, labelOrNext: Node) {
+			const labelString = labelOrNext.sourceString;
+			if (labelString.toLowerCase() !== "next") {
+				semanticsHelper.addUsedLabel(labelString, "goto");
+			}
 			return notSupported(lit, labelOrNext);
 		},
 
@@ -1111,13 +1131,16 @@ ${dataList.join(",\n")}
 
 			// Build the result string
 			const assignments = assignList.length ? `[${assignList.join(", ")}] = ` : "";
-			//const result = `${assignments}<RSXFUNCTION>, ${argumentListNoAddr.join(", ")}`;
 			const result = `${assignments}<RSXFUNCTION>${argumentListNoAddr.join(", ")}`;
 
 			return result;
 		},
 
 		Run(lit: Node, labelOrFileOrNoting: Node) {
+			const labelString = labelOrFileOrNoting.sourceString;
+			if (labelString !== "" && !labelString.startsWith('"')) {
+				semanticsHelper.addUsedLabel(labelString, "goto");
+			}
 			return notSupported(lit, labelOrFileOrNoting);
 		},
 

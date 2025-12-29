@@ -1,0 +1,181 @@
+/* globals cpcBasic */
+
+"use strict";
+
+cpcBasic.addItem("", `
+REM raytrac - Raytracing
+rem
+rem https://cpcwiki.de/forum/index.php/topic,1006.0.html
+rem
+' Screen init
+'SCREEN 8,0:SET PAGE 1,1
+MODE 0: FOR k=0 TO 15:INK k,round(k*1.7):NEXT:INK 1,26:INK 15,1
+'CLS
+'_TURBO ON
+' Initialize
+DIM T(9),V(15),O(19,7),S(19,7),RI(3),GI(3),BI(3),Z(3),Y(3)
+FOR I=0 TO 9:READ T(I):NEXT I
+V(0)=T(0):V(1)=T(1):V(2)=T(2)
+V(9)=T(0)-T(3):V(10)=T(1)-T(4):V(11)=T(2)-T(5)
+V1=SQR(V(9)*V(9)+V(10)*V(10)+V(11)*V(11))
+V(9)=V(9)/V1:V(10)=V(10)/V1:V(11)=V(11)/V1
+V(6)=-V(9)*V(10):V(7)=1-V(10)*V(10):V(8)=-V(11)*V(10)
+V(3)=-(V(10)*V(8)-V(11)*V(7)):V(4)=-(V(11)*V(6)-V(9)*V(8))
+V(5)=-(V(9)*V(7)-V(10)*V(6)):V(15)=T(9)
+V(12)=T(6):V(13)=T(7):V(14)=T(8)
+READ MO:FOR I=0 TO MO-1:FOR J=0 TO 7:READ O(I,J):NEXT J:NEXT I
+READ MS:FOR I=0 TO MS-1:FOR J=0 TO 7:READ S(I,J):NEXT J:NEXT I
+MA=1000:MI=0.001:MD=0:PT=4
+FOR I=1 TO 4
+V1=SQR(V(I*3+0)*V(I*3+0)+V(I*3+1)*V(I*3+1)+V(I*3+2)*V(I*3+2))
+V(I*3+0)=V(I*3+0)/V1:V(I*3+1)=V(I*3+1)/V1:V(I*3+2)=V(I*3+2)/V1
+NEXT I
+' Trace
+FOR SY=0 TO 200 STEP 4:FOR SX=0 TO 320 STEP 4:XD=0:YD=0
+while yd<4
+CX=V(0):CY=V(1):CZ=V(2)
+VX=V(3)*(SX+XD-128)/99+V(6)*(106-SY-YD)/99-V(9)*V(15)
+VY=V(4)*(SX+XD-128)/99+V(7)*(106-SY-YD)/99-V(10)*V(15)
+VZ=V(5)*(SX+XD-128)/99+V(8)*(106-SY-YD)/99-V(11)*V(15)
+V1=SQR(VX*VX+VY*VY+VZ*VZ)
+VX=VX/V1:VY=VY/V1:VZ=VZ/V1
+CR=0:CG=0:CB=0:RN=0:RF=1
+GOSUB 1760
+IF CR>=1 THEN CR=0.99
+IF CG>=1 THEN CG=0.99
+IF CB>=1 THEN CB=0.99
+RI(XD)=CR:GI(XD)=CG:BI(XD)=CB
+XD=XD+1
+if XD>=4 then GOSUB 1470:XD=0:YD=YD+1
+'TTT IF XD<4 THEN 1250
+'GOSUB 1470:XD=0
+'YD=YD+1:'IF YD<4 THEN 1250
+wend
+IF STRIG(0) THEN STOP 'GOTO 1460
+NEXT SX
+NEXT SY
+ti=time+300:while TIME<ti AND INKEY$="":WEND
+STOP 'GOTO 1460
+1470 ' Draw
+'MAKE RGB DATA FOR SCREEN8 AND WRITE IT ON THE SCREEN
+FOR XD=0 TO 3
+CC1=round((RI(XD)+GI(XD)+BI(XD))/3*15):IF CC1=15 THEN CC1=1 ELSE IF CC1=1 THEN CC1=15
+PLOT (SX+XD)*2,400-((SY+YD)*2),CC1
+NEXT XD
+RETURN
+1760 ' Pixel
+f=1
+while f=1
+TT=MA
+FOR N=0 TO MO-1
+GOSUB 1870
+IF TT>Th AND Th>MI THEN TT=Th:TN=N:LX=NX:LY=NY:LZ=NZ
+NEXT N
+IF TT=MA THEN return '1860
+CX=CX+TT*VX:CY=CY+TT*VY:CZ=CZ+TT*VZ:N=TN
+GOSUB 2150
+wend 'IF F=1 THEN GOTO 1760
+RETURN
+1870 ' Cross
+RX=CX-O(N,0):RY=CY-O(N,1):RZ=CZ-O(N,2)
+A=O(N,3):B=O(N,4):C=O(N,5)
+ON O(N,6)+1 gosub 1920,2030: return 'GOTO 1920,2030
+gosub 1920
+return 'GOTO 1920
+1920 ' Box
+IF VX=0 THEN T1=MA ELSE IF RX<0 THEN T1=-(RX+A)/VX ELSE T1=-(RX-A)/VX
+IF VY=0 THEN T2=MA ELSE IF RY<0 THEN T2=-(RY+B)/VY ELSE T2=-(RY-B)/VY
+IF VZ=0 THEN T3=MA ELSE IF RZ<0 THEN T3=-(RZ+C)/VZ ELSE T3=-(RZ-C)/VZ
+IF ABS(RY+T1*VY)>B OR ABS(RZ+T1*VZ)>C THEN T1=MA
+IF ABS(RZ+T2*VZ)>C OR ABS(RX+T2*VX)>A THEN T2=MA
+IF ABS(RX+T3*VX)>A OR ABS(RY+T3*VY)>B THEN T3=MA
+IF T1<=T2 AND T1<=T3 THEN Th=T1:NX=-VX/ABS(VX):NY=0:NZ=0
+IF T2<=T3 AND T2<=T1 THEN Th=T2:NY=-VY/ABS(VY):NZ=0:NX=0
+IF T3<=T1 AND T3<=T2 THEN Th=T3:NZ=-VZ/ABS(VZ):NX=0:NY=0
+RETURN
+2030 ' Ball
+AA=VX*VX*A+VY*VY*B+VZ*VZ*C
+BB=RX*VX*A+RY*VY*B+RZ*VZ*C
+CC=RX*RX*A+RY*RY*B+RZ*RZ*C-1
+DD=BB*BB-AA*CC
+IF DD<0 THEN Th=MA:return 'GOTO 2140
+T1=(-BB-SQR(DD))/AA:T2=(-BB+SQR(DD))/AA
+IF T1<T2 THEN Th=T1 ELSE Th=T2
+NX=A*(RX+Th*VX):NY=B*(RY+Th*VY):NZ=C*(RZ+Th*VZ)
+M=SQR(NX*NX+NY*NY+NZ*NZ)
+NX=NX/M:NY=NY/M:NZ=NZ/M
+RETURN
+2150 ' Shade
+SH=O(N,7):REM 0=Silber,1=Stahl,2=Rotes Plastik, 3=Graues Plastik, 4=Blaues Plastik,5=Graues Plastik,6=Chrom
+IF SH=-1 THEN PX=INT(ABS(CX+100)/PT-(CX+100<0)) : PY=INT(ABS(CY+100)/PT-(CY+100<0)) : PZ=INT(ABS(CZ+100)/PT-(CZ+100<0)) : SH=(PX+PY+PZ) MOD 2
+2220 SR=S(SH,0):SG=S(SH,1):SB=S(SH,2)
+SA=S(SH,3):SD=S(SH,4):SF=S(SH,5)
+SP=S(SH,6):SE=S(SH,7)
+JX=V(12)-VX:JY=V(13)-VY:JZ=V(14)-VZ
+JN=SQR(JX*JX+JY*JY+JZ*JZ)
+SM=(LX*JX+LY*JY+LZ*JZ)/JN
+IF SM<0 THEN SM=0
+FOR P=1 TO SE:SM=SM*SM:NEXT P
+VN=-2*(LX*VX+LY*VY+LZ*VZ)
+WX=VX+VN*LX:WY=VY+VN*LY:WZ=VZ+VN*LZ
+VX=V(12):VY=V(13):VZ=V(14)
+SN=LX*VX+LY*VY+LZ*VZ
+IF SN<0 THEN SN=0
+FOR N=0 TO MO-1
+GOSUB 1870
+IF MA>Th AND Th>MI THEN SN=0:SM=0
+NEXT N
+CR=CR+(SR*(SA+SD*SN)+SP*SM)*RF
+CG=CG+(SG*(SA+SD*SN)+SP*SM)*RF
+CB=CB+(SB*(SA+SD*SN)+SP*SM)*RF
+IF SF=0 AND RN<4 THEN F=0:return : 'GOTO 2450
+F=1:RF=RF*SF:RN=RN+1
+VX=WX:VY=WY:VZ=WZ
+2450 RETURN
+' Picture data
+DATA   20,  40,  20
+DATA    0,   0,   0
+DATA   -8,   9,  -3
+DATA    6
+DATA    6
+DATA    2,   0,   2
+DATA   .2,  .2,  .2
+DATA    1,   2:REM Shader lower ball
+DATA   -2,   2,   2
+DATA   .2,  .2,  .2
+DATA    1,   3:REM Shader left grey ball
+DATA   -6,   4,   2
+DATA   .2,  .2,  .2
+DATA    1,   4:REM Shader blue ball
+DATA   -2,   2,  -2
+DATA   .2,  .2,  .2
+DATA    1,   5:REM Shader right grey ball
+DATA   -6,   4,  -6
+DATA   .2,  .2,  .2
+DATA    1,   6
+DATA    0,  -2,   0
+DATA   20,   1,  20
+DATA    0,  -1
+DATA    7
+DATA   .9,  .9,  .9
+DATA   .5,  .4,  .6
+DATA   .7,   6
+DATA   .0,  .9,  .0
+DATA   .5,  .4,  .6
+DATA   .7,   6
+DATA   .9,  .0,  .0
+DATA   .3,  .6,   0
+DATA    0,   0
+DATA   .9,  .9,  .9
+DATA   .3,  .6,   0
+DATA   .6,   8
+DATA   .0,  .0,  .9
+DATA   .3,  .6,   0
+DATA   .6,   8
+DATA   .9,  .9,  .9
+DATA   .3,  .6,   0
+DATA   .6,   6
+DATA   .0,  .0,  .0
+DATA   .3,  .6,   1
+DATA   .9,   8
+`);
