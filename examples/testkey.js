@@ -12,8 +12,8 @@ NEXT
 PRINT
 '
 PRINT "Press some keys..."
-FOR k=ASC("0") TO ASC("3"):GOSUB 950:NEXT
-FOR k=ASC("a") TO ASC("g"):GOSUB 950:NEXT
+FOR k=ASC("0") TO ASC("9"):GOSUB 950:NEXT
+FOR k=ASC("a") TO ASC("z"):GOSUB 950:NEXT
 WHILE 1
 t$="":WHILE t$="":t$=INKEY$:WEND
 PRINT t$;ASC(t$);

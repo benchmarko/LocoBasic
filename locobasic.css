@@ -7,27 +7,14 @@ body {
 }
 
 .area {
-  margin-bottom: 10px;
   max-width: 704px;
+  margin-bottom: 10px;
 }
 
-.toolbarAreaInner {
+.toolbarArea {
   background-color: lightgray;
-  padding: 2px;
-  padding-bottom: 5px;
   border: 1px solid gray;
-}
-
-.toolbarLine {
-  padding: 4px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  align-items: center;
-}
-
-.toolbarLineItemRight {
-  margin-left: auto;
+  padding: 6px;
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
@@ -35,28 +22,28 @@ body {
 }
 
 .toolbarTitle {
-	padding-left: 2px;
+  padding-left: 2px;
   padding-right: 2px;
-	background-color: bisque;
-	user-select: none;
+  background-color: bisque;
+  user-select: none;
   font-size: medium;
 }
 
-#outputText {
-  font-family: monospace;
-  white-space: pre;
-  overflow: auto;
-  height: 34em;
-  padding: 2px;
-  margin: 0px;
-  background-color: #ffffff;
-  resize: both;
-  border: 1px solid grey;
+.toolbarLineItemRight {
+  margin-left: auto;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
 }
 
-.CodeMirror {
-  border: 1px solid grey;
-  resize: horizontal;
+.toolbarSeparator {
+  border-left: 1px solid #999;
+  margin: 0 8px;
+  height: 1.5em;
+}
+
+.contentArea {
+  margin-top: 4px;
 }
 
 .buttonPopoverContainer {
@@ -75,21 +62,34 @@ body {
 
 .popover {
   padding: 2px;
-  border: 0.5px solid #7A7A7A;
+  border: 1px solid #7A7A7A;
   position: absolute;
   background-color: WhiteSmoke;
   z-index: 16;
-  margin-top: 1.5em;
+  top: 100%;
+  margin-top: 4px;
+  white-space: nowrap;
 }
 
 .popover.right-align {
   right: 0;
-  top: 100%;
-  margin-top: 5px;
 }
 
-.popoverElement {
-  margin: 3px;
+.CodeMirror {
+  border: 1px solid grey;
+  resize: horizontal;
+}
+
+#outputText {
+  font-family: monospace;
+  white-space: pre;
+  overflow: auto;
+  height: 34em;
+  padding: 2px;
+  margin: 0px;
+  background-color: #ffffff;
+  resize: both;
+  border: 1px solid grey;
 }
 
 #startSpeechButton {
@@ -100,15 +100,11 @@ body {
   background-color: #45a049;
 }
 
-@media (max-width: 768px) {
-  .area {
-    max-width: 100%;
-  }
-  
-  .toolbarLineItemRight {
-    margin-left: 0;
-    justify-content: flex-end;
-  }
+#userKeys {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 /* Console input for interactive programs */

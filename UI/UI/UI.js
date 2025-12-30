@@ -11,14 +11,14 @@ export class UI {
             if (needCls) {
                 outputText.innerHTML = str;
                 if (!hasGraphics) {
-                    this.setButtonOrSelectDisabled("exportSvgButton", true);
+                    this.setButtonOrSelectEnabled("exportSvgButton", false);
                 }
             }
             else {
                 outputText.innerHTML += str;
             }
             if (hasGraphics) {
-                this.setButtonOrSelectDisabled("exportSvgButton", false);
+                this.setButtonOrSelectEnabled("exportSvgButton", true);
             }
             else {
                 this.scrollToBottom("outputText");
@@ -41,6 +41,7 @@ export class UI {
         this.onGeolocation = async () => {
             if (navigator.geolocation) {
                 return new Promise((resolve, reject) => {
+                    this.geolocationPromiseRejecter = reject;
                     const positionCallback = (position) => {
                         const { latitude, longitude } = position.coords;
                         const json = {
@@ -48,13 +49,18 @@ export class UI {
                             longitude
                         };
                         resolve(JSON.stringify(json));
+                        this.geolocationPromiseRejecter = undefined;
+                    };
+                    const rejectCallback = (error) => {
+                        reject(`ERROR: Geolocation error (${error.code}): ${error.message}`);
+                        this.geolocationPromiseRejecter = undefined;
                     };
                     const options = {
                         enableHighAccuracy: true,
-                        timeout: 5000,
+                        timeout: 10000,
                         maximumAge: 0
                     };
-                    navigator.geolocation.getCurrentPosition(positionCallback, reject, options);
+                    navigator.geolocation.getCurrentPosition(positionCallback, rejectCallback, options);
                 });
             }
             return Promise.reject("ERROR: Geolocation is not supported by this browser.");
@@ -111,15 +117,15 @@ export class UI {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onCompileButtonClick = (_event) => {
             const core = this.getCore();
-            this.setButtonOrSelectDisabled("compileButton", true);
+            this.setButtonOrSelectEnabled("compileButton", false);
             const input = this.getBasicCm().getValue();
             UI.asyncDelay(() => {
                 const { compiledScript, messages } = core.compileScript(input);
                 this.compiledMessages = messages;
                 this.getCompiledCm().setValue(compiledScript);
-                this.setButtonOrSelectDisabled("compileButton", false);
+                this.setButtonOrSelectEnabled("compileButton", true);
                 if (!compiledScript.startsWith("ERROR:")) {
-                    this.setButtonOrSelectDisabled("labelRemoveButton", false);
+                    this.setButtonOrSelectEnabled("labelRemoveButton", true);
                 }
             }, 1);
         };
@@ -154,13 +160,16 @@ export class UI {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onStopButtonClick = (_event) => {
             this.cancelSpeech(); // maybe a speech was waiting
+            this.cancelGeolocation(); // maybe a geolocation was waiting
             this.clickStartSpeechButton(); // we just did a user interaction
-            this.setButtonOrSelectDisabled("stopButton", true);
-            this.setButtonOrSelectDisabled("pauseButton", true);
-            if (!this.getButtonOrSelectDisabled("resumeButton")) {
+            if (this.getButtonOrSelectEnabled("resumeButton")) {
                 this.getVmMain().resume();
             }
-            this.setButtonOrSelectDisabled("resumeButton", true);
+            this.updateButtonStates({
+                stopButton: false,
+                pauseButton: false,
+                resumeButton: false
+            });
             // Resolve any pending input promise
             if (this.pendingInputResolver) {
                 this.pendingInputResolver(null);
@@ -172,21 +181,26 @@ export class UI {
         this.onPauseButtonClick = (_event) => {
             this.cancelSpeech(); // maybe a speech was waiting
             this.clickStartSpeechButton(); // we just did a user interaction
-            this.setButtonOrSelectDisabled("pauseButton", true);
-            this.setButtonOrSelectDisabled("resumeButton", false);
+            this.updateButtonStates({
+                pauseButton: false,
+                resumeButton: true
+            });
             this.getVmMain().pause();
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onResumeButtonClick = (_event) => {
-            this.cancelSpeech(); // maybe a speech was waiting
-            this.clickStartSpeechButton(); // we just did a user interaction
-            this.setButtonOrSelectDisabled("resumeButton", true);
-            this.setButtonOrSelectDisabled("pauseButton", false);
+            //this.cancelSpeech(); // maybe a speech was waiting
+            //this.clickStartSpeechButton(); // we just did a user interaction
+            this.updateButtonStates({
+                resumeButton: false,
+                pauseButton: true
+            });
             this.getVmMain().resume();
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onResetButtonClick = (_event) => {
             this.cancelSpeech();
+            this.cancelGeolocation(); // maybe a geolocation was waiting
             this.clickStartSpeechButton(); // we just did a user interaction
             // Resolve any pending input promise
             if (this.pendingInputResolver) {
@@ -202,15 +216,15 @@ export class UI {
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onOutputOptionsButtonClick = (_event) => {
-            this.togglePopoverHidden("outputOptionsArea");
+            this.togglePopoverHidden("outputOptionsPopover");
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onConvertButtonClick = (_event) => {
-            this.togglePopoverHidden("convertArea");
+            this.togglePopoverHidden("convertPopover");
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onBasicSearchButtonClick = (_event) => {
-            if (!this.togglePopoverHidden("basicSearchArea")) {
+            if (!this.togglePopoverHidden("basicSearchPopover")) {
                 //this.getBasicCm().execCommand("clearSearch");
             }
             else {
@@ -416,7 +430,7 @@ export class UI {
             }
         };
         this.onBasicTextChange = async () => {
-            this.setButtonOrSelectDisabled("labelRemoveButton", true);
+            this.setButtonOrSelectEnabled("labelRemoveButton", false);
             const autoCompileInput = document.getElementById("autoCompileInput");
             if (autoCompileInput.checked) {
                 const compileButton = window.document.getElementById("compileButton");
@@ -535,6 +549,12 @@ export class UI {
             window.speechSynthesis.cancel();
         }
     }
+    cancelGeolocation() {
+        if (this.geolocationPromiseRejecter) {
+            this.geolocationPromiseRejecter("ERROR: Geolocation request canceled.");
+            this.geolocationPromiseRejecter = undefined;
+        }
+    }
     toggleElementHidden(id, editor) {
         const element = document.getElementById(id);
         element.hidden = !element.hidden;
@@ -570,13 +590,13 @@ export class UI {
         }
         return visible;
     }
-    getButtonOrSelectDisabled(id) {
+    getButtonOrSelectEnabled(id) {
         const element = window.document.getElementById(id);
-        return element.disabled;
+        return !element.disabled;
     }
-    setButtonOrSelectDisabled(id, disabled) {
+    setButtonOrSelectEnabled(id, enabled) {
         const element = window.document.getElementById(id);
-        element.disabled = disabled;
+        element.disabled = !enabled;
     }
     async fnLoadScriptOrStyle(script) {
         return new Promise((resolve, reject) => {
@@ -616,7 +636,9 @@ export class UI {
     onUserKeyClick(event) {
         const target = event.target;
         const dataKey = target.getAttribute("data-key");
-        this.putKeysInBuffer(String.fromCharCode(Number(dataKey)));
+        if (dataKey !== null) {
+            this.putKeysInBuffer(String.fromCharCode(Number(dataKey)));
+        }
     }
     async waitForVoices(callback) {
         return new Promise((resolve) => {
@@ -738,23 +760,22 @@ export class UI {
     }
     // Helper function to update button states
     updateButtonStates(states) {
-        Object.entries(states).forEach(([id, disabled]) => {
-            this.setButtonOrSelectDisabled(id, disabled);
+        Object.entries(states).forEach(([id, enabled]) => {
+            this.setButtonOrSelectEnabled(id, enabled);
         });
     }
     beforeExecute() {
-        this.setElementHidden("convertArea", true);
-        const buttonStates = {
-            enterButton: false,
-            executeButton: true,
-            stopButton: false,
-            pauseButton: false,
-            resumeButton: true,
-            convertButton: true,
-            databaseSelect: true,
-            exampleSelect: true
-        };
-        this.updateButtonStates(buttonStates);
+        this.setElementHidden("convertPopover", true);
+        this.updateButtonStates({
+            enterButton: true,
+            executeButton: false,
+            stopButton: true,
+            pauseButton: true,
+            resumeButton: false,
+            convertButton: false,
+            databaseSelect: false,
+            exampleSelect: false
+        });
         const outputText = document.getElementById("outputText");
         outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.addEventListener("click", this.fnOnClickHandler, false);
@@ -767,14 +788,14 @@ export class UI {
         outputText.removeEventListener("click", this.fnOnClickHandler, false);
         this.onSetUiKeys([0]); // remove user keys
         this.updateButtonStates({
-            enterButton: true,
-            executeButton: false,
-            stopButton: true,
-            pauseButton: true,
-            resumeButton: true,
-            convertButton: false,
-            databaseSelect: false,
-            exampleSelect: false
+            enterButton: false,
+            executeButton: true,
+            stopButton: false,
+            pauseButton: false,
+            resumeButton: false,
+            convertButton: true,
+            databaseSelect: true,
+            exampleSelect: true
         });
     }
     clickStartSpeechButton() {
@@ -1108,7 +1129,7 @@ export class UI {
             this.basicCm = this.initializeEditor("basicEditor", "lbasic", this.onBasicTextChange, config.debounceCompile);
             this.compiledCm = this.initializeEditor("compiledEditor", "javascript", this.onCompiledTextChange, config.debounceExecute);
             WinCodeMirror.commands.find = () => {
-                if (this.getElementHidden("basicSearchArea")) {
+                if (this.getElementHidden("basicSearchPopover")) {
                     const basicSearchButton = window.document.getElementById("basicSearchButton");
                     basicSearchButton.dispatchEvent(new Event("click"));
                 }

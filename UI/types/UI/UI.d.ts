@@ -17,6 +17,7 @@ export declare class UI implements IUI {
     private speechSynthesisUtterance?;
     private locoVmWorkerName;
     private pendingInputResolver?;
+    private geolocationPromiseRejecter?;
     constructor();
     private isCodeMirrorSetValue;
     private debounce;
@@ -26,13 +27,14 @@ export declare class UI implements IUI {
     private getBasicCm;
     private getCompiledCm;
     private cancelSpeech;
+    private cancelGeolocation;
     private toggleElementHidden;
     private getElementHidden;
     private setElementHidden;
     private closeAllPopoversExcept;
     private togglePopoverHidden;
-    private getButtonOrSelectDisabled;
-    private setButtonOrSelectDisabled;
+    private getButtonOrSelectEnabled;
+    private setButtonOrSelectEnabled;
     private fnLoadScriptOrStyle;
     private loadScript;
     getCurrentDataKey(): string;

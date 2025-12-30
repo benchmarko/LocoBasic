@@ -3583,15 +3583,16 @@ ${workerFnString}
                     this.callbacks.onFlush(data.message, data.needCls, data.hasGraphics);
                     break;
                 case 'geolocation': {
+                    let result = "";
                     try {
-                        const result = await this.callbacks.onGeolocation();
-                        this.postMessage({ type: 'continue', result });
+                        result = await this.callbacks.onGeolocation();
                     }
                     catch (msg) {
-                        console.error(msg);
-                        this.postMessage({ type: 'stop' });
-                        this.postMessage({ type: 'continue', result: '' });
+                        console.warn(msg);
+                        this.callbacks.onFlush(String(msg));
+                        //this.postMessage({ type: 'stop' });
                     }
+                    this.postMessage({ type: 'continue', result });
                     break;
                 }
                 case 'input': {
@@ -3633,13 +3634,12 @@ ${workerFnString}
                 case 'speak': {
                     try {
                         await this.callbacks.onSpeak(data.message, data.pitch);
-                        this.postMessage({ type: 'continue', result: '' });
                     }
                     catch (msg) {
                         console.log(msg);
-                        this.postMessage({ type: 'stop' });
-                        this.postMessage({ type: 'continue', result: '' });
+                        //this.postMessage({ type: 'stop' });
                     }
+                    this.postMessage({ type: 'continue', result: '' });
                     break;
                 }
                 default:
