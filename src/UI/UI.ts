@@ -135,14 +135,14 @@ export class UI implements IUI {
         return visible;
     }
 
-    private getButtonOrSelectDisabled(id: string) {
+    private getButtonOrSelectEnabled(id: string) {
         const element = window.document.getElementById(id) as HTMLButtonElement | HTMLSelectElement;
-        return element.disabled;
+        return !element.disabled;
     }
 
-    private setButtonOrSelectDisabled(id: string, disabled: boolean) {
+    private setButtonOrSelectEnabled(id: string, enabled: boolean) {
         const element = window.document.getElementById(id) as HTMLButtonElement | HTMLSelectElement;
-        element.disabled = disabled;
+        element.disabled = !enabled;
     }
 
     private async fnLoadScriptOrStyle(script: HTMLScriptElement | HTMLLinkElement): Promise<string> {
@@ -193,13 +193,13 @@ export class UI implements IUI {
         if (needCls) {
             outputText.innerHTML = str;
             if (!hasGraphics) {
-                this.setButtonOrSelectDisabled("exportSvgButton", true);
+                this.setButtonOrSelectEnabled("exportSvgButton", false);
             }
         } else {
             outputText.innerHTML += str;
         }
         if (hasGraphics) {
-            this.setButtonOrSelectDisabled("exportSvgButton", false);
+            this.setButtonOrSelectEnabled("exportSvgButton", true);
         } else {
             this.scrollToBottom("outputText");
         }
@@ -424,25 +424,24 @@ export class UI implements IUI {
 
     // Helper function to update button states
     private updateButtonStates(states: Record<string, boolean>): void {
-        Object.entries(states).forEach(([id, disabled]) => {
-            this.setButtonOrSelectDisabled(id, disabled);
+        Object.entries(states).forEach(([id, enabled]) => {
+            this.setButtonOrSelectEnabled(id, enabled);
         });
     }
 
     private beforeExecute() {
-        this.setElementHidden("convertArea", true);
+        this.setElementHidden("convertPopover", true);
 
-        const buttonStates = {
-            enterButton: false,
-            executeButton: true,
-            stopButton: false,
-            pauseButton: false,
-            resumeButton: true,
-            convertButton: true,
-            databaseSelect: true,
-            exampleSelect: true
-        };
-        this.updateButtonStates(buttonStates);
+        this.updateButtonStates({
+            enterButton: true,
+            executeButton: false,
+            stopButton: true,
+            pauseButton: true,
+            resumeButton: false,
+            convertButton: false,
+            databaseSelect: false,
+            exampleSelect: false
+        });
 
         const outputText = document.getElementById("outputText") as HTMLDivElement;
         outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
@@ -459,14 +458,14 @@ export class UI implements IUI {
         this.onSetUiKeys([0]); // remove user keys
 
         this.updateButtonStates({
-            enterButton: true,
-            executeButton: false,
-            stopButton: true,
-            pauseButton: true,
-            resumeButton: true,
-            convertButton: false,
-            databaseSelect: false,
-            exampleSelect: false
+            enterButton: false,
+            executeButton: true,
+            stopButton: false,
+            pauseButton: false,
+            resumeButton: false,
+            convertButton: true,
+            databaseSelect: true,
+            exampleSelect: true
         });
     }
 
@@ -505,16 +504,16 @@ export class UI implements IUI {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onCompileButtonClick = (_event: Event): void => { // bound this
         const core = this.getCore();
-        this.setButtonOrSelectDisabled("compileButton", true);
+        this.setButtonOrSelectEnabled("compileButton", false);
         const input = this.getBasicCm().getValue();
         UI.asyncDelay(() => {
             const { compiledScript, messages } = core.compileScript(input);
 
             this.compiledMessages = messages;
             this.getCompiledCm().setValue(compiledScript);
-            this.setButtonOrSelectDisabled("compileButton", false);
+            this.setButtonOrSelectEnabled("compileButton", true);
             if (!compiledScript.startsWith("ERROR:")) {
-                this.setButtonOrSelectDisabled("labelRemoveButton", false);
+                this.setButtonOrSelectEnabled("labelRemoveButton", true);
             }
         }, 1);
     }
@@ -570,12 +569,15 @@ export class UI implements IUI {
         this.cancelSpeech(); // maybe a speech was waiting
         this.cancelGeolocation(); // maybe a geolocation was waiting
         this.clickStartSpeechButton(); // we just did a user interaction
-        this.setButtonOrSelectDisabled("stopButton", true);
-        this.setButtonOrSelectDisabled("pauseButton", true);
-        if (!this.getButtonOrSelectDisabled("resumeButton")) {
+        if (this.getButtonOrSelectEnabled("resumeButton")) {
             this.getVmMain().resume();
         }
-        this.setButtonOrSelectDisabled("resumeButton", true);
+
+        this.updateButtonStates({
+            stopButton: false,
+            pauseButton: false,
+            resumeButton: false
+        });
         // Resolve any pending input promise
         if (this.pendingInputResolver) {
             this.pendingInputResolver(null);
@@ -588,8 +590,10 @@ export class UI implements IUI {
     private onPauseButtonClick = (_event: Event): void => { // bound this
         this.cancelSpeech(); // maybe a speech was waiting
         this.clickStartSpeechButton(); // we just did a user interaction
-        this.setButtonOrSelectDisabled("pauseButton", true);
-        this.setButtonOrSelectDisabled("resumeButton", false);
+        this.updateButtonStates({
+            pauseButton: false,
+            resumeButton: true
+        });
         this.getVmMain().pause();
     }
 
@@ -597,15 +601,17 @@ export class UI implements IUI {
     private onResumeButtonClick = (_event: Event): void => { // bound this
         //this.cancelSpeech(); // maybe a speech was waiting
         //this.clickStartSpeechButton(); // we just did a user interaction
-        this.setButtonOrSelectDisabled("resumeButton", true);
-        this.setButtonOrSelectDisabled("pauseButton", false);
+        this.updateButtonStates({
+            resumeButton: false,
+            pauseButton: true
+        });
         this.getVmMain().resume();
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onResetButtonClick = (_event: Event): void => { // bound this
         this.cancelSpeech();
-         this.cancelGeolocation(); // maybe a geolocation was waiting
+        this.cancelGeolocation(); // maybe a geolocation was waiting
         this.clickStartSpeechButton(); // we just did a user interaction
         // Resolve any pending input promise
         if (this.pendingInputResolver) {
@@ -623,18 +629,18 @@ export class UI implements IUI {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onOutputOptionsButtonClick = (_event: Event): void => { // bound this
-        this.togglePopoverHidden("outputOptionsArea");
+        this.togglePopoverHidden("outputOptionsPopover");
 
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onConvertButtonClick = (_event: Event): void => { // bound this
-        this.togglePopoverHidden("convertArea");
+        this.togglePopoverHidden("convertPopover");
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onBasicSearchButtonClick = (_event: Event): void => { // bound this
-        if (!this.togglePopoverHidden("basicSearchArea")) {
+        if (!this.togglePopoverHidden("basicSearchPopover")) {
             //this.getBasicCm().execCommand("clearSearch");
         } else {
             const basicSearchInput = document.getElementById("basicSearchInput") as HTMLInputElement;
@@ -908,7 +914,7 @@ export class UI implements IUI {
     }
 
     private onBasicTextChange = async (): Promise<void> => { // bound this
-        this.setButtonOrSelectDisabled("labelRemoveButton", true);
+        this.setButtonOrSelectEnabled("labelRemoveButton", false);
         const autoCompileInput = document.getElementById("autoCompileInput") as HTMLInputElement;
         if (autoCompileInput.checked) {
             const compileButton = window.document.getElementById("compileButton") as HTMLButtonElement;
@@ -1332,7 +1338,7 @@ export class UI implements IUI {
             this.compiledCm = this.initializeEditor("compiledEditor", "javascript", this.onCompiledTextChange, config.debounceExecute);
 
             (WinCodeMirror.commands as CommandActionsWithFind).find = () => { // Ctrl-f / Cmd-f
-                if (this.getElementHidden("basicSearchArea")) {
+                if (this.getElementHidden("basicSearchPopover")) {
                     const basicSearchButton = window.document.getElementById("basicSearchButton") as HTMLSelectElement;
                     basicSearchButton.dispatchEvent(new Event("click"));
                 } else {

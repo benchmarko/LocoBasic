@@ -7,23 +7,26 @@ body {
 }
 
 .area {
-  margin-bottom: 10px;
   max-width: 704px;
+  margin-bottom: 10px;
 }
 
-.toolbarAreaInner {
+.toolbarArea {
   background-color: lightgray;
-  padding: 2px;
-  padding-bottom: 5px;
   border: 1px solid gray;
-}
-
-.toolbarLine {
-  padding: 4px;
+  padding: 6px;
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
   align-items: center;
+}
+
+.toolbarTitle {
+  padding-left: 2px;
+  padding-right: 2px;
+  background-color: bisque;
+  user-select: none;
+  font-size: medium;
 }
 
 .toolbarLineItemRight {
@@ -33,35 +36,14 @@ body {
   align-items: center;
 }
 
-.toolbarTitle {
-	padding-left: 2px;
-  padding-right: 2px;
-	background-color: bisque;
-	user-select: none;
-  font-size: medium;
-}
-
-.toolbar-separator {
+.toolbarSeparator {
   border-left: 1px solid #999;
   margin: 0 8px;
   height: 1.5em;
 }
 
-#outputText {
-  font-family: monospace;
-  white-space: pre;
-  overflow: auto;
-  height: 34em;
-  padding: 2px;
-  margin: 0px;
-  background-color: #ffffff;
-  resize: both;
-  border: 1px solid grey;
-}
-
-.CodeMirror {
-  border: 1px solid grey;
-  resize: horizontal;
+.contentArea {
+  margin-top: 4px;
 }
 
 .buttonPopoverContainer {
@@ -80,12 +62,12 @@ body {
 
 .popover {
   padding: 2px;
-  border: 0.5px solid #7A7A7A;
+  border: 1px solid #7A7A7A;
   position: absolute;
   background-color: WhiteSmoke;
   z-index: 16;
   top: 100%;
-  margin-top: 5px;
+  margin-top: 4px;
   white-space: nowrap;
 }
 
@@ -93,8 +75,21 @@ body {
   right: 0;
 }
 
-.popoverElement {
-  margin: 3px;
+.CodeMirror {
+  border: 1px solid grey;
+  resize: horizontal;
+}
+
+#outputText {
+  font-family: monospace;
+  white-space: pre;
+  overflow: auto;
+  height: 34em;
+  padding: 2px;
+  margin: 0px;
+  background-color: #ffffff;
+  resize: both;
+  border: 1px solid grey;
 }
 
 #startSpeechButton {
