@@ -28,7 +28,6 @@ body {
 
 .toolbarLineItemRight {
   margin-left: auto;
-  display: flex;
   flex-wrap: wrap;
   gap: 4px;
   align-items: center;
@@ -40,6 +39,12 @@ body {
 	background-color: bisque;
 	user-select: none;
   font-size: medium;
+}
+
+.toolbar-separator {
+  border-left: 1px solid #999;
+  margin: 0 8px;
+  height: 1.5em;
 }
 
 #outputText {
@@ -79,13 +84,13 @@ body {
   position: absolute;
   background-color: WhiteSmoke;
   z-index: 16;
-  margin-top: 1.5em;
+  top: 100%;
+  margin-top: 5px;
+  white-space: nowrap;
 }
 
 .popover.right-align {
   right: 0;
-  top: 100%;
-  margin-top: 5px;
 }
 
 .popoverElement {
@@ -100,15 +105,11 @@ body {
   background-color: #45a049;
 }
 
-@media (max-width: 768px) {
-  .area {
-    max-width: 100%;
-  }
-  
-  .toolbarLineItemRight {
-    margin-left: 0;
-    justify-content: flex-end;
-  }
+#userKeys {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 /* Console input for interactive programs */

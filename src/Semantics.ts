@@ -886,7 +886,7 @@ ${dataList.join(",\n")}
 		},
 
 		On_numGoto(_lit: Node, _num: Node, gotoLit: Node, labels: Node) {
-				const argumentList = labels.asIteration().children.map(child => child.sourceString);
+			const argumentList = labels.asIteration().children.map(child => child.sourceString);
 
 			for (let i = 0; i < argumentList.length; i += 1) {
 				const labelString = argumentList[i];

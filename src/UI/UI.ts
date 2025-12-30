@@ -29,6 +29,7 @@ export class UI implements IUI {
     private speechSynthesisUtterance?: SpeechSynthesisUtterance;
     private locoVmWorkerName = "";
     private pendingInputResolver?: (value: string | null) => void;
+    private geolocationPromiseRejecter?: (value: string) => void;
 
     constructor() {
         this.fnOnKeyPressHandler = (event: KeyboardEvent) => this.onOutputTextKeydown(event);
@@ -84,6 +85,13 @@ export class UI implements IUI {
     private cancelSpeech() {
         if (this.speechSynthesisUtterance && this.speechSynthesisUtterance.text) {
             window.speechSynthesis.cancel();
+        }
+    }
+
+    private cancelGeolocation() {
+        if (this.geolocationPromiseRejecter) {
+            this.geolocationPromiseRejecter("ERROR: Geolocation request canceled.");
+            this.geolocationPromiseRejecter = undefined;
         }
     }
 
@@ -200,7 +208,9 @@ export class UI implements IUI {
     private onUserKeyClick(event: Event) {
         const target = event.target as HTMLButtonElement;
         const dataKey = target.getAttribute("data-key");
-        this.putKeysInBuffer(String.fromCharCode(Number(dataKey)));
+        if (dataKey !== null) {
+            this.putKeysInBuffer(String.fromCharCode(Number(dataKey)));
+        }
     }
 
     private onSetUiKeys = (codes: number[]): void => { // bound this
@@ -339,6 +349,7 @@ export class UI implements IUI {
     private onGeolocation = async (): Promise<string> => { // bound this
         if (navigator.geolocation) {
             return new Promise<string>((resolve, reject) => {
+                this.geolocationPromiseRejecter = reject;
                 const positionCallback: PositionCallback = (position) => {
                     const { latitude, longitude } = position.coords;
                     const json = {
@@ -346,13 +357,18 @@ export class UI implements IUI {
                         longitude
                     }
                     resolve(JSON.stringify(json));
+                    this.geolocationPromiseRejecter = undefined;
+                };
+                const rejectCallback = (error: GeolocationPositionError) => {
+                    reject(`ERROR: Geolocation error (${error.code}): ${error.message}`);
+                    this.geolocationPromiseRejecter = undefined;
                 };
                 const options = {
                     enableHighAccuracy: true,
-                    timeout: 5000,
+                    timeout: 10000,
                     maximumAge: 0
                 };
-                navigator.geolocation.getCurrentPosition(positionCallback, reject, options);
+                navigator.geolocation.getCurrentPosition(positionCallback, rejectCallback, options);
             });
         }
         return Promise.reject("ERROR: Geolocation is not supported by this browser.");
@@ -552,6 +568,7 @@ export class UI implements IUI {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onStopButtonClick = (_event: Event): void => { // bound this
         this.cancelSpeech(); // maybe a speech was waiting
+        this.cancelGeolocation(); // maybe a geolocation was waiting
         this.clickStartSpeechButton(); // we just did a user interaction
         this.setButtonOrSelectDisabled("stopButton", true);
         this.setButtonOrSelectDisabled("pauseButton", true);
@@ -578,8 +595,8 @@ export class UI implements IUI {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onResumeButtonClick = (_event: Event): void => { // bound this
-        this.cancelSpeech(); // maybe a speech was waiting
-        this.clickStartSpeechButton(); // we just did a user interaction
+        //this.cancelSpeech(); // maybe a speech was waiting
+        //this.clickStartSpeechButton(); // we just did a user interaction
         this.setButtonOrSelectDisabled("resumeButton", true);
         this.setButtonOrSelectDisabled("pauseButton", false);
         this.getVmMain().resume();
@@ -588,6 +605,7 @@ export class UI implements IUI {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onResetButtonClick = (_event: Event): void => { // bound this
         this.cancelSpeech();
+         this.cancelGeolocation(); // maybe a geolocation was waiting
         this.clickStartSpeechButton(); // we just did a user interaction
         // Resolve any pending input promise
         if (this.pendingInputResolver) {
@@ -625,31 +643,31 @@ export class UI implements IUI {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-   private onBasicReplaceButtonClick = (_event: Event): void => { // bound this
+    private onBasicReplaceButtonClick = (_event: Event): void => { // bound this
         const basicSearchInput = document.getElementById("basicSearchInput") as HTMLInputElement;
         const basicReplaceInput = document.getElementById("basicReplaceInput") as HTMLInputElement;
         const editor = this.getBasicCm();
-        
+
         const searchText = basicSearchInput.value;
         const replaceText = basicReplaceInput.value;
-        
+
         if (!searchText) return;
-        
+
         // Get current cursor position
         const cursor = editor.getCursor("from");
         const content = editor.getValue();
         const lines = content.split("\n");
-        
+
         // Calculate offset from start
         let offset = 0;
         for (let i = 0; i < cursor.line; i++) {
             offset += lines[i].length + 1; // +1 for newline
         }
         offset += cursor.ch;
-        
+
         // Find from current position
         const index = content.indexOf(searchText, offset);
-        
+
         if (index !== -1) {
             // Calculate the line and character position of the found text
             let currentOffset = 0;
@@ -661,13 +679,13 @@ export class UI implements IUI {
                 }
                 currentOffset += lines[i].length + 1;
             }
-            
+
             const chStart = index - currentOffset;
             const chEnd = chStart + searchText.length;
-            
+
             // Replace the found text
             editor.replaceRange(replaceText, { line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
-            
+
             // Move cursor to after the replacement
             editor.setCursor({ line: lineNum, ch: chStart + replaceText.length });
         }
@@ -678,16 +696,16 @@ export class UI implements IUI {
         const basicSearchInput = document.getElementById("basicSearchInput") as HTMLInputElement;
         const basicReplaceInput = document.getElementById("basicReplaceInput") as HTMLInputElement;
         const editor = this.getBasicCm();
-        
+
         const searchText = basicSearchInput.value;
         const replaceText = basicReplaceInput.value;
-        
+
         if (!searchText) return;
-        
+
         // Replace all occurrences
         const content = editor.getValue();
         const newContent = content.split(searchText).join(replaceText);
-        
+
         if (newContent !== content) {
             editor.setValue(newContent);
         }
@@ -697,25 +715,25 @@ export class UI implements IUI {
     private onBasicSearchNextButtonClick = (_event: Event): void => { // bound this
         const basicSearchInput = document.getElementById("basicSearchInput") as HTMLInputElement;
         const editor = this.getBasicCm();
-        
+
         const searchText = basicSearchInput.value;
         if (!searchText) return;
-        
+
         // Get current cursor position
         const cursor = editor.getCursor("to");
         const content = editor.getValue();
         const lines = content.split("\n");
-        
+
         // Calculate offset from start
         let offset = 0;
         for (let i = 0; i < cursor.line; i++) {
             offset += lines[i].length + 1; // +1 for newline
         }
         offset += cursor.ch;
-        
+
         // Find from current position
         const index = content.indexOf(searchText, offset);
-        
+
         if (index !== -1) {
             // Calculate the line and character position of the found text
             let currentOffset = 0;
@@ -727,13 +745,13 @@ export class UI implements IUI {
                 }
                 currentOffset += lines[i].length + 1;
             }
-            
+
             const chStart = index - currentOffset;
             const chEnd = chStart + searchText.length;
-            
+
             // Select the found text
             editor.setSelection({ line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
-            
+
             // Scroll into view
             editor.scrollIntoView({ line: lineNum, ch: chStart });
         }
@@ -743,26 +761,26 @@ export class UI implements IUI {
     private onBasicSearchPrevButtonClick = (_event: Event): void => { // bound this
         const basicSearchInput = document.getElementById("basicSearchInput") as HTMLInputElement;
         const editor = this.getBasicCm();
-        
+
         const searchText = basicSearchInput.value;
         if (!searchText) return;
-        
+
         // Get current cursor position
         const cursor = editor.getCursor("from");
         const content = editor.getValue();
         const lines = content.split("\n");
-        
+
         // Calculate offset from start
         let offset = 0;
         for (let i = 0; i < cursor.line; i++) {
             offset += lines[i].length + 1; // +1 for newline
         }
         offset += cursor.ch;
-        
+
         // Search backwards from current position
         const searchContent = content.substring(0, offset);
         const index = searchContent.lastIndexOf(searchText);
-        
+
         if (index !== -1) {
             // Calculate the line and character position of the found text
             let currentOffset = 0;
@@ -774,13 +792,13 @@ export class UI implements IUI {
                 }
                 currentOffset += lines[i].length + 1;
             }
-            
+
             const chStart = index - currentOffset;
             const chEnd = chStart + searchText.length;
-            
+
             // Select the found text
             editor.setSelection({ line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
-            
+
             // Scroll into view
             editor.scrollIntoView({ line: lineNum, ch: chStart });
         }

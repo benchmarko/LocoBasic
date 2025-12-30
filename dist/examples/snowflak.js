@@ -56,13 +56,13 @@ GOSUB 9000
 CLS
 '
 ' https://youtu.be/9aazdLrXah8?si=2iD00mHdxY1blBf4&t=1446
-' version by Arnolds of Leosoft (modified string chars +32 to use printable characters)(source: 137+2 code: 126)
+' version by Arnolds of Leosoft (modified string chars +32 to use printable characters)(source: 137+2 code: 127-2)
 FOR y=-9 TO 9:FOR x=-9 TO 9:PRINT CHR$(9-33*(((ABS(x)=ABS(y))AND ABS(x)<8)OR(INSTR(" $'*0>C",CHR$(ABS(x*y)+32))>0)));:NEXT:PRINT:NEXT
 '
 GOSUB 9000
 CLS
 '
-' version by Arnolds of Leosoft (modified string chars +32 to use printable characters); remove unnecessary brackets (source: 130+2 code: 124)
+' version by Arnolds of Leosoft (modified string chars +32 to use printable characters); remove unnecessary brackets (source: 130+2 code: 124-2)
 FOR y=-9 TO 9:FOR x=-9 TO 9:PRINT CHR$(9-33*(ABS(x)=ABS(y) AND ABS(x)<8 OR INSTR(" $'*0>C",CHR$(ABS(x*y)+32))>0));:NEXT:PRINT:NEXT
 '
 GOSUB 9000

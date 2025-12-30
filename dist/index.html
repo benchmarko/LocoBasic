@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="locobasic.css">
-  <title>LocoBasic v0.5.2</title>
+  <title>LocoBasic v0.5.3</title>
 </head>
 
 <body>
@@ -17,36 +17,40 @@
           <span id="outputOptionsArea" class="popover" hidden>
             <fieldset>
               <legend title="LocoBasic Options">LocoBasic Options</legend>
-              <input id="showOutputInput" type="checkbox" title="Show Output" checked>
-              <label for="showOutputInput" title="Show Output">Show Output</label>
-            </fieldset>
-            <fieldset>
-              <legend title="Execute">Execute Options</legend>
-              <input id="autoExecuteInput" type="checkbox" title="Automatic Execute" checked>
-              <label id="autoExecuteInputLabel" for="autoExecuteInput" title="Automatic Execute on change">Auto Execute</label>
-            </fieldset>
-            <fieldset>
-              <legend title="Frame Time">Frame Time</legend>
-              <input id="frameInput" type="range" min="1" max="500" step="1" value="50" title="Frame Time">
-              <br>
-              <label id="frameInputLabel" for="frameInput" title="Frame Time">50 ms</label>
-            </fieldset>
-            <fieldset>
-              <legend title="BASIC BASIC">BASIC Options</legend>
-              <input id="showBasicInput" type="checkbox" title="Show BASIC" checked>
-              <label for="showBasicInput" title="Show BASIC">Show</label>
-            </fieldset>
-            <fieldset>
-              <legend title="JavaScript">JavaScript Options</legend>
-              <input id="showCompiledInput" type="checkbox" title="Show JavaScript">
-              <label for="showCompiledInput" title="Show JavaScript">Show</label>
-              <br>
-              <input id="autoCompileInput" type="checkbox" title="Automatic compile on change" checked>
-              <label id="autoCompileInputLabel" for="autoCompileInput" title="Automatic Compile on change">Auto Compile</label>
+              <fieldset>
+                <legend title="Output Options">Output</legend>
+                <input id="showOutputInput" type="checkbox" title="Show Output" checked>
+                <label for="showOutputInput" title="Show Output">Show</label>
+              </fieldset>
+              <fieldset>
+                <legend title="Execute Options">Execute</legend>
+                <input id="autoExecuteInput" type="checkbox" title="Automatic Execute" checked>
+                <label id="autoExecuteInputLabel" for="autoExecuteInput" title="Automatic Execute on change">Auto Execute</label>
+              </fieldset>
+              <fieldset>
+                <legend title="Frame Time">Frame Time</legend>
+                <input id="frameInput" type="range" min="1" max="500" step="1" value="50" title="Frame Time">
+                <br>
+                <label id="frameInputLabel" for="frameInput" title="Frame Time">50 ms</label>
+              </fieldset>
+              <fieldset>
+                <legend title="BASIC Options">BASIC</legend>
+                <input id="showBasicInput" type="checkbox" title="Show BASIC" checked>
+                <label for="showBasicInput" title="Show BASIC">Show</label>
+              </fieldset>
+              <fieldset>
+                <legend title="JavaScript Options">JavaScript</legend>
+                <input id="showCompiledInput" type="checkbox" title="Show JavaScript">
+                <label for="showCompiledInput" title="Show JavaScript">Show</label>
+                <br>
+                <input id="autoCompileInput" type="checkbox" title="Automatic compile on change" checked>
+                <label id="autoCompileInputLabel" for="autoCompileInput" title="Automatic Compile on change">Auto Compile</label>
+              </fieldset>
             </fieldset>
             <fieldset>
               <legend title="Actions">Actions</legend>
               <button id="exportSvgButton" title="Export SVG (Vector)">Export SVG</button>
+              <br>
               <button id="fullscreenButton" title="Toggle Fullscreen">Fullscreen</button>
             </fieldset>
             <button id="helpButton" title="Open LocoBasic Readme">Help</button>
@@ -67,18 +71,16 @@
   <div id="executeToolbarArea" class="area">
     <div class="toolbarAreaInner">
       <div class="toolbarLine">
-        <span class="buttonPopoverContainer">
-          <button id="executeButton" title="Execute JavaScript">Execute</button>
-          <button id="pauseButton" title="Pause Execution" disabled>Pause</button>
-          <button id="resumeButton" title="Resume Execution" disabled>Resume</button>
-          <button id="stopButton" title="Stop Execution" disabled>Stop</button>
-          <button id="resetButton" title="Terminate Execution">Reset</button>
-          &nbsp; &vert; &nbsp;
-          <button id="enterButton" title="Enter" disabled>Enter</button>
-          <span id="userKeys"></span>
-          <span class="toolbarLineItemRight" title="Execute and Input">
-
-          </span>
+        <button id="executeButton" title="Execute JavaScript">Execute</button>
+        <button id="pauseButton" title="Pause Execution" disabled>Pause</button>
+        <button id="resumeButton" title="Resume Execution" disabled>Resume</button>
+        <button id="stopButton" title="Stop Execution" disabled>Stop</button>
+        <button id="resetButton" title="Terminate Execution">Reset</button>
+        <button id="startSpeechButton" title="Start Speech" hidden>Start Speech</button>
+        <span class="toolbar-separator"></span>
+        <button id="enterButton" title="Enter" disabled>Enter</button>
+        <span id="userKeys"></span>
+        <span class="toolbarLineItemRight" title="Execute and Input">
         </span>
       </div>
     </div>
@@ -89,13 +91,12 @@
       <div class="toolbarAreaInner">
         <div class="toolbarLine">
           <span class="toolbarTitle">BASIC</span>
-          <button id="startSpeechButton" title="Start Speech" hidden>Start Speech</button>
           <span class="toolbarLineItemRight">
             <span class="buttonPopoverContainer">
               <button id="convertButton" class="popoverButton" title="Convert BASIC source">Convert</button>
-              <span id="convertArea" class="popover" hidden>
+              <span id="convertArea" class="popover right-align" hidden>
                 <fieldset>
-                  <legend title="Line Numbers">Line&nbsp;Numbers</legend>
+                  <legend title="Line Numbers">Line Numbers</legend>
                   <button id="labelAddButton" class="popoverElement" title="Add line numbers">Add</button>
                   <button id="labelRemoveButton" class="popoverElement" title="Remove line numbers" disabled>Remove</button>
                 </fieldset>
@@ -111,11 +112,11 @@
                   <details>
                     <summary>Replace</summary>
                     <div>
-                  <input id="basicReplaceInput" title="Replace text" type="text" size="12" placeholder="Replace" autocomplete="off">
-                  <br>
-                  <button id="basicReplaceButton" class="popoverElement" title="Replace">Repl.</button>
-                  <button id="basicReplaceAllButton" class="popoverElement" title="Replace All">All</button>
-                  </div>
+                      <input id="basicReplaceInput" title="Replace text" type="text" size="12" placeholder="Replace" autocomplete="off">
+                      <br>
+                      <button id="basicReplaceButton" class="popoverElement" title="Replace">Repl.</button>
+                      <button id="basicReplaceAllButton" class="popoverElement" title="Replace All">All</button>
+                    </div>
                   </details>
                 </fieldset>
               </span>
