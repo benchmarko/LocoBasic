@@ -10,7 +10,7 @@ export default [
     sourcemap: true,
     name: 'locobasic',
     globals: {
-      'ohm-js': 'ohmJs'
+      'ohm-js': 'ohm'
     }
   },
   plugins: [typescript()],

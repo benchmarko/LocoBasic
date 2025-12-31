@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-US">
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <link rel="stylesheet" href="locobasic.css">
-  <title>LocoBasic v0.5.4</title>
+  <link rel="icon" href="favicon.ico">
+  <title>LocoBasic v0.5.5</title>
 </head>
 
 <body>
@@ -126,19 +127,12 @@
     <div id="compiledEditor" class="contentArea CodeMirror"></div>
   </div>
 
-  <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
-  <script language="javascript" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/mode/javascript/javascript.min.js" defer></script>
   <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/6.65.7/codemirror.min.css">
   </link>
 
   <script src="https://unpkg.com/ohm-js@17/dist/ohm.min.js"></script>
-
-  <script>
-    if (!window.ohm) {
-      console.error("window.ohm not loaded!");
-    }
-    window.ohmJs = window.ohm;
-  </script>
 
   <script src="locobasicUI.js"></script>
   <script src="locobasic.js"></script>

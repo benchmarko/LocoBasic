@@ -2,6 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { UI } from '../src/UI/UI';
 //import path from 'path';
 
+(globalThis as any).window = {
+  document: {
+    getElementById: (_elementId: string) => { return {} as HTMLElement; }
+  } as Document
+} as Window;
+
 describe('UI Class', () => {
   it('should initialize without throwing', () => {
     expect(() => {

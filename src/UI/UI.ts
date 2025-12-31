@@ -14,6 +14,101 @@ interface CommandActionsWithFind extends CommandActions {
     find: () => void
 }
 
+/*
+interface HtmlElementsType {
+    autoCompileInput: HTMLInputElement,
+    autoExecuteInput: HTMLInputElement,
+    basicArea: HTMLDivElement,
+    basicEditor: HTMLDivElement,
+    basicReplaceButton: HTMLButtonElement,
+    basicReplaceAllButton: HTMLButtonElement,
+    basicReplaceInput: HTMLInputElement,
+    basicSearchButton: HTMLButtonElement,
+    basicSearchInput: HTMLInputElement,
+    basicSearchNextButton: HTMLButtonElement,
+    basicSearchPrevButton: HTMLButtonElement,
+    basicSearchPopover: HTMLSpanElement,
+    compileButton: HTMLButtonElement,
+    compiledArea: HTMLDivElement,
+    compiledEditor: HTMLDivElement,
+    convertButton: HTMLButtonElement,
+    convertPopover: HTMLSpanElement,
+    databaseSelect: HTMLSelectElement,
+    enterButton: HTMLButtonElement,
+    exampleSelect: HTMLSelectElement,
+    executeButton: HTMLButtonElement,
+    exportSvgButton: HTMLButtonElement,
+    frameInput: HTMLInputElement,
+    frameInputLabel: HTMLLabelElement,
+    fullscreenButton: HTMLButtonElement,
+    helpButton: HTMLButtonElement,
+    labelAddButton: HTMLButtonElement,
+    labelRemoveButton: HTMLButtonElement,
+    outputArea: HTMLDivElement,
+    outputOptionsButton: HTMLButtonElement,
+    outputOptionsPopover: HTMLSpanElement,
+    outputText: HTMLDivElement,
+    pauseButton: HTMLButtonElement,
+    resetButton: HTMLButtonElement,
+    resumeButton: HTMLButtonElement,
+    showBasicInput: HTMLInputElement,
+    showCompiledInput: HTMLInputElement,
+    showOutputInput: HTMLInputElement,
+    standaloneButton: HTMLButtonElement,
+    startSpeechButton: HTMLButtonElement,
+    stopButton: HTMLButtonElement,
+    userKeys: HTMLSpanElement
+}
+*/
+
+function initHtmlElements() {
+    const doc = window.document;
+    return {
+        autoCompileInput: doc.getElementById("autoCompileInput") as HTMLInputElement,
+        autoExecuteInput: doc.getElementById("autoExecuteInput") as HTMLInputElement,
+        basicArea: doc.getElementById("basicArea") as HTMLDivElement,
+        basicEditor: doc.getElementById("basicEditor") as HTMLDivElement,
+        basicReplaceButton: window.document.getElementById("basicReplaceButton") as HTMLButtonElement,
+        basicReplaceAllButton: window.document.getElementById("basicReplaceAllButton") as HTMLButtonElement,
+        basicReplaceInput: doc.getElementById("basicReplaceInput") as HTMLInputElement,
+        basicSearchButton: window.document.getElementById("basicSearchButton") as HTMLButtonElement,
+        basicSearchInput: doc.getElementById("basicSearchInput") as HTMLInputElement,
+        basicSearchNextButton: window.document.getElementById("basicSearchNextButton") as HTMLButtonElement,
+        basicSearchPrevButton: window.document.getElementById("basicSearchPrevButton") as HTMLButtonElement,
+        basicSearchPopover: doc.getElementById("basicSearchPopover") as HTMLSpanElement,
+        compileButton: doc.getElementById("compileButton") as HTMLButtonElement,
+        compiledArea: doc.getElementById("compiledArea") as HTMLDivElement,
+        compiledEditor: doc.getElementById("compiledEditor") as HTMLDivElement,
+        convertButton: doc.getElementById("convertButton") as HTMLButtonElement,
+        convertPopover: doc.getElementById("convertPopover") as HTMLSpanElement,
+        databaseSelect: doc.getElementById("databaseSelect") as HTMLSelectElement,
+        enterButton: doc.getElementById("enterButton") as HTMLButtonElement,
+        exampleSelect: doc.getElementById("exampleSelect") as HTMLSelectElement,
+        executeButton: doc.getElementById("executeButton") as HTMLButtonElement,
+        exportSvgButton: doc.getElementById("exportSvgButton") as HTMLButtonElement,
+        frameInput: window.document.getElementById("frameInput") as HTMLInputElement,
+        frameInputLabel: window.document.getElementById("frameInputLabel") as HTMLLabelElement,
+        fullscreenButton: doc.getElementById("fullscreenButton") as HTMLButtonElement,
+        helpButton: doc.getElementById("helpButton") as HTMLButtonElement,
+        labelAddButton: doc.getElementById("labelAddButton") as HTMLButtonElement,
+        labelRemoveButton: doc.getElementById("labelRemoveButton") as HTMLButtonElement,
+        outputArea: doc.getElementById("outputArea") as HTMLDivElement,
+        outputOptionsButton: doc.getElementById("outputOptionsButton") as HTMLButtonElement,
+        outputOptionsPopover: doc.getElementById("outputOptionsPopover") as HTMLSpanElement,
+        outputText: doc.getElementById("outputText") as HTMLDivElement,
+        pauseButton: doc.getElementById("pauseButton") as HTMLButtonElement,
+        resetButton: doc.getElementById("resetButton") as HTMLButtonElement,
+        resumeButton: doc.getElementById("resumeButton") as HTMLButtonElement,
+        showBasicInput: doc.getElementById("showBasicInput") as HTMLInputElement,
+        showCompiledInput: doc.getElementById("showCompiledInput") as HTMLInputElement,
+        showOutputInput: doc.getElementById("showOutputInput") as HTMLInputElement,
+        standaloneButton: doc.getElementById("standaloneButton") as HTMLButtonElement,
+        startSpeechButton: doc.getElementById("startSpeechButton") as HTMLButtonElement,
+        stopButton: doc.getElementById("stopButton") as HTMLButtonElement,
+        userKeys: doc.getElementById("userKeys") as HTMLSpanElement
+    };
+}
+
 const escapeText = (str: string) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
 export class UI implements IUI {
@@ -30,11 +125,14 @@ export class UI implements IUI {
     private locoVmWorkerName = "";
     private pendingInputResolver?: (value: string | null) => void;
     private geolocationPromiseRejecter?: (value: string) => void;
+    private htmlElements: ReturnType<typeof initHtmlElements>;
+    private openedPopover?: HTMLSpanElement;
 
     constructor() {
         this.fnOnKeyPressHandler = (event: KeyboardEvent) => this.onOutputTextKeydown(event);
         this.fnOnClickHandler = (event: MouseEvent) => this.onOutputTextClick(event);
         this.fnOnUserKeyClickHandler = (event: MouseEvent) => this.onUserKeyClick(event);
+        this.htmlElements = initHtmlElements();
     }
 
     private isCodeMirrorSetValue(args: unknown[]): boolean {
@@ -59,11 +157,8 @@ export class UI implements IUI {
         };
     }
 
-    private static asyncDelay(fn: () => void, timeout: number): Promise<number> {
-        return (async () => {
-            const timerId = window.setTimeout(fn, timeout);
-            return timerId;
-        })();
+    private static asyncDelay(fn: () => void, timeout: number) {
+        window.setTimeout(fn, timeout);
     }
 
     private getCore() {
@@ -95,54 +190,16 @@ export class UI implements IUI {
         }
     }
 
-    private toggleElementHidden(id: string, editor?: Editor): boolean {
-        const element = document.getElementById(id) as HTMLElement;
-        element.hidden = !element.hidden;
-        if (!element.hidden && editor) {
-            editor.refresh();
-        }
-        return !element.hidden;
-    }
-
-    private getElementHidden(id: string): boolean {
-        const element = document.getElementById(id) as HTMLElement;
-        return element.hidden;
-    }
-
-    private setElementHidden(id: string, hidden: boolean): boolean {
-        const element = document.getElementById(id) as HTMLElement;
-        if (element.hidden !== hidden) {
-            element.hidden = hidden;
-        }
-        return element.hidden;
-    }
-
-    private closeAllPopoversExcept(id: string): void {
-        const popovers = document.querySelectorAll<HTMLElement>(".popover");
-        popovers.forEach(popover => {
-            const id2 = popover.getAttribute("id");
-            if (id2 !== id) {
-                popover.hidden = true;
+    private togglePopoverHidden(popover: HTMLSpanElement) {
+        popover.hidden = !popover.hidden;
+        if (!popover.hidden) {
+            if (this.openedPopover && this.openedPopover !== popover) {
+                this.openedPopover.hidden = true;
             }
-        });
-    }
-
-    private togglePopoverHidden(id: string) {
-        const visible = this.toggleElementHidden(id);
-        if (visible) {
-            this.closeAllPopoversExcept(id);
+            this.openedPopover = popover;
+        } else {
+            this.openedPopover = undefined;
         }
-        return visible;
-    }
-
-    private getButtonOrSelectEnabled(id: string) {
-        const element = window.document.getElementById(id) as HTMLButtonElement | HTMLSelectElement;
-        return !element.disabled;
-    }
-
-    private setButtonOrSelectEnabled(id: string, enabled: boolean) {
-        const element = window.document.getElementById(id) as HTMLButtonElement | HTMLSelectElement;
-        element.disabled = !enabled;
     }
 
     private async fnLoadScriptOrStyle(script: HTMLScriptElement | HTMLLinkElement): Promise<string> {
@@ -183,25 +240,24 @@ export class UI implements IUI {
         return document.currentScript && document.currentScript.getAttribute("data-key") || "";
     }
 
-    private scrollToBottom(id: string): void {
-        const element = document.getElementById(id) as HTMLElement;
+    private scrollToBottom(element: HTMLElement): void {
         element.scrollTop = element.scrollHeight;
     }
 
     addOutputText = (str: string, needCls?: boolean, hasGraphics?: boolean) => { // bound this
-        const outputText = document.getElementById("outputText") as HTMLDivElement;
+        const outputText = this.htmlElements.outputText;
         if (needCls) {
             outputText.innerHTML = str;
             if (!hasGraphics) {
-                this.setButtonOrSelectEnabled("exportSvgButton", false);
+                this.htmlElements.exportSvgButton.disabled = true;
             }
         } else {
             outputText.innerHTML += str;
         }
         if (hasGraphics) {
-            this.setButtonOrSelectEnabled("exportSvgButton", true);
+            this.htmlElements.exportSvgButton.disabled = false;
         } else {
-            this.scrollToBottom("outputText");
+            this.scrollToBottom(outputText);
         }
     }
 
@@ -216,7 +272,7 @@ export class UI implements IUI {
     private onSetUiKeys = (codes: number[]): void => { // bound this
         if (codes.length) {
             const code = codes[0];
-            const userKeys = document.getElementById("userKeys") as HTMLSpanElement;
+            const userKeys = this.htmlElements.userKeys;
             if (code) {
                 const char = String.fromCharCode(code);
                 const buttonStr = `<button data-key="${code}" title="${char}">${char}</button>`;
@@ -241,13 +297,12 @@ export class UI implements IUI {
         });
     }
 
-    private async waitForUserInteraction(buttonId: string): Promise<void> {
-        this.toggleElementHidden(buttonId);
-        const button = document.getElementById(buttonId) as HTMLButtonElement;
+    private async waitForUserInteraction(element: HTMLButtonElement): Promise<void> {
+        element.hidden = !element.hidden;
 
         return new Promise<void>((resolve) => {
-            button.addEventListener("click", () => {
-                this.setElementHidden(buttonId, true);
+            element.addEventListener("click", () => {
+                element.hidden = true;
                 resolve();
             }, { once: true });
         });
@@ -255,7 +310,7 @@ export class UI implements IUI {
 
     private showConsoleInput(prompt: string): Promise<string | null> {
         return new Promise<string | null>((resolve) => {
-            const outputText = document.getElementById("outputText") as HTMLDivElement;
+            const outputText = this.htmlElements.outputText;
 
             // Store the resolver for potential cancellation
             this.pendingInputResolver = resolve;
@@ -272,14 +327,14 @@ export class UI implements IUI {
             outputText.appendChild(input);
 
             // Auto-scroll to input
-            this.scrollToBottom("outputText");
+            this.scrollToBottom(outputText);
             input.focus();
 
             const handleSubmit = () => {
                 const value = input.value;
                 // Replace input with submitted value
                 input.replaceWith(document.createTextNode(value + "\n"));
-                this.scrollToBottom("outputText");
+                this.scrollToBottom(outputText);
                 this.pendingInputResolver = undefined;
                 resolve(value);
             };
@@ -340,7 +395,8 @@ export class UI implements IUI {
         await this.waitForVoices(onVoicesChanged);
 
         if (!this.initialUserAction) {
-            await this.waitForUserInteraction("startSpeechButton");
+
+            await this.waitForUserInteraction(this.htmlElements.startSpeechButton);
         }
 
         return utterance;
@@ -381,8 +437,7 @@ export class UI implements IUI {
         }
 
         const msg = await this.getSpeechSynthesisUtterance();
-        const stopButton = window.document.getElementById("stopButton") as HTMLButtonElement;
-        if (stopButton.disabled) { // Stop button inactive, program already stopped?
+        if (this.htmlElements.stopButton.disabled) { // Stop button inactive, program already stopped?
             return Promise.reject("Speech canceled.");
         }
 
@@ -422,51 +477,40 @@ export class UI implements IUI {
         return hasError;
     }
 
-    // Helper function to update button states
-    private updateButtonStates(states: Record<string, boolean>): void {
-        Object.entries(states).forEach(([id, enabled]) => {
-            this.setButtonOrSelectEnabled(id, enabled);
-        });
-    }
-
     private beforeExecute() {
-        this.setElementHidden("convertPopover", true);
+        this.htmlElements.convertPopover.hidden = true;
 
-        this.updateButtonStates({
-            enterButton: true,
-            executeButton: false,
-            stopButton: true,
-            pauseButton: true,
-            resumeButton: false,
-            convertButton: false,
-            databaseSelect: false,
-            exampleSelect: false
-        });
+        this.htmlElements.convertButton.disabled = true;
+        this.htmlElements.databaseSelect.disabled = true;
+        this.htmlElements.enterButton.disabled = false;
+        this.htmlElements.exampleSelect.disabled = true;
+        this.htmlElements.executeButton.disabled = true;
+        this.htmlElements.pauseButton.disabled = false;
+        this.htmlElements.resumeButton.disabled = true;
+        this.htmlElements.stopButton.disabled = false;
 
-        const outputText = document.getElementById("outputText") as HTMLDivElement;
+        const outputText = this.htmlElements.outputText;
         outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.addEventListener("click", this.fnOnClickHandler, false);
 
-        const userKeys = document.getElementById("userKeys") as HTMLSpanElement;
+        const userKeys = this.htmlElements.userKeys;
         userKeys.addEventListener("click", this.fnOnUserKeyClickHandler, false);
     }
 
     private afterExecute() {
-        const outputText = document.getElementById("outputText") as HTMLDivElement;
+        const outputText = this.htmlElements.outputText;
         outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.removeEventListener("click", this.fnOnClickHandler, false);
         this.onSetUiKeys([0]); // remove user keys
 
-        this.updateButtonStates({
-            enterButton: false,
-            executeButton: true,
-            stopButton: false,
-            pauseButton: false,
-            resumeButton: false,
-            convertButton: true,
-            databaseSelect: true,
-            exampleSelect: true
-        });
+        this.htmlElements.convertButton.disabled = false;
+        this.htmlElements.databaseSelect.disabled = false;
+        this.htmlElements.enterButton.disabled = true;
+        this.htmlElements.exampleSelect.disabled = false;
+        this.htmlElements.executeButton.disabled = false;
+        this.htmlElements.pauseButton.disabled = true;
+        this.htmlElements.resumeButton.disabled = true;
+        this.htmlElements.stopButton.disabled = true;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -492,9 +536,8 @@ export class UI implements IUI {
         if (this.hasCompiledError()) {
             return;
         }
-        const autoExecuteInput = document.getElementById("autoExecuteInput") as HTMLInputElement;
-        if (autoExecuteInput.checked) {
-            const executeButton = window.document.getElementById("executeButton") as HTMLButtonElement;
+        if (this.htmlElements.autoExecuteInput.checked) {
+            const executeButton = this.htmlElements.executeButton;
             if (!executeButton.disabled) {
                 executeButton.dispatchEvent(new Event("click"));
             }
@@ -504,16 +547,16 @@ export class UI implements IUI {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onCompileButtonClick = (_event: Event): void => { // bound this
         const core = this.getCore();
-        this.setButtonOrSelectEnabled("compileButton", false);
+        this.htmlElements.compileButton.disabled = true;
         const input = this.getBasicCm().getValue();
         UI.asyncDelay(() => {
             const { compiledScript, messages } = core.compileScript(input);
 
             this.compiledMessages = messages;
             this.getCompiledCm().setValue(compiledScript);
-            this.setButtonOrSelectEnabled("compileButton", true);
+            this.htmlElements.compileButton.disabled = false;
             if (!compiledScript.startsWith("ERROR:")) {
-                this.setButtonOrSelectEnabled("labelRemoveButton", true);
+                this.htmlElements.labelRemoveButton.disabled = false;
             }
         }, 1);
     }
@@ -538,27 +581,38 @@ export class UI implements IUI {
 
     private onShowOutputInputChange = (event: Event): void => { // bound this
         const showOutputInput = event.target as HTMLInputElement;
-        this.toggleElementHidden("outputArea");
+        const outputArea = this.htmlElements.outputArea;
+        outputArea.hidden = !outputArea.hidden;
 
         this.updateConfigParameter("showOutput", showOutputInput.checked);
     }
 
     private onShowBasicInputChange = (event: Event): void => { // bound this
         const showBasicInput = event.target as HTMLInputElement;
-        this.toggleElementHidden("basicArea", this.basicCm);
+
+        const basicArea = this.htmlElements.basicArea;
+        basicArea.hidden = !basicArea.hidden;
+        if (!basicArea.hidden) {
+            this.getBasicCm().refresh();
+        }
 
         this.updateConfigParameter("showBasic", showBasicInput.checked);
     }
 
     private onShowCompiledInputChange = (event: Event): void => { // bound this
         const showCompiledInput = event.target as HTMLInputElement;
-        this.toggleElementHidden("compiledArea", this.compiledCm);
+
+        const compiledArea = this.htmlElements.compiledArea;
+        compiledArea.hidden = !compiledArea.hidden;
+        if (!compiledArea.hidden) {
+            this.getCompiledCm().refresh();
+        }
 
         this.updateConfigParameter("showCompiled", showCompiledInput.checked);
     }
 
     private clickStartSpeechButton() {
-        const startSpeechButton = window.document.getElementById("startSpeechButton") as HTMLButtonElement;
+        const startSpeechButton = this.htmlElements.startSpeechButton;
         if (!startSpeechButton.hidden) { // if the startSpeech button is visible, activate it to allow speech
             startSpeechButton.dispatchEvent(new Event("click"));
         }
@@ -569,15 +623,14 @@ export class UI implements IUI {
         this.cancelSpeech(); // maybe a speech was waiting
         this.cancelGeolocation(); // maybe a geolocation was waiting
         this.clickStartSpeechButton(); // we just did a user interaction
-        if (this.getButtonOrSelectEnabled("resumeButton")) {
+        if (!this.htmlElements.labelRemoveButton.disabled) {
             this.getVmMain().resume();
         }
 
-        this.updateButtonStates({
-            stopButton: false,
-            pauseButton: false,
-            resumeButton: false
-        });
+        this.htmlElements.stopButton.disabled = true;
+        this.htmlElements.pauseButton.disabled = true;
+        this.htmlElements.resumeButton.disabled = true;
+
         // Resolve any pending input promise
         if (this.pendingInputResolver) {
             this.pendingInputResolver(null);
@@ -590,21 +643,15 @@ export class UI implements IUI {
     private onPauseButtonClick = (_event: Event): void => { // bound this
         this.cancelSpeech(); // maybe a speech was waiting
         this.clickStartSpeechButton(); // we just did a user interaction
-        this.updateButtonStates({
-            pauseButton: false,
-            resumeButton: true
-        });
+        this.htmlElements.pauseButton.disabled = true;
+        this.htmlElements.resumeButton.disabled = false;
         this.getVmMain().pause();
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onResumeButtonClick = (_event: Event): void => { // bound this
-        //this.cancelSpeech(); // maybe a speech was waiting
-        //this.clickStartSpeechButton(); // we just did a user interaction
-        this.updateButtonStates({
-            resumeButton: false,
-            pauseButton: true
-        });
+        this.htmlElements.pauseButton.disabled = false;
+        this.htmlElements.resumeButton.disabled = true;
         this.getVmMain().resume();
     }
 
@@ -620,7 +667,7 @@ export class UI implements IUI {
         }
         this.getVmMain().reset();
 
-        const frameInput = window.document.getElementById("frameInput") as HTMLInputElement;
+        const frameInput = this.htmlElements.frameInput;
         if (Number(frameInput.value) !== 50) {
             frameInput.value = "50"; // default frame rate
             frameInput.dispatchEvent(new Event("change"));
@@ -629,33 +676,30 @@ export class UI implements IUI {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onOutputOptionsButtonClick = (_event: Event): void => { // bound this
-        this.togglePopoverHidden("outputOptionsPopover");
+        this.togglePopoverHidden(this.htmlElements.outputOptionsPopover);
 
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onConvertButtonClick = (_event: Event): void => { // bound this
-        this.togglePopoverHidden("convertPopover");
+        this.togglePopoverHidden(this.htmlElements.convertPopover);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onBasicSearchButtonClick = (_event: Event): void => { // bound this
-        if (!this.togglePopoverHidden("basicSearchPopover")) {
-            //this.getBasicCm().execCommand("clearSearch");
-        } else {
-            const basicSearchInput = document.getElementById("basicSearchInput") as HTMLInputElement;
-            basicSearchInput.focus();
+        const basicSearchPopover = this.htmlElements.basicSearchPopover;
+        this.togglePopoverHidden(basicSearchPopover);
+        if (!basicSearchPopover.hidden) {
+            this.htmlElements.basicSearchInput.focus();
         }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onBasicReplaceButtonClick = (_event: Event): void => { // bound this
-        const basicSearchInput = document.getElementById("basicSearchInput") as HTMLInputElement;
-        const basicReplaceInput = document.getElementById("basicReplaceInput") as HTMLInputElement;
         const editor = this.getBasicCm();
 
-        const searchText = basicSearchInput.value;
-        const replaceText = basicReplaceInput.value;
+        const searchText = this.htmlElements.basicSearchInput.value;
+        const replaceText = this.htmlElements.basicReplaceInput.value;
 
         if (!searchText) return;
 
@@ -699,14 +743,14 @@ export class UI implements IUI {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onBasicReplaceAllButtonClick = (_event: Event): void => { // bound this
-        const basicSearchInput = document.getElementById("basicSearchInput") as HTMLInputElement;
-        const basicReplaceInput = document.getElementById("basicReplaceInput") as HTMLInputElement;
         const editor = this.getBasicCm();
 
-        const searchText = basicSearchInput.value;
-        const replaceText = basicReplaceInput.value;
+        const searchText = this.htmlElements.basicSearchInput.value;
+        const replaceText = this.htmlElements.basicReplaceInput.value;
 
-        if (!searchText) return;
+        if (!searchText) {
+            return;
+        }
 
         // Replace all occurrences
         const content = editor.getValue();
@@ -719,11 +763,13 @@ export class UI implements IUI {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onBasicSearchNextButtonClick = (_event: Event): void => { // bound this
-        const basicSearchInput = document.getElementById("basicSearchInput") as HTMLInputElement;
+        const basicSearchInput = this.htmlElements.basicSearchInput;
         const editor = this.getBasicCm();
 
         const searchText = basicSearchInput.value;
-        if (!searchText) return;
+        if (!searchText) {
+            return;
+        }
 
         // Get current cursor position
         const cursor = editor.getCursor("to");
@@ -765,11 +811,13 @@ export class UI implements IUI {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onBasicSearchPrevButtonClick = (_event: Event): void => { // bound this
-        const basicSearchInput = document.getElementById("basicSearchInput") as HTMLInputElement;
+        const basicSearchInput = this.htmlElements.basicSearchInput;
         const editor = this.getBasicCm();
 
         const searchText = basicSearchInput.value;
-        if (!searchText) return;
+        if (!searchText) {
+            return;
+        }
 
         // Get current cursor position
         const cursor = editor.getCursor("from");
@@ -832,7 +880,7 @@ export class UI implements IUI {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onFullscreenButtonClick = async (_event: Event) => { // bound this
-        const outputText = document.getElementById("outputText") as HTMLDivElement;
+        const outputText = this.htmlElements.outputText;
         const fullscreenchangedHandler = (event: Event) => {
             const target = event.target as HTMLElement;
             if (!document.fullscreenElement) {
@@ -848,9 +896,7 @@ export class UI implements IUI {
         const frameInput = event.target as HTMLInputElement;
         const value = Number(frameInput.value);
         this.getVmMain().frameTime(value);
-
-        const frameInputLabel = window.document.getElementById("frameInputLabel") as HTMLLabelElement;
-        frameInputLabel.innerText = `${frameInput.value} ms`;
+        this.htmlElements.frameInputLabel.innerText = `${frameInput.value} ms`;
     }
 
     private static addLabels(input: string) {
@@ -914,10 +960,9 @@ export class UI implements IUI {
     }
 
     private onBasicTextChange = async (): Promise<void> => { // bound this
-        this.setButtonOrSelectEnabled("labelRemoveButton", false);
-        const autoCompileInput = document.getElementById("autoCompileInput") as HTMLInputElement;
-        if (autoCompileInput.checked) {
-            const compileButton = window.document.getElementById("compileButton") as HTMLButtonElement;
+        this.htmlElements.labelRemoveButton.disabled = true;
+        if (this.htmlElements.autoCompileInput.checked) {
+            const compileButton = this.htmlElements.compileButton;
             if (!compileButton.disabled) {
                 compileButton.dispatchEvent(new Event("click"));
             }
@@ -961,7 +1006,7 @@ export class UI implements IUI {
     private setExampleSelectOptions(exampleMap: ExampleMapType, exampleKey: string): void {
         const maxTitleLength = 160;
         const maxTextLength = 60; // (32 visible?)
-        const exampleSelect = document.getElementById("exampleSelect") as HTMLSelectElement;
+        const exampleSelect = this.htmlElements.exampleSelect;
         exampleSelect.options.length = 0;
 
         for (const key of Object.keys(exampleMap)) {
@@ -1011,12 +1056,12 @@ export class UI implements IUI {
 
         this.setExampleSelectOptions(exampleMap, config.example);
 
-        const exampleSelect = window.document.getElementById("exampleSelect") as HTMLSelectElement;
+        const exampleSelect = this.htmlElements.exampleSelect;
         exampleSelect.dispatchEvent(new Event("change"));
     }
 
     private setDatabaseSelectOptions(databaseMap: DatabaseMapType, database: string): void {
-        const databaseSelect = document.getElementById("databaseSelect") as HTMLSelectElement;
+        const databaseSelect = this.htmlElements.databaseSelect;
         databaseSelect.options.length = 0;
 
         for (const key of Object.keys(databaseMap)) {
@@ -1060,7 +1105,7 @@ export class UI implements IUI {
     }
 
     private onExportSvgButtonClick = (): void => { // bound this
-        const outputText = window.document.getElementById("outputText") as HTMLElement;
+        const outputText = this.htmlElements.outputText;
         const svgElements = outputText.getElementsByTagName("svg");
         if (!svgElements.length) {
             console.warn("onExportSvgButtonClick: No SVG found.");
@@ -1198,12 +1243,11 @@ export class UI implements IUI {
     }
 
     private initializeEditor(
-        editorId: string,
+        editorElement: HTMLDivElement,
         mode: string,
         changeHandler: () => void,
         debounceDelay: number
     ): Editor {
-        const editorElement = window.document.getElementById(editorId) as HTMLElement;
         const editor = window.CodeMirror(editorElement, {
             lineNumbers: true,
             mode,
@@ -1212,8 +1256,7 @@ export class UI implements IUI {
         return editor;
     }
 
-    private syncInputState(inputId: string, configValue: boolean): void {
-        const input = window.document.getElementById(inputId) as HTMLInputElement;
+    private syncInputState(input: HTMLInputElement, configValue: boolean): void {
         if (input.checked !== configValue) {
             input.checked = configValue;
             input.dispatchEvent(new Event("change"));
@@ -1312,21 +1355,21 @@ export class UI implements IUI {
 
         // Attach event listeners for buttons
         Object.entries(buttonHandlers).forEach(([id, handler]) => {
-            const element = window.document.getElementById(id) as HTMLButtonElement;
+            const element = (this.htmlElements as unknown as Record<string, HTMLElement>)[id]; //window.document.getElementById(id) as HTMLButtonElement;
             element.addEventListener("click", handler, false);
         });
 
         // Attach event listeners for inputs or selects
         Object.entries(inputAndSelectHandlers).forEach(([id, handler]) => {
-            const element = window.document.getElementById(id) as HTMLInputElement | HTMLSelectElement;
+            const element = (this.htmlElements as unknown as Record<string, HTMLElement>)[id]; //window.document.getElementById(id) as HTMLInputElement | HTMLSelectElement;
             element.addEventListener("change", handler, false); // handler.bind(this)
         });
 
         // Attach keydown listener for basicSearchInput to handle Enter key
-        const basicSearchInput = window.document.getElementById("basicSearchInput") as HTMLInputElement;
-        if (basicSearchInput) {
-            basicSearchInput.addEventListener("keydown", this.onBasicSearchInputKeydown, false);
-        }
+        const basicSearchInput = this.htmlElements.basicSearchInput;
+        //if (basicSearchInput) {
+        basicSearchInput.addEventListener("keydown", this.onBasicSearchInputKeydown, false);
+        //}
 
         // Initialize CodeMirror editors
         const WinCodeMirror = window.CodeMirror;
@@ -1334,16 +1377,14 @@ export class UI implements IUI {
             const getModeFn = LocoBasicMode.getMode;
             WinCodeMirror.defineMode("lbasic", getModeFn);
 
-            this.basicCm = this.initializeEditor("basicEditor", "lbasic", this.onBasicTextChange, config.debounceCompile);
-            this.compiledCm = this.initializeEditor("compiledEditor", "javascript", this.onCompiledTextChange, config.debounceExecute);
+            this.basicCm = this.initializeEditor(this.htmlElements.basicEditor, "lbasic", this.onBasicTextChange, config.debounceCompile);
+            this.compiledCm = this.initializeEditor(this.htmlElements.compiledEditor, "javascript", this.onCompiledTextChange, config.debounceExecute);
 
             (WinCodeMirror.commands as CommandActionsWithFind).find = () => { // Ctrl-f / Cmd-f
-                if (this.getElementHidden("basicSearchPopover")) {
-                    const basicSearchButton = window.document.getElementById("basicSearchButton") as HTMLSelectElement;
-                    basicSearchButton.dispatchEvent(new Event("click"));
+                if (this.htmlElements.basicSearchPopover.hidden) {
+                    this.htmlElements.basicSearchButton.dispatchEvent(new Event("click"));
                 } else {
-                    const basicSearchNextButton = window.document.getElementById("basicSearchButton") as HTMLSelectElement;
-                    basicSearchNextButton.dispatchEvent(new Event("click"));
+                    this.htmlElements.basicSearchNextButton.dispatchEvent(new Event("click"));
                 }
             };
             // find, findNext, findPrev, clearSearch, replace, replaceAll
@@ -1355,17 +1396,16 @@ export class UI implements IUI {
                 Object.assign(config, core.getDefaultConfigMap()); // load defaults
                 const args = this.parseUri(config);
                 core.parseArgs(args, config);
-                const databaseSelect = window.document.getElementById("databaseSelect") as HTMLSelectElement;
-                databaseSelect.dispatchEvent(new Event("change"));
+                this.htmlElements.databaseSelect.dispatchEvent(new Event("change"));
             }
         });
 
         // Sync UI state with config
-        this.syncInputState("showOutputInput", config.showOutput);
-        this.syncInputState("showBasicInput", config.showBasic);
-        this.syncInputState("showCompiledInput", config.showCompiled);
-        this.syncInputState("autoCompileInput", config.autoCompile);
-        this.syncInputState("autoExecuteInput", config.autoExecute);
+        this.syncInputState(this.htmlElements.showOutputInput, config.showOutput);
+        this.syncInputState(this.htmlElements.showBasicInput, config.showBasic);
+        this.syncInputState(this.htmlElements.showCompiledInput, config.showCompiled);
+        this.syncInputState(this.htmlElements.autoCompileInput, config.autoCompile);
+        this.syncInputState(this.htmlElements.autoExecuteInput, config.autoExecute);
 
         window.document.addEventListener("click", () => {
             this.initialUserAction = true;
@@ -1380,8 +1420,7 @@ export class UI implements IUI {
             this.setDatabaseSelectOptions(databaseMap, config.database);
             const url = window.location.href;
             history.replaceState({}, "", url);
-            const databaseSelect = window.document.getElementById("databaseSelect") as HTMLSelectElement;
-            databaseSelect.dispatchEvent(new Event("change"));
+            this.htmlElements.databaseSelect.dispatchEvent(new Event("change"));
         }, 10);
     }
 }
