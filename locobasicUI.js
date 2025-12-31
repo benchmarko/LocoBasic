@@ -4,6 +4,121 @@
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.locobasicUI = {}));
 })(this, (function (exports) { 'use strict';
 
+    class SearchHandler {
+        constructor(editor, searchInput, replaceInput, setFocus) {
+            this.editor = editor;
+            this.searchInput = searchInput;
+            this.replaceInput = replaceInput;
+            this.setFocus = setFocus;
+        }
+        /**
+         * Common helper to find text in content and return its position and line information
+         */
+        findText(content, searchText, startOffset, backwards = false) {
+            let index;
+            if (backwards) {
+                const searchContent = content.substring(0, startOffset);
+                index = searchContent.lastIndexOf(searchText);
+            }
+            else {
+                index = content.indexOf(searchText, startOffset);
+            }
+            if (index === -1) {
+                return null;
+            }
+            const lines = content.split("\n");
+            let currentOffset = 0;
+            let lineNum = 0;
+            for (let i = 0; i < lines.length; i++) {
+                if (currentOffset + lines[i].length >= index) {
+                    lineNum = i;
+                    break;
+                }
+                currentOffset += lines[i].length + 1; // +1 for newline
+            }
+            const chStart = index - currentOffset;
+            const chEnd = chStart + searchText.length;
+            return { index, lineNum, chStart, chEnd };
+        }
+        /**
+         * Calculate offset from start based on cursor position
+         */
+        getCursorOffset(lines, cursor) {
+            let offset = 0;
+            for (let i = 0; i < cursor.line; i++) {
+                offset += lines[i].length + 1; // +1 for newline
+            }
+            offset += cursor.ch;
+            return offset;
+        }
+        searchNext() {
+            const searchText = this.searchInput.value;
+            if (!searchText) {
+                return;
+            }
+            const cursor = this.editor.getCursor("to");
+            const content = this.editor.getValue();
+            const lines = content.split("\n");
+            const offset = this.getCursorOffset(lines, cursor);
+            const result = this.findText(content, searchText, offset, false);
+            if (result) {
+                const { lineNum, chStart, chEnd } = result;
+                if (this.setFocus) {
+                    this.editor.focus(); // needed for mobile
+                }
+                this.editor.setSelection({ line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
+                this.editor.scrollIntoView({ line: lineNum, ch: chStart });
+            }
+        }
+        searchPrev() {
+            const searchText = this.searchInput.value;
+            if (!searchText) {
+                return;
+            }
+            const cursor = this.editor.getCursor("from");
+            const content = this.editor.getValue();
+            const lines = content.split("\n");
+            const offset = this.getCursorOffset(lines, cursor);
+            const result = this.findText(content, searchText, offset, true);
+            if (result) {
+                const { lineNum, chStart, chEnd } = result;
+                if (this.setFocus) {
+                    this.editor.focus(); // needed for mobile
+                }
+                this.editor.setSelection({ line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
+                this.editor.scrollIntoView({ line: lineNum, ch: chStart });
+            }
+        }
+        replace() {
+            const searchText = this.searchInput.value;
+            const replaceText = this.replaceInput.value;
+            if (!searchText)
+                return;
+            const cursor = this.editor.getCursor("from");
+            const content = this.editor.getValue();
+            const lines = content.split("\n");
+            const offset = this.getCursorOffset(lines, cursor);
+            const result = this.findText(content, searchText, offset, false);
+            if (result) {
+                const { lineNum, chStart, chEnd } = result;
+                this.editor.replaceRange(replaceText, { line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
+                this.editor.setCursor({ line: lineNum, ch: chStart + replaceText.length });
+            }
+        }
+        replaceAll() {
+            const searchText = this.searchInput.value;
+            const replaceText = this.replaceInput.value;
+            if (!searchText) {
+                return;
+            }
+            const content = this.editor.getValue();
+            const newContent = content.split(searchText).join(replaceText);
+            if (newContent !== content) {
+                this.editor.setValue(newContent);
+            }
+        }
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-extraneous-class
     class LocoBasicMode {
         static getMode() {
@@ -302,34 +417,90 @@
         }
     }
 
+    function initHtmlElements() {
+        const doc = window.document;
+        return {
+            autoCompileInput: doc.getElementById("autoCompileInput"),
+            autoExecuteInput: doc.getElementById("autoExecuteInput"),
+            basicArea: doc.getElementById("basicArea"),
+            basicEditor: doc.getElementById("basicEditor"),
+            basicReplaceButton: window.document.getElementById("basicReplaceButton"),
+            basicReplaceAllButton: window.document.getElementById("basicReplaceAllButton"),
+            basicReplaceInput: doc.getElementById("basicReplaceInput"),
+            basicSearchButton: window.document.getElementById("basicSearchButton"),
+            basicSearchInput: doc.getElementById("basicSearchInput"),
+            basicSearchNextButton: window.document.getElementById("basicSearchNextButton"),
+            basicSearchPrevButton: window.document.getElementById("basicSearchPrevButton"),
+            basicSearchPopover: doc.getElementById("basicSearchPopover"),
+            compileButton: doc.getElementById("compileButton"),
+            compiledArea: doc.getElementById("compiledArea"),
+            compiledEditor: doc.getElementById("compiledEditor"),
+            compiledReplaceButton: window.document.getElementById("compiledReplaceButton"),
+            compiledReplaceAllButton: window.document.getElementById("compiledReplaceAllButton"),
+            compiledReplaceInput: doc.getElementById("compiledReplaceInput"),
+            compiledSearchButton: window.document.getElementById("compiledSearchButton"),
+            compiledSearchInput: doc.getElementById("compiledSearchInput"),
+            compiledSearchNextButton: window.document.getElementById("compiledSearchNextButton"),
+            compiledSearchPrevButton: window.document.getElementById("compiledSearchPrevButton"),
+            compiledSearchPopover: doc.getElementById("compiledSearchPopover"),
+            convertButton: doc.getElementById("convertButton"),
+            convertPopover: doc.getElementById("convertPopover"),
+            databaseSelect: doc.getElementById("databaseSelect"),
+            enterButton: doc.getElementById("enterButton"),
+            exampleSelect: doc.getElementById("exampleSelect"),
+            executeButton: doc.getElementById("executeButton"),
+            exportSvgButton: doc.getElementById("exportSvgButton"),
+            frameInput: window.document.getElementById("frameInput"),
+            frameInputLabel: window.document.getElementById("frameInputLabel"),
+            fullscreenButton: doc.getElementById("fullscreenButton"),
+            helpButton: doc.getElementById("helpButton"),
+            labelAddButton: doc.getElementById("labelAddButton"),
+            labelRemoveButton: doc.getElementById("labelRemoveButton"),
+            outputArea: doc.getElementById("outputArea"),
+            outputOptionsButton: doc.getElementById("outputOptionsButton"),
+            outputOptionsPopover: doc.getElementById("outputOptionsPopover"),
+            outputText: doc.getElementById("outputText"),
+            pauseButton: doc.getElementById("pauseButton"),
+            resetButton: doc.getElementById("resetButton"),
+            resumeButton: doc.getElementById("resumeButton"),
+            showBasicInput: doc.getElementById("showBasicInput"),
+            showCompiledInput: doc.getElementById("showCompiledInput"),
+            showOutputInput: doc.getElementById("showOutputInput"),
+            standaloneButton: doc.getElementById("standaloneButton"),
+            startSpeechButton: doc.getElementById("startSpeechButton"),
+            stopButton: doc.getElementById("stopButton"),
+            userKeys: doc.getElementById("userKeys")
+        };
+    }
     const escapeText = (str) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;");
     class UI {
         constructor() {
             this.compiledMessages = [];
             this.initialUserAction = false;
             this.locoVmWorkerName = "";
+            this.isMobile = false;
             this.addOutputText = (str, needCls, hasGraphics) => {
-                const outputText = document.getElementById("outputText");
+                const outputText = this.htmlElements.outputText;
                 if (needCls) {
                     outputText.innerHTML = str;
                     if (!hasGraphics) {
-                        this.setButtonOrSelectEnabled("exportSvgButton", false);
+                        this.htmlElements.exportSvgButton.disabled = true;
                     }
                 }
                 else {
                     outputText.innerHTML += str;
                 }
                 if (hasGraphics) {
-                    this.setButtonOrSelectEnabled("exportSvgButton", true);
+                    this.htmlElements.exportSvgButton.disabled = false;
                 }
                 else {
-                    this.scrollToBottom("outputText");
+                    this.scrollToBottom(outputText);
                 }
             };
             this.onSetUiKeys = (codes) => {
                 if (codes.length) {
                     const code = codes[0];
-                    const userKeys = document.getElementById("userKeys");
+                    const userKeys = this.htmlElements.userKeys;
                     if (code) {
                         const char = String.fromCharCode(code);
                         const buttonStr = `<button data-key="${code}" title="${char}">${char}</button>`;
@@ -373,8 +544,7 @@
                     console.log("onSpeak: ", text, pitch);
                 }
                 const msg = await this.getSpeechSynthesisUtterance();
-                const stopButton = window.document.getElementById("stopButton");
-                if (stopButton.disabled) { // Stop button inactive, program already stopped?
+                if (this.htmlElements.stopButton.disabled) { // Stop button inactive, program already stopped?
                     return Promise.reject("Speech canceled.");
                 }
                 msg.text = text;
@@ -408,9 +578,8 @@
                 if (this.hasCompiledError()) {
                     return;
                 }
-                const autoExecuteInput = document.getElementById("autoExecuteInput");
-                if (autoExecuteInput.checked) {
-                    const executeButton = window.document.getElementById("executeButton");
+                if (this.htmlElements.autoExecuteInput.checked) {
+                    const executeButton = this.htmlElements.executeButton;
                     if (!executeButton.disabled) {
                         executeButton.dispatchEvent(new Event("click"));
                     }
@@ -419,15 +588,15 @@
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onCompileButtonClick = (_event) => {
                 const core = this.getCore();
-                this.setButtonOrSelectEnabled("compileButton", false);
+                this.htmlElements.compileButton.disabled = true;
                 const input = this.getBasicCm().getValue();
                 UI.asyncDelay(() => {
                     const { compiledScript, messages } = core.compileScript(input);
                     this.compiledMessages = messages;
                     this.getCompiledCm().setValue(compiledScript);
-                    this.setButtonOrSelectEnabled("compileButton", true);
+                    this.htmlElements.compileButton.disabled = false;
                     if (!compiledScript.startsWith("ERROR:")) {
-                        this.setButtonOrSelectEnabled("labelRemoveButton", true);
+                        this.htmlElements.labelRemoveButton.disabled = false;
                     }
                 }, 1);
             };
@@ -446,17 +615,26 @@
             };
             this.onShowOutputInputChange = (event) => {
                 const showOutputInput = event.target;
-                this.toggleElementHidden("outputArea");
+                const outputArea = this.htmlElements.outputArea;
+                outputArea.hidden = !outputArea.hidden;
                 this.updateConfigParameter("showOutput", showOutputInput.checked);
             };
             this.onShowBasicInputChange = (event) => {
                 const showBasicInput = event.target;
-                this.toggleElementHidden("basicArea", this.basicCm);
+                const basicArea = this.htmlElements.basicArea;
+                basicArea.hidden = !basicArea.hidden;
+                if (!basicArea.hidden) {
+                    this.getBasicCm().refresh();
+                }
                 this.updateConfigParameter("showBasic", showBasicInput.checked);
             };
             this.onShowCompiledInputChange = (event) => {
                 const showCompiledInput = event.target;
-                this.toggleElementHidden("compiledArea", this.compiledCm);
+                const compiledArea = this.htmlElements.compiledArea;
+                compiledArea.hidden = !compiledArea.hidden;
+                if (!compiledArea.hidden) {
+                    this.getCompiledCm().refresh();
+                }
                 this.updateConfigParameter("showCompiled", showCompiledInput.checked);
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -464,14 +642,12 @@
                 this.cancelSpeech(); // maybe a speech was waiting
                 this.cancelGeolocation(); // maybe a geolocation was waiting
                 this.clickStartSpeechButton(); // we just did a user interaction
-                if (this.getButtonOrSelectEnabled("resumeButton")) {
+                if (!this.htmlElements.labelRemoveButton.disabled) {
                     this.getVmMain().resume();
                 }
-                this.updateButtonStates({
-                    stopButton: false,
-                    pauseButton: false,
-                    resumeButton: false
-                });
+                this.htmlElements.stopButton.disabled = true;
+                this.htmlElements.pauseButton.disabled = true;
+                this.htmlElements.resumeButton.disabled = true;
                 // Resolve any pending input promise
                 if (this.pendingInputResolver) {
                     this.pendingInputResolver(null);
@@ -483,20 +659,14 @@
             this.onPauseButtonClick = (_event) => {
                 this.cancelSpeech(); // maybe a speech was waiting
                 this.clickStartSpeechButton(); // we just did a user interaction
-                this.updateButtonStates({
-                    pauseButton: false,
-                    resumeButton: true
-                });
+                this.htmlElements.pauseButton.disabled = true;
+                this.htmlElements.resumeButton.disabled = false;
                 this.getVmMain().pause();
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onResumeButtonClick = (_event) => {
-                //this.cancelSpeech(); // maybe a speech was waiting
-                //this.clickStartSpeechButton(); // we just did a user interaction
-                this.updateButtonStates({
-                    resumeButton: false,
-                    pauseButton: true
-                });
+                this.htmlElements.pauseButton.disabled = false;
+                this.htmlElements.resumeButton.disabled = true;
                 this.getVmMain().resume();
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -510,7 +680,7 @@
                     this.pendingInputResolver = undefined;
                 }
                 this.getVmMain().reset();
-                const frameInput = window.document.getElementById("frameInput");
+                const frameInput = this.htmlElements.frameInput;
                 if (Number(frameInput.value) !== 50) {
                     frameInput.value = "50"; // default frame rate
                     frameInput.dispatchEvent(new Event("change"));
@@ -518,151 +688,74 @@
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onOutputOptionsButtonClick = (_event) => {
-                this.togglePopoverHidden("outputOptionsPopover");
+                this.togglePopoverHidden(this.htmlElements.outputOptionsPopover);
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onConvertButtonClick = (_event) => {
-                this.togglePopoverHidden("convertPopover");
+                this.togglePopoverHidden(this.htmlElements.convertPopover);
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onBasicSearchButtonClick = (_event) => {
-                if (!this.togglePopoverHidden("basicSearchPopover")) ;
-                else {
-                    const basicSearchInput = document.getElementById("basicSearchInput");
-                    basicSearchInput.focus();
+                const basicSearchPopover = this.htmlElements.basicSearchPopover;
+                this.togglePopoverHidden(basicSearchPopover);
+                if (!basicSearchPopover.hidden) {
+                    this.htmlElements.basicSearchInput.focus();
+                }
+            };
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            this.onCompiledSearchButtonClick = (_event) => {
+                const compiledSearchPopover = this.htmlElements.compiledSearchPopover;
+                this.togglePopoverHidden(compiledSearchPopover);
+                if (!compiledSearchPopover.hidden) {
+                    this.htmlElements.compiledSearchInput.focus();
                 }
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onBasicReplaceButtonClick = (_event) => {
-                const basicSearchInput = document.getElementById("basicSearchInput");
-                const basicReplaceInput = document.getElementById("basicReplaceInput");
-                const editor = this.getBasicCm();
-                const searchText = basicSearchInput.value;
-                const replaceText = basicReplaceInput.value;
-                if (!searchText)
-                    return;
-                // Get current cursor position
-                const cursor = editor.getCursor("from");
-                const content = editor.getValue();
-                const lines = content.split("\n");
-                // Calculate offset from start
-                let offset = 0;
-                for (let i = 0; i < cursor.line; i++) {
-                    offset += lines[i].length + 1; // +1 for newline
-                }
-                offset += cursor.ch;
-                // Find from current position
-                const index = content.indexOf(searchText, offset);
-                if (index !== -1) {
-                    // Calculate the line and character position of the found text
-                    let currentOffset = 0;
-                    let lineNum = 0;
-                    for (let i = 0; i < lines.length; i++) {
-                        if (currentOffset + lines[i].length >= index) {
-                            lineNum = i;
-                            break;
-                        }
-                        currentOffset += lines[i].length + 1;
-                    }
-                    const chStart = index - currentOffset;
-                    const chEnd = chStart + searchText.length;
-                    // Replace the found text
-                    editor.replaceRange(replaceText, { line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
-                    // Move cursor to after the replacement
-                    editor.setCursor({ line: lineNum, ch: chStart + replaceText.length });
+                if (this.basicSearchHandler) {
+                    this.basicSearchHandler.replace();
                 }
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onBasicReplaceAllButtonClick = (_event) => {
-                const basicSearchInput = document.getElementById("basicSearchInput");
-                const basicReplaceInput = document.getElementById("basicReplaceInput");
-                const editor = this.getBasicCm();
-                const searchText = basicSearchInput.value;
-                const replaceText = basicReplaceInput.value;
-                if (!searchText)
-                    return;
-                // Replace all occurrences
-                const content = editor.getValue();
-                const newContent = content.split(searchText).join(replaceText);
-                if (newContent !== content) {
-                    editor.setValue(newContent);
+                if (this.basicSearchHandler) {
+                    this.basicSearchHandler.replaceAll();
+                }
+            };
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            this.onCompiledReplaceButtonClick = (_event) => {
+                if (this.compiledSearchHandler) {
+                    this.compiledSearchHandler.replace();
+                }
+            };
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            this.onCompiledReplaceAllButtonClick = (_event) => {
+                if (this.compiledSearchHandler) {
+                    this.compiledSearchHandler.replaceAll();
                 }
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onBasicSearchNextButtonClick = (_event) => {
-                const basicSearchInput = document.getElementById("basicSearchInput");
-                const editor = this.getBasicCm();
-                const searchText = basicSearchInput.value;
-                if (!searchText)
-                    return;
-                // Get current cursor position
-                const cursor = editor.getCursor("to");
-                const content = editor.getValue();
-                const lines = content.split("\n");
-                // Calculate offset from start
-                let offset = 0;
-                for (let i = 0; i < cursor.line; i++) {
-                    offset += lines[i].length + 1; // +1 for newline
-                }
-                offset += cursor.ch;
-                // Find from current position
-                const index = content.indexOf(searchText, offset);
-                if (index !== -1) {
-                    // Calculate the line and character position of the found text
-                    let currentOffset = 0;
-                    let lineNum = 0;
-                    for (let i = 0; i < lines.length; i++) {
-                        if (currentOffset + lines[i].length >= index) {
-                            lineNum = i;
-                            break;
-                        }
-                        currentOffset += lines[i].length + 1;
-                    }
-                    const chStart = index - currentOffset;
-                    const chEnd = chStart + searchText.length;
-                    // Select the found text
-                    editor.setSelection({ line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
-                    // Scroll into view
-                    editor.scrollIntoView({ line: lineNum, ch: chStart });
+                if (this.basicSearchHandler) {
+                    this.basicSearchHandler.searchNext();
                 }
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onBasicSearchPrevButtonClick = (_event) => {
-                const basicSearchInput = document.getElementById("basicSearchInput");
-                const editor = this.getBasicCm();
-                const searchText = basicSearchInput.value;
-                if (!searchText)
-                    return;
-                // Get current cursor position
-                const cursor = editor.getCursor("from");
-                const content = editor.getValue();
-                const lines = content.split("\n");
-                // Calculate offset from start
-                let offset = 0;
-                for (let i = 0; i < cursor.line; i++) {
-                    offset += lines[i].length + 1; // +1 for newline
+                if (this.basicSearchHandler) {
+                    this.basicSearchHandler.searchPrev();
                 }
-                offset += cursor.ch;
-                // Search backwards from current position
-                const searchContent = content.substring(0, offset);
-                const index = searchContent.lastIndexOf(searchText);
-                if (index !== -1) {
-                    // Calculate the line and character position of the found text
-                    let currentOffset = 0;
-                    let lineNum = 0;
-                    for (let i = 0; i < lines.length; i++) {
-                        if (currentOffset + lines[i].length >= index) {
-                            lineNum = i;
-                            break;
-                        }
-                        currentOffset += lines[i].length + 1;
-                    }
-                    const chStart = index - currentOffset;
-                    const chEnd = chStart + searchText.length;
-                    // Select the found text
-                    editor.setSelection({ line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
-                    // Scroll into view
-                    editor.scrollIntoView({ line: lineNum, ch: chStart });
+            };
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            this.onCompiledSearchNextButtonClick = (_event) => {
+                if (this.compiledSearchHandler) {
+                    this.compiledSearchHandler.searchNext();
+                }
+            };
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            this.onCompiledSearchPrevButtonClick = (_event) => {
+                if (this.compiledSearchHandler) {
+                    this.compiledSearchHandler.searchPrev();
                 }
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -675,19 +768,42 @@
                     // Check if Shift is pressed for previous search
                     if (event.shiftKey) {
                         this.onBasicSearchPrevButtonClick(event);
+                        this.setDelayedFocus(this.htmlElements.basicSearchPrevButton);
                     }
                     else {
                         this.onBasicSearchNextButtonClick(event);
+                        this.setDelayedFocus(this.htmlElements.basicSearchNextButton);
                     }
                 }
                 else if (event.key === "f" && (event.metaKey === true || event.ctrlKey === true)) {
                     event.preventDefault();
                     this.onBasicSearchNextButtonClick(event);
+                    this.setDelayedFocus(this.htmlElements.basicSearchNextButton);
+                }
+            };
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            this.onCompiledSearchInputChange = (_event) => {
+                // Update search as user types
+            };
+            this.onCompiledSearchInputKeydown = (event) => {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    // Check if Shift is pressed for previous search
+                    if (event.shiftKey) {
+                        this.onCompiledSearchPrevButtonClick(event);
+                    }
+                    else {
+                        this.onCompiledSearchNextButtonClick(event);
+                    }
+                }
+                else if (event.key === "f" && (event.metaKey === true || event.ctrlKey === true)) {
+                    event.preventDefault();
+                    this.onCompiledSearchNextButtonClick(event);
                 }
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onFullscreenButtonClick = async (_event) => {
-                const outputText = document.getElementById("outputText");
+                const outputText = this.htmlElements.outputText;
                 const fullscreenchangedHandler = (event) => {
                     const target = event.target;
                     if (!document.fullscreenElement) {
@@ -701,8 +817,7 @@
                 const frameInput = event.target;
                 const value = Number(frameInput.value);
                 this.getVmMain().frameTime(value);
-                const frameInputLabel = window.document.getElementById("frameInputLabel");
-                frameInputLabel.innerText = `${frameInput.value} ms`;
+                this.htmlElements.frameInputLabel.innerText = `${frameInput.value} ms`;
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onLabelAddButtonClick = (_event) => {
@@ -730,10 +845,9 @@
                 }
             };
             this.onBasicTextChange = async () => {
-                this.setButtonOrSelectEnabled("labelRemoveButton", false);
-                const autoCompileInput = document.getElementById("autoCompileInput");
-                if (autoCompileInput.checked) {
-                    const compileButton = window.document.getElementById("compileButton");
+                this.htmlElements.labelRemoveButton.disabled = true;
+                if (this.htmlElements.autoCompileInput.checked) {
+                    const compileButton = this.htmlElements.compileButton;
                     if (!compileButton.disabled) {
                         compileButton.dispatchEvent(new Event("click"));
                     }
@@ -767,14 +881,14 @@
                 }
                 const exampleMap = await this.getExampleMap(databaseItem);
                 this.setExampleSelectOptions(exampleMap, config.example);
-                const exampleSelect = window.document.getElementById("exampleSelect");
+                const exampleSelect = this.htmlElements.exampleSelect;
                 exampleSelect.dispatchEvent(new Event("change"));
             };
             this.onHelpButtonClick = () => {
                 window.open("https://github.com/benchmarko/LocoBasic/#readme");
             };
             this.onExportSvgButtonClick = () => {
-                const outputText = window.document.getElementById("outputText");
+                const outputText = this.htmlElements.outputText;
                 const svgElements = outputText.getElementsByTagName("svg");
                 if (!svgElements.length) {
                     console.warn("onExportSvgButtonClick: No SVG found.");
@@ -807,6 +921,7 @@
             this.fnOnKeyPressHandler = (event) => this.onOutputTextKeydown(event);
             this.fnOnClickHandler = (event) => this.onOutputTextClick(event);
             this.fnOnUserKeyClickHandler = (event) => this.onUserKeyClick(event);
+            this.htmlElements = initHtmlElements();
         }
         isCodeMirrorSetValue(args) {
             var _a;
@@ -827,10 +942,7 @@
             };
         }
         static asyncDelay(fn, timeout) {
-            return (async () => {
-                const timerId = window.setTimeout(fn, timeout);
-                return timerId;
-            })();
+            window.setTimeout(fn, timeout);
         }
         getCore() {
             return this.core;
@@ -855,48 +967,17 @@
                 this.geolocationPromiseRejecter = undefined;
             }
         }
-        toggleElementHidden(id, editor) {
-            const element = document.getElementById(id);
-            element.hidden = !element.hidden;
-            if (!element.hidden && editor) {
-                editor.refresh();
-            }
-            return !element.hidden;
-        }
-        getElementHidden(id) {
-            const element = document.getElementById(id);
-            return element.hidden;
-        }
-        setElementHidden(id, hidden) {
-            const element = document.getElementById(id);
-            if (element.hidden !== hidden) {
-                element.hidden = hidden;
-            }
-            return element.hidden;
-        }
-        closeAllPopoversExcept(id) {
-            const popovers = document.querySelectorAll(".popover");
-            popovers.forEach(popover => {
-                const id2 = popover.getAttribute("id");
-                if (id2 !== id) {
-                    popover.hidden = true;
+        togglePopoverHidden(popover) {
+            popover.hidden = !popover.hidden;
+            if (!popover.hidden) {
+                if (this.openedPopover && this.openedPopover !== popover) {
+                    this.openedPopover.hidden = true;
                 }
-            });
-        }
-        togglePopoverHidden(id) {
-            const visible = this.toggleElementHidden(id);
-            if (visible) {
-                this.closeAllPopoversExcept(id);
+                this.openedPopover = popover;
             }
-            return visible;
-        }
-        getButtonOrSelectEnabled(id) {
-            const element = window.document.getElementById(id);
-            return !element.disabled;
-        }
-        setButtonOrSelectEnabled(id, enabled) {
-            const element = window.document.getElementById(id);
-            element.disabled = !enabled;
+            else {
+                this.openedPopover = undefined;
+            }
         }
         async fnLoadScriptOrStyle(script) {
             return new Promise((resolve, reject) => {
@@ -929,8 +1010,7 @@
         getCurrentDataKey() {
             return document.currentScript && document.currentScript.getAttribute("data-key") || "";
         }
-        scrollToBottom(id) {
-            const element = document.getElementById(id);
+        scrollToBottom(element) {
             element.scrollTop = element.scrollHeight;
         }
         onUserKeyClick(event) {
@@ -952,19 +1032,18 @@
                 }
             });
         }
-        async waitForUserInteraction(buttonId) {
-            this.toggleElementHidden(buttonId);
-            const button = document.getElementById(buttonId);
+        async waitForUserInteraction(element) {
+            element.hidden = !element.hidden;
             return new Promise((resolve) => {
-                button.addEventListener("click", () => {
-                    this.setElementHidden(buttonId, true);
+                element.addEventListener("click", () => {
+                    element.hidden = true;
                     resolve();
                 }, { once: true });
             });
         }
         showConsoleInput(prompt) {
             return new Promise((resolve) => {
-                const outputText = document.getElementById("outputText");
+                const outputText = this.htmlElements.outputText;
                 // Store the resolver for potential cancellation
                 this.pendingInputResolver = resolve;
                 // Add prompt to output
@@ -977,13 +1056,13 @@
                 input.className = "console-input";
                 outputText.appendChild(input);
                 // Auto-scroll to input
-                this.scrollToBottom("outputText");
+                this.scrollToBottom(outputText);
                 input.focus();
                 const handleSubmit = () => {
                     const value = input.value;
                     // Replace input with submitted value
                     input.replaceWith(document.createTextNode(value + "\n"));
-                    this.scrollToBottom("outputText");
+                    this.scrollToBottom(outputText);
                     this.pendingInputResolver = undefined;
                     resolve(value);
                 };
@@ -1034,7 +1113,7 @@
             };
             await this.waitForVoices(onVoicesChanged);
             if (!this.initialUserAction) {
-                await this.waitForUserInteraction("startSpeechButton");
+                await this.waitForUserInteraction(this.htmlElements.startSpeechButton);
             }
             return utterance;
         }
@@ -1058,50 +1137,48 @@
             this.addOutputText(hasError ? escapeText(compiledScript) : "", true);
             return hasError;
         }
-        // Helper function to update button states
-        updateButtonStates(states) {
-            Object.entries(states).forEach(([id, enabled]) => {
-                this.setButtonOrSelectEnabled(id, enabled);
-            });
-        }
         beforeExecute() {
-            this.setElementHidden("convertPopover", true);
-            this.updateButtonStates({
-                enterButton: true,
-                executeButton: false,
-                stopButton: true,
-                pauseButton: true,
-                resumeButton: false,
-                convertButton: false,
-                databaseSelect: false,
-                exampleSelect: false
-            });
-            const outputText = document.getElementById("outputText");
+            this.htmlElements.convertPopover.hidden = true;
+            this.htmlElements.convertButton.disabled = true;
+            this.htmlElements.databaseSelect.disabled = true;
+            this.htmlElements.enterButton.disabled = false;
+            this.htmlElements.exampleSelect.disabled = true;
+            this.htmlElements.executeButton.disabled = true;
+            this.htmlElements.pauseButton.disabled = false;
+            this.htmlElements.resumeButton.disabled = true;
+            this.htmlElements.stopButton.disabled = false;
+            const outputText = this.htmlElements.outputText;
             outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
             outputText.addEventListener("click", this.fnOnClickHandler, false);
-            const userKeys = document.getElementById("userKeys");
+            const userKeys = this.htmlElements.userKeys;
             userKeys.addEventListener("click", this.fnOnUserKeyClickHandler, false);
         }
         afterExecute() {
-            const outputText = document.getElementById("outputText");
+            const outputText = this.htmlElements.outputText;
             outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
             outputText.removeEventListener("click", this.fnOnClickHandler, false);
             this.onSetUiKeys([0]); // remove user keys
-            this.updateButtonStates({
-                enterButton: false,
-                executeButton: true,
-                stopButton: false,
-                pauseButton: false,
-                resumeButton: false,
-                convertButton: true,
-                databaseSelect: true,
-                exampleSelect: true
-            });
+            this.htmlElements.convertButton.disabled = false;
+            this.htmlElements.databaseSelect.disabled = false;
+            this.htmlElements.enterButton.disabled = true;
+            this.htmlElements.exampleSelect.disabled = false;
+            this.htmlElements.executeButton.disabled = false;
+            this.htmlElements.pauseButton.disabled = true;
+            this.htmlElements.resumeButton.disabled = true;
+            this.htmlElements.stopButton.disabled = true;
         }
         clickStartSpeechButton() {
-            const startSpeechButton = window.document.getElementById("startSpeechButton");
+            const startSpeechButton = this.htmlElements.startSpeechButton;
             if (!startSpeechButton.hidden) { // if the startSpeech button is visible, activate it to allow speech
                 startSpeechButton.dispatchEvent(new Event("click"));
+            }
+        }
+        setDelayedFocus(element) {
+            if (this.isMobile) {
+                const delay = 100;
+                UI.asyncDelay(() => {
+                    element.focus();
+                }, delay);
             }
         }
         static addLabels(input) {
@@ -1145,7 +1222,7 @@
         setExampleSelectOptions(exampleMap, exampleKey) {
             const maxTitleLength = 160;
             const maxTextLength = 60; // (32 visible?)
-            const exampleSelect = document.getElementById("exampleSelect");
+            const exampleSelect = this.htmlElements.exampleSelect;
             exampleSelect.options.length = 0;
             for (const key of Object.keys(exampleMap)) {
                 const example = exampleMap[key];
@@ -1175,7 +1252,7 @@
             return databaseItem.exampleMap;
         }
         setDatabaseSelectOptions(databaseMap, database) {
-            const databaseSelect = document.getElementById("databaseSelect");
+            const databaseSelect = this.htmlElements.databaseSelect;
             databaseSelect.options.length = 0;
             for (const key of Object.keys(databaseMap)) {
                 const example = databaseMap[key];
@@ -1306,8 +1383,7 @@
             }
             return args;
         }
-        initializeEditor(editorId, mode, changeHandler, debounceDelay) {
-            const editorElement = window.document.getElementById(editorId);
+        initializeEditor(editorElement, mode, changeHandler, debounceDelay) {
             const editor = window.CodeMirror(editorElement, {
                 lineNumbers: true,
                 mode,
@@ -1315,8 +1391,7 @@
             editor.on("changes", this.debounce(changeHandler, () => debounceDelay)); // changeHandler.bind(this)
             return editor;
         }
-        syncInputState(inputId, configValue) {
-            const input = window.document.getElementById(inputId);
+        syncInputState(input, configValue) {
             if (input.checked !== configValue) {
                 input.checked = configValue;
                 input.dispatchEvent(new Event("change"));
@@ -1366,7 +1441,13 @@
             };
             return callbacks;
         }
+        // simple mobile device detection
+        static isMobile() {
+            const regex = /Mobi|Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+            return regex.test(navigator.userAgent);
+        }
         onWindowLoadContinue(core, locoVmWorkerName) {
+            this.isMobile = UI.isMobile();
             this.core = core;
             const config = core.getConfigMap();
             const args = this.parseUri(config);
@@ -1388,6 +1469,11 @@
                 basicSearchButton: this.onBasicSearchButtonClick,
                 basicSearchNextButton: this.onBasicSearchNextButtonClick,
                 basicSearchPrevButton: this.onBasicSearchPrevButtonClick,
+                compiledReplaceButton: this.onCompiledReplaceButtonClick,
+                compiledReplaceAllButton: this.onCompiledReplaceAllButtonClick,
+                compiledSearchButton: this.onCompiledSearchButtonClick,
+                compiledSearchNextButton: this.onCompiledSearchNextButtonClick,
+                compiledSearchPrevButton: this.onCompiledSearchPrevButtonClick,
                 labelAddButton: this.onLabelAddButtonClick,
                 labelRemoveButton: this.onLabelRemoveButtonClick,
                 helpButton: this.onHelpButtonClick,
@@ -1404,38 +1490,47 @@
                 databaseSelect: this.onDatabaseSelectChange,
                 exampleSelect: this.onExampleSelectChange,
                 basicSearchInput: this.onBasicSearchInputChange,
+                compiledSearchInput: this.onCompiledSearchInputChange,
                 frameInput: this.onFrameInputChange,
             };
             // Attach event listeners for buttons
             Object.entries(buttonHandlers).forEach(([id, handler]) => {
-                const element = window.document.getElementById(id);
+                const element = this.htmlElements[id]; //window.document.getElementById(id) as HTMLButtonElement;
                 element.addEventListener("click", handler, false);
             });
             // Attach event listeners for inputs or selects
             Object.entries(inputAndSelectHandlers).forEach(([id, handler]) => {
-                const element = window.document.getElementById(id);
+                const element = this.htmlElements[id]; //window.document.getElementById(id) as HTMLInputElement | HTMLSelectElement;
                 element.addEventListener("change", handler, false); // handler.bind(this)
             });
             // Attach keydown listener for basicSearchInput to handle Enter key
-            const basicSearchInput = window.document.getElementById("basicSearchInput");
-            if (basicSearchInput) {
-                basicSearchInput.addEventListener("keydown", this.onBasicSearchInputKeydown, false);
-            }
+            const basicSearchInput = this.htmlElements.basicSearchInput;
+            //if (basicSearchInput) {
+            basicSearchInput.addEventListener("keydown", this.onBasicSearchInputKeydown, false);
+            //}
+            // Attach keydown listener for compiledSearchInput to handle Enter key
+            const compiledSearchInput = this.htmlElements.compiledSearchInput;
+            compiledSearchInput.addEventListener("keydown", this.onCompiledSearchInputKeydown, false);
             // Initialize CodeMirror editors
             const WinCodeMirror = window.CodeMirror;
             if (WinCodeMirror) {
                 const getModeFn = LocoBasicMode.getMode;
                 WinCodeMirror.defineMode("lbasic", getModeFn);
-                this.basicCm = this.initializeEditor("basicEditor", "lbasic", this.onBasicTextChange, config.debounceCompile);
-                this.compiledCm = this.initializeEditor("compiledEditor", "javascript", this.onCompiledTextChange, config.debounceExecute);
+                this.basicCm = this.initializeEditor(this.htmlElements.basicEditor, "lbasic", this.onBasicTextChange, config.debounceCompile);
+                this.compiledCm = this.initializeEditor(this.htmlElements.compiledEditor, "javascript", this.onCompiledTextChange, config.debounceExecute);
+                // Initialize SearchHandler instances for both editors
+                if (this.basicCm) {
+                    this.basicSearchHandler = new SearchHandler(this.basicCm, this.htmlElements.basicSearchInput, this.htmlElements.basicReplaceInput, this.isMobile);
+                }
+                if (this.compiledCm) {
+                    this.compiledSearchHandler = new SearchHandler(this.compiledCm, this.htmlElements.compiledSearchInput, this.htmlElements.compiledReplaceInput, this.isMobile);
+                }
                 WinCodeMirror.commands.find = () => {
-                    if (this.getElementHidden("basicSearchPopover")) {
-                        const basicSearchButton = window.document.getElementById("basicSearchButton");
-                        basicSearchButton.dispatchEvent(new Event("click"));
+                    if (this.htmlElements.basicSearchPopover.hidden) {
+                        this.htmlElements.basicSearchButton.dispatchEvent(new Event("click"));
                     }
                     else {
-                        const basicSearchNextButton = window.document.getElementById("basicSearchButton");
-                        basicSearchNextButton.dispatchEvent(new Event("click"));
+                        this.htmlElements.basicSearchNextButton.dispatchEvent(new Event("click"));
                     }
                 };
                 // find, findNext, findPrev, clearSearch, replace, replaceAll
@@ -1446,16 +1541,15 @@
                     Object.assign(config, core.getDefaultConfigMap()); // load defaults
                     const args = this.parseUri(config);
                     core.parseArgs(args, config);
-                    const databaseSelect = window.document.getElementById("databaseSelect");
-                    databaseSelect.dispatchEvent(new Event("change"));
+                    this.htmlElements.databaseSelect.dispatchEvent(new Event("change"));
                 }
             });
             // Sync UI state with config
-            this.syncInputState("showOutputInput", config.showOutput);
-            this.syncInputState("showBasicInput", config.showBasic);
-            this.syncInputState("showCompiledInput", config.showCompiled);
-            this.syncInputState("autoCompileInput", config.autoCompile);
-            this.syncInputState("autoExecuteInput", config.autoExecute);
+            this.syncInputState(this.htmlElements.showOutputInput, config.showOutput);
+            this.syncInputState(this.htmlElements.showBasicInput, config.showBasic);
+            this.syncInputState(this.htmlElements.showCompiledInput, config.showCompiled);
+            this.syncInputState(this.htmlElements.autoCompileInput, config.autoCompile);
+            this.syncInputState(this.htmlElements.autoExecuteInput, config.autoExecute);
             window.document.addEventListener("click", () => {
                 this.initialUserAction = true;
             }, { once: true });
@@ -1467,8 +1561,7 @@
                 this.setDatabaseSelectOptions(databaseMap, config.database);
                 const url = window.location.href;
                 history.replaceState({}, "", url);
-                const databaseSelect = window.document.getElementById("databaseSelect");
-                databaseSelect.dispatchEvent(new Event("change"));
+                this.htmlElements.databaseSelect.dispatchEvent(new Event("change"));
             }, 10);
         }
     }

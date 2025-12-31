@@ -9,6 +9,8 @@ export declare class UI implements IUI {
     private vmMain?;
     private basicCm?;
     private compiledCm?;
+    private basicSearchHandler?;
+    private compiledSearchHandler?;
     private compiledMessages;
     private initialUserAction;
     private readonly fnOnKeyPressHandler;
@@ -18,6 +20,9 @@ export declare class UI implements IUI {
     private locoVmWorkerName;
     private pendingInputResolver?;
     private geolocationPromiseRejecter?;
+    private htmlElements;
+    private openedPopover?;
+    private isMobile;
     constructor();
     private isCodeMirrorSetValue;
     private debounce;
@@ -28,13 +33,7 @@ export declare class UI implements IUI {
     private getCompiledCm;
     private cancelSpeech;
     private cancelGeolocation;
-    private toggleElementHidden;
-    private getElementHidden;
-    private setElementHidden;
-    private closeAllPopoversExcept;
     private togglePopoverHidden;
-    private getButtonOrSelectEnabled;
-    private setButtonOrSelectEnabled;
     private fnLoadScriptOrStyle;
     private loadScript;
     getCurrentDataKey(): string;
@@ -51,7 +50,6 @@ export declare class UI implements IUI {
     private onSpeak;
     private updateConfigParameter;
     private hasCompiledError;
-    private updateButtonStates;
     private beforeExecute;
     private afterExecute;
     private onExecuteButtonClick;
@@ -71,12 +69,20 @@ export declare class UI implements IUI {
     private onOutputOptionsButtonClick;
     private onConvertButtonClick;
     private onBasicSearchButtonClick;
+    private onCompiledSearchButtonClick;
     private onBasicReplaceButtonClick;
     private onBasicReplaceAllButtonClick;
+    private onCompiledReplaceButtonClick;
+    private onCompiledReplaceAllButtonClick;
     private onBasicSearchNextButtonClick;
     private onBasicSearchPrevButtonClick;
+    private onCompiledSearchNextButtonClick;
+    private onCompiledSearchPrevButtonClick;
     private onBasicSearchInputChange;
+    private setDelayedFocus;
     private onBasicSearchInputKeydown;
+    private onCompiledSearchInputChange;
+    private onCompiledSearchInputKeydown;
     private onFullscreenButtonClick;
     private onFrameInputChange;
     private static addLabels;
@@ -106,6 +112,7 @@ export declare class UI implements IUI {
     private getLocoVmWorker;
     createWebWorker(): Promise<Worker>;
     private createMessageHandlerCallbacks;
+    private static isMobile;
     onWindowLoadContinue(core: ICore, locoVmWorkerName: string): void;
 }
 //# sourceMappingURL=UI.d.ts.map

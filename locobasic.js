@@ -1,7 +1,7 @@
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(require('ohm-js')) :
     typeof define === 'function' && define.amd ? define(['ohm-js'], factory) :
-    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.ohmJs));
+    (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.ohm));
 })(this, (function (ohmJs) { 'use strict';
 
     class Parser {
