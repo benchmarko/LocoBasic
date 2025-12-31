@@ -4,6 +4,7 @@ import { UI } from '../src/UI/UI';
 
 (globalThis as any).window = {
   document: {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     getElementById: (_elementId: string) => { return {} as HTMLElement; }
   } as Document
 } as Window;

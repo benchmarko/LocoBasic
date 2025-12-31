@@ -90,6 +90,7 @@ export class UI implements IUI {
     private geolocationPromiseRejecter?: (value: string) => void;
     private htmlElements: ReturnType<typeof initHtmlElements>;
     private openedPopover?: HTMLSpanElement;
+    private isMobile: boolean = false;
 
     constructor() {
         this.fnOnKeyPressHandler = (event: KeyboardEvent) => this.onOutputTextKeydown(event);
@@ -726,18 +727,30 @@ export class UI implements IUI {
         // Update search as user types (CodeMirror search addon will handle this)
     }
 
+    private setDelayedFocus(element: HTMLElement) {
+        if (this.isMobile) {
+            const delay = 100;
+            UI.asyncDelay(() => {
+                element.focus();
+            }, delay);
+        }
+    }
+
     private onBasicSearchInputKeydown = (event: KeyboardEvent): void => { // bound this
         if (event.key === "Enter") {
             event.preventDefault();
             // Check if Shift is pressed for previous search
             if (event.shiftKey) {
                 this.onBasicSearchPrevButtonClick(event);
+                this.setDelayedFocus(this.htmlElements.basicSearchPrevButton);
             } else {
                 this.onBasicSearchNextButtonClick(event);
+                this.setDelayedFocus(this.htmlElements.basicSearchNextButton);
             }
         } else if (event.key === "f" && (event.metaKey === true || event.ctrlKey === true)) {
             event.preventDefault();
             this.onBasicSearchNextButtonClick(event);
+            this.setDelayedFocus(this.htmlElements.basicSearchNextButton);
         }
     }
 
@@ -1193,7 +1206,14 @@ export class UI implements IUI {
         return callbacks;
     }
 
+    // simple mobile device detection
+    private static isMobile() {
+        const regex = /Mobi|Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+        return regex.test(navigator.userAgent);
+    }
+
     public onWindowLoadContinue(core: ICore, locoVmWorkerName: string): void {
+        this.isMobile = UI.isMobile();
         this.core = core;
         const config = core.getConfigMap();
         const args = this.parseUri(config);
@@ -1278,7 +1298,8 @@ export class UI implements IUI {
                 this.basicSearchHandler = new SearchHandler(
                     this.basicCm,
                     this.htmlElements.basicSearchInput,
-                    this.htmlElements.basicReplaceInput
+                    this.htmlElements.basicReplaceInput,
+                    this.isMobile
                 );
             }
 
@@ -1286,7 +1307,8 @@ export class UI implements IUI {
                 this.compiledSearchHandler = new SearchHandler(
                     this.compiledCm,
                     this.htmlElements.compiledSearchInput,
-                    this.htmlElements.compiledReplaceInput
+                    this.htmlElements.compiledReplaceInput,
+                    this.isMobile
                 );
             }
 

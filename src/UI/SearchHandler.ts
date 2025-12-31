@@ -5,11 +5,13 @@ export class SearchHandler {
     private editor: Editor;
     private searchInput: HTMLInputElement;
     private replaceInput: HTMLInputElement;
+    private setFocus: boolean;
 
-    constructor(editor: Editor, searchInput: HTMLInputElement, replaceInput: HTMLInputElement) {
+    constructor(editor: Editor, searchInput: HTMLInputElement, replaceInput: HTMLInputElement, setFocus: boolean) {
         this.editor = editor;
         this.searchInput = searchInput;
         this.replaceInput = replaceInput;
+        this.setFocus = setFocus;
     }
 
     /**
@@ -74,6 +76,9 @@ export class SearchHandler {
 
         if (result) {
             const { lineNum, chStart, chEnd } = result;
+            if (this.setFocus) {
+                this.editor.focus(); // needed for mobile
+            }
             this.editor.setSelection({ line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
             this.editor.scrollIntoView({ line: lineNum, ch: chStart });
         }
@@ -94,6 +99,9 @@ export class SearchHandler {
 
         if (result) {
             const { lineNum, chStart, chEnd } = result;
+            if (this.setFocus) {
+                this.editor.focus(); // needed for mobile
+            }
             this.editor.setSelection({ line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
             this.editor.scrollIntoView({ line: lineNum, ch: chStart });
         }
