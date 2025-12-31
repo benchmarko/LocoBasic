@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <link rel="stylesheet" href="locobasic.css">
   <link rel="icon" href="favicon.ico">
-  <title>LocoBasic v0.5.5</title>
+  <title>LocoBasic v0.5.6</title>
 </head>
 
 <body>
@@ -122,6 +122,25 @@
       <button id="compileButton" title="Compile to JavaScript">Compile</button>
       <span class="toolbarLineItemRight">
         <button id="standaloneButton" title="Create Standalone Script">Standalone Script</button>
+        <span class="buttonPopoverContainer">
+          <button id="compiledSearchButton" class="popoverButton" title="Search">Search</button>
+          <span id="compiledSearchPopover" class="popover right-align" hidden>
+            <fieldset>
+              <input id="compiledSearchInput" title="Find text" type="text" size="12" placeholder="Find" autocomplete="off">
+              <button id="compiledSearchPrevButton" title="Find previous (Shift-[Ctrl|Cmd]-G)">⌃</button>
+              <button id="compiledSearchNextButton" title="Find Next ([Ctrl|Cmd]-G)">⌵</button>
+              <details>
+                <summary>Replace</summary>
+                <div>
+                  <input id="compiledReplaceInput" title="Replace text" type="text" size="12" placeholder="Replace" autocomplete="off">
+                  <br>
+                  <button id="compiledReplaceButton" title="Replace">Repl.</button>
+                  <button id="compiledReplaceAllButton" title="Replace All">All</button>
+                </div>
+              </details>
+            </fieldset>
+          </span>
+        </span>
       </span>
     </div>
     <div id="compiledEditor" class="contentArea CodeMirror"></div>

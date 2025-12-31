@@ -1,5 +1,6 @@
 import type { CommandActions, Editor } from "codemirror";
 import type { ConfigEntryType, DatabaseMapType, DatabaseType, ExampleMapType, ExampleType, ICore, IUI, NodeWorkerFnType } from "../Interfaces";
+import { SearchHandler } from "./SearchHandler";
 import { LocoBasicMode } from "./LocoBasicMode";
 import { VmMain } from "./VmMain";
 import { VmMessageHandlerCallbacks } from "../VmMessageHandler";
@@ -13,53 +14,6 @@ declare global {
 interface CommandActionsWithFind extends CommandActions {
     find: () => void
 }
-
-/*
-interface HtmlElementsType {
-    autoCompileInput: HTMLInputElement,
-    autoExecuteInput: HTMLInputElement,
-    basicArea: HTMLDivElement,
-    basicEditor: HTMLDivElement,
-    basicReplaceButton: HTMLButtonElement,
-    basicReplaceAllButton: HTMLButtonElement,
-    basicReplaceInput: HTMLInputElement,
-    basicSearchButton: HTMLButtonElement,
-    basicSearchInput: HTMLInputElement,
-    basicSearchNextButton: HTMLButtonElement,
-    basicSearchPrevButton: HTMLButtonElement,
-    basicSearchPopover: HTMLSpanElement,
-    compileButton: HTMLButtonElement,
-    compiledArea: HTMLDivElement,
-    compiledEditor: HTMLDivElement,
-    convertButton: HTMLButtonElement,
-    convertPopover: HTMLSpanElement,
-    databaseSelect: HTMLSelectElement,
-    enterButton: HTMLButtonElement,
-    exampleSelect: HTMLSelectElement,
-    executeButton: HTMLButtonElement,
-    exportSvgButton: HTMLButtonElement,
-    frameInput: HTMLInputElement,
-    frameInputLabel: HTMLLabelElement,
-    fullscreenButton: HTMLButtonElement,
-    helpButton: HTMLButtonElement,
-    labelAddButton: HTMLButtonElement,
-    labelRemoveButton: HTMLButtonElement,
-    outputArea: HTMLDivElement,
-    outputOptionsButton: HTMLButtonElement,
-    outputOptionsPopover: HTMLSpanElement,
-    outputText: HTMLDivElement,
-    pauseButton: HTMLButtonElement,
-    resetButton: HTMLButtonElement,
-    resumeButton: HTMLButtonElement,
-    showBasicInput: HTMLInputElement,
-    showCompiledInput: HTMLInputElement,
-    showOutputInput: HTMLInputElement,
-    standaloneButton: HTMLButtonElement,
-    startSpeechButton: HTMLButtonElement,
-    stopButton: HTMLButtonElement,
-    userKeys: HTMLSpanElement
-}
-*/
 
 function initHtmlElements() {
     const doc = window.document;
@@ -79,6 +33,14 @@ function initHtmlElements() {
         compileButton: doc.getElementById("compileButton") as HTMLButtonElement,
         compiledArea: doc.getElementById("compiledArea") as HTMLDivElement,
         compiledEditor: doc.getElementById("compiledEditor") as HTMLDivElement,
+        compiledReplaceButton: window.document.getElementById("compiledReplaceButton") as HTMLButtonElement,
+        compiledReplaceAllButton: window.document.getElementById("compiledReplaceAllButton") as HTMLButtonElement,
+        compiledReplaceInput: doc.getElementById("compiledReplaceInput") as HTMLInputElement,
+        compiledSearchButton: window.document.getElementById("compiledSearchButton") as HTMLButtonElement,
+        compiledSearchInput: doc.getElementById("compiledSearchInput") as HTMLInputElement,
+        compiledSearchNextButton: window.document.getElementById("compiledSearchNextButton") as HTMLButtonElement,
+        compiledSearchPrevButton: window.document.getElementById("compiledSearchPrevButton") as HTMLButtonElement,
+        compiledSearchPopover: doc.getElementById("compiledSearchPopover") as HTMLSpanElement,
         convertButton: doc.getElementById("convertButton") as HTMLButtonElement,
         convertPopover: doc.getElementById("convertPopover") as HTMLSpanElement,
         databaseSelect: doc.getElementById("databaseSelect") as HTMLSelectElement,
@@ -110,12 +72,13 @@ function initHtmlElements() {
 }
 
 const escapeText = (str: string) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-
 export class UI implements IUI {
     private core?: ICore;
     private vmMain?: VmMain;
     private basicCm?: Editor;
     private compiledCm?: Editor;
+    private basicSearchHandler?: SearchHandler;
+    private compiledSearchHandler?: SearchHandler;
     private compiledMessages: string[] = [];
     private initialUserAction = false;
     private readonly fnOnKeyPressHandler: (event: KeyboardEvent) => void;
@@ -684,7 +647,6 @@ export class UI implements IUI {
     private onConvertButtonClick = (_event: Event): void => { // bound this
         this.togglePopoverHidden(this.htmlElements.convertPopover);
     }
-
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onBasicSearchButtonClick = (_event: Event): void => { // bound this
         const basicSearchPopover = this.htmlElements.basicSearchPopover;
@@ -695,166 +657,67 @@ export class UI implements IUI {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    private onBasicReplaceButtonClick = (_event: Event): void => { // bound this
-        const editor = this.getBasicCm();
-
-        const searchText = this.htmlElements.basicSearchInput.value;
-        const replaceText = this.htmlElements.basicReplaceInput.value;
-
-        if (!searchText) return;
-
-        // Get current cursor position
-        const cursor = editor.getCursor("from");
-        const content = editor.getValue();
-        const lines = content.split("\n");
-
-        // Calculate offset from start
-        let offset = 0;
-        for (let i = 0; i < cursor.line; i++) {
-            offset += lines[i].length + 1; // +1 for newline
+    private onCompiledSearchButtonClick = (_event: Event): void => { // bound this
+        const compiledSearchPopover = this.htmlElements.compiledSearchPopover;
+        this.togglePopoverHidden(compiledSearchPopover);
+        if (!compiledSearchPopover.hidden) {
+            this.htmlElements.compiledSearchInput.focus();
         }
-        offset += cursor.ch;
+    }
 
-        // Find from current position
-        const index = content.indexOf(searchText, offset);
-
-        if (index !== -1) {
-            // Calculate the line and character position of the found text
-            let currentOffset = 0;
-            let lineNum = 0;
-            for (let i = 0; i < lines.length; i++) {
-                if (currentOffset + lines[i].length >= index) {
-                    lineNum = i;
-                    break;
-                }
-                currentOffset += lines[i].length + 1;
-            }
-
-            const chStart = index - currentOffset;
-            const chEnd = chStart + searchText.length;
-
-            // Replace the found text
-            editor.replaceRange(replaceText, { line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
-
-            // Move cursor to after the replacement
-            editor.setCursor({ line: lineNum, ch: chStart + replaceText.length });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onBasicReplaceButtonClick = (_event: Event): void => { // bound this
+        if (this.basicSearchHandler) {
+            this.basicSearchHandler.replace();
         }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onBasicReplaceAllButtonClick = (_event: Event): void => { // bound this
-        const editor = this.getBasicCm();
-
-        const searchText = this.htmlElements.basicSearchInput.value;
-        const replaceText = this.htmlElements.basicReplaceInput.value;
-
-        if (!searchText) {
-            return;
+        if (this.basicSearchHandler) {
+            this.basicSearchHandler.replaceAll();
         }
+    }
 
-        // Replace all occurrences
-        const content = editor.getValue();
-        const newContent = content.split(searchText).join(replaceText);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onCompiledReplaceButtonClick = (_event: Event): void => { // bound this
+        if (this.compiledSearchHandler) {
+            this.compiledSearchHandler.replace();
+        }
+    }
 
-        if (newContent !== content) {
-            editor.setValue(newContent);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onCompiledReplaceAllButtonClick = (_event: Event): void => { // bound this
+        if (this.compiledSearchHandler) {
+            this.compiledSearchHandler.replaceAll();
         }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onBasicSearchNextButtonClick = (_event: Event): void => { // bound this
-        const basicSearchInput = this.htmlElements.basicSearchInput;
-        const editor = this.getBasicCm();
-
-        const searchText = basicSearchInput.value;
-        if (!searchText) {
-            return;
-        }
-
-        // Get current cursor position
-        const cursor = editor.getCursor("to");
-        const content = editor.getValue();
-        const lines = content.split("\n");
-
-        // Calculate offset from start
-        let offset = 0;
-        for (let i = 0; i < cursor.line; i++) {
-            offset += lines[i].length + 1; // +1 for newline
-        }
-        offset += cursor.ch;
-
-        // Find from current position
-        const index = content.indexOf(searchText, offset);
-
-        if (index !== -1) {
-            // Calculate the line and character position of the found text
-            let currentOffset = 0;
-            let lineNum = 0;
-            for (let i = 0; i < lines.length; i++) {
-                if (currentOffset + lines[i].length >= index) {
-                    lineNum = i;
-                    break;
-                }
-                currentOffset += lines[i].length + 1;
-            }
-
-            const chStart = index - currentOffset;
-            const chEnd = chStart + searchText.length;
-
-            // Select the found text
-            editor.setSelection({ line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
-
-            // Scroll into view
-            editor.scrollIntoView({ line: lineNum, ch: chStart });
+        if (this.basicSearchHandler) {
+            this.basicSearchHandler.searchNext();
         }
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onBasicSearchPrevButtonClick = (_event: Event): void => { // bound this
-        const basicSearchInput = this.htmlElements.basicSearchInput;
-        const editor = this.getBasicCm();
-
-        const searchText = basicSearchInput.value;
-        if (!searchText) {
-            return;
+        if (this.basicSearchHandler) {
+            this.basicSearchHandler.searchPrev();
         }
+    }
 
-        // Get current cursor position
-        const cursor = editor.getCursor("from");
-        const content = editor.getValue();
-        const lines = content.split("\n");
-
-        // Calculate offset from start
-        let offset = 0;
-        for (let i = 0; i < cursor.line; i++) {
-            offset += lines[i].length + 1; // +1 for newline
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onCompiledSearchNextButtonClick = (_event: Event): void => { // bound this
+        if (this.compiledSearchHandler) {
+            this.compiledSearchHandler.searchNext();
         }
-        offset += cursor.ch;
+    }
 
-        // Search backwards from current position
-        const searchContent = content.substring(0, offset);
-        const index = searchContent.lastIndexOf(searchText);
-
-        if (index !== -1) {
-            // Calculate the line and character position of the found text
-            let currentOffset = 0;
-            let lineNum = 0;
-            for (let i = 0; i < lines.length; i++) {
-                if (currentOffset + lines[i].length >= index) {
-                    lineNum = i;
-                    break;
-                }
-                currentOffset += lines[i].length + 1;
-            }
-
-            const chStart = index - currentOffset;
-            const chEnd = chStart + searchText.length;
-
-            // Select the found text
-            editor.setSelection({ line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
-
-            // Scroll into view
-            editor.scrollIntoView({ line: lineNum, ch: chStart });
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onCompiledSearchPrevButtonClick = (_event: Event): void => { // bound this
+        if (this.compiledSearchHandler) {
+            this.compiledSearchHandler.searchPrev();
         }
     }
 
@@ -875,6 +738,26 @@ export class UI implements IUI {
         } else if (event.key === "f" && (event.metaKey === true || event.ctrlKey === true)) {
             event.preventDefault();
             this.onBasicSearchNextButtonClick(event);
+        }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    private onCompiledSearchInputChange = (_event: Event): void => { // bound this
+        // Update search as user types
+    }
+
+    private onCompiledSearchInputKeydown = (event: KeyboardEvent): void => { // bound this
+        if (event.key === "Enter") {
+            event.preventDefault();
+            // Check if Shift is pressed for previous search
+            if (event.shiftKey) {
+                this.onCompiledSearchPrevButtonClick(event);
+            } else {
+                this.onCompiledSearchNextButtonClick(event);
+            }
+        } else if (event.key === "f" && (event.metaKey === true || event.ctrlKey === true)) {
+            event.preventDefault();
+            this.onCompiledSearchNextButtonClick(event);
         }
     }
 
@@ -1333,6 +1216,11 @@ export class UI implements IUI {
             basicSearchButton: this.onBasicSearchButtonClick,
             basicSearchNextButton: this.onBasicSearchNextButtonClick,
             basicSearchPrevButton: this.onBasicSearchPrevButtonClick,
+            compiledReplaceButton: this.onCompiledReplaceButtonClick,
+            compiledReplaceAllButton: this.onCompiledReplaceAllButtonClick,
+            compiledSearchButton: this.onCompiledSearchButtonClick,
+            compiledSearchNextButton: this.onCompiledSearchNextButtonClick,
+            compiledSearchPrevButton: this.onCompiledSearchPrevButtonClick,
             labelAddButton: this.onLabelAddButtonClick,
             labelRemoveButton: this.onLabelRemoveButtonClick,
             helpButton: this.onHelpButtonClick,
@@ -1350,6 +1238,7 @@ export class UI implements IUI {
             databaseSelect: this.onDatabaseSelectChange,
             exampleSelect: this.onExampleSelectChange,
             basicSearchInput: this.onBasicSearchInputChange,
+            compiledSearchInput: this.onCompiledSearchInputChange,
             frameInput: this.onFrameInputChange,
         };
 
@@ -1371,6 +1260,10 @@ export class UI implements IUI {
         basicSearchInput.addEventListener("keydown", this.onBasicSearchInputKeydown, false);
         //}
 
+        // Attach keydown listener for compiledSearchInput to handle Enter key
+        const compiledSearchInput = this.htmlElements.compiledSearchInput;
+        compiledSearchInput.addEventListener("keydown", this.onCompiledSearchInputKeydown, false);
+
         // Initialize CodeMirror editors
         const WinCodeMirror = window.CodeMirror;
         if (WinCodeMirror) {
@@ -1379,6 +1272,23 @@ export class UI implements IUI {
 
             this.basicCm = this.initializeEditor(this.htmlElements.basicEditor, "lbasic", this.onBasicTextChange, config.debounceCompile);
             this.compiledCm = this.initializeEditor(this.htmlElements.compiledEditor, "javascript", this.onCompiledTextChange, config.debounceExecute);
+
+            // Initialize SearchHandler instances for both editors
+            if (this.basicCm) {
+                this.basicSearchHandler = new SearchHandler(
+                    this.basicCm,
+                    this.htmlElements.basicSearchInput,
+                    this.htmlElements.basicReplaceInput
+                );
+            }
+
+            if (this.compiledCm) {
+                this.compiledSearchHandler = new SearchHandler(
+                    this.compiledCm,
+                    this.htmlElements.compiledSearchInput,
+                    this.htmlElements.compiledReplaceInput
+                );
+            }
 
             (WinCodeMirror.commands as CommandActionsWithFind).find = () => { // Ctrl-f / Cmd-f
                 if (this.htmlElements.basicSearchPopover.hidden) {
