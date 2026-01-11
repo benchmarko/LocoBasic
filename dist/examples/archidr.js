@@ -7,6 +7,8 @@ REM archidr - Little Architect Draw Examples
 REM (c) M&M Vieth
 REM optimized version with RSX |CIRCLE and |RECT
 '
+lbasic=&8000>0: 'fast hack to detect LocoBasic
+IF NOT lbasic THEN DEG
 MODE 2
 delay=2:'delay seconds between drawings
 '
@@ -31,10 +33,11 @@ WHILE g0<gcnt
     READ x,y
     IF art=0 THEN mv=1
     IF art=1 THEN PLOT x,y:mv=0
-    IF art=2 THEN IF mv=1 THEN MOVE x0,y0:DRAW x,y:mv=0 ELSE DRAW x,y:mv=0
-    IF art=3 THEN IF mv=1 THEN MOVE x0,y0:DRAW x,y:x=x0:y=y0:mv=1 ELSE DRAW x,y:x=x0:y=y0:mv=1:'draw but keep pos
-    IF art=4 THEN |RECT,x0,y0,x,y:mv=1: 'rectangle
-    IF art=5 THEN |CIRCLE,x0,y0,x:x=x0:y=y0:mv=1:'circle
+    IF mv=1 AND art>=2 THEN MOVE x0,y0:mv=0
+    IF art=2 THEN DRAW x,y
+    IF art=3 THEN DRAW x,y:x=x0:y=y0:mv=1:'draw but keep pos
+    IF art=4 THEN IF lbasic THEN |RECT,x0,y0,x,y:mv=1 ELSE DRAW x,y0:DRAW x,y:DRAW x0,y:DRAW x0,y0:mv=1:'rectangle
+    IF art=5 THEN IF lbasic THEN |CIRCLE,x0,y0,x:x=x0:y=y0:mv=1 ELSE MOVE x0,y0+x: FOR a=0 TO 360 STEP 6: DRAW x0+x*SIN(a),y0+x*COS(a): NEXT:x=x0:y=y0:mv=1:'circle
     x0=x:y0=y
   NEXT
 WEND
