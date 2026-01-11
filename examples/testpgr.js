@@ -4,9 +4,12 @@
 
 cpcBasic.addItem("", `
 REM testpgr - Test Page Graphics
+REM
+lbasic=&8000>0: 'fast hack to detect LocoBasic
 MODE 1
 TAG:MOVE 0,399
-PRINT "Test Page Graphics"
+PRINT "Test Page Graphics";
+TAGOFF
 '
 x0=40:y0=50
 w=60:h=50
@@ -116,7 +119,7 @@ MOVE x,y,3
 PRINT "Text";
 MOVE x+w+50,y-40,1
 PRINT "at";
-MOVE x+2*(w+50)-20,y-40,2
+MOVE x+2*(w+50)-32,y-40,2
 PRINT "gra-";
 MOVE x+3*(w+50)-50,y-40,2
 PRINT "phics";
@@ -124,11 +127,14 @@ TAGOFF
 ''a=TEST(x,y)
 ''a=TESTR(xm,ym)
 '
-a=XPOS: IF a<>364 THEN ERROR 33
+MOVE x+3*(w+50)-50,y-40
+a=XPOS: IF a<>324 THEN ERROR 33
 a=YPOS: IF a<>80 THEN ERROR 33
 MOVE 10,20
 a=XPOS: IF a<>10 THEN ERROR 33
 a=YPOS: IF a<>20 THEN ERROR 33
+'
+if NOT lbasic THEN TAG:MOVE 0,399-16:PRINT "RSX skipped.";:TAGOFF:PRINT:PRINT:STOP
 '
 x=x0:y=y0+2*(h+h/2)
 |RECT,x,y,x+w,y+h

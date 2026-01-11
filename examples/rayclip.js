@@ -3,12 +3,12 @@
 "use strict";
 
 cpcBasic.addItem("", `
-rem rayclip - Ray Eclipse
-rem (c) Alan Scully
-rem https://www.cpcwiki.eu/forum/programming/basic-files/ (BASIC02.DSK)
-rem Modifications: redraw for every animation step
-rem
-rem RAY ECLIPSE: ALAN SCULLY for SCULL PD LIBRARY 119 Laurel Drive East Kilbride G75 9JG
+REM rayclip - Ray Eclipse
+REM (c) Alan Scully
+REM https://www.cpcwiki.eu/forum/programming/basic-files/ (BASIC02.DSK)
+REM Modifications: redraw for every animation step
+REM
+REM RAY ECLIPSE: ALAN SCULLY for SCULL PD LIBRARY 119 Laurel Drive East Kilbride G75 9JG
 DEG
 MODE 0
 INK 14,0:INK 0,0
@@ -18,7 +18,7 @@ s=50
 WHILE s>0
   D=d MOD 13+1
   FOR E=1 TO 13
-    INK E,COL((D+E)MOD 13)
+    INK E,COL((D+E) MOD 13)
   NEXT
   CLS
   GOSUB 400
@@ -47,5 +47,5 @@ FOR a=0 TO 14
   INK a+1,col(a)
 NEXT
 RETURN
-DATA 3,9,11,15,21,24,23,22,19,12,10,4,1,7,8      
+DATA 3,9,11,15,21,24,23,22,19,12,10,4,1,7,8
 `);

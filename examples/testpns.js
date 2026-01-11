@@ -6,6 +6,7 @@ cpcBasic.addItem("", `
 REM testpns - Test Page Not Supported
 REM These command and constructs are parsable but not (yet) supported
 REM (Make sure that this file can be compiled by CPCBasicTS because it is used as a test there.)
+lbasic=&8000>0: 'fast hack to detect LocoBasic
 MODE 2
 ON ERROR GOTO 65535
 'CLS
@@ -80,17 +81,11 @@ PRINT "CAT, ";
 CAT
 '
 PRINT "CHAIN, ";
-CHAIN "f1"
-CHAIN "f2" , 10
-CHAIN "f3" , 10+3
-CHAIN "f4" , 10+3, DELETE 100-200
+IF lbasic THEN CHAIN "f1": CHAIN "f2" , 10: CHAIN "f3" , 10+3: CHAIN "f4" , 10+3, DELETE 100-200
 'CHAIN "f5" , , DELETE 100-200 'TTT
 '
 PRINT "CHAIN MERGE, ";
-CHAIN MERGE "f1"
-CHAIN MERGE "f2" , 10
-CHAIN MERGE "f3" , 10+3
-CHAIN MERGE "f4" , 10+3, DELETE 100-200
+IF lbasic THEN CHAIN MERGE "f1": CHAIN MERGE "f2" , 10: CHAIN MERGE "f3" , 10+3: CHAIN MERGE "f4" , 10+3, DELETE 100-200
 'CHAIN MERGE "f5" , , DELETE 100-200 'TTT
 '
 PRINT "CHR$, ";
@@ -118,7 +113,7 @@ PRINT "CLS, ";
 ''CLS #a+7-2*b
 '
 PRINT "CONT, ";
-CONT
+IF lbasic THEN CONT
 '
 PRINT "COPYCHR, ";
 a$=COPYCHR$(#0)
@@ -200,17 +195,19 @@ DEFSTR a: a!=a!+a%:a$="7"
 ''1 DEFSTR z-a
 ''DEFSTR f:f(x)="w"
 '
+DEFREAL a-z
+'
 PRINT "DEG, ";
 '
 PRINT "DELETE, ";
-DELETE
+IF lbasic THEN DELETE
 ''DELETE -
 ''DELETE ,
 ''DELETE -,
-DELETE 10
+IF lbasic THEN DELETE 20000
 ''DELETE 1-
 ''DELETE -1
-DELETE 1-2
+IF lbasic THEN DELETE 20001-20002
 ''1 DELETE 2-1
 '''1 DELETE 1+2
 '''1 DELETE a
@@ -242,7 +239,7 @@ PRINT "DRAW, ";
 ' EDIT, EI, ELSE, END, ENT, ENV, EOF, ERASE, ERL, ERR, ERROR, EVERY GOSUB, EXP
 '
 PRINT "EDIT, ";
-EDIT 20
+IF lbasic THEN EDIT 20
 '
 PRINT "EI, ";
 EI
@@ -255,13 +252,15 @@ EI
 PRINT "ENT, ";
 ENT 1
 ENT 1,2,a,4
-ENT num,steps,dist,ti,steps2,dist2,ti2
+ENT 1,2,5,100,3,-5,100
+'ENT num,steps,dist,ti,steps2,dist2,ti2
 'ENT num,=period,ti,=period2,ti2 'TTT
 '
 PRINT "ENV, ";
 ENV 1
 ENV 1,2,a,4
-ENV num,steps,dist,ti,steps2,dist2,ti2
+ENV 1,2,5,100,3,-5,100
+'ENV num,steps,dist,ti,steps2,dist2,ti2
 'ENV num,=reg,period,=reg2,period2 'TTT
 '
 PRINT "EOF, ";
@@ -383,7 +382,7 @@ PRINT "INT, ";
 '
 PRINT "JOY, ";
 a=JOY(0)
-a=JOY(b+1)
+b=0: a=JOY(b+1)
 '
 ' KEY, KEY DEF
 '
@@ -416,31 +415,31 @@ PRINT "LINE INPUT, ";
 ''LINE INPUT #stream,;"string";a$
 '
 PRINT "LIST, ";
-LIST
+IF lbasic THEN LIST
 ''LIST -
 ''LIST ,
 ''LIST -,
-LIST 10
+IF lbasic THEN LIST 10
 ''LIST 1-
 ''LIST -1
-LIST 1-2
+IF lbasic THEN LIST 1-2
 ''LIST #3
 ''LIST ,#3
-LIST 10,#3
+IF lbasic THEN LIST 10,#3
 ''LIST 1-,#3
 ''LIST -1,#3
-LIST 1-2,#3
+IF lbasic THEN LIST 1-2,#3
 '''LIST a
 '
 PRINT "LOAD, ";
-LOAD "file"
-LOAD "file.scr",&C000
-LOAD f$,adr
+IF lbasic THEN LOAD "file"
+IF lbasic THEN LOAD "file.scr",&C000
+IF lbasic THEN LOAD f$,adr
 '
 PRINT "LOCATE, ";
 LOCATE 10,20
 LOCATE #2,10,20
-LOCATE #s,a,b
+s=1:a=1:b=5:LOCATE #s,a,b
 '
 PRINT "LOG, ";
 '
@@ -453,8 +452,8 @@ PRINT "LOWER$, ";
 '
 PRINT "MASK, ";
 MASK &X10101011
-MASK 2^(8-x),1
-MASK a,b
+x=0: MASK 2^(8-x)-1,1
+a=123:b=1: MASK a,b
 ''MASK ,b
 '
 PRINT "MAX, ";
@@ -463,12 +462,13 @@ PRINT "MAX, ";
 ''a$=MAX("abc"):IF a$<>"abc" THEN ERROR 33
 '
 PRINT "MEMORY, ";
+a=HIMEM
 MEMORY &3FFF
 MEMORY a
 '
 PRINT "MERGE, ";
-MERGE "file"
-MERGE a$
+IF lbasic THEN MERGE "file"
+IF lbasic THEN MERGE a$
 '
 PRINT "MID$, ";
 ''PRINT "MID$ as assign"
@@ -530,23 +530,24 @@ ON ERROR GOTO 10010
 ''1 ON ERROR GOTO 2:a$=DEC$(b$,"\\    \\") '2 REM
 '''1 ON ERROR GOTO 0:MASK ,
 ''1 ON ERROR GOTO 2:MASK , '2 REM
+ON ERROR GOTO 0
 '
 PRINT "ON GOSUB, ";
 ON SQ(1) GOSUB 10010
-ON SQ(a) GOSUB 10010
+a=2:ON SQ(a) GOSUB 10010
 '
 PRINT "ON GOTO, ";
-ON 1 GOTO 10010
-ON i GOTO 10010,10010
+ON 1+1 GOTO 10010
+i=3:ON i GOTO 10010,10010
 ON i+1 GOTO 10010,10010,10010
 '
 PRINT "OPENIN, ";
-OPENIN "file"
-OPENIN f$
+IF lbasic THEN OPENIN "file"
+f$="abc": IF lbasic THEN OPENIN f$
 '
 PRINT "OPENOUT, ";
-OPENOUT "file"
-OPENOUT f$
+IF lbasic THEN OPENOUT "file"
+f$="abc": IF lbasic THEN OPENOUT f$
 '
 PRINT "OR, ";
 '
@@ -617,7 +618,7 @@ PRINT "RAD, ";
 ''RAD
 '
 PRINT "RANDOMIZE, ";
-RANDOMIZE
+IF lbasic THEN RANDOMIZE
 RANDOMIZE 123.456
 '
 PRINT "READ, ";
@@ -632,17 +633,17 @@ REM
 PRINT "REMAIN, ";
 '
 PRINT "RENUM, ";
-RENUM
-RENUM 100
-RENUM 100,50
-RENUM 100,50,2
+IF lbasic THEN RENUM
+IF lbasic THEN RENUM 100
+IF lbasic THEN RENUM 100,50
+IF lbasic THEN RENUM 100,50,2
 '
 PRINT "RESTORE, ";
 '
 PRINT "RESUME, ";
-RESUME
-RESUME 10010
-RESUME NEXT
+IF lbasic THEN RESUME
+IF lbasic THEN RESUME 10010
+IF lbasic THEN RESUME NEXT
 '
 PRINT "RETURN, ";
 ''RETURN
@@ -665,32 +666,32 @@ PRINT "ROUND, ";
 ''a=ROUND(-1.005,2): IF a<>-1.01 THEN ERROR 33
 '
 PRINT "RUN, ";
-RUN
-RUN 10010
-RUN "file"
-RUN a$
+IF lbasic THEN RUN
+IF lbasic THEN RUN 10010
+IF lbasic THEN RUN "file"
+IF lbasic THEN RUN a$
 '
 ' SAVE, SGN, SIN, SOUND, SPACE$, SPEED INK, SPEED WRITE, SQ, STOP, STR$, STRING$, SYMBOL
 '
 PRINT "SAVE, ";
-SAVE "file"
-SAVE "file",p
-SAVE "file",a
-SAVE "file.scr",b,&C000,&4000
-SAVE "file.bin",b,&8000,&100,&8010
+IF lbasic THEN SAVE "file"
+IF lbasic THEN SAVE "file",p
+IF lbasic THEN SAVE "file",a
+IF lbasic THEN SAVE "file.scr",b,&C000,&4000
+IF lbasic THEN SAVE "file.bin",b,&8000,&100,&8010
 '
 PRINT "SGN, ";
 '
 PRINT "SIN, ";
 '
 PRINT "SOUND, ";
-SOUND 1,100
-SOUND 1,100,400
-SOUND 1,100,400,15
-SOUND 1,100,400,15,1
-SOUND 1,100,400,15,1,1
-SOUND 1,100,400,15,1,1,4
-SOUND 1,100,400,,,,4
+SOUND 1,3000
+SOUND 1,900,4
+SOUND 1,400,4,5
+SOUND 1,100,4,8,1
+SOUND 1,100,4,4,1,1
+SOUND 1,100,4,6,1,1,4
+SOUND 1,100,4,,,,4
 ''SOUND ch,period,duration,,,,noise
 ''SOUND ch,period,duration,vol,env1,ent1,noise
 '
@@ -698,19 +699,19 @@ PRINT "SPACE$, ";
 '
 PRINT "SPEED INK, ";
 SPEED INK 10,5
-SPEED INK a,b
+a=10:b=10:SPEED INK a,b
 '
 PRINT "SPEED KEY, ";
 SPEED KEY 10,5
-SPEED KEY a,b
+a=10:b=10:SPEED KEY a,b
 '
 PRINT "SPEED WRITE, ";
 SPEED WRITE 1
-SPEED WRITE a-1
+a=1:SPEED WRITE a-1
 '
 PRINT "SQ, ";
 a=SQ(1)
-a=SQ(b)
+b=4:a=SQ(b)
 '
 PRINT "SQR, ";
 '
@@ -753,6 +754,7 @@ TROFF
 '
 PRINT "TRON, ";
 TRON
+TROFF
 '
 ' UNT, UPPER$
 '
@@ -779,10 +781,11 @@ PRINT "WIDTH, ";
 WIDTH 40
 '
 PRINT "WINDOW, ";
-WINDOW 10,30,5,20
-WINDOW #1,10,30,5,20 '#stream,left,right,top,bottom
+WINDOW #1,10,30,5,20
+WINDOW #2,10,35,5,20 '#stream,left,right,top,bottom
 '
 PRINT "WINDOW SWAP, ";
+WINDOW SWAP 1,2
 WINDOW SWAP 1
 WINDOW SWAP 1,0
 '
@@ -807,8 +810,8 @@ PRINT
 PRINT "RSX";
 |A
 |B
-|BASIC
-|CPM
+IF lbasic THEN |BASIC
+IF lbasic THEN |CPM
 a$="*.drw": |DIR,@a$
 |DISC
 |DISC.IN
@@ -816,17 +819,19 @@ a$="*.drw": |DIR,@a$
 |DRIVE,0
 '''1 |DRIVE,
 '''1 |DRIVE,#1
-|ERA,"file.bas"
-|REN,"file1.bas","file2.bas"
+IF lbasic THEN |ERA,"file.bas"
+IF lbasic THEN |REN,"file1.bas","file2.bas"
 |TAPE
 |TAPE.IN
 |TAPE.OUT
 |USER,1
 ''|
 '
+|DISC
+|USER,0
 PRINT "Completed."
 PRINT
-PRINT "The following compile warning messages are expected..."
+IF lbasic THEN PRINT "The following compile warning messages are expected..."
 END
 '
 10010 RETURN
