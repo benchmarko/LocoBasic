@@ -1328,11 +1328,10 @@ export class UI implements IUI {
                 exampleSearchInput: this.debounce((e) => { this.onExampleSearchInputInput(e as Event); }, () => 400),
             },
             keydown: {
-               basicSearchInput: (e: Event) => this.onBasicSearchInputKeydown(e as KeyboardEvent), // handle Enter key
-               compiledSearchInput: (e: Event) => this.onCompiledSearchInputKeydown(e as KeyboardEvent), // handle Enter key
-               exampleSearchInput: (e: Event) => this.onExampleSearchInputKeydown(e as KeyboardEvent),
-               exampleSelect: (e: Event) => this.onExampleSelectKeydown(e as KeyboardEvent)
-               //outputText: (e) => this.onOutputTextKeydown(e as KeyboardEvent),
+                basicSearchInput: (e: Event) => this.onBasicSearchInputKeydown(e as KeyboardEvent), // handle Enter key
+                compiledSearchInput: (e: Event) => this.onCompiledSearchInputKeydown(e as KeyboardEvent), // handle Enter key
+                exampleSearchInput: (e: Event) => this.onExampleSearchInputKeydown(e as KeyboardEvent),
+                exampleSelect: (e: Event) => this.onExampleSelectKeydown(e as KeyboardEvent)
             },
         };
 

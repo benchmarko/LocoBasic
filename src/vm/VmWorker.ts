@@ -121,8 +121,8 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         _rsxPitch: 1,
         _startTime: Date.now(),
         _stopRequested: false,
-        _pauseRequested: false,
-        _pauseResolvedFn: null as ((value: string) => void) | null,
+        _pausePromise: undefined as Promise<void> | undefined,
+        _pauseResolvedFn: undefined as ((value: string) => void) | undefined,
         _timerMap: {} as Record<number, (number | NodeJS.Timeout)>,
         _vpos: 0,
         _zone: 13,
@@ -173,7 +173,9 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
                     break;
 
                 case 'pause':
-                    vm._pauseRequested = true;
+                    vm._pausePromise = new Promise<void>((resolve) => {
+                        vm._pauseResolvedFn = () => resolve();
+                    });
                     break;
 
                 case 'putKeys':
@@ -186,6 +188,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
 
                 case 'stop':
                     vm._stopRequested = true;
+                    vm.resolvePause();
                     break;
             }
         },
@@ -205,8 +208,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             vm._rsxPitch = 1;
             vm._startTime = Date.now();
             vm._stopRequested = false;
-            vm._pauseRequested = false;
-            vm._pauseResolvedFn = null;
+            vm.resolvePause();
             vm.remainAll();
             vm.cls();
         },
@@ -233,9 +235,9 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         resolvePause: (): void => {
             if (vm._pauseResolvedFn) {
                 vm._pauseResolvedFn("");
-                vm._pauseResolvedFn = null;
+                vm._pauseResolvedFn = undefined;
+                vm._pausePromise = undefined;
             }
-            vm._pauseRequested = false;
         },
 
         abs: (num: number) => Math.abs(num),
@@ -344,18 +346,13 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         },
 
         frame: async () => {
+            vm.flush();
+            if (vm._pausePromise) {
+                await vm._pausePromise;
+            }
             if (vm._stopRequested) {
                 throw new Error("INFO: Program stopped");
             }
-            vm.flush();
-            
-            // Handle pause
-            if (vm._pauseRequested) {
-                await new Promise<void>((resolve) => {
-                    vm._pauseResolvedFn = () => resolve();
-                });
-            }
-            
             return new Promise<void>(resolve => setTimeout(() => resolve(), Date.now() % vm._frameTime));
         },
 
