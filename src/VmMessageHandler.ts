@@ -13,6 +13,7 @@ export class VmMessageHandler {
     private readonly callbacks: VmMessageHandlerCallbacks;
     private readonly postMessage: (message: MessageToWorker) => void;
     private code = "";
+    private finishedPromise?: Promise<string>;
     private finishedResolverFn?: ((msg: string) => void);
 
     constructor(callbacks: VmMessageHandlerCallbacks, postMessage: (message: MessageToWorker) => void) {
@@ -24,14 +25,26 @@ export class VmMessageHandler {
         this.code = code;
     }
 
-    public setFinishedResolver(finishedResolverFn: (msg: string) => void) {
-        this.finishedResolverFn = finishedResolverFn;
+    public getFinishedPromise(): Promise<string> | undefined {
+        return this.finishedPromise;
+    }
+
+    public createFinishedPromise(): Promise<string> {
+        if (this.finishedPromise) {
+            console.error("createFinishedPromise: Already created");
+            return this.finishedPromise;
+        }
+        this.finishedPromise = new Promise<string>((resolve) => {
+            this.finishedResolverFn = resolve;
+        });
+        return this.finishedPromise;
     }
 
     public onResultResolved(message = "") {
         if (this.finishedResolverFn) {
             this.finishedResolverFn(message);
             this.finishedResolverFn = undefined;
+            this.finishedPromise = undefined;
         }
     }
 

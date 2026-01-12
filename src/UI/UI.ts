@@ -447,11 +447,7 @@ export class UI implements IUI {
         this.htmlElements.convertPopover.hidden = true;
 
         this.htmlElements.convertButton.disabled = true;
-        this.htmlElements.databaseSelect.disabled = true;
         this.htmlElements.enterButton.disabled = false;
-        this.htmlElements.exampleSearchInput.disabled = true;
-        this.htmlElements.exampleSearchClearButton.disabled = true;
-        this.htmlElements.exampleSelect.disabled = true;
         this.htmlElements.executeButton.disabled = true;
         this.htmlElements.pauseButton.disabled = false;
         this.htmlElements.resumeButton.disabled = true;
@@ -472,11 +468,7 @@ export class UI implements IUI {
         this.onSetUiKeys([0]); // remove user keys
 
         this.htmlElements.convertButton.disabled = false;
-        this.htmlElements.databaseSelect.disabled = false;
         this.htmlElements.enterButton.disabled = true;
-        this.htmlElements.exampleSearchInput.disabled = false;
-        this.htmlElements.exampleSearchClearButton.disabled = false;
-        this.htmlElements.exampleSelect.disabled = false;
         this.htmlElements.executeButton.disabled = false;
         this.htmlElements.pauseButton.disabled = true;
         this.htmlElements.resumeButton.disabled = true;
@@ -792,6 +784,12 @@ export class UI implements IUI {
         const databaseItem = databaseMap[config.database];
         const exampleMap = await this.getExampleMap(databaseItem);
         this.setExampleSelectOptions(exampleMap, config.example, exampleFilter);
+
+        const exampleSelect = this.htmlElements.exampleSelect;
+        if (exampleSelect.options.length === 1) {
+            exampleSelect.selectedIndex = 0;
+            exampleSelect.dispatchEvent(new Event("change"));
+        }
     }
 
     private onExampleSearchInputKeydown = (event: KeyboardEvent) => { // bound this
@@ -802,10 +800,6 @@ export class UI implements IUI {
         if (event.key === "Enter") {
             event.preventDefault();
             this.htmlElements.exampleSelect.focus();
-            if (exampleSelect.options.length === 1) {
-                exampleSelect.selectedIndex = 0;
-                exampleSelect.dispatchEvent(new Event("change"));
-            }
         }
     }
 
@@ -937,13 +931,18 @@ export class UI implements IUI {
     }
 
     private onExampleSelectChange = async (event: Event): Promise<void> => { // bound this
-        const core = this.getCore();
+        const exampleSelect = event.target as HTMLSelectElement;
+        const exampleName = exampleSelect.value;
+
+        if (this.getVmMain().isRunning()) {
+            const stopTimeout = 300;
+            this.htmlElements.stopButton.dispatchEvent(new Event("click")); // stop running program
+            await this.getVmMain().waitForFinish(stopTimeout); // wait max x ms until termination
+        }
 
         this.addOutputText("", true); // clear output
 
-        const exampleSelect = event.target as HTMLSelectElement;
-        const exampleName = exampleSelect.value;
-        const example = core.getExample(exampleName); //.script || "";
+        const example = this.getCore().getExample(exampleName); //.script || "";
 
         if (example) {
             this.updateConfigParameter("example", exampleName);
@@ -1257,6 +1256,7 @@ export class UI implements IUI {
             },
             onInput: async (prompt: string) => {
                 const input = await this.showConsoleInput(prompt);
+                this.htmlElements.exampleSelect.focus();
                 return input;
             },
             onGeolocation: () => this.onGeolocation(),

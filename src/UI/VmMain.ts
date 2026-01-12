@@ -42,10 +42,7 @@ export class VmMain {
         this.messageHandler.setCode(code); // for error message
         await this.getOrCreateWorker();
 
-        const finishedPromise = new Promise<string>((resolve) => {
-            this.messageHandler.setFinishedResolver(resolve);
-        });
-
+        const finishedPromise = this.messageHandler.createFinishedPromise();
         this.postMessage({ type: 'run', code });
         return finishedPromise;
     }
@@ -80,4 +77,25 @@ export class VmMain {
     public putKeys(keys: string) {
         this.postMessage({ type: 'putKeys', keys });
     }
+
+    public isRunning(): boolean {
+        return this.messageHandler.getFinishedPromise() !== undefined;
+    }
+
+    public async waitForFinish(timeout: number): Promise<string> {
+        const finishedPromise = this.messageHandler.getFinishedPromise();
+        if (finishedPromise) {
+            let timeoutId: ReturnType<typeof setTimeout>;
+            const timeoutPromise = new Promise<string>((resolve) => {
+                timeoutId = setTimeout(() => {
+                    this.reset();
+                    resolve("timeout");
+                }, timeout);
+            });
+            finishedPromise.then(() => clearTimeout(timeoutId));
+            return Promise.race([finishedPromise, timeoutPromise]);
+        }
+        return Promise.resolve("Not running");
+    }
+
 }
