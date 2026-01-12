@@ -1,6 +1,6 @@
 {
   "name": "locobasic",
-  "version": "0.5.10",
+  "version": "0.5.11",
   "description": "# LocoBasic - Loco BASIC",
   "type": "commonjs",
   "scripts": {

@@ -119,7 +119,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         _pos: 0,
         _restoreMap: {} as RestoreMapType,
         _rsxPitch: 1,
-        _startTime: 0,
+        _startTime: Date.now(),
         _stopRequested: false,
         _pauseRequested: false,
         _pauseResolvedFn: null as ((value: string) => void) | null,
