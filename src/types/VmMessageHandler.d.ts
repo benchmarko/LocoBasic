@@ -10,10 +10,12 @@ export declare class VmMessageHandler {
     private readonly callbacks;
     private readonly postMessage;
     private code;
+    private finishedPromise?;
     private finishedResolverFn?;
     constructor(callbacks: VmMessageHandlerCallbacks, postMessage: (message: MessageToWorker) => void);
     setCode(code: string): void;
-    setFinishedResolver(finishedResolverFn: (msg: string) => void): void;
+    getFinishedPromise(): Promise<string> | undefined;
+    createFinishedPromise(): Promise<string>;
     onResultResolved(message?: string): void;
     private static describeError;
     handleMessage(data: MessageFromWorker): Promise<void>;

@@ -8,13 +8,24 @@ export class VmMessageHandler {
     setCode(code) {
         this.code = code;
     }
-    setFinishedResolver(finishedResolverFn) {
-        this.finishedResolverFn = finishedResolverFn;
+    getFinishedPromise() {
+        return this.finishedPromise;
+    }
+    createFinishedPromise() {
+        if (this.finishedPromise) {
+            console.error("createFinishedPromise: Already created");
+            return this.finishedPromise;
+        }
+        this.finishedPromise = new Promise((resolve) => {
+            this.finishedResolverFn = resolve;
+        });
+        return this.finishedPromise;
     }
     onResultResolved(message = "") {
         if (this.finishedResolverFn) {
             this.finishedResolverFn(message);
             this.finishedResolverFn = undefined;
+            this.finishedPromise = undefined;
         }
     }
     static describeError(stringToEval, lineno, colno) {

@@ -266,13 +266,24 @@
         setCode(code) {
             this.code = code;
         }
-        setFinishedResolver(finishedResolverFn) {
-            this.finishedResolverFn = finishedResolverFn;
+        getFinishedPromise() {
+            return this.finishedPromise;
+        }
+        createFinishedPromise() {
+            if (this.finishedPromise) {
+                console.error("createFinishedPromise: Already created");
+                return this.finishedPromise;
+            }
+            this.finishedPromise = new Promise((resolve) => {
+                this.finishedResolverFn = resolve;
+            });
+            return this.finishedPromise;
         }
         onResultResolved(message = "") {
             if (this.finishedResolverFn) {
                 this.finishedResolverFn(message);
                 this.finishedResolverFn = undefined;
+                this.finishedPromise = undefined;
             }
         }
         static describeError(stringToEval, lineno, colno) {
@@ -384,9 +395,7 @@
             }
             this.messageHandler.setCode(code); // for error message
             await this.getOrCreateWorker();
-            const finishedPromise = new Promise((resolve) => {
-                this.messageHandler.setFinishedResolver(resolve);
-            });
+            const finishedPromise = this.messageHandler.createFinishedPromise();
             this.postMessage({ type: 'run', code });
             return finishedPromise;
         }
@@ -414,6 +423,24 @@
         }
         putKeys(keys) {
             this.postMessage({ type: 'putKeys', keys });
+        }
+        isRunning() {
+            return this.messageHandler.getFinishedPromise() !== undefined;
+        }
+        async waitForFinish(timeout) {
+            const finishedPromise = this.messageHandler.getFinishedPromise();
+            if (finishedPromise) {
+                let timeoutId;
+                const timeoutPromise = new Promise((resolve) => {
+                    timeoutId = setTimeout(() => {
+                        this.reset();
+                        resolve("timeout");
+                    }, timeout);
+                });
+                finishedPromise.then(() => clearTimeout(timeoutId));
+                return Promise.race([finishedPromise, timeoutPromise]);
+            }
+            return Promise.resolve("Not running");
         }
     }
 
@@ -814,6 +841,11 @@
                 const databaseItem = databaseMap[config.database];
                 const exampleMap = await this.getExampleMap(databaseItem);
                 this.setExampleSelectOptions(exampleMap, config.example, exampleFilter);
+                const exampleSelect = this.htmlElements.exampleSelect;
+                if (exampleSelect.options.length === 1) {
+                    exampleSelect.selectedIndex = 0;
+                    exampleSelect.dispatchEvent(new Event("change"));
+                }
             };
             this.onExampleSearchInputKeydown = (event) => {
                 const exampleSelect = this.htmlElements.exampleSelect;
@@ -823,10 +855,6 @@
                 if (event.key === "Enter") {
                     event.preventDefault();
                     this.htmlElements.exampleSelect.focus();
-                    if (exampleSelect.options.length === 1) {
-                        exampleSelect.selectedIndex = 0;
-                        exampleSelect.dispatchEvent(new Event("change"));
-                    }
                 }
             };
             this.onExampleSelectKeydown = (event) => {
@@ -901,11 +929,15 @@
                 }
             };
             this.onExampleSelectChange = async (event) => {
-                const core = this.getCore();
-                this.addOutputText("", true); // clear output
                 const exampleSelect = event.target;
                 const exampleName = exampleSelect.value;
-                const example = core.getExample(exampleName); //.script || "";
+                if (this.getVmMain().isRunning()) {
+                    const stopTimeout = 300;
+                    this.htmlElements.stopButton.dispatchEvent(new Event("click")); // stop running program
+                    await this.getVmMain().waitForFinish(stopTimeout); // wait max x ms until termination
+                }
+                this.addOutputText("", true); // clear output
+                const example = this.getCore().getExample(exampleName); //.script || "";
                 if (example) {
                     this.updateConfigParameter("example", exampleName);
                     const script = await this.getExampleScript(example);
@@ -1189,11 +1221,7 @@
         beforeExecute() {
             this.htmlElements.convertPopover.hidden = true;
             this.htmlElements.convertButton.disabled = true;
-            this.htmlElements.databaseSelect.disabled = true;
             this.htmlElements.enterButton.disabled = false;
-            this.htmlElements.exampleSearchInput.disabled = true;
-            this.htmlElements.exampleSearchClearButton.disabled = true;
-            this.htmlElements.exampleSelect.disabled = true;
             this.htmlElements.executeButton.disabled = true;
             this.htmlElements.pauseButton.disabled = false;
             this.htmlElements.resumeButton.disabled = true;
@@ -1210,11 +1238,7 @@
             outputText.removeEventListener("click", this.fnOnClickHandler, false);
             this.onSetUiKeys([0]); // remove user keys
             this.htmlElements.convertButton.disabled = false;
-            this.htmlElements.databaseSelect.disabled = false;
             this.htmlElements.enterButton.disabled = true;
-            this.htmlElements.exampleSearchInput.disabled = false;
-            this.htmlElements.exampleSearchClearButton.disabled = false;
-            this.htmlElements.exampleSelect.disabled = false;
             this.htmlElements.executeButton.disabled = false;
             this.htmlElements.pauseButton.disabled = true;
             this.htmlElements.resumeButton.disabled = true;
@@ -1487,6 +1511,7 @@
                 },
                 onInput: async (prompt) => {
                     const input = await this.showConsoleInput(prompt);
+                    this.htmlElements.exampleSelect.focus();
                     return input;
                 },
                 onGeolocation: () => this.onGeolocation(),
@@ -1559,7 +1584,6 @@
                     compiledSearchInput: (e) => this.onCompiledSearchInputKeydown(e), // handle Enter key
                     exampleSearchInput: (e) => this.onExampleSearchInputKeydown(e),
                     exampleSelect: (e) => this.onExampleSelectKeydown(e)
-                    //outputText: (e) => this.onOutputTextKeydown(e as KeyboardEvent),
                 },
             };
             // Attach event listeners based on the eventHandlers map

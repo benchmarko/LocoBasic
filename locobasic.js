@@ -3563,13 +3563,24 @@ ${workerFnString}
         setCode(code) {
             this.code = code;
         }
-        setFinishedResolver(finishedResolverFn) {
-            this.finishedResolverFn = finishedResolverFn;
+        getFinishedPromise() {
+            return this.finishedPromise;
+        }
+        createFinishedPromise() {
+            if (this.finishedPromise) {
+                console.error("createFinishedPromise: Already created");
+                return this.finishedPromise;
+            }
+            this.finishedPromise = new Promise((resolve) => {
+                this.finishedResolverFn = resolve;
+            });
+            return this.finishedPromise;
         }
         onResultResolved(message = "") {
             if (this.finishedResolverFn) {
                 this.finishedResolverFn(message);
                 this.finishedResolverFn = undefined;
+                this.finishedPromise = undefined;
             }
         }
         static describeError(stringToEval, lineno, colno) {
@@ -3675,9 +3686,7 @@ ${workerFnString}
             }
             this.messageHandler.setCode(code); // for error message
             this.getOrCreateWorker();
-            const finishedPromise = new Promise((resolve) => {
-                this.messageHandler.setFinishedResolver(resolve);
-            });
+            const finishedPromise = this.messageHandler.createFinishedPromise();
             this.postMessage({ type: 'run', code });
             return finishedPromise;
         }
@@ -4020,7 +4029,7 @@ node dist/locobasic.js input='PRINT "Hello!"'
 npx ts-node dist/locobasic.js input='PRINT "Hello!"'
 node dist/locobasic.js input='?3 + 5 * (2 - 8)' example=''
 node dist/locobasic.js example=euler
-node dist/locobasic.js example=abelian
+node dist/locobasic.js example=abelian1
 node dist/locobasic.js example=archidr0 > test1.svg
 node dist/locobasic.js example=binary database=rosetta databaseDirs=examples,https://benchmarko.github.io/CPCBasicApps/apps,https://benchmarko.github.io/CPCBasicApps/rosetta
 node dist/locobasic.js grammar='strict' input='a$="Bob":PRINT "Hello ";a$;"!"'

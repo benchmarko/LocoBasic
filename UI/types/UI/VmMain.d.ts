@@ -15,5 +15,7 @@ export declare class VmMain {
     resume(): void;
     reset(): void;
     putKeys(keys: string): void;
+    isRunning(): boolean;
+    waitForFinish(timeout: number): Promise<string>;
 }
 //# sourceMappingURL=VmMain.d.ts.map

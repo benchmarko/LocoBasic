@@ -3,7 +3,8 @@
 "use strict";
 
 cpcBasic.addItem("", `
-REM testkey - Test keyboard keys
+REM testkey - Test keys (keyboard)
+REM Test keyboard keys and their ASCII codes
 MODE 2
 FOR c=&20 TO &7F
   PRINT HEX$(c,2);" ";CHR$(c);" ";

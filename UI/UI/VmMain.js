@@ -31,9 +31,7 @@ export class VmMain {
         }
         this.messageHandler.setCode(code); // for error message
         await this.getOrCreateWorker();
-        const finishedPromise = new Promise((resolve) => {
-            this.messageHandler.setFinishedResolver(resolve);
-        });
+        const finishedPromise = this.messageHandler.createFinishedPromise();
         this.postMessage({ type: 'run', code });
         return finishedPromise;
     }
@@ -61,6 +59,24 @@ export class VmMain {
     }
     putKeys(keys) {
         this.postMessage({ type: 'putKeys', keys });
+    }
+    isRunning() {
+        return this.messageHandler.getFinishedPromise() !== undefined;
+    }
+    async waitForFinish(timeout) {
+        const finishedPromise = this.messageHandler.getFinishedPromise();
+        if (finishedPromise) {
+            let timeoutId;
+            const timeoutPromise = new Promise((resolve) => {
+                timeoutId = setTimeout(() => {
+                    this.reset();
+                    resolve("timeout");
+                }, timeout);
+            });
+            finishedPromise.then(() => clearTimeout(timeoutId));
+            return Promise.race([finishedPromise, timeoutPromise]);
+        }
+        return Promise.resolve("Not running");
     }
 }
 //# sourceMappingURL=VmMain.js.map

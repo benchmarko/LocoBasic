@@ -25,9 +25,7 @@ export class NodeVmMain {
         }
         this.messageHandler.setCode(code); // for error message
         this.getOrCreateWorker();
-        const finishedPromise = new Promise((resolve) => {
-            this.messageHandler.setFinishedResolver(resolve);
-        });
+        const finishedPromise = this.messageHandler.createFinishedPromise();
         this.postMessage({ type: 'run', code });
         return finishedPromise;
     }

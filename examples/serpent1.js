@@ -3,7 +3,7 @@
 "use strict";
 
 cpcBasic.addItem("", `
-REM serpent - Serpent
+REM serpent1 - Serpent 1
 REM based on Serpent by T Magee, Amstrad Action, 1987
 REM
 MODE 2

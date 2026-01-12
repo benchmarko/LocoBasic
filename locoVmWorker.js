@@ -109,10 +109,10 @@
             _pos: 0,
             _restoreMap: {},
             _rsxPitch: 1,
-            _startTime: 0,
+            _startTime: Date.now(),
             _stopRequested: false,
-            _pauseRequested: false,
-            _pauseResolvedFn: null,
+            _pausePromise: undefined,
+            _pauseResolvedFn: undefined,
             _timerMap: {},
             _vpos: 0,
             _zone: 13,
@@ -155,7 +155,9 @@
                         vm.resolveInput(data.input);
                         break;
                     case 'pause':
-                        vm._pauseRequested = true;
+                        vm._pausePromise = new Promise((resolve) => {
+                            vm._pauseResolvedFn = () => resolve();
+                        });
                         break;
                     case 'putKeys':
                         vm._keyBuffer.push(data.keys); // currently only one key
@@ -165,6 +167,7 @@
                         break;
                     case 'stop':
                         vm._stopRequested = true;
+                        vm.resolvePause();
                         break;
                 }
             },
@@ -182,8 +185,7 @@
                 vm._rsxPitch = 1;
                 vm._startTime = Date.now();
                 vm._stopRequested = false;
-                vm._pauseRequested = false;
-                vm._pauseResolvedFn = null;
+                vm.resolvePause();
                 vm.remainAll();
                 vm.cls();
             },
@@ -206,9 +208,9 @@
             resolvePause: () => {
                 if (vm._pauseResolvedFn) {
                     vm._pauseResolvedFn("");
-                    vm._pauseResolvedFn = null;
+                    vm._pauseResolvedFn = undefined;
+                    vm._pausePromise = undefined;
                 }
-                vm._pauseRequested = false;
             },
             abs: (num) => Math.abs(num),
             after: (timeout, timer, fn) => {
@@ -293,15 +295,12 @@
                 }
             },
             frame: async () => {
+                vm.flush();
+                if (vm._pausePromise) {
+                    await vm._pausePromise;
+                }
                 if (vm._stopRequested) {
                     throw new Error("INFO: Program stopped");
-                }
-                vm.flush();
-                // Handle pause
-                if (vm._pauseRequested) {
-                    await new Promise((resolve) => {
-                        vm._pauseResolvedFn = () => resolve();
-                    });
                 }
                 return new Promise(resolve => setTimeout(() => resolve(), Date.now() % vm._frameTime));
             },

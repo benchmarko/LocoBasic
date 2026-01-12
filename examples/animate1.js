@@ -3,7 +3,7 @@
 "use strict";
 
 cpcBasic.addItem("", `
-REM animate - Animate a pendulum (ASCII)
+REM animate1 - Animate a pendulum (ASCII)
 REM see also: https://rosettacode.org/wiki/Animate_a_pendulum#Locomotive_Basic
 MODE 1
 cols=40:rows=25

@@ -3,7 +3,7 @@
 "use strict";
 
 cpcBasic.addItem("", `
-REM serpent2 - Serpent 2
+REM serpent2 - Serpent 2 (optimized)
 REM based on Serpent by T Magee, Amstrad Action, 1987
 REM serpent with ring buffer for lines
 MODE 2

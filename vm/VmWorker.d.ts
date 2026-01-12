@@ -36,8 +36,8 @@ export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] 
     _rsxPitch: number;
     _startTime: number;
     _stopRequested: boolean;
-    _pauseRequested: boolean;
-    _pauseResolvedFn: ((value: string) => void) | null;
+    _pausePromise: Promise<void> | undefined;
+    _pauseResolvedFn: ((value: string) => void) | undefined;
     _timerMap: Record<number, (number | NodeJS.Timeout)>;
     _vpos: number;
     _zone: number;
