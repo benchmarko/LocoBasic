@@ -3,7 +3,7 @@
 "use strict";
 
 cpcBasic.addItem("", `
-REM abelian - Abelian sandpile model (ASCII)
+REM abelian1 - Abelian sandpile model (ASCII)
 REM https://rosettacode.org/wiki/Abelian_sandpile_model#Locomotive_Basic
 REM GNU FDL 1.2 (https://www.gnu.org/licenses/fdl-1.2.html)
 REM modifications: removed DEFINT, GOTO; added textual output, different sizes

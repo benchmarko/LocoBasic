@@ -3,7 +3,7 @@
 "use strict";
 
 cpcBasic.addItem("", `
-REM yinyang2 - Yin and yang (with RSX)
+REM yinyang2 - Yin and yang (RSX)
 REM https://rosettacode.org/wiki/Yin_and_yang#Locomotive_Basic
 REM GNU FDL 1.2 (https://www.gnu.org/licenses/fdl-1.2.html)
 REM modifications: removed DEFINT, BORDER, FILL, wait loop; use |CIRCLE, |ARC

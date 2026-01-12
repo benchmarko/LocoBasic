@@ -4,6 +4,7 @@
 
 cpcBasic.addItem("", `
 REM 2cv - 2CV (CPC Doodle)
+REM drawing of a Citroën 2CV car
 REM example taken from CPC Doodle, (c) Markus Hohmann, 2018
 REM https://benchmarko.github.io/CPCBasicApps/apps/apps/#doodle
 REM modifications: draw example without fill

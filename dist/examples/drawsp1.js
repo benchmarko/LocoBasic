@@ -3,7 +3,7 @@
 "use strict";
 
 cpcBasic.addItem("", `
-REM drawsp - Draw a sphere (ASCII)
+REM drawsp1 - Draw a sphere (ASCII)
 REM https://rosettacode.org/wiki/Draw_a_sphere#Locomotive_Basic
 REM GNU FDL 1.2 (https://www.gnu.org/licenses/fdl-1.2.html)
 REM modifications: replaced intensity% by intensity

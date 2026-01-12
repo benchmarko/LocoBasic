@@ -3,7 +3,7 @@
 "use strict";
 
 cpcBasic.addItem("", `
-REM yinyang - Yin and yang
+REM yinyang1 - Yin and yang
 REM https://rosettacode.org/wiki/Yin_and_yang#Locomotive_Basic
 REM GNU FDL 1.2 (https://www.gnu.org/licenses/fdl-1.2.html)
 REM modifications: removed DEFINT, BORDER, FILL, wait loop; draw horizontal lines to fill

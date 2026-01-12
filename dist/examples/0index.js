@@ -16,7 +16,7 @@ cpcBasic.addIndex("./examples", {
 			"title": "2CV (CPC Doodle)"
 		},
 		{
-			"key": "abelian",
+			"key": "abelian1",
 			"title": "Abelian sandpile model (ASCII)"
 		},
 		{
@@ -24,7 +24,7 @@ cpcBasic.addIndex("./examples", {
 			"title": "Abelian sandpile model (graphical)"
 		},
 		{
-			"key": "animate",
+			"key": "animate1",
 			"title": "Animate a pendulum (ASCII)"
 		},
 		{
@@ -38,10 +38,6 @@ cpcBasic.addIndex("./examples", {
 		{
 			"key": "archidr",
 			"title": "Little Architect Draw Examples"
-		},
-		{
-			"key": "archidr0",
-			"title": "Little Architect Draw Example (no RSX)"
 		},
 		{
 			"key": "barnsley",
@@ -88,12 +84,12 @@ cpcBasic.addIndex("./examples", {
 			"title": "Draw Rocking CPC Demo Organ"
 		},
 		{
-			"key": "drawsp",
+			"key": "drawsp1",
 			"title": "Draw a sphere (ASCII)"
 		},
 		{
 			"key": "drawsp2",
-			"title": "Draw a sphere (graphical)"
+			"title": "Draw a spherecal)"
 		},
 		{
 			"key": "elizabos",
@@ -172,8 +168,8 @@ cpcBasic.addIndex("./examples", {
 			"title": "N-queens problem"
 		},
 		{
-			"key": "primebe",
-			"title": "Prime Benchmark (division)"
+			"key": "primebe1",
+			"title": "Prime Benchmark (Division)"
 		},
 		{
 			"key": "primebe2",
@@ -208,12 +204,12 @@ cpcBasic.addIndex("./examples", {
 			"title": "Scrolling text"
 		},
 		{
-			"key": "serpent",
-			"title": "Serpent"
+			"key": "serpent1",
+			"title": "Serpent 1"
 		},
 		{
 			"key": "serpent2",
-			"title": "Serpent 2"
+			"title": "Serpent 2 (optimized)"
 		},
 		{
 			"key": "showasc",
@@ -249,7 +245,7 @@ cpcBasic.addIndex("./examples", {
 		},
 		{
 			"key": "testkey",
-			"title": "Test keyboard keys"
+			"title": "Test keys (keyboard)"
 		},
         {
 			"key": "testpage",
@@ -280,12 +276,12 @@ cpcBasic.addIndex("./examples", {
 			"title": "Christmas tree"
 		},
 		{
-			"key": "yinyang",
+			"key": "yinyang1",
 			"title": "Yin and yang"
 		},
 		{
 			"key": "yinyang2",
-			"title": "Yin and yang (with RSX)"
+			"title": "Yin and yang (RSX)"
 		}
 	]
 });
