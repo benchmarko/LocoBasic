@@ -3,7 +3,8 @@
 "use strict";
 
 cpcBasic.addItem("", `
-REM primebe2 - Prime Benchmark (Sieve of Atkin)
+REM primebe2 - Prime Benchmark (Atkin)
+REM Sieve of Atkin
 MODE 2
 'DEFINT a-s,u-z
 n=5000

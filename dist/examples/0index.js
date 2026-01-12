@@ -173,15 +173,15 @@ cpcBasic.addIndex("./examples", {
 		},
 		{
 			"key": "primebe",
-			"title": "Prime Benchmark (trial division)"
+			"title": "Prime Benchmark (division)"
 		},
 		{
 			"key": "primebe2",
-			"title": "Prime Benchmark (Sieve of Atkin)"
+			"title": "Prime Benchmark (Atkin)"
 		},
 		{
 			"key": "primebe3",
-			"title": "Prime Benchmark (Sieve of Eratosthenes)"
+			"title": "Prime Benchmark (Eratosthenes)"
 		},
 		{
 			"key": "question",

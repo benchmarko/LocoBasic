@@ -27,6 +27,7 @@ export type ConfigType = {
     debounceExecute: number;
     debug: number;
     example: string;
+    exampleFilter: string;
     fileName: string;
     grammar: string; // "basic" or "strict"
     input: string;

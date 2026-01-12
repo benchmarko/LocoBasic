@@ -27,6 +27,7 @@ const core: ICore = new Core({
     debounceExecute: 400,
     debug: 0,
     example: "locobas",
+    exampleFilter: "",
     fileName: "",
     grammar: "basic", // basic or strict
     input: "",
