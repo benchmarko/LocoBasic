@@ -3,7 +3,8 @@
 "use strict";
 
 cpcBasic.addItem("", `
-REM primebe - Prime Benchmark (trial division)
+REM primebe - Prime Benchmark (Division)
+REM Trial division
 MODE 2
 'DEFINT a-s,u-z
 n=5000

@@ -31,6 +31,8 @@ function initHtmlElements() {
         convertPopover: doc.getElementById("convertPopover"),
         databaseSelect: doc.getElementById("databaseSelect"),
         enterButton: doc.getElementById("enterButton"),
+        exampleSearchClearButton: doc.getElementById("exampleSearchClearButton"),
+        exampleSearchInput: doc.getElementById("exampleSearchInput"),
         exampleSelect: doc.getElementById("exampleSelect"),
         executeButton: doc.getElementById("executeButton"),
         exportSvgButton: doc.getElementById("exportSvgButton"),
@@ -386,6 +388,51 @@ export class UI {
             }
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onExampleSearchInputInput = async (_event) => {
+            const core = this.getCore();
+            const config = core.getConfigMap();
+            const exampleFilter = this.htmlElements.exampleSearchInput.value.toLowerCase();
+            this.updateConfigParameter("exampleFilter", exampleFilter);
+            //config.exampleFilter = exampleFilter;
+            const databaseMap = core.getDatabaseMap();
+            const databaseItem = databaseMap[config.database];
+            const exampleMap = await this.getExampleMap(databaseItem);
+            this.setExampleSelectOptions(exampleMap, config.example, exampleFilter);
+        };
+        this.onExampleSearchInputKeydown = (event) => {
+            const exampleSelect = this.htmlElements.exampleSelect;
+            if (exampleSelect.value === "") {
+                return;
+            }
+            if (event.key === "Enter") {
+                event.preventDefault();
+                this.htmlElements.exampleSelect.focus();
+                if (exampleSelect.options.length === 1) {
+                    exampleSelect.selectedIndex = 0;
+                    exampleSelect.dispatchEvent(new Event("change"));
+                }
+            }
+        };
+        this.onExampleSelectKeydown = (event) => {
+            const exampleSelect = this.htmlElements.exampleSelect;
+            if (exampleSelect.value === "") {
+                return;
+            }
+            if (event.key === "Enter") {
+                event.preventDefault();
+                if (exampleSelect.options.length === 1) {
+                    exampleSelect.selectedIndex = 0;
+                    exampleSelect.dispatchEvent(new Event("change"));
+                }
+            }
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onExampleSearchClearButtonClick = (_event) => {
+            const exampleSearchInput = this.htmlElements.exampleSearchInput;
+            exampleSearchInput.value = '';
+            exampleSearchInput.dispatchEvent(new Event("input"));
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onFullscreenButtonClick = async (_event) => {
             const outputText = this.htmlElements.outputText;
             const fullscreenchangedHandler = (event) => {
@@ -464,7 +511,9 @@ export class UI {
                 this.updateConfigParameter("database", database);
             }
             const exampleMap = await this.getExampleMap(databaseItem);
-            this.setExampleSelectOptions(exampleMap, config.example);
+            this.setExampleSelectOptions(exampleMap, config.example, config.exampleFilter);
+            // Clear search input when database changes
+            // TODO this.htmlElements.exampleSearchInput.value = "";
             const exampleSelect = this.htmlElements.exampleSelect;
             exampleSelect.dispatchEvent(new Event("change"));
         };
@@ -726,6 +775,8 @@ export class UI {
         this.htmlElements.convertButton.disabled = true;
         this.htmlElements.databaseSelect.disabled = true;
         this.htmlElements.enterButton.disabled = false;
+        this.htmlElements.exampleSearchInput.disabled = true;
+        this.htmlElements.exampleSearchClearButton.disabled = true;
         this.htmlElements.exampleSelect.disabled = true;
         this.htmlElements.executeButton.disabled = true;
         this.htmlElements.pauseButton.disabled = false;
@@ -745,6 +796,8 @@ export class UI {
         this.htmlElements.convertButton.disabled = false;
         this.htmlElements.databaseSelect.disabled = false;
         this.htmlElements.enterButton.disabled = true;
+        this.htmlElements.exampleSearchInput.disabled = false;
+        this.htmlElements.exampleSearchClearButton.disabled = false;
         this.htmlElements.exampleSelect.disabled = false;
         this.htmlElements.executeButton.disabled = false;
         this.htmlElements.pauseButton.disabled = true;
@@ -803,7 +856,7 @@ export class UI {
         }
         return example.script || "";
     }
-    setExampleSelectOptions(exampleMap, exampleKey) {
+    setExampleSelectOptions(exampleMap, exampleKey, searchTerm) {
         const maxTitleLength = 160;
         const maxTextLength = 60; // (32 visible?)
         const exampleSelect = this.htmlElements.exampleSelect;
@@ -812,12 +865,15 @@ export class UI {
             const example = exampleMap[key];
             if (example.meta !== "D") { // skip data files
                 const title = (key + ": " + example.title).substring(0, maxTitleLength);
-                const option = window.document.createElement("option");
-                option.value = key;
-                option.text = title.substring(0, maxTextLength);
-                option.title = title;
-                option.selected = key === exampleKey;
-                exampleSelect.add(option);
+                // Check if title or key matches the search term
+                if (searchTerm == "" || title.toLowerCase().includes(searchTerm)) {
+                    const option = window.document.createElement("option");
+                    option.value = key;
+                    option.text = title.substring(0, maxTextLength);
+                    option.title = title;
+                    option.selected = key === exampleKey;
+                    exampleSelect.add(option);
+                }
             }
         }
     }
@@ -1037,64 +1093,66 @@ export class UI {
         const args = this.parseUri(config);
         core.parseArgs(args, config);
         this.locoVmWorkerName = locoVmWorkerName;
-        // Map of element IDs to event handlers
-        const buttonHandlers = {
-            outputOptionsButton: this.onOutputOptionsButtonClick,
-            compileButton: this.onCompileButtonClick,
-            enterButton: this.onEnterButtonClick,
-            executeButton: this.onExecuteButtonClick,
-            stopButton: this.onStopButtonClick,
-            pauseButton: this.onPauseButtonClick,
-            resumeButton: this.onResumeButtonClick,
-            resetButton: this.onResetButtonClick,
-            convertButton: this.onConvertButtonClick,
-            basicReplaceButton: this.onBasicReplaceButtonClick,
-            basicReplaceAllButton: this.onBasicReplaceAllButtonClick,
-            basicSearchButton: this.onBasicSearchButtonClick,
-            basicSearchNextButton: this.onBasicSearchNextButtonClick,
-            basicSearchPrevButton: this.onBasicSearchPrevButtonClick,
-            compiledReplaceButton: this.onCompiledReplaceButtonClick,
-            compiledReplaceAllButton: this.onCompiledReplaceAllButtonClick,
-            compiledSearchButton: this.onCompiledSearchButtonClick,
-            compiledSearchNextButton: this.onCompiledSearchNextButtonClick,
-            compiledSearchPrevButton: this.onCompiledSearchPrevButtonClick,
-            labelAddButton: this.onLabelAddButtonClick,
-            labelRemoveButton: this.onLabelRemoveButtonClick,
-            helpButton: this.onHelpButtonClick,
-            exportSvgButton: this.onExportSvgButtonClick,
-            fullscreenButton: this.onFullscreenButtonClick,
-            standaloneButton: this.onStandaloneButtonClick
+        // Map of event types and element IDs to event handlers
+        const eventHandlers = {
+            change: {
+                autoCompileInput: this.onAutoCompileInputChange,
+                autoExecuteInput: this.onAutoExecuteInputChange,
+                showOutputInput: this.onShowOutputInputChange,
+                showBasicInput: this.onShowBasicInputChange,
+                showCompiledInput: this.onShowCompiledInputChange,
+                databaseSelect: this.onDatabaseSelectChange,
+                basicSearchInput: this.onBasicSearchInputChange,
+                exampleSelect: this.onExampleSelectChange,
+                compiledSearchInput: this.onCompiledSearchInputChange,
+                frameInput: this.onFrameInputChange,
+            },
+            click: {
+                outputOptionsButton: this.onOutputOptionsButtonClick,
+                compileButton: this.onCompileButtonClick,
+                enterButton: this.onEnterButtonClick,
+                executeButton: this.onExecuteButtonClick,
+                stopButton: this.onStopButtonClick,
+                pauseButton: this.onPauseButtonClick,
+                resumeButton: this.onResumeButtonClick,
+                resetButton: this.onResetButtonClick,
+                convertButton: this.onConvertButtonClick,
+                basicReplaceButton: this.onBasicReplaceButtonClick,
+                basicReplaceAllButton: this.onBasicReplaceAllButtonClick,
+                basicSearchButton: this.onBasicSearchButtonClick,
+                basicSearchNextButton: this.onBasicSearchNextButtonClick,
+                basicSearchPrevButton: this.onBasicSearchPrevButtonClick,
+                compiledReplaceButton: this.onCompiledReplaceButtonClick,
+                compiledReplaceAllButton: this.onCompiledReplaceAllButtonClick,
+                compiledSearchButton: this.onCompiledSearchButtonClick,
+                compiledSearchNextButton: this.onCompiledSearchNextButtonClick,
+                compiledSearchPrevButton: this.onCompiledSearchPrevButtonClick,
+                exampleSearchClearButton: this.onExampleSearchClearButtonClick,
+                labelAddButton: this.onLabelAddButtonClick,
+                labelRemoveButton: this.onLabelRemoveButtonClick,
+                helpButton: this.onHelpButtonClick,
+                exportSvgButton: this.onExportSvgButtonClick,
+                fullscreenButton: this.onFullscreenButtonClick,
+                standaloneButton: this.onStandaloneButtonClick
+            },
+            input: {
+                exampleSearchInput: this.debounce((e) => { this.onExampleSearchInputInput(e); }, () => 400),
+            },
+            keydown: {
+                basicSearchInput: (e) => this.onBasicSearchInputKeydown(e), // handle Enter key
+                compiledSearchInput: (e) => this.onCompiledSearchInputKeydown(e), // handle Enter key
+                exampleSearchInput: (e) => this.onExampleSearchInputKeydown(e),
+                exampleSelect: (e) => this.onExampleSelectKeydown(e)
+                //outputText: (e) => this.onOutputTextKeydown(e as KeyboardEvent),
+            },
         };
-        const inputAndSelectHandlers = {
-            autoCompileInput: this.onAutoCompileInputChange,
-            autoExecuteInput: this.onAutoExecuteInputChange,
-            showOutputInput: this.onShowOutputInputChange,
-            showBasicInput: this.onShowBasicInputChange,
-            showCompiledInput: this.onShowCompiledInputChange,
-            databaseSelect: this.onDatabaseSelectChange,
-            exampleSelect: this.onExampleSelectChange,
-            basicSearchInput: this.onBasicSearchInputChange,
-            compiledSearchInput: this.onCompiledSearchInputChange,
-            frameInput: this.onFrameInputChange,
-        };
-        // Attach event listeners for buttons
-        Object.entries(buttonHandlers).forEach(([id, handler]) => {
-            const element = this.htmlElements[id]; //window.document.getElementById(id) as HTMLButtonElement;
-            element.addEventListener("click", handler, false);
+        // Attach event listeners based on the eventHandlers map
+        Object.entries(eventHandlers).forEach(([eventType, handlers]) => {
+            Object.entries(handlers).forEach(([id, handler]) => {
+                const element = this.htmlElements[id];
+                element.addEventListener(eventType, handler, false);
+            });
         });
-        // Attach event listeners for inputs or selects
-        Object.entries(inputAndSelectHandlers).forEach(([id, handler]) => {
-            const element = this.htmlElements[id]; //window.document.getElementById(id) as HTMLInputElement | HTMLSelectElement;
-            element.addEventListener("change", handler, false); // handler.bind(this)
-        });
-        // Attach keydown listener for basicSearchInput to handle Enter key
-        const basicSearchInput = this.htmlElements.basicSearchInput;
-        //if (basicSearchInput) {
-        basicSearchInput.addEventListener("keydown", this.onBasicSearchInputKeydown, false);
-        //}
-        // Attach keydown listener for compiledSearchInput to handle Enter key
-        const compiledSearchInput = this.htmlElements.compiledSearchInput;
-        compiledSearchInput.addEventListener("keydown", this.onCompiledSearchInputKeydown, false);
         // Initialize CodeMirror editors
         const WinCodeMirror = window.CodeMirror;
         if (WinCodeMirror) {
@@ -1139,6 +1197,7 @@ export class UI {
         }, { once: true });
         const messageHandlerCallbacks = this.createMessageHandlerCallbacks();
         this.vmMain = new VmMain(messageHandlerCallbacks, () => this.createWebWorker());
+        this.htmlElements.exampleSearchInput.value = config.exampleFilter;
         // Initialize database and examples
         UI.asyncDelay(() => {
             const databaseMap = core.initDatabaseMap();

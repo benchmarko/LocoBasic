@@ -3,7 +3,8 @@
 "use strict";
 
 cpcBasic.addItem("", `
-REM primebe3 - Prime Benchmark (Sieve of Eratosthenes)
+REM primebe3 - Prime Benchmark (Eratosthenes)
+REM Sieve of Eratosthenes
 MODE 2
 DEFINT s ' DEFINT a-s,u-z
 n=5000

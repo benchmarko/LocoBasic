@@ -4047,6 +4047,7 @@ node dist/locobasic.js example=testpage action=compile | node
         debounceExecute: 400,
         debug: 0,
         example: "locobas",
+        exampleFilter: "",
         fileName: "",
         grammar: "basic", // basic or strict
         input: "",

@@ -80,6 +80,10 @@ body {
   resize: horizontal;
 }
 
+#exampleSelect {
+  width: 20em;
+}
+
 #outputText {
   font-family: monospace;
   white-space: pre;

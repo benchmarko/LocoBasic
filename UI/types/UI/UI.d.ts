@@ -83,6 +83,10 @@ export declare class UI implements IUI {
     private onBasicSearchInputKeydown;
     private onCompiledSearchInputChange;
     private onCompiledSearchInputKeydown;
+    private onExampleSearchInputInput;
+    private onExampleSearchInputKeydown;
+    private onExampleSelectKeydown;
+    private onExampleSearchClearButtonClick;
     private onFullscreenButtonClick;
     private onFrameInputChange;
     private static addLabels;
