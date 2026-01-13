@@ -671,9 +671,6 @@
                 this.cancelSpeech(); // maybe a speech was waiting
                 this.cancelGeolocation(); // maybe a geolocation was waiting
                 this.clickStartSpeechButton(); // we just did a user interaction
-                if (!this.htmlElements.labelRemoveButton.disabled) {
-                    this.getVmMain().resume();
-                }
                 this.htmlElements.stopButton.disabled = true;
                 this.htmlElements.pauseButton.disabled = true;
                 this.htmlElements.resumeButton.disabled = true;

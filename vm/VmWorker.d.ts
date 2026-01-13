@@ -1,6 +1,12 @@
 import type { BrowserWorkerThreadsType, MessageFromWorker, MessageToWorker, NodeWorkerThreadsType } from "../Interfaces";
 type RecursiveArray<T> = T | RecursiveArray<T>[];
 type RestoreMapType = Record<string, number>;
+type TimerType = {
+    fn: () => void;
+    timeout: number;
+    repeat: boolean;
+    id: (number | NodeJS.Timeout);
+};
 export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] | BrowserWorkerThreadsType["parentPort"]) => {
     _commaOpChar: string;
     _tabOpChar: string;
@@ -38,7 +44,7 @@ export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] 
     _stopRequested: boolean;
     _pausePromise: Promise<void> | undefined;
     _pauseResolvedFn: ((value: string) => void) | undefined;
-    _timerMap: Record<number, (number | NodeJS.Timeout)>;
+    _timerMap: Record<number, TimerType>;
     _vpos: number;
     _zone: number;
     _inputResolvedFn: ((value: string | null) => void) | null;
@@ -54,6 +60,11 @@ export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] 
     resolveInput: (input: string | null) => void;
     resolveWait: (result: string) => void;
     resolvePause: () => void;
+    pauseTimer: (timer: number) => void;
+    pauseAllTimers: () => void;
+    resumeTimer: (timer: number) => void;
+    resumeAllTimers: () => void;
+    createTimer: (timer: number, fn: () => void, timeout: number, repeat: boolean) => void;
     abs: (num: number) => number;
     after: (timeout: number, timer: number, fn: () => void) => void;
     asc: (str: string) => number;
@@ -124,7 +135,7 @@ export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] 
     printTabTag: (...args: (string | number)[]) => void;
     printText: (text: string) => void;
     read: () => string | number;
-    remain: (timer: number) => number | NodeJS.Timeout;
+    remain: (timer: number) => number;
     remainAll: () => void;
     restore: (label: string) => void;
     right$: (str: string, num: number) => string;

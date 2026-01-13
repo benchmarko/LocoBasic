@@ -158,15 +158,18 @@
                         vm._pausePromise = new Promise((resolve) => {
                             vm._pauseResolvedFn = () => resolve();
                         });
+                        vm.pauseAllTimers();
                         break;
                     case 'putKeys':
                         vm._keyBuffer.push(data.keys); // currently only one key
                         break;
                     case 'resume':
                         vm.resolvePause();
+                        vm.resumeAllTimers();
                         break;
                     case 'stop':
                         vm._stopRequested = true;
+                        vm.remainAll();
                         vm.resolvePause();
                         break;
                 }
@@ -212,10 +215,44 @@
                     vm._pausePromise = undefined;
                 }
             },
+            pauseTimer: (timer) => {
+                const timerObj = vm._timerMap[timer];
+                if (timerObj) {
+                    clearTimeout(timerObj.id);
+                    timerObj.id = 0;
+                }
+            },
+            pauseAllTimers: () => {
+                for (const timer in vm._timerMap) {
+                    vm.pauseTimer(Number(timer));
+                }
+            },
+            resumeTimer: (timer) => {
+                const timerObj = vm._timerMap[timer];
+                if (timerObj) {
+                    timerObj.id = timerObj.repeat ? setInterval(() => timerObj.fn(), timerObj.timeout) :
+                        setTimeout(() => timerObj.fn(), timerObj.timeout);
+                }
+            },
+            resumeAllTimers: () => {
+                for (const timer in vm._timerMap) {
+                    vm.resumeTimer(Number(timer));
+                }
+            },
+            createTimer: (timer, fn, timeout, repeat) => {
+                vm.remain(timer);
+                const timerObj = {
+                    fn,
+                    timeout,
+                    repeat,
+                    id: 0
+                };
+                vm._timerMap[timer] = timerObj;
+                vm.resumeTimer(timer);
+            },
             abs: (num) => Math.abs(num),
             after: (timeout, timer, fn) => {
-                vm.remain(timer);
-                vm._timerMap[timer] = setTimeout(() => fn(), timeout * 20);
+                vm.createTimer(timer, () => fn(), timeout * 20, false);
             },
             asc: (str) => str.charCodeAt(0),
             atn: (num) => Math.atan(num),
@@ -277,8 +314,7 @@
             end: () => vm.flush(),
             escapeText: (str) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;"),
             every: (timeout, timer, fn) => {
-                vm.remain(timer);
-                vm._timerMap[timer] = setInterval(() => fn(), timeout * 20);
+                vm.createTimer(timer, () => fn(), timeout * 20, true);
             },
             exp: (num) => Math.exp(num),
             fix: (num) => Math.trunc(num),
@@ -299,10 +335,26 @@
                 if (vm._pausePromise) {
                     await vm._pausePromise;
                 }
+                // Check again after pause resolves in case stop was called
                 if (vm._stopRequested) {
                     throw new Error("INFO: Program stopped");
                 }
-                return new Promise(resolve => setTimeout(() => resolve(), Date.now() % vm._frameTime));
+                return new Promise((resolve, reject) => {
+                    const timeoutId = setTimeout(() => {
+                        // Final check before resolving in case stop was requested during timeout
+                        if (vm._stopRequested) {
+                            reject(new Error("INFO: Program stopped"));
+                        }
+                        else {
+                            resolve();
+                        }
+                    }, Date.now() % vm._frameTime);
+                    // If stop is requested, clear the timeout immediately
+                    if (vm._stopRequested) {
+                        clearTimeout(timeoutId);
+                        reject(new Error("INFO: Program stopped"));
+                    }
+                });
             },
             getAnsiColorCodeForPen: (pen) => {
                 return vm._ansiColorCodes[vm._graColorsForPens[pen]];
@@ -571,12 +623,12 @@
                 }
             },
             remain: (timer) => {
-                const value = vm._timerMap[timer];
-                if (value !== undefined) {
-                    clearTimeout(value);
+                const timerObj = vm._timerMap[timer];
+                if (timerObj !== undefined) {
+                    clearTimeout(timerObj.id);
                     delete vm._timerMap[timer]; // eslint-disable-line @typescript-eslint/no-dynamic-delete
                 }
-                return value; // not really the remaining time
+                return 0; // not really the remaining time
             },
             remainAll: () => {
                 for (const timer in vm._timerMap) {
@@ -721,12 +773,7 @@
             if (!isNodeParentPort) {
                 parentPort.removeEventListener("error", errorEventHandler);
             }
-            fnScript(vm).then((result) => {
-                vm.remainAll();
-                vm.flush();
-                result = result !== null && result !== void 0 ? result : "";
-                vm.postMessage({ type: 'result', result });
-            }).catch((err) => {
+            const handleError = (err) => {
                 vm.remainAll();
                 const result = String(err);
                 if (result.startsWith("Error: INFO:")) {
@@ -737,7 +784,19 @@
                 }
                 vm.flush();
                 vm.postMessage({ type: 'result', result });
-            });
+            };
+            const promise = fnScript(vm).then((result) => {
+                vm.remainAll();
+                vm.flush();
+                result = result !== null && result !== void 0 ? result : "";
+                vm.postMessage({ type: 'result', result });
+            }).catch(handleError);
+            // Handle unhandled rejections in case of race conditions
+            if (isNodeParentPort) {
+                promise.catch((err) => {
+                    console.error("Unhandled promise rejection in VmWorker:", err);
+                });
+            }
         };
         // this function must not be async to generate synchronous error
         const onMessageHandler = (data) => {
