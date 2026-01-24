@@ -118,6 +118,14 @@
             _zone: 13,
             _inputResolvedFn: null,
             _waitResolvedFn: null,
+            convert2ControlCodes: (str) => {
+                let out = "";
+                for (let i = 0; i < str.length; i += 1) {
+                    const code = str.charCodeAt(i);
+                    out += String.fromCharCode(code >= 0x0100 && code <= 0x011F ? code - 0x0100 : code);
+                }
+                return out;
+            },
             deleteAllItems: (items) => {
                 Object.keys(items).forEach(key => delete items[key]); // eslint-disable-line @typescript-eslint/no-dynamic-delete
             },
@@ -482,7 +490,7 @@
                 });
             },
             instr: (str, find, len) => {
-                return str.indexOf(find, len !== undefined ? len - 1 : len) + 1;
+                return vm.convert2ControlCodes(str).indexOf(vm.convert2ControlCodes(find), len !== undefined ? len - 1 : len) + 1;
             },
             int: (num) => Math.floor(num),
             keyDef: (num, repeat, ...codes) => {

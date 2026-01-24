@@ -49,6 +49,7 @@ export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] 
     _zone: number;
     _inputResolvedFn: ((value: string | null) => void) | null;
     _waitResolvedFn: ((value: string) => void) | null;
+    convert2ControlCodes: (str: string) => string;
     deleteAllItems: (items: Record<string, unknown>) => void;
     formatCommaOrTab: (str: string) => string;
     formatNumber1: (arg: number) => string;

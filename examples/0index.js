@@ -196,6 +196,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Rectangles Test"
 		},
 		{
+			"key": "reftime",
+			"title": "Reference Timings Test"
+		},
+		{
 			"key": "seconds",
 			"title": "Seconds Test"
 		},
@@ -227,6 +231,10 @@ cpcBasic.addIndex("./examples", {
 			"key": "snowflak",
 			"title": "Snowflake"
 		},
+		{
+			"key": "starste1",
+			"title": "Stars Test 1"
+		},	
 		{
 			"key": "striart",
 			"title": "String Art"
