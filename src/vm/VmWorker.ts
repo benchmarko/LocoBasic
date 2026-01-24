@@ -137,6 +137,15 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         _inputResolvedFn: null as ((value: string | null) => void) | null,
         _waitResolvedFn: null as ((value: string) => void) | null,
 
+        convert2ControlCodes: (str: string): string => {
+            let out = "";
+            for (let i = 0; i < str.length; i += 1) {
+                const code = str.charCodeAt(i);
+                out += String.fromCharCode(code >= 0x0100 && code <= 0x011F ? code - 0x0100 : code);
+            }
+            return out;
+        },
+
         deleteAllItems: (items: Record<string, unknown>): void => {
             Object.keys(items).forEach(key => delete items[key]); // eslint-disable-line @typescript-eslint/no-dynamic-delete
         },
@@ -566,7 +575,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         },
 
         instr: (str: string, find: string, len: number) => {
-            return str.indexOf(find, len !== undefined ? len - 1 : len) + 1;
+            return vm.convert2ControlCodes(str).indexOf(vm.convert2ControlCodes(find), len !== undefined ? len - 1 : len) + 1;
         },
 
         int: (num: number) => Math.floor(num),
