@@ -18,7 +18,7 @@ export declare class UI implements IUI {
     private readonly fnOnUserKeyClickHandler;
     private speechSynthesisUtterance?;
     private locoVmWorkerName;
-    private pendingInputResolver?;
+    private consoleInputSubmit?;
     private geolocationPromiseRejecter?;
     private htmlElements;
     private openedPopover?;

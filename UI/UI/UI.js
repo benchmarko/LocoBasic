@@ -188,7 +188,12 @@ export class UI {
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onEnterButtonClick = (_event) => {
-            this.putKeysInBuffer("\x0d");
+            if (this.consoleInputSubmit) {
+                this.consoleInputSubmit("Enter");
+            }
+            else {
+                this.putKeysInBuffer("\x0d");
+            }
             this.clickStartSpeechButton(); // we just did a user interaction
         };
         this.onAutoCompileInputChange = (event) => {
@@ -231,10 +236,9 @@ export class UI {
             this.htmlElements.stopButton.disabled = true;
             this.htmlElements.pauseButton.disabled = true;
             this.htmlElements.resumeButton.disabled = true;
-            // Resolve any pending input promise
-            if (this.pendingInputResolver) {
-                this.pendingInputResolver(null);
-                this.pendingInputResolver = undefined;
+            // Resolve any pending input
+            if (this.consoleInputSubmit) {
+                this.consoleInputSubmit(null);
             }
             this.getVmMain().stop();
         };
@@ -257,10 +261,9 @@ export class UI {
             this.cancelSpeech();
             this.cancelGeolocation(); // maybe a geolocation was waiting
             this.clickStartSpeechButton(); // we just did a user interaction
-            // Resolve any pending input promise
-            if (this.pendingInputResolver) {
-                this.pendingInputResolver(null);
-                this.pendingInputResolver = undefined;
+            // Resolve any pending input
+            if (this.consoleInputSubmit) {
+                this.consoleInputSubmit(null);
             }
             this.getVmMain().reset();
             const frameInput = this.htmlElements.frameInput;
@@ -679,8 +682,6 @@ export class UI {
     showConsoleInput(prompt) {
         return new Promise((resolve) => {
             const outputText = this.htmlElements.outputText;
-            // Store the resolver for potential cancellation
-            this.pendingInputResolver = resolve;
             // Add prompt to output
             const promptDiv = document.createElement("div");
             promptDiv.textContent = prompt;
@@ -693,25 +694,26 @@ export class UI {
             // Auto-scroll to input
             this.scrollToBottom(outputText);
             input.focus();
-            const handleSubmit = () => {
-                const value = input.value;
-                // Replace input with submitted value
-                input.replaceWith(document.createTextNode(value + "\n"));
+            const handleSubmit = (submitKey) => {
+                const isEnter = submitKey === "Enter";
+                // Replace input with submitted value, or empty for cancel
+                input.replaceWith(document.createTextNode((isEnter ? input.value : "") + "\n"));
                 this.scrollToBottom(outputText);
-                this.pendingInputResolver = undefined;
-                resolve(value);
+                this.consoleInputSubmit = undefined;
+                resolve(isEnter ? input.value : null);
             };
             input.addEventListener("keypress", (e) => {
                 e.stopPropagation(); // Prevent event from bubbling to outputText listeners
                 if (e.key === "Enter") {
                     e.preventDefault();
-                    handleSubmit();
+                    handleSubmit(e.key);
                 }
             });
             // Also stop keydown propagation
             input.addEventListener("keydown", (e) => {
                 e.stopPropagation();
             });
+            this.consoleInputSubmit = handleSubmit;
         });
     }
     logVoiceDebugInfo(selectedVoice) {
