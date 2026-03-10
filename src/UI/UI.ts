@@ -88,7 +88,7 @@ export class UI implements IUI {
     private readonly fnOnUserKeyClickHandler: (event: MouseEvent) => void;
     private speechSynthesisUtterance?: SpeechSynthesisUtterance;
     private locoVmWorkerName = "";
-    private pendingInputResolver?: (value: string | null) => void;
+    private consoleInputSubmit?: (value: string | null) => void;
     private geolocationPromiseRejecter?: (value: string) => void;
     private htmlElements: ReturnType<typeof initHtmlElements>;
     private openedPopover?: HTMLSpanElement;
@@ -278,9 +278,6 @@ export class UI implements IUI {
         return new Promise<string | null>((resolve) => {
             const outputText = this.htmlElements.outputText;
 
-            // Store the resolver for potential cancellation
-            this.pendingInputResolver = resolve;
-
             // Add prompt to output
             const promptDiv = document.createElement("div");
             promptDiv.textContent = prompt;
@@ -296,20 +293,22 @@ export class UI implements IUI {
             this.scrollToBottom(outputText);
             input.focus();
 
-            const handleSubmit = () => {
-                const value = input.value;
-                // Replace input with submitted value
-                input.replaceWith(document.createTextNode(value + "\n"));
+            const handleSubmit = (submitKey: string | null) => {
+                const isEnter = submitKey === "Enter";
+
+                // Replace input with submitted value, or empty for cancel
+                input.replaceWith(document.createTextNode((isEnter ? input.value : "") + "\n"));
                 this.scrollToBottom(outputText);
-                this.pendingInputResolver = undefined;
-                resolve(value);
+
+                this.consoleInputSubmit = undefined;
+                resolve(isEnter ? input.value : null);
             };
 
             input.addEventListener("keypress", (e) => {
                 e.stopPropagation(); // Prevent event from bubbling to outputText listeners
                 if (e.key === "Enter") {
                     e.preventDefault();
-                    handleSubmit();
+                    handleSubmit(e.key);
                 }
             });
 
@@ -317,6 +316,8 @@ export class UI implements IUI {
             input.addEventListener("keydown", (e) => {
                 e.stopPropagation();
             });
+
+            this.consoleInputSubmit = handleSubmit;
         });
     }
 
@@ -525,7 +526,11 @@ export class UI implements IUI {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onEnterButtonClick = (_event: Event): void => { // bound this
-        this.putKeysInBuffer("\x0d");
+        if (this.consoleInputSubmit) {
+            this.consoleInputSubmit("Enter");
+        } else {
+            this.putKeysInBuffer("\x0d");
+        }
         this.clickStartSpeechButton(); // we just did a user interaction
     }
 
@@ -590,11 +595,11 @@ export class UI implements IUI {
         this.htmlElements.pauseButton.disabled = true;
         this.htmlElements.resumeButton.disabled = true;
 
-        // Resolve any pending input promise
-        if (this.pendingInputResolver) {
-            this.pendingInputResolver(null);
-            this.pendingInputResolver = undefined;
+        // Resolve any pending input
+        if (this.consoleInputSubmit) {
+            this.consoleInputSubmit(null);
         }
+
         this.getVmMain().stop();
     }
 
@@ -619,10 +624,10 @@ export class UI implements IUI {
         this.cancelSpeech();
         this.cancelGeolocation(); // maybe a geolocation was waiting
         this.clickStartSpeechButton(); // we just did a user interaction
-        // Resolve any pending input promise
-        if (this.pendingInputResolver) {
-            this.pendingInputResolver(null);
-            this.pendingInputResolver = undefined;
+
+        // Resolve any pending input
+        if (this.consoleInputSubmit) {
+            this.consoleInputSubmit(null);
         }
         this.getVmMain().reset();
 

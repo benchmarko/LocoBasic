@@ -5,9 +5,10 @@
 cpcBasic.addItem("", `
 REM euler - Compute e with 10000 digits
 MODE 2
-PRINT "Compute e with up to 10000 digits"
-INPUT "Number of digits (factor of 100):"; d
-'d=1000: ' can be set from 1000 to 10000
+PRINT "Compute e with up to 10000 digits (or more)"
+PRINT "Digits up to 10000 are checked."
+INPUT "Number of digits (minimum 1000; will be rounded to factors of 100):"; d
+'d=1000: ' can be set from 1000 to 10000 or more
 d=ROUND(d, -2)
 IF d<1000 THEN d=1000
 PRINT "Compute e with";d;"digits"
@@ -51,9 +52,8 @@ FOR i = 1 TO maxnum
   PRINT digit$;
   IF i MOD 13<>0 THEN PRINT " "; ELSE PRINT
   ' Check
-  IF c>LEN(c$) THEN READ c$:c=1
-  IF digit$<>MID$(c$,c,dpnum) THEN PRINT "Error at pos";i*dpnum+(c-1);":";digit$;"<>";MID$(c$,c,dpnum):STOP
-  c=c+dpnum
+  IF c>LEN(c$) THEN READ c$:c=1:IF c$="EOD" THEN PRINT "[No further check possible] ";:c=0
+  IF c>0 THEN IF digit$<>MID$(c$,c,dpnum) THEN PRINT "Error at pos";i*dpnum+(c-1);":";digit$;"<>";MID$(c$,c,dpnum):STOP ELSE c=c+dpnum
 NEXT
 PRINT
 END
@@ -204,4 +204,5 @@ DATA "57735429301867394397163886117642090040686633988568416810038723892144831760
 DATA "011668450388721236436704331409115573328018297798873659091665961240202177855"
 DATA "885487617616198937079438005666336488436508914480557103976521469602766258359"
 DATA "9051987042300179465536788"
+DATA "EOD"
 `);
