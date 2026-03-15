@@ -687,7 +687,34 @@ ${dataList.join(",\n")}
 			return thenStatement;
 		},
 
-		If(_iflit: Node, condExp: Node, thenStat: Node, colons: Node, elseLit: Node, elseStat: Node) {
+		IfElseBlock(_elseLit: Node, elseContent: Node, _elseSeparator: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			// IfElseBlock just returns the else body for IfBlock to use
+			return evalChildren(elseContent.children).join(';');
+		},
+
+		IfBlock(_ifLit: Node, condExp: Node, _thenLit: Node, thenContent: Node, _thenSeparator: Node, elseBlock: Node, _endifLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			const initialIndent = semanticsHelper.getIndentStr();
+			semanticsHelper.addIndent(2);
+			const increasedIndent = semanticsHelper.getIndentStr();
+
+			const condition = condExp.eval();
+			const thenBody = evalChildren(thenContent.children).join(';');
+
+			let result = `if (${condition}) {\n${increasedIndent}${thenBody}`;
+
+			// Handle optional ELSE block
+			if (elseBlock.child(0)) {
+				const elseBody = elseBlock.child(0).eval();
+				result += `\n${initialIndent}} else {\n${increasedIndent}${elseBody}`;
+			}
+
+			result += `\n${initialIndent}}`;
+
+			semanticsHelper.addIndent(-2);
+			return result;
+		},
+
+		If_singleLine(_iflit: Node, condExp: Node, thenStat: Node, colons: Node, elseLit: Node, elseStat: Node) {
 			const initialIndent = semanticsHelper.getIndentStr();
 			semanticsHelper.addIndent(2);
 			const increasedIndent = semanticsHelper.getIndentStr();
@@ -707,6 +734,10 @@ ${dataList.join(",\n")}
 
 			semanticsHelper.addIndent(-2);
 			return result;
+		},
+
+		If_multiLine(block: Node) {
+			return block.eval();
 		},
 
 		Ink(_inkLit: Node, num: Node, _comma: Node, col: Node, _comma2: Node, col2: Node) {

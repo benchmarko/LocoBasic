@@ -53,14 +53,14 @@ LocoBasic can be run in a browser or as a Node.js application.
 
 ## LocoBasic Language Description
 
-- Keywords (control structures, commands, and functions) should be in uppercase, but lowercase is also accepted.
+- A keyword (control structure, command or functions) must be written with uppercase chars or lowercase chars.
 
 ### Control Structures
 
-- **Supported:**
-  - `IF...THEN...ELSE`
-  - Loops: `FOR`...`NEXT` and `WHILE`...`WEND`
-- These structures are directly converted to JavaScript for execution.
+- Conditional execution:
+  - `IF...THEN...ELSE` (one line)
+  - `IF...THEN...ELSE...ENDIF` (multi-line, LocoBasic only)
+- Loops: `FOR`...`NEXT` and `WHILE`...`WEND`
 
 ### Subroutines
 
@@ -154,6 +154,7 @@ LocoBasic can be run in a browser or as a Node.js application.
 - `DRAWR x,y`: Draw a line relative with offset x,y.
 - `END` Ends execution.
   - This is currently the same as `STOP`.
+- `ENDIF` Ends a multi-line `IF`. (Only supported in LocoBasic.)
 - `ERASE variable, [variable,...]` Erases array variables.
   - Specify variable name without indices.
 - `ERROR number` Throws an error with *number*.
