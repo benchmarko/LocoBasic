@@ -86,7 +86,10 @@ export declare class Semantics implements ISemantics {
         Himem(lit: Node): string;
         IfExp_label(label: Node): string;
         IfThen_then(_thenLit: Node, thenStat: Node): any;
-        If(_iflit: Node, condExp: Node, thenStat: Node, colons: Node, elseLit: Node, elseStat: Node): string;
+        IfElseBlock(_elseLit: Node, elseContent: Node, _elseSeparator: Node): string;
+        IfBlock(_ifLit: Node, condExp: Node, _thenLit: Node, thenContent: Node, _thenSeparator: Node, elseBlock: Node, _endifLit: Node): string;
+        If_singleLine(_iflit: Node, condExp: Node, thenStat: Node, colons: Node, elseLit: Node, elseStat: Node): string;
+        If_multiLine(block: Node): any;
         Ink(_inkLit: Node, num: Node, _comma: Node, col: Node, _comma2: Node, col2: Node): string;
         Inkey(lit: Node, open: Node, num: Node, close: Node): string;
         InkeyS(_inkeySLit: Node): string;

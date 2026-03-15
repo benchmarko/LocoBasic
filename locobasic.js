@@ -745,8 +745,15 @@
       = then IfExp -- then
       | Goto
 
+    IfElseBlock
+      = else LoopBlockContent* LoopBlockSeparator
+
+    IfBlock
+      = if CondExp then LoopBlockContent* LoopBlockSeparator IfElseBlock? endif
+
     If
-      = if CondExp IfThen (":"* else IfExp)?
+      = if CondExp IfThen (":"* else IfExp)? -- singleLine
+      | IfBlock -- multiLine
 
     StrExp
       = StrAddExp
@@ -949,7 +956,7 @@
       = abs | after | and | asc | atn | auto | binS | border | break
       | call | cat | chain | chrS | cint | clear | clg | closein | closeout | cls | cont | copychrS | cos | creal | cursor
       | data | decS | def | defint | defreal | defstr | deg | delete | derr | di | dim | draw | drawr
-      | edit | ei | else | endLit | ent | env | eof | erase | erl | err | error | every | exp | fill | fix | fn | for | frame | fre | gosub | goto | graphics
+      | edit | ei | else | endif | endLit | ent | env | eof | erase | erl | err | error | every | exp | fill | fix | fn | for | frame | fre | gosub | goto | graphics
       | hexS | himem | if | ink | inkey | inkeyS|  inp | input | instr | int | joy | key | leftS | len | let | line | list | load | locate | log | log10 | lowerS
       | mask | max | memory | merge | midS | min | mod | mode | move | mover | new | next | not | on | openin | openout | or | origin | out
       | paper | peek | pen | pi | plot | plotr | poke | pos | print
@@ -1038,6 +1045,8 @@
       = ("ei" | "EI") ~identPart
     else
       = ("else" | "ELSE") ~identPart
+    endif
+      = ("endif" | "ENDIF") ~identPart
     endLit
       = ("end" | "END") ~identPart
     ent
@@ -1428,6 +1437,8 @@
       := "EI" ~identPart
     else
       := "ELSE" ~identPart
+    endif
+      := "ENDIF" ~identPart
     endLit
       := "END" ~identPart
     ent
@@ -2474,7 +2485,27 @@ ${dataList.join(",\n")}
                 const thenStatement = thenStat.eval();
                 return thenStatement;
             },
-            If(_iflit, condExp, thenStat, colons, elseLit, elseStat) {
+            IfElseBlock(_elseLit, elseContent, _elseSeparator) {
+                // IfElseBlock just returns the else body for IfBlock to use
+                return evalChildren(elseContent.children).join(';');
+            },
+            IfBlock(_ifLit, condExp, _thenLit, thenContent, _thenSeparator, elseBlock, _endifLit) {
+                const initialIndent = semanticsHelper.getIndentStr();
+                semanticsHelper.addIndent(2);
+                const increasedIndent = semanticsHelper.getIndentStr();
+                const condition = condExp.eval();
+                const thenBody = evalChildren(thenContent.children).join(';');
+                let result = `if (${condition}) {\n${increasedIndent}${thenBody}`;
+                // Handle optional ELSE block
+                if (elseBlock.child(0)) {
+                    const elseBody = elseBlock.child(0).eval();
+                    result += `\n${initialIndent}} else {\n${increasedIndent}${elseBody}`;
+                }
+                result += `\n${initialIndent}}`;
+                semanticsHelper.addIndent(-2);
+                return result;
+            },
+            If_singleLine(_iflit, condExp, thenStat, colons, elseLit, elseStat) {
                 var _a;
                 const initialIndent = semanticsHelper.getIndentStr();
                 semanticsHelper.addIndent(2);
@@ -2491,6 +2522,9 @@ ${dataList.join(",\n")}
                 }
                 semanticsHelper.addIndent(-2);
                 return result;
+            },
+            If_multiLine(block) {
+                return block.eval();
             },
             Ink(_inkLit, num, _comma, col, _comma2, col2) {
                 semanticsHelper.addInstr("ink");

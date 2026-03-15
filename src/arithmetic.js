@@ -675,8 +675,15 @@ export const arithmetic = {
       = then IfExp -- then
       | Goto
 
+    IfElseBlock
+      = else LoopBlockContent* LoopBlockSeparator
+
+    IfBlock
+      = if CondExp then LoopBlockContent* LoopBlockSeparator IfElseBlock? endif
+
     If
-      = if CondExp IfThen (":"* else IfExp)?
+      = if CondExp IfThen (":"* else IfExp)? -- singleLine
+      | IfBlock -- multiLine
 
     StrExp
       = StrAddExp
@@ -879,7 +886,7 @@ export const arithmetic = {
       = abs | after | and | asc | atn | auto | binS | border | break
       | call | cat | chain | chrS | cint | clear | clg | closein | closeout | cls | cont | copychrS | cos | creal | cursor
       | data | decS | def | defint | defreal | defstr | deg | delete | derr | di | dim | draw | drawr
-      | edit | ei | else | endLit | ent | env | eof | erase | erl | err | error | every | exp | fill | fix | fn | for | frame | fre | gosub | goto | graphics
+      | edit | ei | else | endif | endLit | ent | env | eof | erase | erl | err | error | every | exp | fill | fix | fn | for | frame | fre | gosub | goto | graphics
       | hexS | himem | if | ink | inkey | inkeyS|  inp | input | instr | int | joy | key | leftS | len | let | line | list | load | locate | log | log10 | lowerS
       | mask | max | memory | merge | midS | min | mod | mode | move | mover | new | next | not | on | openin | openout | or | origin | out
       | paper | peek | pen | pi | plot | plotr | poke | pos | print
@@ -968,6 +975,8 @@ export const arithmetic = {
       = ("ei" | "EI") ~identPart
     else
       = ("else" | "ELSE") ~identPart
+    endif
+      = ("endif" | "ENDIF") ~identPart
     endLit
       = ("end" | "END") ~identPart
     ent
@@ -1358,6 +1367,8 @@ export const arithmetic = {
       := "EI" ~identPart
     else
       := "ELSE" ~identPart
+    endif
+      := "ENDIF" ~identPart
     endLit
       := "END" ~identPart
     ent
