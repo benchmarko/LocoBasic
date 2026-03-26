@@ -1,0 +1,390 @@
+(* locobasic.ebnf *)
+
+(* 1. Program Structure *)
+
+Program      = { Line } ;
+Line         = [ Label ] , StatementList , eol ;
+StatementList = Statement , { ":" , Statement } ;
+
+
+(* 2. Statements (Commands) *)
+
+Statement =
+      Assignment
+    | ControlStatement
+    | IOStatement
+    | GraphicsStatement
+    | DataStatement
+    | SystemStatement
+    | Rem
+    | Rsx
+    | Comment ;
+
+
+(* 3. Assignment *)
+
+Assignment = [ "let" ] , AssignTarget ;
+
+AssignTarget =
+      ArrayIdent "=" NumExp
+    | StrArrayIdent "=" StrExp
+    | PlainIdent "=" NumExp
+    | StrPlainIdent "=" StrExp ;
+
+
+(* 4. Control Structures *)
+
+ControlStatement =
+      IfStmt
+    | ForStmt
+    | WhileStmt
+    | GosubStmt
+    | ReturnStmt
+    | OnGosubStmt
+    | ErrorStmt
+    | FrameStmt
+    | StopStmt
+    | EndStmt ;
+
+IfStmt =
+      "if" , CondExp , "then" , Statement
+    | "if" , CondExp , "then" , eol , { StatementList , eol } , "endif" ;
+
+ForStmt =
+      "for" , PlainIdent , "=" , NumExp , "to" , NumExp , [ "step" , NumExp ] , eol ,
+      { StatementList , eol } ,
+      "next" , [ PlainIdent ] ;
+
+WhileStmt =
+      "while" , CondExp , eol ,
+      { StatementList , eol } ,
+      "wend" ;
+
+GosubStmt  = "gosub" , Label ;
+ReturnStmt = "return" ;
+
+OnGosubStmt = "on" , NumExp , "gosub" , Label , { "," , Label } ;
+
+ErrorStmt      = "error" , NumExp ;
+FrameStmt      = "frame" ;
+StopStmt       = "stop" ;
+EndStmt        = "end" ;
+
+
+(* 5. Input / Output *)
+
+IOStatement =
+      InputStmt
+    | LineInputStmt
+    | PrintStmt
+    | WriteStmt
+    | InkStmt
+    | PenStmt
+    | PaperStmt ;
+
+InputStmt =
+      "input" , [ string , (";" | ",") ] ,
+      Ident , { "," , Ident } ;
+
+LineInputStmt =
+      "line" , "input" , [ string , (";" | ",") ] ,
+      StrIdent ;
+
+PrintStmt =
+      ("print" | "?") ,
+      [ PrintArg , { PrintSep , PrintArg } ] ,
+      [ ";" ] ;
+
+PrintArg = NumExp | StrExp | UsingClause | TabFunc | SpcFunc ;
+PrintSep = ";" | "," ;
+
+UsingClause = "using" , StrExp , ";" , NumExp , { ";" , NumExp } ;
+
+WriteStmt = "write" , WriteArg , { (";" | ",") , WriteArg } ;
+WriteArg  = NumExp | StrExp ;
+
+InkStmt     = "ink" , NumExp , "," , NumExp ;
+PenStmt     = "pen" , NumExp ;
+PaperStmt   = "paper" , NumExp ;
+
+(* 6. Graphics / Plotting *)
+
+GraphicsStatement =
+      DrawStmt
+    | DrawRStmt
+    | PlotStmt
+    | PlotRStmt
+    | MoveStmt
+    | MoveRStmt
+    | OriginStmt
+    | GraphicsPenStmt
+    | TagStmt
+    | TagOffStmt ;
+
+DrawStmt    = "draw" , NumExp , "," , NumExp , [ "," , NumExp ] ;
+DrawRStmt   = "drawr" , NumExp , "," , NumExp , [ "," , NumExp ] ;
+PlotStmt    = "plot" , NumExp , "," , NumExp , [ "," , NumExp ] ;
+PlotRStmt   = "plotr" , NumExp , "," , NumExp , [ "," , NumExp ] ;
+MoveStmt    = "move" , NumExp , "," , NumExp , [ "," , NumExp ] ;
+MoveRStmt   = "mover" , NumExp , "," , NumExp , [ "," , NumExp ] ;
+OriginStmt  = "origin" , NumExp , "," , NumExp ;
+GraphicsPenStmt = "graphics" , "pen" , NumExp ;
+TagStmt     = "tag" ;
+TagOffStmt  = "tagoff" ;
+
+
+(* 7. Data / Memory / Array *)
+
+DataStatement =
+      DataStmt
+    | ReadStmt
+    | RestoreStmt
+    | DimStmt
+    | EraseStmt
+    | DefIntStmt
+    | DefFnStmt ;
+
+DataStmt    = "data" , DataValue , { "," , DataValue } ;
+DataValue   = string | number ;
+ReadStmt = "read" , Ident , { "," , Ident } ;
+RestoreStmt = "restore" , [ Label ] ;
+
+
+DimStmt     = "dim" , DimArrayIdent , { "," , DimArrayIdent } ;
+EraseStmt   = "erase" , EraseIdent , { "," , EraseIdent } ;
+
+DefIntStmt  = "defint" , DefIntSpec , { "," , DefIntSpec } ;
+DefIntSpec  = letter , [ "-" , letter ] ;
+
+DefFnStmt = "def" , "fn" , DefAssign ;
+DefAssign =
+      identName , [ DefArgs ] , "=" , NumExp
+    | identName , [ DefArgs ] , "=" , StrExp ;
+
+DefArgs = "(" , DefArg , { "," , DefArg } , ")" ;
+DefArg = PlainIdent | StrPlainIdent ;
+
+
+(* 8. System Commands *)
+
+SystemStatement =
+      ClsStmt
+    | ModeStmt
+    | KeyDefStmt
+    | ZoneStmt
+    | AfterStmt
+    | EveryStmt
+    | ClearInputStmt
+    | DegStmt
+    | RadStmt ;
+
+ClsStmt     = "cls" ;
+ModeStmt    = "mode" , NumExp ;
+KeyDefStmt  = "key" , "def" , NumExp , "," , NumExp , "," , NumExp ;
+ZoneStmt    = "zone" , NumExp ;
+AfterStmt   = "after" , NumExp , [ "," , NumExp ] , "gosub" , Label ;
+EveryStmt   = "every" , NumExp , [ "," , NumExp ] , "gosub" , Label ;
+
+ClearInputStmt = "clear" , "input" ;
+
+DegStmt     = "deg" ;
+RadStmt     = "rad" ;
+
+
+(* 9. Expressions *)
+
+CondExp = NumExp ;
+
+NumExp  = OrExp ;
+OrExp   = AndExp , { "or" , AndExp } ;
+AndExp  = XorExp , { "and" , XorExp } ;
+XorExp  = NotExp , { "xor" , NotExp } ;
+NotExp  = [ "not" ] , CmpExp ;
+
+CmpExp  = AddExp , { CmpOp , AddExp } ;
+CmpOp   = "=" | "<>" | "<" | "<=" | ">" | ">=" ;
+
+AddExp  = MulExp , { ("+" | "-") , MulExp } ;
+MulExp  = PowExp , { ("*" | "/" | "mod" | "\\") , PowExp } ;
+PowExp  = PriExp , { "^" , PriExp } ;
+
+PriExp =
+      "(" , NumExp , ")"
+    | "+" , PriExp
+    | "-" , PriExp
+    | number
+    | PlainIdent
+    | ArrayIdent
+    | FnIdent
+    | NumFunc ;
+
+
+(* Numeric Functions *)
+
+NumFunc =
+      AbsFunc
+    | AscFunc
+    | AtnFunc
+    | CintFunc
+    | CosFunc
+    | CrealFunc
+    | ExpFunc
+    | FixFunc
+    | HexFunc
+    | InstrFunc
+    | IntFunc
+    | LenFunc
+    | LogFunc
+    | Log10Func
+    | MaxFunc
+    | MinFunc
+    | PiFunc
+    | PosFunc
+    | RemainFunc
+    | RndFunc
+    | RoundFunc
+    | SgnFunc
+    | SinFunc
+    | SqrFunc
+    | TanFunc
+    | TimeFunc
+    | ValFunc
+    | VposFunc
+    | XposFunc
+    | YposFunc ;
+
+AbsFunc     = "abs" , "(" , NumExp , ")" ;
+AscFunc     = "asc" , "(" , StrExp , ")" ;
+AtnFunc     = "atn" , "(" , NumExp , ")" ;
+CintFunc    = "cint" , "(" , NumExp , ")" ;
+CosFunc     = "cos" , "(" , NumExp , ")" ;
+CrealFunc   = "creal" , "(" , NumExp , ")" ;
+ExpFunc     = "exp" , "(" , NumExp , ")" ;
+FixFunc     = "fix" , "(" , NumExp , ")" ;
+HexFunc     = "hex$" , "(" , NumExp , [ "," , NumExp ] , ")" ;
+InstrFunc   = "instr" , "(" , [ NumExp , "," ] , StrExp , "," , StrExp , ")" ;
+IntFunc     = "int" , "(" , NumExp , ")" ;
+LenFunc     = "len" , "(" , StrExp , ")" ;
+LogFunc     = "log" , "(" , NumExp , ")" ;
+Log10Func   = "log10" , "(" , NumExp , ")" ;
+MaxFunc     = "max" , "(" , NumExp , { "," , NumExp } , ")" ;
+MinFunc     = "min" , "(" , NumExp , { "," , NumExp } , ")" ;
+PiFunc      = "pi" ;
+PosFunc     = "pos" , "(" , "#" , NumExp , ")" ;
+RemainFunc  = "remain" , "(" , NumExp , ")" ;
+RndFunc     = "rnd" ;
+RoundFunc   = "round" , "(" , NumExp , [ "," , NumExp ] , ")" ;
+SgnFunc     = "sgn" , "(" , NumExp , ")" ;
+SinFunc     = "sin" , "(" , NumExp , ")" ;
+SqrFunc     = "sqr" , "(" , NumExp , ")" ;
+TanFunc     = "tan" , "(" , NumExp , ")" ;
+TimeFunc    = "time" ;
+ValFunc     = "val" , "(" , StrExp , ")" ;
+VposFunc    = "vpos" , "(" , "#" , NumExp , ")" ;
+XposFunc    = "xpos" ;
+YposFunc    = "ypos" ;
+
+(* 10. String Expressions *)
+
+StrExp    = StrAddExp ;
+StrAddExp = StrPriExp , { "+" , StrPriExp } ;
+
+StrPriExp =
+      "(" , StrExp , ")"
+    | string
+    | StrIdent
+    | StrArrayIdent
+    | StrFuncs ;
+
+
+(* String Functions *)
+
+StrFuncs =
+      BinFunc
+    | ChrFunc
+    | DecFunc
+    | InkeyFunc
+    | LeftFunc
+    | LowerFunc
+    | MidFunc
+    | RightFunc
+    | SpaceFunc
+    | StrFunc
+    | StringFunc
+    | UpperFunc ;
+
+BinFunc     = "bin$" , "(" , NumExp , [ "," , NumExp ] , ")" ;
+ChrFunc     = "chr$" , "(" , NumExp , ")" ;
+DecFunc     = "dec$" , "(" , NumExp , "," , StrExp , ")" ;
+InkeyFunc   = "inkey$" ;
+LeftFunc    = "left$" , "(" , StrExp , "," , NumExp , ")" ;
+LowerFunc   = "lower$" , "(" , StrExp , ")" ;
+MidFunc     = "mid$" , "(" , StrExp , "," , NumExp , [ "," , NumExp ] , ")" ;
+RightFunc   = "right$" , "(" , StrExp , "," , NumExp , ")" ;
+SpaceFunc   = "space$" , "(" , NumExp , ")" ;
+StrFunc     = "str$" , "(" , NumExp , ")" ;
+StringFunc  = "string$" , "(" , NumExp , "," , ( StrExp | NumExp ) , ")" ;
+UpperFunc   = "upper$" , "(" , StrExp , ")" ;
+
+TabFunc     = "tab" , "(" , NumExp , ")" ;
+SpcFunc     = "spc" , "(" , NumExp , ")" ;
+
+
+(* 11. Identifiers *)
+
+PlainIdent     = ident ;
+StrIdent       = identName , "$" ;
+
+ArrayIdent     = ident , ( "(" | "[" ) , List1(NumExp) , ( ")" | "]" ) ;
+StrArrayIdent  = identName , "$" , ( "(" | "[" ) , List1(NumExp) , ( ")" | "]" ) ;
+
+FnIdent        = "fn" , identName , [ "(" , List1(NumExp | StrExp) , ")" ] ;
+
+DimArrayIdent  = ident , ( "(" | "[" ) , List1(NumExp) , ( ")" | "]" ) ;
+
+EraseIdent     = ident | identName , "$" ;
+
+Ident          = PlainIdent | StrIdent | ArrayIdent | StrArrayIdent ;
+
+
+(* 12. Generic Helper Rules *)
+
+Label     = digit , { digit } ;
+
+List1(X)  = X , { "," , X } ;
+
+ident     = identName ;
+identName = letter , { letter | digit | "." } ;
+
+(* 13. REM and RSX *)
+
+Rem = "rem" , { any - eol } ;
+
+Rsx = "|" , identName , [ RsxArgs ] ;
+
+RsxArgs = "," , RsxArg , { "," , RsxArg } ;
+
+RsxArg =
+      RsxAddressOf | NumExp | StrExp ;
+
+RsxAddressOf = "@" , Ident ;
+
+
+(* 14. Basic Tokens *)
+
+comment    = "'" , { any - eol } ;
+eol        = "\n" | "\r\n" | EOF ;
+letter     = "a".."z" | "A".."Z" ;
+digit      = "0".."9" ;
+hexDigit   = digit | "a".."f" | "A".."F" ;
+biDigit    = "0" | "1" ;
+
+number     = decNumber | hexNumber | binNumber ;
+
+decNumber  = digit , { digit } , [ "." , digit , { digit } ] , [ ("E" | "e") , [ "+" | "-" ] , digit , { digit } ] ;
+
+hexNumber  = "&" , hexDigit , { hexDigit } ;
+
+binNumber  = "&" , ("X" | "x") , biDigit , { biDigit } ;
+
+string     = '"' , { any - '"' } , '"' ;

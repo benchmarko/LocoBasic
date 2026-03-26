@@ -122,12 +122,12 @@ Keywords must be written in either all uppercase (preferred) or all lowercase ch
 
 #### DRAW
 
-- `DRAW x,y`: Draw a line to position x,y.
+- `DRAW x, y [, p]`: Draw a line to position x,y with optional [GRAPHICS PEN](#graphics-pen) p.
 - See also: [DRAWR](#drawr), [MOVE](#move), [PLOTR](#plot).
 
 #### DRAWR
 
-- `DRAWR x,y`: Draw a line relative with offset x,y.
+- `DRAWR x,y [, p]`: Draw a line relative with offset x,y with optional [GRAPHICS PEN](#graphics-pen) p.
 - See also: [DRAW](#draw), [MOVER](#mover), [PLOTR](#plotr).
 
 #### ELSE
@@ -222,17 +222,17 @@ t = TIME + 50: WHILE TIME < t: FAME: WEND
 
 #### MOVE
 
-- `MOVE x,y`: Move the graphical cursor to position x,y.
+- `MOVE x, y [, p]`: Move the graphical cursor to position x,y with optional [GRAPHICS PEN](#graphics-pen) p.
 - See also: [DRAWR](#drawr), [MOVER](#mover), [PLOT](#plot).
 
 #### MOVER
 
-- `MOVER x,y`: Move the graphical cursor relative with offset x,y.
+- `MOVER x, y [, p]`: Move the graphical cursor relative with offset x,y with optional [GRAPHICS PEN](#graphics-pen) p.
 - See also: [DRAWR](#drawr), [MOVE](#move), [PLOTR](#plot).
 
 #### NEXT
 
-- `NEXT [variable,variable...]` Closes a [FOR](#for) loop.
+- `NEXT [variable, variable...]` Closes a [FOR](#for) loop.
   Optional variables are assumed to match open `FOR` loops.
 - See also: [FOR](#for).
 
@@ -261,12 +261,12 @@ t = TIME + 50: WHILE TIME < t: FAME: WEND
 
 #### PLOT
 
-- `PLOT x,y`: Plot a point at position x,y.
+- `PLOT x, y [, p]`: Plot a point at position x,y with optional [GRAPHICS PEN](#graphics-pen) p.
 - See also: [DRAW](#draw), [MOVE](#move), [PLOTR](#plotr).
 
 #### PLOTR
 
-- `PLOTR x,y`: Plot a point relative with offset x,y.
+- `PLOTR x, y [, p]`: Plot a point relative with offset x,y with optional [GRAPHICS PEN](#graphics-pen) p.
 - See also: [DRAWR](#drawr), [MOVER](#mover), [PLOTR](#plot).
 
 #### PRINT
@@ -301,7 +301,7 @@ t = TIME + 50: WHILE TIME < t: FAME: WEND
 
 #### RESTORE
 
-- `RESTORE [line]` Resets the [DATA](#data) pointer to a specified *line* number.
+- `RESTORE [line]` Resets the [DATA](#data) pointer to an optional specified *line* number or the first *DATA* line.
 - See also: [DATA](#data), [READ](#read).
 
 #### RETURN
@@ -358,6 +358,18 @@ t = TIME + 50: WHILE TIME < t: FAME: WEND
 - `WHILE expression` Control structure: Repeats until *expression* evaluates to false.
 - Ended with [WEND](#wend) loop.
 - See also: [WEND](#wend).
+
+#### WRITE
+
+- `WRITE [argument1] [(;|,) argument2 (;|,) ...][;]` Outputs text and numbers. Text is quoted.
+
+Example:
+
+```basic
+a$="d": WRITE "abc";a$;7 '=> "abc","d",7
+```
+
+- See also: [PRINT](#print).
 
 #### ZONE
 
@@ -426,6 +438,10 @@ t = TIME + 50: WHILE TIME < t: FAME: WEND
 - `COS(number)` Returns the cosine of the given *number*.
 - *number* is interpreted as radians or degrees, depending on the active mode [RAD](#rad) or [DEG](#deg).
 - See also: [ATN](#atn), [SIN](#sin), [TAN](#tan).
+
+#### CREAL
+
+- `CREAL(number)` Returns *number*.
 
 #### DEC$
 
@@ -496,7 +512,7 @@ t = TIME + 50: WHILE TIME < t: FAME: WEND
 
 #### MAX
 
-- `MAX(number [,number,...])` Returns the maximum of the given numbers.
+- `MAX(number [, number, ...])` Returns the maximum of the given numbers.
 - See also: [MIN$](#min).
 
 #### MID$
@@ -507,7 +523,7 @@ t = TIME + 50: WHILE TIME < t: FAME: WEND
 
 #### MIN
 
-- `MIN(number [,number,...])` Returns the minimum of the given numbers.
+- `MIN(number [, number, ...])` Returns the minimum of the given numbers.
 - See also: [MAX$](#max).
 
 #### PI
@@ -630,7 +646,7 @@ t = TIME + 50: WHILE TIME < t: FAME: WEND
 - `|CIRCLE.cx,cy,r[,fillPen]` Draws a circle, creating shape [SVG circle](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/circle).
 - See also: [|ARC](#arc), [|ELLIPSE](#ellipse), [|POLYGON](#polygon), [|RECT](#rect).
 
-#### DATE
+#### |DATE
 
 - `d$=SPACE$(11): |DATE,@d$` Returns a date string in the format "ww DD MM YY" (ww=day of week) from the Real Time Clock (RTC). Use the address operator `@` to denote that the result of the RSX command should be written in the variable.
 - Link: [Dobbertin Smart Watch](https://www.cpcwiki.eu/index.php/Dobbertin_Smart_Watch).
@@ -709,6 +725,8 @@ t = TIME + 50: WHILE TIME < t: FAME: WEND
 
 ## Language specification
 
+You may find a full EBNF grammar for LocoBasic in [locoBasic.ebnf](./docs/locoBasic.ebnf).
+
 ### Program Structure
 
 - A program consists of lines:
@@ -772,7 +790,7 @@ Predcedences from (highest → lowest):
 - ^
 - unary + -
 - \* /
-- \ (integer division)
+- \\ (integer division)
 - [MOD](#mod)
 - \+ -
 - = <> < <= > >=
@@ -781,7 +799,7 @@ Predcedences from (highest → lowest):
 - [OR](#or)
 - [XOR](#xor)
 
-Operators \* / \ [MOD](#mod) + - [AND](#and) [OR](#or) [XOR](#xor) are left-associative, ^ is right-associative.
+Operators \* / \\ [MOD](#mod) + - [AND](#and) [OR](#or) [XOR](#xor) are left-associative, ^ is right-associative.
 
 ### Control Structures
 
@@ -826,10 +844,10 @@ Consequences:
 - The following keywords are not implemented:
 
  auto border break call cat chain clear clg closein closeout cont copychr$
- creal cursor defint defreal defstr delete derr di edit ei eof erl err fill fre
- goto graphicsPaper himem inkey inp joy key let line list load locate mask memory merge new
- on openin openout out peek poke pos randomize release renum resume run
- save sound spc speed sq swap symbol tab test testr troff tron unt vpos wait width window write zone
+ cursor defreal defstr delete derr di edit ei eof erl err fill fre
+ goto graphicsPaper himem inkey inp joy line list load locate mask memory merge new
+ openin openout out peek poke randomize release renum resume run
+ save sound speed sq swap symbol test testr troff tron unt wait width window
 
 - *GOTO*, *ON...GOTO* are not supported.
 - Nested subroutines are not supported.
