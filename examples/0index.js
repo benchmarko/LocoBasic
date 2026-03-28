@@ -56,6 +56,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Colour bars: Display"
 		},
 		{
+			"key": "colorbr2",
+			"title": "Colour bars 2 (RSX)"
+		},
+		{
 			"key": "country",
 			"title": "Countries and Cities"
 		},

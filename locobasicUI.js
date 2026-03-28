@@ -650,13 +650,13 @@
             this.onShowOutputInputChange = (event) => {
                 const showOutputInput = event.target;
                 const outputArea = this.htmlElements.outputArea;
-                outputArea.hidden = !outputArea.hidden;
+                outputArea.hidden = !showOutputInput.checked;
                 this.updateConfigParameter("showOutput", showOutputInput.checked);
             };
             this.onShowBasicInputChange = (event) => {
                 const showBasicInput = event.target;
                 const basicArea = this.htmlElements.basicArea;
-                basicArea.hidden = !basicArea.hidden;
+                basicArea.hidden = !showBasicInput.checked;
                 if (!basicArea.hidden) {
                     this.getBasicCm().refresh();
                 }
@@ -665,7 +665,7 @@
             this.onShowCompiledInputChange = (event) => {
                 const showCompiledInput = event.target;
                 const compiledArea = this.htmlElements.compiledArea;
-                compiledArea.hidden = !compiledArea.hidden;
+                compiledArea.hidden = !showCompiledInput.checked;
                 if (!compiledArea.hidden) {
                     this.getCompiledCm().refresh();
                 }
