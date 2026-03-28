@@ -549,7 +549,7 @@ export class UI implements IUI {
     private onShowOutputInputChange = (event: Event): void => { // bound this
         const showOutputInput = event.target as HTMLInputElement;
         const outputArea = this.htmlElements.outputArea;
-        outputArea.hidden = !outputArea.hidden;
+        outputArea.hidden = !showOutputInput.checked;
 
         this.updateConfigParameter("showOutput", showOutputInput.checked);
     }
@@ -558,7 +558,7 @@ export class UI implements IUI {
         const showBasicInput = event.target as HTMLInputElement;
 
         const basicArea = this.htmlElements.basicArea;
-        basicArea.hidden = !basicArea.hidden;
+        basicArea.hidden = !showBasicInput.checked;
         if (!basicArea.hidden) {
             this.getBasicCm().refresh();
         }
@@ -570,7 +570,7 @@ export class UI implements IUI {
         const showCompiledInput = event.target as HTMLInputElement;
 
         const compiledArea = this.htmlElements.compiledArea;
-        compiledArea.hidden = !compiledArea.hidden;
+        compiledArea.hidden = !showCompiledInput.checked;
         if (!compiledArea.hidden) {
             this.getCompiledCm().refresh();
         }

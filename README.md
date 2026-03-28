@@ -725,7 +725,7 @@ a$="d": WRITE "abc";a$;7 '=> "abc","d",7
 
 ## Language specification
 
-You may find a full EBNF grammar for LocoBasic in [locoBasic.ebnf](./docs/locoBasic.ebnf).
+You may find a full EBNF grammar for LocoBasic in [locobasic.ebnf](./docs/locobasic.ebnf).
 
 ### Program Structure
 
