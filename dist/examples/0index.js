@@ -284,6 +284,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Test Subroutines"
 		},
 		{
+			"key": "wheels",
+			"title": "Rotating Wheels"
+		},
+		{
 			"key": "xmastree",
 			"title": "Christmas tree"
 		},
