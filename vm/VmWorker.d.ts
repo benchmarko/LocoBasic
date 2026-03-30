@@ -28,6 +28,8 @@ export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] 
     _graOutputGraphicsIndex: number;
     _graOriginX: number;
     _graOriginY: number;
+    _graLastEmittedX: number;
+    _graLastEmittedY: number;
     _isTerminal: boolean;
     _keyBuffer: string[];
     _lastInkeyTime: number;
