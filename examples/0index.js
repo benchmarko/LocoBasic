@@ -113,7 +113,7 @@ cpcBasic.addIndex("./examples", {
 		},
 		{
 			"key": "funcarea",
-			"title": "Functional Area with Hidden Line"
+			"title": "Functional Area"
 		},
 		{
 			"key": "funcspec",
