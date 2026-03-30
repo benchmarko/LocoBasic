@@ -881,6 +881,8 @@ Consequences:
 
 - [Locomotive BASIC](https://www.cpcwiki.eu/index.php/Locomotive_BASIC) - Description of the CPC Basic Dialect
 
+- [GodSVG Editor](https://www.godsvg.com/editor/) - Edit SVG drawings
+
 - Another BASIC compiler: [ugBASIC](https://ugbasic.iwashere.eu/target/cpc#examples)
 
 ### **mv, 03/2026**

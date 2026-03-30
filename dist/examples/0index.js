@@ -112,6 +112,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Forest fire"
 		},
 		{
+			"key": "funcarea",
+			"title": "Functional Area with Hidden Line"
+		},
+		{
 			"key": "funcspec",
 			"title": "Functional Spectrum"
 		},
