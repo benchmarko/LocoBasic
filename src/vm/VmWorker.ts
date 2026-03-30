@@ -113,6 +113,8 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         _graOutputGraphicsIndex: -1,
         _graOriginX: 0,
         _graOriginY: 0,
+        _graLastEmittedX: 0,
+        _graLastEmittedY: 0,
 
         _isTerminal: false, // output for terminal
         _keyBuffer: [] as string[], // buffered pressed keys
@@ -327,6 +329,8 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             }
             vm._graGraphicsX = 0;
             vm._graGraphicsY = 0;
+            vm._graLastEmittedX = 0;
+            vm._graLastEmittedY = 0;
             vm._graOutputGraphicsIndex = -1;
             vm._output = "";
             vm._paperSpanPos = -1;
@@ -454,7 +458,9 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             y = Math.round(y);
 
             if (!vm._graGraphicsPathBuffer.length && type !== "M" && type !== "P") { // path must start with an absolute move
-                vm._graGraphicsPathBuffer.push(`M${vm._graGraphicsX + vm._graOriginX} ${399 - vm._graGraphicsY - vm._graOriginY}`);
+                vm._graLastEmittedX = vm._graGraphicsX + vm._graOriginX;
+                vm._graLastEmittedY = 399 - vm._graGraphicsY - vm._graOriginY;
+                vm._graGraphicsPathBuffer.push(`M${vm._graLastEmittedX} ${vm._graLastEmittedY}`);
             }
 
             const isAbsolute = type === type.toUpperCase();
@@ -469,11 +475,27 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
                 y = -y;
             }
 
+            // Skip MOVE if we're already at this position (works regardless of preceding command type)
+            if (type === "M" || type === "m") {
+                let compareX = x;
+                let compareY = y;
+                if (!isAbsolute) {
+                    // Convert relative to absolute screen coordinates
+                    compareX = vm._graGraphicsX + vm._graOriginX;
+                    compareY = 399 - vm._graGraphicsY - vm._graOriginY;
+                }
+                if (vm._graLastEmittedX === compareX && vm._graLastEmittedY === compareY) {
+                    return;
+                }
+            }
+
             const svgPathCmd = (type === "P" || type === "p")
                 ? `${isAbsolute ? "M" : "m"}${x} ${y}h1v1h-1v-1`
                 : `${type}${x} ${y}`;
 
             vm._graGraphicsPathBuffer.push(svgPathCmd);
+            vm._graLastEmittedX = x;
+            vm._graLastEmittedY = y;
         },
 
         graFlushGraphicsPath: (): void => {
@@ -511,8 +533,10 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             text = vm.escapeText(text);
             const yOffset = 16;
             const colorStyleStr = vm._graCurrGraphicsPen >= 0 ? `; color: ${vm.graGetRgbColorStringForPen(vm._graCurrGraphicsPen)}` : "";
-            vm.graAddGraphicsElement(`<text x="${vm._graGraphicsX + vm._graOriginX}" y="${399 - vm._graGraphicsY - vm._graOriginY + yOffset}" style="white-space: pre${colorStyleStr}">${text}</text>`);
+            vm._graLastEmittedY = 399 - vm._graGraphicsY - vm._graOriginY;
+            vm.graAddGraphicsElement(`<text x="${vm._graGraphicsX + vm._graOriginX}" y="${vm._graLastEmittedY + yOffset}" style="white-space: pre${colorStyleStr}">${text}</text>`);
             vm._graGraphicsX += text.length * 8; // assuming 8px width per character
+            vm._graLastEmittedX = vm._graGraphicsX + vm._graOriginX;
         },
 
         graSetOutputGraphicsIndex: (): void => {

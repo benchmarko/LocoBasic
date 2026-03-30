@@ -7,7 +7,7 @@ REM funcarea - Functional Area
 REM 26.11.1989
 REM Functional Area with Hidden Line Removal
 REM taken from: https://github.com/benchmarko/CPCBasicApps/blob/master/apps/math/funcarea.js
-REM Modifications: remove GOTOs; added animation; skip unnecessary MOVEs
+REM Modifications: remove GOTOs; added animation
 INK 0,0
 MODE 2
 DIM uh(639),oh(639)
@@ -32,14 +32,10 @@ RETURN
 310 FOR y=yu TO yo STEP dy
   x=xu:GOSUB 450:s1=sp:z1=ze
   GOSUB 480:f1=f
-  pdrawn=0
   FOR x=xu TO xo STEP dx
     GOSUB 450:s2=sp:z2=ze
     GOSUB 480
-    ' only MOVE when starting new segment
-    IF f=0 THEN pdrawn=0
-    IF f1+f=2 AND pdrawn=0 THEN MOVE s1,399-z1:pdrawn=1
-    IF f1+f=2 THEN DRAW s2,399-z2
+    IF f1+f=2 THEN MOVE s1,399-z1:DRAW s2,399-z2
     s1=s2:z1=z2:f1=f
   NEXT x
 NEXT y
@@ -48,14 +44,10 @@ RETURN
 380 FOR x=xo TO xu STEP -dx1
   y=yu:GOSUB 450:s1=sp:z1=ze
   GOSUB 480:f1=f
-  pdrawn=0
   FOR y=yu TO yo STEP dy1
     GOSUB 450:s2=sp:z2=ze
     GOSUB 480
-    ' only MOVE when starting new segment
-    IF f=0 THEN pdrawn=0
-    IF f1+f=2 AND pdrawn=0 THEN MOVE s1,399-z1:pdrawn=1
-    IF f1+f=2 THEN DRAW s2,399-z2
+    IF f1+f=2 THEN MOVE s1,399-z1:DRAW s2,399-z2
     s1=s2:z1=z2:f1=f
   NEXT y
 NEXT x
