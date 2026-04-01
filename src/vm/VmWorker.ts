@@ -489,9 +489,34 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
                 }
             }
 
-            const svgPathCmd = (type === "P" || type === "p")
-                ? `${isAbsolute ? "M" : "m"}${x} ${y}h1v1h-1v-1`
-                : `${type}${x} ${y}`;
+            let svgPathCmd: string;
+            if (type === "L" || type === "l") {
+                // Optimize line commands to use H/V/h/v when applicable
+                if (isAbsolute) {
+                    // Absolute L command
+                    if (y === vm._graLastEmittedY) {
+                        svgPathCmd = `H${x}`;  // Horizontal line to x
+                    } else if (x === vm._graLastEmittedX) {
+                        svgPathCmd = `V${y}`;  // Vertical line to y
+                    } else {
+                        svgPathCmd = `${type}${x} ${y}`;  // Diagonal line
+                    }
+                } else {
+                    // Relative l command
+                    if (x === 0) {
+                        svgPathCmd = `v${y}`;  // Vertical line by y
+                    } else if (y === 0) {
+                        svgPathCmd = `h${x}`;  // Horizontal line by x
+                    } else {
+                        svgPathCmd = `${type}${x} ${y}`;  // Diagonal line
+                    }
+                }
+            } else if (type === "P" || type === "p") {
+                // Plot command: draw 1x1 pixel square
+                svgPathCmd = `${isAbsolute ? "M" : "m"}${x} ${y}h1v1h-1v-1`;
+            } else {
+                svgPathCmd = `${type}${x} ${y}`;
+            }
 
             vm._graGraphicsPathBuffer.push(svgPathCmd);
             vm._graLastEmittedX = x;
