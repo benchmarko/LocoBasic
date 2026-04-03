@@ -34,6 +34,7 @@ export type ConfigType = {
     showBasic: boolean;
     showCompiled: boolean;
     showOutput: boolean;
+    outputConsole: boolean;
 };
 
 // Type definition for a defined label entry (line label)

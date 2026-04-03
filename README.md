@@ -99,14 +99,13 @@ Keywords must be written in either all uppercase (preferred) or all lowercase ch
 #### DEFINT
 
 - `DEFINT a` Defines, that (numerical) array variables starting with letter "a" will be integer. - That means, when you use DIM a(num), a typed Int16Array is created instead of an untyped Array.
-- **Note:** In LocoBasic, the flag is used at compile time starting from its lexical position and not dynamically during execution. Has has only an effect for following *DIM* with one dimension, not on plain variables.
+- **Note:** In LocoBasic, activation of the functionality is determined at compile time starting from its lexical position and not dynamically during execution. Has has only an effect for following *DIM* with one dimension, not on plain variables.
     Do not rely on that the integer will be 16 bit. The implementation may use Int32Array or something else later.
 
 #### DEG
 
 - `DEG` Switches to degrees mode for the functions [ATN](#atn), [COS](#cos), [SIN](#sin) and [TAN](#tan).
-- Switch back to radians mode with [RAD](#rad).
-- **Note:** In LocoBasic, the flag is used at compile time starting from its lexical position and not dynamically during execution. Therefore, it is recommended to place it at the top of the code.
+- **Note:** In LocoBasic, the flag is used at compile time starting from its lexical position and not dynamically during execution.
 - See also: [RAD](#rad).
 
 #### DIM
@@ -285,7 +284,6 @@ t = TIME + 50: WHILE TIME < t: FAME: WEND
 #### RAD
 
 - `RAD` Switches to radians mode (default) for the functions [ATN](#atn), [COS](#cos), [SIN](#sin) and [TAN](#tan).
-- Switch to degrees mode with [DEG](#deg).
 - **Note:** In LocoBasic, the flag is used at compile time starting from its lexical position and not dynamically during execution.
 - See also: [DEG](#deg).
 
@@ -346,7 +344,7 @@ t = TIME + 50: WHILE TIME < t: FAME: WEND
 
 - `PRINT... USING formatString` uses *formatString* to format print arguments.
 - Allowed characters: ... (TODO).
-- See also: [DEG](#deg), [PRINT](#print).
+- See also: [DEC$](#dec), [PRINT](#print).
 
 #### WEND
 
@@ -513,7 +511,7 @@ a$="d": WRITE "abc";a$;7 '=> "abc","d",7
 #### MAX
 
 - `MAX(number [, number, ...])` Returns the maximum of the given numbers.
-- See also: [MIN$](#min).
+- See also: [MIN](#min).
 
 #### MID$
 
@@ -524,7 +522,7 @@ a$="d": WRITE "abc";a$;7 '=> "abc","d",7
 #### MIN
 
 - `MIN(number [, number, ...])` Returns the minimum of the given numbers.
-- See also: [MAX$](#max).
+- See also: [MAX](#max).
 
 #### PI
 
@@ -576,6 +574,7 @@ a$="d": WRITE "abc";a$;7 '=> "abc","d",7
 #### SPC
 
 - `SPC(number)` In [PRINT](#print), outputs *number* spaces before the next argument.
+- See also: [PRINT](#print).
 
 #### SQR
 
@@ -594,6 +593,7 @@ a$="d": WRITE "abc";a$;7 '=> "abc","d",7
 #### TAB
 
 - `TAB(number)` In [PRINT](#print), outputs the next argument at position *number*.
+- See also: [PRINT](#print).
 
 #### TAN
 
@@ -634,7 +634,7 @@ a$="d": WRITE "abc";a$;7 '=> "abc","d",7
 
 ### Resident System Extensions (RSX)
 
-- These are extensions to LocoBasic but can also be implemented on a real CPC with Z80 code.
+These are extensions to LocoBasic but can also be implemented on a real CPC with Z80 code.
 
 #### |ARC
 
@@ -690,12 +690,12 @@ a$="d": WRITE "abc";a$;7 '=> "abc","d",7
 - **Endless Loops**
   - The compiled code runs in a Web Worker or Worker Thread. The "Reset" button terminates the Web Worker and also an endless loop.
 - **STOP and END**
-  - these commands stop execution, but only at the top level. Within subroutines, they simply return.
+  - These commands stop execution, but only at the top level. Within subroutines, they simply return.
   - During *FRAME*, *INKEY$* or *INPUT*, the "Stop" button gets active. It allows you to terminate the running program. It is not possible to continue a terminated program.
 - **PEN and PAPER**
   - When using node.js in a terminal, ANSI colors are used.
-- **GRAPHICS PEN, DRAW, DRAWR, MOVE, MOVER, PLOT, PLOTR, TAG (and PRINT), |ARC, |CIRCLE, |ELLIPSE, |RECT**
-  - These can be used to create [Scalable Vector Graphics](https://developer.mozilla.org/en-US/docs/Web/SVG) (SVG), which can be exported with the "SVG" button. Graphics are separate from text.
+- **GRAPHICS PEN, DRAW, DRAWR, MOVE, MOVER, PLOT, PLOTR, TAG (and PRINT), |ARC, |CIRCLE, |ELLIPSE, |POLYGON, |RECT**
+  - These can be used to create [Scalable Vector Graphics](https://developer.mozilla.org/en-US/docs/Web/SVG) (SVG), which can be exported with the "Export SVG" button. Graphics are separate from text.
 - **FRAME and Visual Delays**
   - Text and graphics output is buffered until it is flushed with *FRAME* (or *INKEY$*, *INPUT*) or at the end of the program.
   - To start new text or graphical output after *FRAME*, use *CLS* or *MODE*.
@@ -855,6 +855,28 @@ Consequences:
 - Text windows (*WINDOW*) are not supported.
 - Streams using prefix '#' (e.g. *PRINT*, *CLS*, *INPUT*) are not supported.
   - Exception: *POS(#0)*, *VPOS(#0)* with stream 0.
+
+---
+
+## Command line options and URL parameters
+
+- action=compile,run -- Possible actions: compile,run (compile and run) or compile (compile only and output script)
+- autoCompile=true -- Automatic compile to JavaScript when BASIC code changes (Browser)
+- autoExecute=true -- Automatic execute when JavaScript code changes (Browser)
+- databaseDirs=examples -- Example base directories (comma separated)
+- database=examples -- Selected database available in **databaseDirs**, e.g. examples, apps, saved
+- debounceCompile=800 -- Debounce delay for **autoCompile** in ms (Browser)
+- debounceExecute=400 -- Debounce delay for **autoExecute** in ms (Browser)
+- debug=0 -- Debug level
+- example=locobas -- Selected example in the current **database**
+- exampleFilter= -- Example filter value for the search field (Browser)
+- fileName= -- Specify a BASIC file (nodeJS)
+- grammar=basic -- Possible options: basic or strict
+- input= -- Specify a BASIC string (nodeJS)
+- outputConsole=false -- Redirect output to the Browser Devtools console
+- showBasic=true -- Show the BASIC editor (Browser)
+- showCompiled=false -- Show the JavaScript editor (Browser)
+- showOutput=true -- Show the output box (Browser)
 
 ---
 

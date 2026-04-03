@@ -31,6 +31,7 @@ const core: ICore = new Core({
     fileName: "",
     grammar: "basic", // basic or strict
     input: "",
+    outputConsole: false,
     showBasic: true,
     showCompiled: false,
     showOutput: true

@@ -57,6 +57,7 @@ function initHtmlElements() {
         labelAddButton: doc.getElementById("labelAddButton") as HTMLButtonElement,
         labelRemoveButton: doc.getElementById("labelRemoveButton") as HTMLButtonElement,
         outputArea: doc.getElementById("outputArea") as HTMLDivElement,
+        outputConsoleInput: doc.getElementById("outputConsoleInput") as HTMLInputElement,
         outputOptionsButton: doc.getElementById("outputOptionsButton") as HTMLButtonElement,
         outputOptionsPopover: doc.getElementById("outputOptionsPopover") as HTMLSpanElement,
         outputText: doc.getElementById("outputText") as HTMLDivElement,
@@ -224,6 +225,18 @@ export class UI implements IUI {
             this.htmlElements.exportSvgButton.disabled = false;
         } else {
             this.scrollToBottom(outputText);
+        }
+    }
+
+    addOutputToBrowserConsole = (str: string, needCls?: boolean, hasGraphics?: boolean) => { // bound this
+        if (needCls) {
+            console.clear();
+        }
+        if (hasGraphics) {
+            const svgDataUrl = `data:image/svg+xml;base64,${btoa(str)}`; // we assume the str is the full SVG content
+            console.log('%c ', `background-image: url(${ svgDataUrl }); padding-left: 320px; padding-top: 200px;`);
+        } else {
+            console.log(str);
         }
     }
 
@@ -576,6 +589,11 @@ export class UI implements IUI {
         }
 
         this.updateConfigParameter("showCompiled", showCompiledInput.checked);
+    }
+
+    private onOutputConsoleInputChange = (event: Event): void => { // bound this
+        const outputConsoleInput = event.target as HTMLInputElement;
+        this.updateConfigParameter("outputConsole", outputConsoleInput.checked);
     }
 
     private clickStartSpeechButton() {
@@ -1254,7 +1272,12 @@ export class UI implements IUI {
     private createMessageHandlerCallbacks() {
         const callbacks: VmMessageHandlerCallbacks = {
             onFlush: (message: string, needCls?: boolean, hasGraphics?: boolean) => {
-                this.addOutputText(message, needCls, hasGraphics);
+                const outputConsole = this.getCore().getConfigMap().outputConsole;
+                if (outputConsole) {
+                    this.addOutputToBrowserConsole(message, needCls, hasGraphics);
+                } else {
+                    this.addOutputText(message, needCls, hasGraphics);
+                }
             },
             onInput: async (prompt: string) => {
                 const input = await this.showConsoleInput(prompt);
@@ -1289,14 +1312,15 @@ export class UI implements IUI {
             change: {
                 autoCompileInput: this.onAutoCompileInputChange,
                 autoExecuteInput: this.onAutoExecuteInputChange,
+                basicSearchInput: this.onBasicSearchInputChange,
+                compiledSearchInput: this.onCompiledSearchInputChange,
+                databaseSelect: this.onDatabaseSelectChange,
+                exampleSelect: this.onExampleSelectChange,
+                frameInput: this.onFrameInputChange,
+                outputConsoleInput: this.onOutputConsoleInputChange,
                 showOutputInput: this.onShowOutputInputChange,
                 showBasicInput: this.onShowBasicInputChange,
                 showCompiledInput: this.onShowCompiledInputChange,
-                databaseSelect: this.onDatabaseSelectChange,
-                basicSearchInput: this.onBasicSearchInputChange,
-                exampleSelect: this.onExampleSelectChange,
-                compiledSearchInput: this.onCompiledSearchInputChange,
-                frameInput: this.onFrameInputChange,
             },
             click: {
                 outputOptionsButton: this.onOutputOptionsButtonClick,
@@ -1394,11 +1418,12 @@ export class UI implements IUI {
         });
 
         // Sync UI state with config
+        this.syncInputState(this.htmlElements.autoCompileInput, config.autoCompile);
+        this.syncInputState(this.htmlElements.autoExecuteInput, config.autoExecute);
+        this.syncInputState(this.htmlElements.outputConsoleInput, config.outputConsole);
         this.syncInputState(this.htmlElements.showOutputInput, config.showOutput);
         this.syncInputState(this.htmlElements.showBasicInput, config.showBasic);
         this.syncInputState(this.htmlElements.showCompiledInput, config.showCompiled);
-        this.syncInputState(this.htmlElements.autoCompileInput, config.autoCompile);
-        this.syncInputState(this.htmlElements.autoExecuteInput, config.autoExecute);
 
         window.document.addEventListener("click", () => {
             this.initialUserAction = true;
