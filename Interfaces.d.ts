@@ -29,6 +29,7 @@ export type ConfigType = {
     showBasic: boolean;
     showCompiled: boolean;
     showOutput: boolean;
+    outputConsole: boolean;
 };
 export type DefinedLabelEntryType = {
     label: string;

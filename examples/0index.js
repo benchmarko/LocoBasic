@@ -93,7 +93,7 @@ cpcBasic.addIndex("./examples", {
 		},
 		{
 			"key": "drawsp2",
-			"title": "Draw a spherecal)"
+			"title": "Draw a sphere (graphical)"
 		},
 		{
 			"key": "elizabos",

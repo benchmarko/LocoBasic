@@ -486,6 +486,7 @@
             labelAddButton: doc.getElementById("labelAddButton"),
             labelRemoveButton: doc.getElementById("labelRemoveButton"),
             outputArea: doc.getElementById("outputArea"),
+            outputConsoleInput: doc.getElementById("outputConsoleInput"),
             outputOptionsButton: doc.getElementById("outputOptionsButton"),
             outputOptionsPopover: doc.getElementById("outputOptionsPopover"),
             outputText: doc.getElementById("outputText"),
@@ -524,6 +525,18 @@
                 }
                 else {
                     this.scrollToBottom(outputText);
+                }
+            };
+            this.addOutputToBrowserConsole = (str, needCls, hasGraphics) => {
+                if (needCls) {
+                    console.clear();
+                }
+                if (hasGraphics) {
+                    const svgDataUrl = `data:image/svg+xml;base64,${btoa(str)}`; // we assume the str is the full SVG content
+                    console.log('%c ', `background-image: url(${svgDataUrl}); padding-left: 320px; padding-top: 200px;`);
+                }
+                else {
+                    console.log(str);
                 }
             };
             this.onSetUiKeys = (codes) => {
@@ -670,6 +683,10 @@
                     this.getCompiledCm().refresh();
                 }
                 this.updateConfigParameter("showCompiled", showCompiledInput.checked);
+            };
+            this.onOutputConsoleInputChange = (event) => {
+                const outputConsoleInput = event.target;
+                this.updateConfigParameter("outputConsole", outputConsoleInput.checked);
             };
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             this.onStopButtonClick = (_event) => {
@@ -1506,7 +1523,13 @@
         createMessageHandlerCallbacks() {
             const callbacks = {
                 onFlush: (message, needCls, hasGraphics) => {
-                    this.addOutputText(message, needCls, hasGraphics);
+                    const outputConsole = this.getCore().getConfigMap().outputConsole;
+                    if (outputConsole) {
+                        this.addOutputToBrowserConsole(message, needCls, hasGraphics);
+                    }
+                    else {
+                        this.addOutputText(message, needCls, hasGraphics);
+                    }
                 },
                 onInput: async (prompt) => {
                     const input = await this.showConsoleInput(prompt);
@@ -1538,14 +1561,15 @@
                 change: {
                     autoCompileInput: this.onAutoCompileInputChange,
                     autoExecuteInput: this.onAutoExecuteInputChange,
+                    basicSearchInput: this.onBasicSearchInputChange,
+                    compiledSearchInput: this.onCompiledSearchInputChange,
+                    databaseSelect: this.onDatabaseSelectChange,
+                    exampleSelect: this.onExampleSelectChange,
+                    frameInput: this.onFrameInputChange,
+                    outputConsoleInput: this.onOutputConsoleInputChange,
                     showOutputInput: this.onShowOutputInputChange,
                     showBasicInput: this.onShowBasicInputChange,
                     showCompiledInput: this.onShowCompiledInputChange,
-                    databaseSelect: this.onDatabaseSelectChange,
-                    basicSearchInput: this.onBasicSearchInputChange,
-                    exampleSelect: this.onExampleSelectChange,
-                    compiledSearchInput: this.onCompiledSearchInputChange,
-                    frameInput: this.onFrameInputChange,
                 },
                 click: {
                     outputOptionsButton: this.onOutputOptionsButtonClick,
@@ -1626,11 +1650,12 @@
                 }
             });
             // Sync UI state with config
+            this.syncInputState(this.htmlElements.autoCompileInput, config.autoCompile);
+            this.syncInputState(this.htmlElements.autoExecuteInput, config.autoExecute);
+            this.syncInputState(this.htmlElements.outputConsoleInput, config.outputConsole);
             this.syncInputState(this.htmlElements.showOutputInput, config.showOutput);
             this.syncInputState(this.htmlElements.showBasicInput, config.showBasic);
             this.syncInputState(this.htmlElements.showCompiledInput, config.showCompiled);
-            this.syncInputState(this.htmlElements.autoCompileInput, config.autoCompile);
-            this.syncInputState(this.htmlElements.autoExecuteInput, config.autoExecute);
             window.document.addEventListener("click", () => {
                 this.initialUserAction = true;
             }, { once: true });

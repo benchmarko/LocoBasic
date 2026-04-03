@@ -4094,6 +4094,7 @@ node dist/locobasic.js example=testpage action=compile | node
         fileName: "",
         grammar: "basic", // basic or strict
         input: "",
+        outputConsole: false,
         showBasic: true,
         showCompiled: false,
         showOutput: true

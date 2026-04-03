@@ -39,6 +39,7 @@ export declare class UI implements IUI {
     getCurrentDataKey(): string;
     private scrollToBottom;
     addOutputText: (str: string, needCls?: boolean, hasGraphics?: boolean) => void;
+    addOutputToBrowserConsole: (str: string, needCls?: boolean, hasGraphics?: boolean) => void;
     private onUserKeyClick;
     private onSetUiKeys;
     private waitForVoices;
@@ -61,6 +62,7 @@ export declare class UI implements IUI {
     private onShowOutputInputChange;
     private onShowBasicInputChange;
     private onShowCompiledInputChange;
+    private onOutputConsoleInputChange;
     private clickStartSpeechButton;
     private onStopButtonClick;
     private onPauseButtonClick;
