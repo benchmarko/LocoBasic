@@ -37,7 +37,7 @@ function initHtmlElements() {
         executeButton: doc.getElementById("executeButton"),
         exportSvgButton: doc.getElementById("exportSvgButton"),
         frameInput: window.document.getElementById("frameInput"),
-        frameInputLabel: window.document.getElementById("frameInputLabel"),
+        frameInputLabelNumber: window.document.getElementById("frameInputLabelNumber"),
         fullscreenButton: doc.getElementById("fullscreenButton"),
         helpButton: doc.getElementById("helpButton"),
         labelAddButton: doc.getElementById("labelAddButton"),
@@ -466,7 +466,7 @@ export class UI {
             const frameInput = event.target;
             const value = Number(frameInput.value);
             this.getVmMain().frameTime(value);
-            this.htmlElements.frameInputLabel.innerText = `${frameInput.value} ms`;
+            this.htmlElements.frameInputLabelNumber.innerText = `${frameInput.value}`;
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onLabelAddButtonClick = (_event) => {

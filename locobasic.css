@@ -111,6 +111,58 @@ body {
   flex-wrap: wrap;
 }
 
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.action-buttons button {
+  cursor: pointer;
+}
+
+
+.convert-popover {
+  right: -30px;  /* Shift slightly right from button */
+}
+
+.convert-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.convert-buttons button {
+  /* padding: 4px 10px; */
+  flex: 1;
+  min-width: 60px;
+}
+
+
+.search-group,
+.replace-group {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin: 4px 0;
+}
+
+.search-buttons,
+.replace-buttons {
+  display: flex;
+  gap: 2px;
+}
+
+.search-group input,
+.replace-group input {
+  flex: 1;
+}
+
+.search-buttons button,
+.replace-buttons button {
+  padding: 2px 6px;
+  font-size: 0.9em;
+}
+
 /* Console input for interactive programs */
 .console-input {
   display: block;
