@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <link rel="stylesheet" href="locobasic.css">
   <link rel="icon" href="favicon.ico">
-  <title>LocoBasic v0.5.29</title>
+  <title>LocoBasic v0.5.30</title>
 </head>
 
 <body>
@@ -17,49 +17,44 @@
         <span id="outputOptionsPopover" class="popover" hidden>
           <fieldset>
             <legend title="LocoBasic Options">LocoBasic Options</legend>
-            <fieldset>
-              <legend title="Output Options">Output</legend>
+            <div>
               <input id="showOutputInput" type="checkbox" title="Show Output" autocomplete="off" checked>
-              <label for="showOutputInput" title="Show Output">Show</label>
-            </fieldset>
-            <fieldset>
-              <legend title="Execute Options">Execute</legend>
+              <label for="showOutputInput" title="Show Output">Show Output</label>
+            </div>
+            <div>
               <input id="autoExecuteInput" type="checkbox" title="Automatic Execute" autocomplete="off" checked>
               <label id="autoExecuteInputLabel" for="autoExecuteInput" title="Automatic Execute on change">Auto Execute</label>
-            </fieldset>
-            <fieldset>
-              <legend title="BASIC Options">BASIC</legend>
+            </div>
+            <div>
               <input id="showBasicInput" type="checkbox" title="Show BASIC" autocomplete="off" checked>
-              <label for="showBasicInput" title="Show BASIC">Show</label>
-            </fieldset>
-            <fieldset>
-              <legend title="JavaScript Options">JavaScript</legend>
+              <label for="showBasicInput" title="Show BASIC">Show BASIC</label>
+            </div>
+            <div>
               <input id="showCompiledInput" type="checkbox" title="Show JavaScript" autocomplete="off">
-              <label for="showCompiledInput" title="Show JavaScript">Show</label>
+              <label for="showCompiledInput" title="Show JavaScript">Show JavaScript</label>
               <br>
               <input id="autoCompileInput" type="checkbox" title="Automatic compile on change" autocomplete="off" checked>
               <label id="autoCompileInputLabel" for="autoCompileInput" title="Automatic Compile on change">Auto Compile</label>
-            </fieldset>
-              <details>
-              <summary>Special</summary>
-              <fieldset>
-                <legend title="Frame Time">Frame Time <span id="frameInputLabel" for="frameInput" title="Frame Time">50 ms</span></legend>
-                <input id="frameInput" type="range" min="1" max="500" step="1" value="50" title="Frame Time">
-              </fieldset>
-              <fieldset>
-              <legend title="Execute Options">Output to Console</legend>
+            </div>
+            <div>
               <input id="outputConsoleInput" type="checkbox" title="Output to browser devtools console" autocomplete="off" checked>
               <label id="outputConsoleInputLabel" for="outputConsoleInput" title="Output to browser devtools console">Output console</label>
-            </fieldset>
-            </details>
+            </div>
+            <hr>
+            <div>
+              <label id="frameInputLabel" for="frameInput" title="Frame Time">Frame Time <span id="frameInputLabelNumber">50</span> ms</label>
+              <br>
+              <input id="frameInput" type="range" min="1" max="500" step="1" value="50" title="Frame Time">
+            </div>
           </fieldset>
           <fieldset>
             <legend title="Actions">Actions</legend>
-            <button id="exportSvgButton" title="Export SVG (Vector)">Export SVG</button>
-            <br>
-            <button id="fullscreenButton" title="Toggle Fullscreen">Fullscreen</button>
+            <div class="action-buttons">
+              <button id="exportSvgButton" title="Export SVG (Vector)">Export SVG</button>
+              <button id="fullscreenButton" title="Toggle Fullscreen">Fullscreen</button>
+              <button id="helpButton" title="Open LocoBasic Readme">Help</button>
+            </div>
           </fieldset>
-          <button id="helpButton" title="Open LocoBasic Readme">Help</button>
         </span>
       </span>
       <select id="databaseSelect" title="Database"></select>
@@ -93,29 +88,37 @@
       <span class="toolbarTitle">BASIC</span>
       <span class="toolbarLineItemRight">
         <span class="buttonPopoverContainer">
-          <button id="convertButton" class="popoverButton" title="Convert BASIC source">Convert</button>
-          <span id="convertPopover" class="popover right-align" hidden>
-            <fieldset>
-              <legend title="Line Numbers">Line Numbers</legend>
-              <button id="labelAddButton" title="Add line numbers">Add</button>
-              <button id="labelRemoveButton" title="Remove line numbers" disabled>Remove</button>
-            </fieldset>
-          </span>
-        </span>
+  <button id="convertButton" class="popoverButton" title="Convert BASIC source">Convert</button>
+  <span id="convertPopover" class="popover convert-popover" hidden>
+    <fieldset>
+      <legend>Line Numbers</legend>
+      <div class="convert-buttons">
+        <button id="labelAddButton" title="Add line numbers">Add</button>
+        <button id="labelRemoveButton" title="Remove line numbers" disabled>Remove</button>
+      </div>
+    </fieldset>
+  </span>
+</span>
         <span class="buttonPopoverContainer">
           <button id="basicSearchButton" class="popoverButton" title="Search">Search</button>
           <span id="basicSearchPopover" class="popover right-align" hidden>
             <fieldset>
-              <input id="basicSearchInput" title="Find text (or /re/)" type="text" size="12" placeholder="Find" autocomplete="off">
-              <button id="basicSearchPrevButton" title="Find previous (Shift-[Ctrl|Cmd]-G)">⌃</button>
-              <button id="basicSearchNextButton" title="Find Next ([Ctrl|Cmd]-G)">⌵</button>
+              <legend>Search</legend>
+              <div class="search-group">
+                <input id="basicSearchInput" type="text" size="12" placeholder="Find" title="Find text (or /re/)" autocomplete="off">
+                <div class="search-buttons">
+                  <button id="basicSearchPrevButton" title="Find previous (Shift-[Ctrl|Cmd]-G)">⌃</button>
+                  <button id="basicSearchNextButton" title="Find Next ([Ctrl|Cmd]-G)">⌵</button>
+                </div>
+              </div>
               <details>
                 <summary>Replace</summary>
-                <div>
-                  <input id="basicReplaceInput" title="Replace text" type="text" size="12" placeholder="Replace" autocomplete="off">
-                  <br>
-                  <button id="basicReplaceButton" title="Replace">Repl.</button>
-                  <button id="basicReplaceAllButton" title="Replace All">All</button>
+                <div class="replace-group">
+                  <input id="basicReplaceInput" type="text" size="12" placeholder="Replace" title="Replace text" autocomplete="off">
+                  <div class="replace-buttons">
+                    <button id="basicReplaceButton" title="Replace">Rep</button>
+                    <button id="basicReplaceAllButton" title="Replace All">All</button>
+                  </div>
                 </div>
               </details>
             </fieldset>

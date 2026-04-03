@@ -51,7 +51,7 @@ function initHtmlElements() {
         executeButton: doc.getElementById("executeButton") as HTMLButtonElement,
         exportSvgButton: doc.getElementById("exportSvgButton") as HTMLButtonElement,
         frameInput: window.document.getElementById("frameInput") as HTMLInputElement,
-        frameInputLabel: window.document.getElementById("frameInputLabel") as HTMLLabelElement,
+        frameInputLabelNumber: window.document.getElementById("frameInputLabelNumber") as HTMLSpanElement,
         fullscreenButton: doc.getElementById("fullscreenButton") as HTMLButtonElement,
         helpButton: doc.getElementById("helpButton") as HTMLButtonElement,
         labelAddButton: doc.getElementById("labelAddButton") as HTMLButtonElement,
@@ -862,7 +862,7 @@ export class UI implements IUI {
         const frameInput = event.target as HTMLInputElement;
         const value = Number(frameInput.value);
         this.getVmMain().frameTime(value);
-        this.htmlElements.frameInputLabel.innerText = `${frameInput.value} ms`;
+        this.htmlElements.frameInputLabelNumber.innerText = `${frameInput.value}`;
     }
 
     private static addLabels(input: string) {
