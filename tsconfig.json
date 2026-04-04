@@ -4,6 +4,7 @@
   "include": [],
   "references": [
     { "path": "./src" },
-    { "path": "./src/UI" }
+    { "path": "./src/UI" },
+    { "path": "./src/vm" }
  ]
 }

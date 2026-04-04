@@ -13,7 +13,8 @@ export default [
       'ohm-js': 'ohm'
     }
   },
-  plugins: [typescript()],
+  external: ['ohm-js'],
+  plugins: [typescript()]
 },
 {
   input: "./src/UI/UI.ts", // main entry

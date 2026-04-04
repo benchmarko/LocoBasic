@@ -1,8 +1,20 @@
 {
   "name": "locobasic",
-  "version": "0.5.31",
+  "version": "0.5.32",
   "description": "# LocoBasic - Loco BASIC",
   "type": "commonjs",
+  "main": "./dist/locobasic.js",
+  "exports": {
+    ".": {
+      "require": "./dist/locobasic.js"
+    },
+    "./ui": {
+      "require": "./dist/locobasicUI.js"
+    },
+    "./vm": {
+      "require": "./dist/locoVmWorker.js"
+    }
+  },
   "scripts": {
     "lint": "eslint src tests",
     "clean": "rimraf dist",
@@ -11,7 +23,7 @@
     "build:rollup": "rollup -c",
     "build": "npm run build:js && npm run build:rollup && npm run copy:static && node updateVersion.mjs",
     "test": "vitest run",
-    "test:watch": "vitest",
+    "dev": "vitest",
     "test:coverage": "vitest run --coverage --coverage.reportsDirectory=./tmp/coverage",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"

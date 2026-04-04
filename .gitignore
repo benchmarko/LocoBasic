@@ -1,12 +1,4 @@
 node_modules/
 tmp/
-dist/src/
-dist/types/
-dist/UI/
-dist/vm/
-dist/*.js
-dist/*.ts
-dist/*.map
-dist/tsconfig.tsbuildinfo
-!dist/index.html
+dist/
 .DS_Store
