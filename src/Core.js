@@ -34,7 +34,7 @@ export class Core {
             }
         };
         this.defaultConfig = defaultConfig;
-        this.config = Object.assign({}, defaultConfig);
+        this.config = { ...defaultConfig };
     }
     getDefaultConfigMap() {
         return this.defaultConfig;

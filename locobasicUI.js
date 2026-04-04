@@ -370,16 +370,14 @@
                 this.messageHandler.handleMessage(data);
             };
             this.handleBeforeUnload = () => {
-                var _a;
-                (_a = this.worker) === null || _a === void 0 ? void 0 : _a.terminate();
+                this.worker?.terminate();
             };
             this.messageHandler = new VmMessageHandler(callbacks, (message) => this.postMessage(message));
             this.createWebWorker = createWebWorker;
             window.addEventListener('beforeunload', this.handleBeforeUnload, { once: true });
         }
         postMessage(message) {
-            var _a;
-            (_a = this.worker) === null || _a === void 0 ? void 0 : _a.postMessage(message);
+            this.worker?.postMessage(message);
         }
         async getOrCreateWorker() {
             if (!this.worker) {
@@ -1022,11 +1020,10 @@
             this.htmlElements = initHtmlElements();
         }
         isCodeMirrorSetValue(args) {
-            var _a;
             // CodeMirror passes change metadata in args[1][0].origin
             // "setValue" indicates programmatic change (not user input)
-            const changeMetadata = (_a = args === null || args === void 0 ? void 0 : args[1]) === null || _a === void 0 ? void 0 : _a[0];
-            return (changeMetadata === null || changeMetadata === void 0 ? void 0 : changeMetadata.origin) === "setValue";
+            const changeMetadata = args?.[1]?.[0];
+            return changeMetadata?.origin === "setValue";
         }
         debounce(func, getDelay) {
             let timeoutId;
@@ -1180,7 +1177,7 @@
             const debug = this.getCore().getConfigMap().debug;
             if (debug > 1) {
                 const voicesString = window.speechSynthesis.getVoices().map((v, i) => `${i}: ${v.lang}: ${v.name}`).join("\n ");
-                const msg = `getSpeechSynthesisUtterance: voice=${selectedVoice === null || selectedVoice === void 0 ? void 0 : selectedVoice.lang}: ${selectedVoice === null || selectedVoice === void 0 ? void 0 : selectedVoice.name}, voices:\n ${voicesString}`;
+                const msg = `getSpeechSynthesisUtterance: voice=${selectedVoice?.lang}: ${selectedVoice?.name}, voices:\n ${voicesString}`;
                 console.log(msg);
                 if (debug >= 16) {
                     this.addOutputText(msg + "\n");
@@ -1440,7 +1437,7 @@
             else {
                 return;
             }
-            if ((textNode === null || textNode === void 0 ? void 0 : textNode.nodeType) === 3) { // Check if the node is a text node
+            if (textNode?.nodeType === 3) { // Check if the node is a text node
                 const textContent = textNode.textContent;
                 return textContent ? textContent.charAt(offset) : "";
             }

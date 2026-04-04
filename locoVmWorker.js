@@ -574,7 +574,7 @@
             mid$: (str, pos, len) => str.substr(pos - 1, len),
             mid$Assign: (s, start, newString, len) => {
                 start -= 1;
-                len = Math.min(len !== null && len !== void 0 ? len : newString.length, newString.length, s.length - start);
+                len = Math.min(len ?? newString.length, newString.length, s.length - start);
                 return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
             },
             min: (...nums) => Math.min.apply(null, nums),
@@ -851,7 +851,7 @@
             const promise = fnScript(vm).then((result) => {
                 vm.remainAll();
                 vm.flush();
-                result = result !== null && result !== void 0 ? result : "";
+                result = result ?? "";
                 vm.postMessage({ type: 'result', result });
             }).catch(handleError);
             // Handle unhandled rejections in case of race conditions

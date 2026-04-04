@@ -4,8 +4,7 @@ function evalChildren(children) {
     return children.map(child => child.eval());
 }
 function evalOptionalArg(arg) {
-    var _a;
-    const argEval = (_a = arg.child(0)) === null || _a === void 0 ? void 0 : _a.eval();
+    const argEval = arg.child(0)?.eval();
     return argEval !== undefined ? `, ${argEval}` : "";
 }
 function createComparisonExpression(a, op, b) {
@@ -103,7 +102,7 @@ function getSemanticsActions(semanticsHelper) {
                 // Add function-local variable declarations if any
                 let funcVarDecl = "";
                 if (funcVars.length > 0) {
-                    funcVarDecl = `\n${indentStr}  let ` + funcVars.map((v) => { var _a; return ((_a = semanticsHelper.getVariableEntry(v)) === null || _a === void 0 ? void 0 : _a.type) === "A" ? `${v} = []` : v.endsWith("$") ? `${v} = ""` : `${v} = 0`; }).join(", ") + ";";
+                    funcVarDecl = `\n${indentStr}  let ` + funcVars.map((v) => semanticsHelper.getVariableEntry(v)?.type === "A" ? `${v} = []` : v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";";
                 }
                 lineList[first] = `${indentStr}${asyncStr}function _${subroutineStart.label}() {${funcVarDecl}${indentStr}\n` + lineList[first];
                 lineList[label.last] = lineList[label.last].replace(`${indentStr}  return;`, `${indentStr}}`); // end of subroutine: replace "return" by "}" (can also be on same line)
@@ -131,7 +130,7 @@ function getSemanticsActions(semanticsHelper) {
                 const usage = variableScopes[varName];
                 return usage[""] || Object.keys(usage).length !== 1;
             });
-            const variableDeclarations = globalVars.length ? "let " + globalVars.map((v) => { var _a; return ((_a = semanticsHelper.getVariableEntry(v)) === null || _a === void 0 ? void 0 : _a.type) === "A" ? `${v} = []` : v.endsWith("$") ? `${v} = ""` : `${v} = 0`; }).join(", ") + ";" : "";
+            const variableDeclarations = globalVars.length ? "let " + globalVars.map((v) => semanticsHelper.getVariableEntry(v)?.type === "A" ? `${v} = []` : v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
             const definedLabels = semanticsHelper.getDefinedLabels();
             const awaitLabels = processSubroutines(lineList, definedLabels, variableList, variableScopes);
             const instrMap = semanticsHelper.getInstrMap();
@@ -218,12 +217,11 @@ ${dataList.join(",\n")}
             return indentStr + lineStr + commentStr + semi;
         },
         Statements(colons1, stmt, colons2, stmts) {
-            var _a;
             if (colons1.children.length) { // are there leading colons?
                 notSupported(colons1);
             }
             // separate statements, use ";", if the last stmt does not end with "{"
-            if (((_a = colons2.child(0)) === null || _a === void 0 ? void 0 : _a.children.length) > 1) { // are there additional colons between statements?
+            if (colons2.child(0)?.children.length > 1) { // are there additional colons between statements?
                 notSupported(colons2.child(0)); // ok, let's mark all
             }
             const statements = [stmt.eval(), ...evalChildren(stmts.children)];
@@ -239,8 +237,7 @@ ${dataList.join(",\n")}
             return `${resolvedVariableName} = ${value}`;
         },
         LoopBlockContent(separator, stmts) {
-            var _a;
-            const separatorStr = ((_a = separator === null || separator === void 0 ? void 0 : separator.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+            const separatorStr = separator?.child(0)?.eval() || "";
             const lineStr = stmts.eval();
             return `${separatorStr}${lineStr}`;
         },
@@ -264,10 +261,9 @@ ${dataList.join(",\n")}
             return notSupported(op, ident) + "0";
         },
         After(_afterLit, e1, _comma1, e2, _gosubLit, label) {
-            var _a;
             semanticsHelper.addInstr("after");
             const timeout = e1.eval();
-            const timer = ((_a = e2.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || 0;
+            const timer = e2.child(0)?.eval() || 0;
             const labelString = label.sourceString;
             semanticsHelper.addUsedLabel(labelString, "gosub");
             return `after(${timeout}, ${timer}, _${labelString})`;
@@ -335,9 +331,8 @@ ${dataList.join(",\n")}
         Closein: notSupported,
         Closeout: notSupported,
         Cls(_clsLit, stream) {
-            var _a;
             semanticsHelper.addInstr("cls");
-            const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+            const streamStr = stream.child(0)?.eval() || "";
             return `cls(${streamStr})`;
         },
         Comment(_commentLit, remain) {
@@ -457,10 +452,9 @@ ${dataList.join(",\n")}
             return `throw new Error(${e.eval()})`;
         },
         Every(_everyLit, e1, _comma1, e2, _gosubLit, label) {
-            var _a;
             semanticsHelper.addInstr("every");
             const timeout = e1.eval();
-            const timer = ((_a = e2.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || 0;
+            const timer = e2.child(0)?.eval() || 0;
             const labelString = label.sourceString;
             semanticsHelper.addUsedLabel(labelString, "gosub");
             return `every(${timeout}, ${timer}, _${labelString})`;
@@ -484,21 +478,18 @@ ${dataList.join(",\n")}
             return `(${argumentList.join(", ")})`;
         },
         FnIdent(fnIdent, args) {
-            var _a;
-            const argumentString = ((_a = args.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "()";
+            const argumentString = args.child(0)?.eval() || "()";
             return `${fnIdent.eval()}${argumentString}`;
         },
         StrFnIdent(fnIdent, args) {
-            var _a;
-            const argStr = ((_a = args.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "()";
+            const argStr = args.child(0)?.eval() || "()";
             return `${fnIdent.eval()}${argStr}`;
         },
         For(_forLit, variable, _eqSign, start, _dirLit, end, _stepLit, step) {
-            var _a;
             const variableExpression = variable.eval();
             const startExpression = start.eval();
             const endExpression = end.eval();
-            const stepExpression = ((_a = step.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "1";
+            const stepExpression = step.child(0)?.eval() || "1";
             const stepAsNumber = Number(stepExpression);
             let comparisonStatement = "";
             if (isNaN(stepAsNumber)) {
@@ -571,13 +562,12 @@ ${dataList.join(",\n")}
             return result;
         },
         If_singleLine(_iflit, condExp, thenStat, colons, elseLit, elseStat) {
-            var _a;
             const initialIndent = semanticsHelper.getIndentStr();
             semanticsHelper.addIndent(2);
             const increasedIndent = semanticsHelper.getIndentStr();
             const condition = condExp.eval();
             const thenStatement = addSemicolon(thenStat.eval());
-            if ((_a = colons.child(0)) === null || _a === void 0 ? void 0 : _a.children.length) { // are there colons before else?
+            if (colons.child(0)?.children.length) { // are there colons before else?
                 notSupported(colons.child(0));
             }
             let result = `if (${condition}) {\n${increasedIndent}${thenStatement}\n${initialIndent}}`; // put in newlines to also allow line comments
@@ -607,9 +597,8 @@ ${dataList.join(",\n")}
             return notSupported(lit, open, num, close) + "0";
         },
         Input(_inputLit, stream, _comma, _semi, message, _commaSemi, ids) {
-            var _a;
             semanticsHelper.addInstr("input");
-            const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+            const streamStr = stream.child(0)?.eval() || "";
             const messageString = message.sourceString.replace(/\s*[;,]$/, "") || '""';
             const identifiers = evalChildren(ids.asIteration().children);
             const identifierStr = `[${identifiers.join(", ")}]`;
@@ -656,9 +645,8 @@ ${dataList.join(",\n")}
             return `${assign.eval()}`;
         },
         LineInput(_lit, _inputLit, stream, _comma, message, _semi, id) {
-            var _a;
             semanticsHelper.addInstr("lineInput");
-            const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+            const streamStr = stream.child(0)?.eval() || "";
             const messageString = message.sourceString.replace(/\s*[;,]$/, "") || '""';
             const identifier = id.eval();
             return `${identifier} = await lineInput(${streamStr}${messageString})`;
@@ -770,18 +758,16 @@ ${dataList.join(",\n")}
             return notSupported(lit, num, comma, num2);
         },
         Paper(_paperLit, stream, _comma, e) {
-            var _a;
             semanticsHelper.addInstr("paper");
-            const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+            const streamStr = stream.child(0)?.eval() || "";
             return `paper(${streamStr}${e.eval()})`;
         },
         Peek(lit, open, num, close) {
             return notSupported(lit, open, num, close) + "0";
         },
         Pen(_penLit, stream, _comma, e, _comma2, e2) {
-            var _a;
             semanticsHelper.addInstr("pen");
-            const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+            const streamStr = stream.child(0)?.eval() || "";
             const modeStr = e2.child(0) ? notSupported(e2.child(0)) : "";
             return `pen(${streamStr}${e.eval()}${modeStr})`;
         },
@@ -819,8 +805,7 @@ ${dataList.join(",\n")}
             return notSupported(streamLit, stream) + "";
         },
         Print(_printLit, stream, _comma, args, semi) {
-            var _a;
-            const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+            const streamStr = stream.child(0)?.eval() || "";
             const argumentList = evalChildren(args.asIteration().children);
             const parameterString = argumentList.join(', ') || "";
             const tag = semanticsHelper.getTag();
@@ -881,9 +866,8 @@ ${dataList.join(",\n")}
             return `right$(${str.eval()}, ${len.eval()})`;
         },
         Rnd(_rndLit, _open, e, _close) {
-            var _a, _b;
             semanticsHelper.addInstr("rnd");
-            const arg = (_b = (_a = e.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) !== null && _b !== void 0 ? _b : ""; // we ignore arg, but...
+            const arg = e.child(0)?.eval() ?? ""; // we ignore arg, but...
             return `rnd(${arg})`;
         },
         Round(_roundLit, _open, num, _comma, decimals, _close) {
@@ -897,9 +881,8 @@ ${dataList.join(",\n")}
             // A better way to avoid rounding errors: https://www.jacklmoore.com/notes/rounding-in-javascript
         },
         Rsx(_rsxLit, cmd, e) {
-            var _a;
             const cmdString = adaptIdentName(cmd.sourceString).toLowerCase();
-            const rsxArgs = ((_a = e.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+            const rsxArgs = e.child(0)?.eval() || "";
             const knownRsx = ["arc", "circle", "date", "ellipse", "geolocation", "pitch", "polygon", "rect", "say", "time"];
             if (!knownRsx.includes(cmdString)) {
                 return notSupported(_rsxLit, cmd, e);
@@ -1001,10 +984,9 @@ ${dataList.join(",\n")}
             return `"${TabOpChar}" + String(${num.eval()})`; // Unicode double arrow right
         },
         Tag(lit, stream) {
-            var _a;
             //semanticsHelper.addInstr("tag");
             semanticsHelper.setTag(true);
-            const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+            const streamStr = stream.child(0)?.eval() || "";
             if (streamStr) {
                 return notSupported(lit, stream);
             }
@@ -1012,10 +994,9 @@ ${dataList.join(",\n")}
             //return `tag(${streamStr})`;
         },
         Tagoff(lit, stream) {
-            var _a;
             //semanticsHelper.addInstr("tagoff");
             semanticsHelper.setTag(false);
-            const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+            const streamStr = stream.child(0)?.eval() || "";
             if (streamStr) {
                 return notSupported(lit, stream);
             }
@@ -1083,10 +1064,9 @@ ${dataList.join(",\n")}
             return notSupported(lit, swapLit, num, comma, num2);
         },
         Write(_printLit, stream, _comma, args) {
-            var _a;
             const writeInst = semanticsHelper.getTag() ? "writeTag" : "write";
             semanticsHelper.addInstr(writeInst);
-            const streamStr = ((_a = stream.child(0)) === null || _a === void 0 ? void 0 : _a.eval()) || "";
+            const streamStr = stream.child(0)?.eval() || "";
             const parameterString = evalChildren(args.asIteration().children).join(', ');
             return `${writeInst}(${streamStr}${parameterString})`;
         },
@@ -1261,18 +1241,16 @@ ${dataList.join(",\n")}
             return semanticsHelper.getVariable(name);
         },
         ident(ident, suffix) {
-            var _a;
             const name = adaptIdentName(ident.sourceString);
-            const suffixStr = (_a = suffix.child(0)) === null || _a === void 0 ? void 0 : _a.sourceString;
+            const suffixStr = suffix.child(0)?.sourceString;
             if (suffixStr !== undefined) { // real or integer suffix
                 return name + notSupported(suffix);
             }
             return name; //semanticsHelper.getVariable(name);
         },
         fnIdent(fn, _space, ident, suffix) {
-            var _a;
             const name = fn.sourceString + adaptIdentName(ident.sourceString);
-            const suffixStr = (_a = suffix.child(0)) === null || _a === void 0 ? void 0 : _a.sourceString;
+            const suffixStr = suffix.child(0)?.sourceString;
             if (suffixStr !== undefined) { // real or integer suffix
                 return semanticsHelper.getVariable(name) + notSupported(suffix);
             }

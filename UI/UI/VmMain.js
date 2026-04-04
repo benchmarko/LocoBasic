@@ -6,16 +6,14 @@ export class VmMain {
             this.messageHandler.handleMessage(data);
         };
         this.handleBeforeUnload = () => {
-            var _a;
-            (_a = this.worker) === null || _a === void 0 ? void 0 : _a.terminate();
+            this.worker?.terminate();
         };
         this.messageHandler = new VmMessageHandler(callbacks, (message) => this.postMessage(message));
         this.createWebWorker = createWebWorker;
         window.addEventListener('beforeunload', this.handleBeforeUnload, { once: true });
     }
     postMessage(message) {
-        var _a;
-        (_a = this.worker) === null || _a === void 0 ? void 0 : _a.postMessage(message);
+        this.worker?.postMessage(message);
     }
     async getOrCreateWorker() {
         if (!this.worker) {
