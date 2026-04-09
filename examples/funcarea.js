@@ -56,7 +56,7 @@ RETURN
 'Calculations for point (x,y)
 450 z=x*x+y*y:z=SIN(z)
 IF z<zu THEN z=zu ELSE IF z>zo THEN z=zo
-u=x+y/2:v=z+y/2:sp=int(ku*(u-uu)):ze=int(kv*(vo-v))
+u=x+y/2:v=z+y/2:sp=INT(ku*(u-uu)):ze=INT(kv*(vo-v))
 RETURN
 '
 REM visibility

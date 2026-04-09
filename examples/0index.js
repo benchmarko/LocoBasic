@@ -296,6 +296,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Christmas tree"
 		},
 		{
+			"key": "yinyang0",
+			"title": "Yin and yang (textual)"
+		},
+		{
 			"key": "yinyang1",
 			"title": "Yin and yang"
 		},

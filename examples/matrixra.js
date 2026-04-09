@@ -12,7 +12,7 @@ INK 0,0:INK 1,26:INK 2,19:'BORDER 0
 cols=40:rows=25
 DIM scr$(cols,rows)
 GOSUB 4000: 'init scr
-DIM p(cols):mm=round(12*cols/80):DIM act(mm):FOR i=1 TO mm:act(i)=ROUND(RND*(cols-1)+1):NEXT
+DIM p(cols):mm=ROUND(12*cols/80):DIM act(mm):FOR i=1 TO mm:act(i)=ROUND(RND*(cols-1)+1):NEXT
 md=mm-2:DIM del(md):FOR i=1 TO md:del(i)=ROUND(RND*(cols-1)+1):NEXT
 '
 lp=0
