@@ -74,7 +74,7 @@ a$="1.4"
 case=1: IF case<>1 THEN ERROR 33
 cASE=2: IF cASE<>2 OR case<>2 OR cAsE<>2 THEN ERROR 33
 cAsE=case
-CaSe=cAsE
+'CaSe=cAsE :'not strict
 next1=2: IF next1<>2 THEN ERROR 33
 '
 insert.line=2

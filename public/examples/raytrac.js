@@ -4,133 +4,133 @@
 
 cpcBasic.addItem("", `
 REM raytrac - Raytracing
-rem
-rem https://cpcwiki.de/forum/index.php/topic,1006.0.html
-rem
+REM
+REM https://cpcwiki.de/forum/index.php/topic,1006.0.html
+REM
 ' Screen init
 'SCREEN 8,0:SET PAGE 1,1
-MODE 0: FOR k=0 TO 15:INK k,round(k*1.7):NEXT:INK 1,26:INK 15,1
+MODE 0: FOR k=0 TO 15:INK k,ROUND(k*1.7):NEXT:INK 1,26:INK 15,1
 'CLS
 '_TURBO ON
 ' Initialize
-DIM T(9),V(15),O(19,7),S(19,7),RI(3),GI(3),BI(3),Z(3),Y(3)
-FOR I=0 TO 9:READ T(I):NEXT I
-V(0)=T(0):V(1)=T(1):V(2)=T(2)
-V(9)=T(0)-T(3):V(10)=T(1)-T(4):V(11)=T(2)-T(5)
-V1=SQR(V(9)*V(9)+V(10)*V(10)+V(11)*V(11))
-V(9)=V(9)/V1:V(10)=V(10)/V1:V(11)=V(11)/V1
-V(6)=-V(9)*V(10):V(7)=1-V(10)*V(10):V(8)=-V(11)*V(10)
-V(3)=-(V(10)*V(8)-V(11)*V(7)):V(4)=-(V(11)*V(6)-V(9)*V(8))
-V(5)=-(V(9)*V(7)-V(10)*V(6)):V(15)=T(9)
-V(12)=T(6):V(13)=T(7):V(14)=T(8)
-READ MO:FOR I=0 TO MO-1:FOR J=0 TO 7:READ O(I,J):NEXT J:NEXT I
-READ MS:FOR I=0 TO MS-1:FOR J=0 TO 7:READ S(I,J):NEXT J:NEXT I
-MA=1000:MI=0.001:MD=0:PT=4
-FOR I=1 TO 4
-V1=SQR(V(I*3+0)*V(I*3+0)+V(I*3+1)*V(I*3+1)+V(I*3+2)*V(I*3+2))
-V(I*3+0)=V(I*3+0)/V1:V(I*3+1)=V(I*3+1)/V1:V(I*3+2)=V(I*3+2)/V1
-NEXT I
+DIM t(9),v(15),o(19,7),s(19,7),ri(3),gi(3),bi(3),z(3),y(3)
+FOR i=0 TO 9:READ t(i):NEXT i
+v(0)=t(0):v(1)=t(1):v(2)=t(2)
+v(9)=t(0)-t(3):v(10)=t(1)-t(4):v(11)=t(2)-t(5)
+v1=SQR(v(9)*v(9)+v(10)*v(10)+v(11)*v(11))
+v(9)=v(9)/v1:v(10)=v(10)/v1:v(11)=v(11)/v1
+v(6)=-v(9)*v(10):v(7)=1-v(10)*v(10):v(8)=-v(11)*v(10)
+v(3)=-(v(10)*v(8)-v(11)*v(7)):v(4)=-(v(11)*v(6)-v(9)*v(8))
+v(5)=-(v(9)*v(7)-v(10)*v(6)):v(15)=t(9)
+v(12)=t(6):v(13)=t(7):v(14)=t(8)
+READ mo:FOR i=0 TO mo-1:FOR j=0 TO 7:READ o(i,j):NEXT j:NEXT i
+READ ms:FOR i=0 TO ms-1:FOR j=0 TO 7:READ s(i,j):NEXT j:NEXT i
+ma=1000:mi=0.001:md=0:pt=4
+FOR i=1 TO 4
+v1=SQR(v(i*3+0)*v(i*3+0)+v(i*3+1)*v(i*3+1)+v(i*3+2)*v(i*3+2))
+v(i*3+0)=v(i*3+0)/v1:v(i*3+1)=v(i*3+1)/v1:v(i*3+2)=v(i*3+2)/v1
+NEXT i
 ' Trace
-FOR SY=0 TO 200 STEP 4:FOR SX=0 TO 320 STEP 4:XD=0:YD=0
-while yd<4
-CX=V(0):CY=V(1):CZ=V(2)
-VX=V(3)*(SX+XD-128)/99+V(6)*(106-SY-YD)/99-V(9)*V(15)
-VY=V(4)*(SX+XD-128)/99+V(7)*(106-SY-YD)/99-V(10)*V(15)
-VZ=V(5)*(SX+XD-128)/99+V(8)*(106-SY-YD)/99-V(11)*V(15)
-V1=SQR(VX*VX+VY*VY+VZ*VZ)
-VX=VX/V1:VY=VY/V1:VZ=VZ/V1
-CR=0:CG=0:CB=0:RN=0:RF=1
+FOR sy=0 TO 200 STEP 4:FOR sx=0 TO 320 STEP 4:xd=0:yd=0
+WHILE yd<4
+cx=v(0):cy=v(1):cz=v(2)
+vx=v(3)*(sx+xd-128)/99+v(6)*(106-sy-yd)/99-v(9)*v(15)
+vy=v(4)*(sx+xd-128)/99+v(7)*(106-sy-yd)/99-v(10)*v(15)
+vz=v(5)*(sx+xd-128)/99+v(8)*(106-sy-yd)/99-v(11)*v(15)
+v1=SQR(vx*vx+vy*vy+vz*vz)
+vx=vx/v1:vy=vy/v1:vz=vz/v1
+cr=0:cg=0:cb=0:rn=0:rf=1
 GOSUB 1760
-IF CR>=1 THEN CR=0.99
-IF CG>=1 THEN CG=0.99
-IF CB>=1 THEN CB=0.99
-RI(XD)=CR:GI(XD)=CG:BI(XD)=CB
-XD=XD+1
-if XD>=4 then GOSUB 1470:XD=0:YD=YD+1
+IF cr>=1 THEN cr=0.99
+IF cg>=1 THEN cg=0.99
+IF cb>=1 THEN cb=0.99
+ri(xd)=cr:gi(xd)=cg:bi(xd)=cb
+xd=xd+1
+IF xd>=4 THEN GOSUB 1470:xd=0:yd=yd+1
 'TTT IF XD<4 THEN 1250
 'GOSUB 1470:XD=0
 'YD=YD+1:'IF YD<4 THEN 1250
-wend
-IF STRIG(0) THEN STOP 'GOTO 1460
-NEXT SX
-NEXT SY
-ti=time+300:while TIME<ti AND INKEY$="":WEND
+WEND
+IF strig(0) THEN STOP 'GOTO 1460
+NEXT sx
+NEXT sy
+ti=TIME+300:WHILE TIME<ti AND INKEY$="":WEND
 STOP 'GOTO 1460
 1470 ' Draw
 'MAKE RGB DATA FOR SCREEN8 AND WRITE IT ON THE SCREEN
-FOR XD=0 TO 3
-CC1=round((RI(XD)+GI(XD)+BI(XD))/3*15):IF CC1=15 THEN CC1=1 ELSE IF CC1=1 THEN CC1=15
-PLOT (SX+XD)*2,400-((SY+YD)*2),CC1
-NEXT XD
+FOR xd=0 TO 3
+cc1=ROUND((ri(xd)+gi(xd)+bi(xd))/3*15):IF cc1=15 THEN cc1=1 ELSE IF cc1=1 THEN cc1=15
+PLOT (sx+xd)*2,400-((sy+yd)*2),cc1
+NEXT xd
 RETURN
 1760 ' Pixel
 f=1
-while f=1
-TT=MA
-FOR N=0 TO MO-1
+WHILE f=1
+tt=ma
+FOR n=0 TO mo-1
 GOSUB 1870
-IF TT>Th AND Th>MI THEN TT=Th:TN=N:LX=NX:LY=NY:LZ=NZ
-NEXT N
-IF TT=MA THEN return '1860
-CX=CX+TT*VX:CY=CY+TT*VY:CZ=CZ+TT*VZ:N=TN
+IF tt>th AND th>mi THEN tt=th:tn=n:lx=nx:ly=ny:lz=nz
+NEXT n
+IF tt=ma THEN RETURN '1860
+cx=cx+tt*vx:cy=cy+tt*vy:cz=cz+tt*vz:n=tn
 GOSUB 2150
-wend 'IF F=1 THEN GOTO 1760
+WEND 'IF F=1 THEN GOTO 1760
 RETURN
 1870 ' Cross
-RX=CX-O(N,0):RY=CY-O(N,1):RZ=CZ-O(N,2)
-A=O(N,3):B=O(N,4):C=O(N,5)
-ON O(N,6)+1 gosub 1920,2030: return 'GOTO 1920,2030
-gosub 1920
-return 'GOTO 1920
+rx=cx-o(n,0):ry=cy-o(n,1):rz=cz-o(n,2)
+a=o(n,3):b=o(n,4):c=o(n,5)
+ON o(n,6)+1 GOSUB 1920,2030: RETURN 'GOTO 1920,2030
+GOSUB 1920
+RETURN 'GOTO 1920
 1920 ' Box
-IF VX=0 THEN T1=MA ELSE IF RX<0 THEN T1=-(RX+A)/VX ELSE T1=-(RX-A)/VX
-IF VY=0 THEN T2=MA ELSE IF RY<0 THEN T2=-(RY+B)/VY ELSE T2=-(RY-B)/VY
-IF VZ=0 THEN T3=MA ELSE IF RZ<0 THEN T3=-(RZ+C)/VZ ELSE T3=-(RZ-C)/VZ
-IF ABS(RY+T1*VY)>B OR ABS(RZ+T1*VZ)>C THEN T1=MA
-IF ABS(RZ+T2*VZ)>C OR ABS(RX+T2*VX)>A THEN T2=MA
-IF ABS(RX+T3*VX)>A OR ABS(RY+T3*VY)>B THEN T3=MA
-IF T1<=T2 AND T1<=T3 THEN Th=T1:NX=-VX/ABS(VX):NY=0:NZ=0
-IF T2<=T3 AND T2<=T1 THEN Th=T2:NY=-VY/ABS(VY):NZ=0:NX=0
-IF T3<=T1 AND T3<=T2 THEN Th=T3:NZ=-VZ/ABS(VZ):NX=0:NY=0
+IF vx=0 THEN t1=ma ELSE IF rx<0 THEN t1=-(rx+a)/vx ELSE t1=-(rx-a)/vx
+IF vy=0 THEN t2=ma ELSE IF ry<0 THEN t2=-(ry+b)/vy ELSE t2=-(ry-b)/vy
+IF vz=0 THEN t3=ma ELSE IF rz<0 THEN t3=-(rz+c)/vz ELSE t3=-(rz-c)/vz
+IF ABS(ry+t1*vy)>b OR ABS(rz+t1*vz)>c THEN t1=ma
+IF ABS(rz+t2*vz)>c OR ABS(rx+t2*vx)>a THEN t2=ma
+IF ABS(rx+t3*vx)>a OR ABS(ry+t3*vy)>b THEN t3=ma
+IF t1<=t2 AND t1<=t3 THEN th=t1:nx=-vx/ABS(vx):ny=0:nz=0
+IF t2<=t3 AND t2<=t1 THEN th=t2:ny=-vy/ABS(vy):nz=0:nx=0
+IF t3<=t1 AND t3<=t2 THEN th=t3:nz=-vz/ABS(vz):nx=0:ny=0
 RETURN
 2030 ' Ball
-AA=VX*VX*A+VY*VY*B+VZ*VZ*C
-BB=RX*VX*A+RY*VY*B+RZ*VZ*C
-CC=RX*RX*A+RY*RY*B+RZ*RZ*C-1
-DD=BB*BB-AA*CC
-IF DD<0 THEN Th=MA:return 'GOTO 2140
-T1=(-BB-SQR(DD))/AA:T2=(-BB+SQR(DD))/AA
-IF T1<T2 THEN Th=T1 ELSE Th=T2
-NX=A*(RX+Th*VX):NY=B*(RY+Th*VY):NZ=C*(RZ+Th*VZ)
-M=SQR(NX*NX+NY*NY+NZ*NZ)
-NX=NX/M:NY=NY/M:NZ=NZ/M
+aa=vx*vx*a+vy*vy*b+vz*vz*c
+bb=rx*vx*a+ry*vy*b+rz*vz*c
+cc=rx*rx*a+ry*ry*b+rz*rz*c-1
+dd=bb*bb-aa*cc
+IF dd<0 THEN th=ma:RETURN 'GOTO 2140
+t1=(-bb-SQR(dd))/aa:t2=(-bb+SQR(dd))/aa
+IF t1<t2 THEN th=t1 ELSE th=t2
+nx=a*(rx+th*vx):ny=b*(ry+th*vy):nz=c*(rz+th*vz)
+m=SQR(nx*nx+ny*ny+nz*nz)
+nx=nx/m:ny=ny/m:nz=nz/m
 RETURN
 2150 ' Shade
-SH=O(N,7):REM 0=Silber,1=Stahl,2=Rotes Plastik, 3=Graues Plastik, 4=Blaues Plastik,5=Graues Plastik,6=Chrom
-IF SH=-1 THEN PX=INT(ABS(CX+100)/PT-(CX+100<0)) : PY=INT(ABS(CY+100)/PT-(CY+100<0)) : PZ=INT(ABS(CZ+100)/PT-(CZ+100<0)) : SH=(PX+PY+PZ) MOD 2
-2220 SR=S(SH,0):SG=S(SH,1):SB=S(SH,2)
-SA=S(SH,3):SD=S(SH,4):SF=S(SH,5)
-SP=S(SH,6):SE=S(SH,7)
-JX=V(12)-VX:JY=V(13)-VY:JZ=V(14)-VZ
-JN=SQR(JX*JX+JY*JY+JZ*JZ)
-SM=(LX*JX+LY*JY+LZ*JZ)/JN
-IF SM<0 THEN SM=0
-FOR P=1 TO SE:SM=SM*SM:NEXT P
-VN=-2*(LX*VX+LY*VY+LZ*VZ)
-WX=VX+VN*LX:WY=VY+VN*LY:WZ=VZ+VN*LZ
-VX=V(12):VY=V(13):VZ=V(14)
-SN=LX*VX+LY*VY+LZ*VZ
-IF SN<0 THEN SN=0
-FOR N=0 TO MO-1
+sh=o(n,7):REM 0=Silber,1=Stahl,2=Rotes Plastik, 3=Graues Plastik, 4=Blaues Plastik,5=Graues Plastik,6=Chrom
+IF sh=-1 THEN px=INT(ABS(cx+100)/pt-(cx+100<0)) : py=INT(ABS(cy+100)/pt-(cy+100<0)) : pz=INT(ABS(cz+100)/pt-(cz+100<0)) : sh=(px+py+pz) MOD 2
+2220 sr=s(sh,0):sg=s(sh,1):sb=s(sh,2)
+sa=s(sh,3):sd=s(sh,4):sf=s(sh,5)
+sp=s(sh,6):se=s(sh,7)
+jx=v(12)-vx:jy=v(13)-vy:jz=v(14)-vz
+jn=SQR(jx*jx+jy*jy+jz*jz)
+sm=(lx*jx+ly*jy+lz*jz)/jn
+IF sm<0 THEN sm=0
+FOR p=1 TO se:sm=sm*sm:NEXT p
+vn=-2*(lx*vx+ly*vy+lz*vz)
+wx=vx+vn*lx:wy=vy+vn*ly:wz=vz+vn*lz
+vx=v(12):vy=v(13):vz=v(14)
+sn=lx*vx+ly*vy+lz*vz
+IF sn<0 THEN sn=0
+FOR n=0 TO mo-1
 GOSUB 1870
-IF MA>Th AND Th>MI THEN SN=0:SM=0
-NEXT N
-CR=CR+(SR*(SA+SD*SN)+SP*SM)*RF
-CG=CG+(SG*(SA+SD*SN)+SP*SM)*RF
-CB=CB+(SB*(SA+SD*SN)+SP*SM)*RF
-IF SF=0 AND RN<4 THEN F=0:return : 'GOTO 2450
-F=1:RF=RF*SF:RN=RN+1
-VX=WX:VY=WY:VZ=WZ
+IF ma>th AND th>mi THEN sn=0:sm=0
+NEXT n
+cr=cr+(sr*(sa+sd*sn)+sp*sm)*rf
+cg=cg+(sg*(sa+sd*sn)+sp*sm)*rf
+cb=cb+(sb*(sa+sd*sn)+sp*sm)*rf
+IF sf=0 AND rn<4 THEN f=0:RETURN : 'GOTO 2450
+f=1:rf=rf*sf:rn=rn+1
+vx=wx:vy=wy:vz=wz
 2450 RETURN
 ' Picture data
 DATA   20,  40,  20

@@ -24,28 +24,28 @@ END
 600 CLS
 'conveyor left+right
 FOR x=0 TO 320 STEP 4
-MOVE x,0,(((i+x) mod 13) = 0)+1:DRAW x,50
-MOVE 640-x,0,(((i+x) mod 13) = 0)+1:DRAW 640-x,50
+MOVE x,0,(((i+x) MOD 13) = 0)+1:DRAW x,50
+MOVE 640-x,0,(((i+x) MOD 13) = 0)+1:DRAW 640-x,50
 NEXT
 'bottom circle left
 MOVE 100+100,150
-FOR a=360 TO 0 step -4
-DRAW 100+100*C(a),150+100*S(a),(((i+a) mod 13)=0)+1
+FOR a=360 TO 0 STEP -4
+DRAW 100+100*c(a),150+100*s(a),(((i+a) MOD 13)=0)+1
 NEXT a
 'bottom circle right
 MOVE 538-100,150
 FOR a=360 TO 0 STEP -4
-DRAW 538-100*C(a),150+100*S(a),(((i+a) mod 13)=0)+1
+DRAW 538-100*c(a),150+100*s(a),(((i+a) MOD 13)=0)+1
 NEXT a
 'top circle left
 MOVE 100-50,300
 FOR a=360 TO 0 STEP -4
-DRAW 100-50*C(a),300+50*S(a),(((i+a/2) mod 13)=0)+1
+DRAW 100-50*c(a),300+50*s(a),(((i+a/2) MOD 13)=0)+1
 NEXT a
 'top circle right
 MOVE 538+50,300
 FOR a=360 TO 0 STEP -4
-DRAW 538+50*C(a),300+50*S(a),(((i+a/2) mod 13)=0)+1
+DRAW 538+50*c(a),300+50*s(a),(((i+a/2) MOD 13)=0)+1
 NEXT a
 t=TIME+60:WHILE TIME<t:FRAME:WEND
 RETURN
