@@ -48,6 +48,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "BM Benchmark v0.08"
 		},
 		{
+			"key": "bounce",
+			"title": "Bounce"
+		},
+		{
 			"key": "chaos",
 			"title": "Chaos game"
 		},
@@ -118,6 +122,10 @@ cpcBasic.addIndex("./examples", {
 		{
 			"key": "funcspec",
 			"title": "Functional Spectrum"
+		},
+		{
+			"key": "gdemo",
+			"title": "Graphics Demo"
 		},
 		{
 			"key": "juliaset",
@@ -238,6 +246,10 @@ cpcBasic.addIndex("./examples", {
 		{
 			"key": "snowflak",
 			"title": "Snowflake"
+		},
+		{
+			"key": "sphere",
+			"title": "Sphere 1"
 		},
 		{
 			"key": "starste1",
