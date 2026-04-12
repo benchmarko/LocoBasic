@@ -582,6 +582,7 @@ export const workerFn = (parentPort) => {
         origin: (x, y) => {
             vm._graOriginX = x;
             vm._graOriginY = y;
+            vm.move(0, 0); // move to new origin
         },
         paper: (n) => {
             // Use a virtual stack to handle paper and pen spans
