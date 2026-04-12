@@ -4,10 +4,13 @@
 
 cpcBasic.addItem("", `
 REM bounce - Bounce
-REM 
+REM (c) Richard Fairhurst
+REM modified
 ' BOUNCE from Scull PD
 ' By Richard Fairhurst
 '
+lbasic=&8000>0: 'fast hack to detect LocoBasic
+IF NOT lbasic THEN DEG
 INK 0,13:INK 1,0:INK 2,26:INK 3,2
 MODE 1
 r=68*1
@@ -29,10 +32,18 @@ x=x+r*100/68:GOSUB 650
 t=TIME+15:WHILE TIME<t:FRAME:WEND
 RETURN
 '
-650 GRAPHICS PEN 1:|CIRCLE,x,200+y*10,r,2
-GRAPHICS PEN 3:|CIRCLE,x+20,200+y*10-40,r/(5*68/r),3
+650 x0=x:y0=200+y*10:r0=r
+GRAPHICS PEN 1:IF lbasic THEN |CIRCLE,x0,y0,r0,2 ELSE GOSUB 750
+x0=x+20:y0=200+y*10-40:r0=r/(5*68/r)
+GRAPHICS PEN 3:IF lbasic THEN |CIRCLE,x0,y0,r0,3 ELSE GOSUB 750
 RETURN
 '
+'circle without RSX
+750 MOVE x0,y0+r0
+FOR a=0 TO 360 STEP 6
+  DRAW x0+r0*SIN(a),y0+r0*COS(a)
+NEXT
+RETURN
 '
 '10 ' BOUNCE from Scull PD
 '20 ' By Richard Fairhurst

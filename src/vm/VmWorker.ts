@@ -682,6 +682,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         origin: (x: number, y: number): void => {
             vm._graOriginX = x;
             vm._graOriginY = y;
+            vm.move(0, 0); // move to new origin
         },
 
         paper: (n: number): void => {

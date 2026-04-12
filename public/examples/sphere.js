@@ -7,52 +7,63 @@ REM sphere - Sphere 1
 REM
 '
 DEG
-w1=10:w2=0:w3=80:r=180
+r=180
+wy=0:wz=0
 INK 0,0:INK 1,24:INK 3,6
 '
 FOR m=0 TO 3
-  GOSUB 160
+  i$=""
+  pens=4^(2-m MOD 3)+ABS(m=2)
+  MODE m
+  ORIGIN 320,200
+  FOR wx=80 TO 0 STEP -10:GOSUB 600:NEXT:wx=0
+  t=TIME+100:WHILE TIME<t AND i$="":i$=INKEY$:WEND
+  FOR wy=0 TO 40 STEP 10:GOSUB 600:NEXT
+  FOR wy=40 TO 0 STEP -10:GOSUB 600:NEXT:wy=0
+  FOR wx=0 TO 80 STEP 10:GOSUB 600:NEXT
+  t=TIME+300:WHILE TIME<t AND i$="":i$=INKEY$:WEND
 NEXT
 END
 '
-160 MODE m
-ORIGIN 320,200
-pens=4^(2-m MOD 3)+ABS(m=2)
-'Longitude lines
+600 cx=COS(wx): sx=SIN(wx)
+cy=COS(wy): sy=SIN(wy)
+cz=COS(wz): sz=SIN(wz)
+CLS
+' longitude (fix a, vary h)
 GRAPHICS PEN 1
-FOR a=0 TO 180 STEP 15
-FOR h=0 TO 360 STEP 15
-GOSUB 390
-IF h=0 THEN MOVE bx,by ELSE DRAW bx,by
-NEXT h
+FOR a=0 TO 360 STEP 15
+  FOR h=-90 TO 90 STEP 15
+    GOSUB 800
+    IF h=-90 THEN MOVE bx,by ELSE DRAW bx,by
+  NEXT h
 NEXT a
-'Latitude lines
+'
+' latitude (fix h, vary a)
 GRAPHICS PEN 3 MOD pens
 FOR h=-90 TO 90 STEP 15
-FOR a=0 TO 360 STEP 15
-GOSUB 390
-IF a=0 THEN MOVE bx,by ELSE DRAW bx,by
-NEXT a
+  FOR a=0 TO 360 STEP 15
+    GOSUB 800
+    IF a=0 THEN MOVE bx,by ELSE DRAW bx,by
+  NEXT a
 NEXT h
-t=TIME+300:WHILE TIME<t AND INKEY$="":WEND
+t=TIME+50:WHILE TIME<t AND i$="":i$=INKEY$:WEND
 RETURN
 '
-'Rotation Matrix
-390 x=COS(h)*COS(a)
+' calculate 3D coordinates of a point on the sphere and project to 2D
+800 x=COS(h)*COS(a)
 y=COS(h)*SIN(a)
 z=SIN(h)
-ma[1]=COS(w2)*COS(w3)
-ma[2]=-COS(w2)*SIN(w3)
-ma[3]=SIN(w2)
-ma[4]=COS(w1)*SIN(w3)+SIN(w1)*SIN(w2)*COS(w3)
-ma[5]=COS(w1)*COS(w3)-SIN(w1)*SIN(w2)*SIN(w3)
-ma[6]=-SIN(w1)*COS(w2)
-ma[7]=SIN(w1)*SIN(w3)-COS(w1)*SIN(w2)*COS(w3)
-ma[8]=SIN(w1)*COS(w3)+COS(w1)*SIN(w2)*SIN(w3)
-ma[9]=COS(w1)*COS(w2)
-xa=ma[1]*x+ma[2]*y+ma[3]*z
-ya=ma[4]*x+ma[5]*y+ma[6]*z
-za=ma[7]*x+ma[8]*y+ma[9]*z
-bx=r*xa:by=r*za:' projection
+'--- rotate around X
+y1 = y*cx - z*sx
+z1 = y*sx + z*cx
+'--- rotate around Y
+x2 = x*cy - z1*sy
+z2 = -x*sy + z1*cy
+'--- rotate around Z
+x3 = x2*cz - y1*sz
+y3 = x2*sz + y1*cz
+'d = 1.3
+bx = r*x3: '/(z2+d)
+by = r*y3: '/(z2+d)
 RETURN
 `);

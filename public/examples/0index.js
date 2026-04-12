@@ -212,6 +212,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Rectangles Test"
 		},
 		{
+			"key": "rectree",
+			"title": "Recursive Tree"
+		},
+		{
 			"key": "reftime",
 			"title": "Reference Timings Test"
 		},
