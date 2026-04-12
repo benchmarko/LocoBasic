@@ -8,7 +8,7 @@ REM
 REM https://logiker.com/Vintage-Computing-Christmas-Challenge-2025
 REM https://demozoo.org/parties/5456/
 '
-DEF FNquote$(s$)=chr$(34)+s$+chr$(34)
+DEF FNquote$(s$)=CHR$(34)+s$+CHR$(34)
 MODE 1
 FOR ver=1 TO 8
   CLS
@@ -18,8 +18,8 @@ FOR ver=1 TO 8
   WHILE i<=LEN(msg$):j=INSTR(i,msg$," - ")
     IF j>0 THEN PRINT MID$(msg$,i,j-i):i=j+3 ELSE PRINT MID$(msg$,i):i=LEN(msg$)+1
   WEND
-  FOR i=1 TO len(code$):s$=MID$(code$,i,1)
-    IF ASC(s$)<32 THEN s$=chr$(1)+s$
+  FOR i=1 TO LEN(code$):s$=MID$(code$,i,1)
+    IF ASC(s$)<32 THEN s$=CHR$(1)+s$
     PRINT s$;
   NEXT
   PRINT:PRINT "source:";LEN(code$)
@@ -39,7 +39,7 @@ END
 390FOR i=1TO 19:READ a:b$=BIN$(a,9):s$="":r$="":FOR n=1 TO 9:c$=MID$(b$,n,1):IF c$="0"THEN c$=" "ELSE c$="*"
 s$=s$+c$:r$=c$+r$:NEXT:?s$"*"r$:NEXT:DATA 0,2,81,48,114,9,4,146,73,511,73,146,4,9,114,48,81,2,0
 '
-code$="1FOR i=1TO 19:READ a:b$=BIN$(a,9):s$="+FNquote$("")+":r$="+FNquote$("")+":FOR n=1 TO 9:c$=MID$(b$,n,1):IF c$="+FNquote$("0")+"THEN c$="+FNquote$(" ")+"ELSE c$="+FNquote$("*")+chr$(13)+"s$=s$+c$:r$=c$+r$:NEXT:?s$"+FNquote$("*")+"+r$:NEXT:DATA 0,2,81,48,114,9,4,146,73,511,73,146,4,9,114,48,81,2,0"
+code$="1FOR i=1TO 19:READ a:b$=BIN$(a,9):s$="+FNquote$("")+":r$="+FNquote$("")+":FOR n=1 TO 9:c$=MID$(b$,n,1):IF c$="+FNquote$("0")+"THEN c$="+FNquote$(" ")+"ELSE c$="+FNquote$("*")+CHR$(13)+"s$=s$+c$:r$=c$+r$:NEXT:?s$"+FNquote$("*")+"+r$:NEXT:DATA 0,2,81,48,114,9,4,146,73,511,73,146,4,9,114,48,81,2,0"
 msg$="by DrSnuggles - Data bits for one half - mirrored horizontally - source: 203 code: 230"
 RETURN
 '
@@ -56,14 +56,14 @@ RETURN
 ' https://youtu.be/9aazdLrXah8?si=cx3_SWDFDpMauKqY&t=931
 ' issalig_amstradcpc_locomotivebasic_168b_vc3-2025.zip
 '
-590DIM D(9):FOR I=1TO 9:READ D(I):NEXT:DATA 73,146,4,9,114,48,81,2,0:FOR Y=-9TO 9:A=ABS(Y):FOR X=-9TO 9:B=ABS(X):?CHR$(42+10*(((A*B=0)OR(D(A)AND 2^(B-1)))=0));:NEXT:?:NEXT
+590DIM d(9):FOR i=1TO 9:READ d(i):NEXT:DATA 73,146,4,9,114,48,81,2,0:FOR y=-9TO 9:a=ABS(y):FOR x=-9TO 9:b=ABS(x):?CHR$(42+10*(((a*b=0)OR(d(a)AND 2^(b-1)))=0));:NEXT:?:NEXT
 '
 code$="1DIM D(9):FOR I=1TO 9:READ D(I):NEXT:DATA 73,146,4,9,114,48,81,2,0:FOR Y=-9TO 9:A=ABS(Y):FOR X=-9TO 9:B=ABS(X):?CHR$(42+10*(((A*B=0)OR(D(A)AND 2^(B-1)))=0));:NEXT:?:NEXT"
 msg$="by issalig - Data bits for one quadrant - mirrored horizontally and vertically - source: 169 code: 187"
 RETURN
 '
 ' 4. Version by issalig (optimized): DIM not necessary, unnecessary parens removed; read 8 bytes, removed variables A,B
-660FOR I=1TO 8:READ D(I):NEXT:DATA 73,146,4,9,114,48,81,2:FOR Y=-9TO 9:FOR X=-9TO 9:?CHR$(42+10*((Y*X=0OR D(ABS(Y))AND 2^(ABS(X)-1))=0));:NEXT:?:NEXT
+660FOR i=1TO 8:READ d(i):NEXT:DATA 73,146,4,9,114,48,81,2:FOR y=-9TO 9:FOR x=-9TO 9:?CHR$(42+10*((y*x=0OR d(ABS(y))AND 2^(ABS(x)-1))=0));:NEXT:?:NEXT
 '
 code$="1FOR I=1TO 8:READ D(I):NEXT:DATA 73,146,4,9,114,48,81,2:FOR Y=-9TO 9:FOR X=-9TO 9:?CHR$(42+10*((Y*X=0OR D(ABS(Y))AND 2^(ABS(X)-1))=0));:NEXT:?:NEXT"
 msg$="by issalig - optimized - removed DIM, parens, A,B; read 8 bytes - source: 147 code: 152"
@@ -125,10 +125,10 @@ ZONE 80:?"         *","       * * *","  * *   ***   * *","   **    *    **","  *
 '
 'Version Misc 2:
 '- Predefined strings - half of snowflake, mirrored vertically - source: 269 code: 256
-FOR I=0 TO 8:READ A$(I):PRINT A$(I):NEXT:PRINT STRING$(19,"*"):FOR I=8 TO 0 STEP -1:PRINT A$(I):NEXT:DATA "         *","       * * *","  * *   ***   * *","   **    *    **","  ***  * * *  ***","     *  ***  *","      *  *  *"," *  *  * * *  *  *","  *  *  ***  *  *"
+FOR i=0 TO 8:READ a$(i):PRINT a$(i):NEXT:PRINT STRING$(19,"*"):FOR i=8 TO 0 STEP -1:PRINT a$(i):NEXT:DATA "         *","       * * *","  * *   ***   * *","   **    *    **","  ***  * * *  ***","     *  ***  *","      *  *  *"," *  *  * * *  *  *","  *  *  ***  *  *"
 '
 'Version Misc 3:
-FOR I=0 TO 8:READ A$(I):PRINT A$(I):NEXT:PRINT STRING$(19,"*"):FOR I=8 TO 0 STEP -1:PRINT A$(I):NEXT
+FOR i=0 TO 8:READ a$(i):PRINT a$(i):NEXT:PRINT STRING$(19,"*"):FOR i=8 TO 0 STEP -1:PRINT a$(i):NEXT
 DATA "         *"
 DATA "       * * *"
 DATA "  * *   ***   * *"
