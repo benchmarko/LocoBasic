@@ -19,12 +19,19 @@ Main features:
 PRINT "Hello World"
 ```
 
-Try it here: [LocoBasic](https://benchmarko.github.io/LocoBasic/)
+Try it here in your browser: [LocoBasic](https://benchmarko.github.io/LocoBasic/)
 
-- Select an example from the dropdown menu or input your own BASIC code.
-   The code is automatically compiled to JavaScript and executed unless you disable the *Auto compile* or *Auto execute* options.
+- Select an example from the dropdown menu or input your own BASIC code like the example above.
+   The code is automatically compiled to JavaScript and executed (unless you disable the *Auto compile* or *Auto execute* options in the LocoBasic options menu).
 
-- When you change the UI (e.g., select an example or show/hide text editors), the URL is updated to reflect the new state.
+- Use the **Stop** button to terminate a running program.
+  If it does not work, use the **Reset** button. This may be needed to terminate an endless loop or a long running calculation.
+
+- You can also **Pause** and **Resume** a program.
+
+- The **Convert** menu allows to *Add* or *Remove* line numbers.
+  
+- When you change the UI state (e.g., select an example or show/hide text editors), the URL is updated to reflect the new state.
   This allows you to reload the page to start the app with the modified state.
 
 ## Running
@@ -172,7 +179,7 @@ Keywords must be written in either all uppercase (preferred) or all lowercase ch
 Example to synchronizes execution:
 
 ```basic
-t = TIME + 50: WHILE TIME < t: FAME: WEND
+t = TIME + 50: WHILE TIME < t: FRAME: WEND
 ```
 
 #### GOSUB
@@ -203,10 +210,11 @@ t = TIME + 50: WHILE TIME < t: FAME: WEND
 
 #### KEY DEF
 
-- `KEY DEF 78,1,k` Creates a user-defined input button for a key with ASCII code *k* on the UI.
-- This is only available in LocoBasic and should have "no function" in Locomotive BASIC.
+- `KEY DEF 78,1,k` Creates a user-defined input button with the character for ASCII code *k* on the UI.
+- Use multiple calls with different *k* to add other buttons. Use k=0 to remove all user buttons.
+- This variant is only available in LocoBasic (it should have "no function" in Locomotive BASIC).
 - Other variants of *KEY DEF* (known from Locomotive BASIC) are not supported.
-- See example [testkey](https://benchmarko.github.io/LocoBasic/?example=testkey).
+- See example script [testkey](https://benchmarko.github.io/LocoBasic/?example=testkey).
 
 #### LINE INPUT
 
@@ -216,7 +224,8 @@ t = TIME + 50: WHILE TIME < t: FAME: WEND
 #### MODE
 
 - `MODE number` Sets the screen mode (0..3).
-  - Sets the screen mode and clears the output with [CLS](#cls). For graphical output, it sets the stroke width.
+- Initializes the stroke width for points and lines.
+- Clears the screen output with [CLS](#cls).
 - See also: [CLS](#cls).
 
 #### MOVE
@@ -245,6 +254,7 @@ t = TIME + 50: WHILE TIME < t: FAME: WEND
 #### ORIGIN
 
 - `ORIGIN x,y` Sets the origin of the coordinate system for graphical output.
+- Sets also the graphics cursor to (0,0) with *MOVE(0, 0)*.
 - See also: [DRAW](#draw), [MOVE](#move), [PLOT](#plot).
 
 #### PAPER
@@ -691,7 +701,6 @@ These are extensions to LocoBasic but can also be implemented on a real CPC with
   - The compiled code runs in a Web Worker or Worker Thread. The "Reset" button terminates the Web Worker and also an endless loop.
 - **STOP and END**
   - These commands stop execution, but only at the top level. Within subroutines, they simply return.
-  - During *FRAME*, *INKEY$* or *INPUT*, the "Stop" button gets active. It allows you to terminate the running program. It is not possible to continue a terminated program.
 - **PEN and PAPER**
   - When using node.js in a terminal, ANSI colors are used.
 - **GRAPHICS PEN, DRAW, DRAWR, MOVE, MOVER, PLOT, PLOTR, TAG (and PRINT), |ARC, |CIRCLE, |ELLIPSE, |POLYGON, |RECT**
