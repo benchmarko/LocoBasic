@@ -220,6 +220,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Reference Timings Test"
 		},
 		{
+			"key": "rogueli",
+			"title": "Rogue like"
+		},
+		{
 			"key": "seconds",
 			"title": "Seconds Test"
 		},
