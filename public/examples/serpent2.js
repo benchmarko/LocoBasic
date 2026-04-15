@@ -10,7 +10,7 @@ MODE 2
 ORIGIN 320,200
 DIM x(20), y(20), x2(20), y2(20)
 lp = 21
-p = 0 'curent position in ring buffer
+p = 0 'current position in ring buffer
 fi = 0 'filled positions in ring buffer
 FOR a=0 TO 13.5 STEP 0.1
   x(p) = 220*SIN(a/2)
