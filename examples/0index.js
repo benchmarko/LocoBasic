@@ -80,6 +80,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Cryptology 1"
 		},
 		{
+			"key": "dragon",
+			"title": "Dragon curve"
+		},
+		{
 			"key": "drawclk",
 			"title": "Draw a clock"
 		},
