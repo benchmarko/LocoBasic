@@ -12,12 +12,18 @@ FOR i=0 TO 7
 s(i)=SIN(i*qpi)
 c(i)=COS(i*qpi)
 NEXT
-level=15
+maxlevel=15
+DIM r(maxlevel)
 insize=128
-MOVE 98,68
+FOR l=1 TO maxlevel
+CLS
+level=l
+MOVE 200,150
 rotqpi=0:rq=1
-DIM r(level)
 GOSUB 1000
+FRAME
+t=TIME+300:WHILE TIME<t AND INKEY$="":WEND
+NEXT
 END
 '
 ' Dragon routine
