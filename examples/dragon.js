@@ -12,17 +12,22 @@ FOR i=0 TO 7
 s(i)=SIN(i*qpi)
 c(i)=COS(i*qpi)
 NEXT
-level=15
+maxlevel=15
+DIM r(maxlevel)
 insize=128
-x=98:y=68
+FOR l=1 TO maxlevel
+CLS
+level=l
+MOVE 200,150
 rotqpi=0:rq=1
-DIM r(level)
 GOSUB 1000
+FRAME
+t=TIME+300:WHILE TIME<t AND INKEY$="":WEND
+NEXT
 END
 '
 ' Dragon routine
-1000 rotqpi=rotqpi AND 7
-IF level=1 THEN GOSUB 2000:RETURN
+1000 IF level=1 THEN DRAWR c(rotqpi)*insize,s(rotqpi)*insize:RETURN
 insize=insize*sq2/2
 rotqpi=(rotqpi+rq) AND 7
 level=level-1
@@ -35,12 +40,5 @@ rq=r(level)
 rotqpi=(rotqpi+rq) AND 7
 level=level+1
 insize=insize*sq2
-RETURN
-'
-' Draw segment
-2000 xn=c(rotqpi)*insize+x
-yn=s(rotqpi)*insize+y
-MOVE x,y:DRAW xn,yn
-x=xn:y=yn
 RETURN
 `);

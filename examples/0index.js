@@ -136,6 +136,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Julia set"
 		},
 		{
+			"key": "kochsnow",
+			"title": "Koch Snowflake"
+		},
+		{
 			"key": "labyrint",
 			"title": "Drawing Labyrinth"
 		},
