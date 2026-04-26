@@ -132,6 +132,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Graphics Demo"
 		},
 		{
+			"key": "hilbert",
+			"title": "Hilbert Curve"
+		},
+		{
 			"key": "juliaset",
 			"title": "Julia set"
 		},
