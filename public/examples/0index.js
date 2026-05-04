@@ -133,7 +133,7 @@ cpcBasic.addIndex("./examples", {
 		},
 		{
 			"key": "hilbert",
-			"title": "Hilbert Curve"
+			"title": "Hilbert curve"
 		},
 		{
 			"key": "juliaset",
