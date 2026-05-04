@@ -3,115 +3,79 @@
 "use strict";
 
 cpcBasic.addItem("", `
-REM hilbert - Hilbert Curve
+REM hilbert - Hilbert curve
 REM written by MV with the help of AI
-REM (no trig, stack-based)
+REM https://en.wikipedia.org/wiki/Hilbert_curve
+REM as Lindenmayer system: A -> +BF-AFA-FB+ , B -> -AF+BFB+FA-
+REM Hilbert (stack-based, gap-based, compact, no trig)
 REM
 MODE 2
 level = 5
-step1 = 4*2
-DIM alevel(level+1), astate(level+1), atype(level+1)
+step1 = 8
 '
-REM direction vectors
+' stack
+DIM alevel(level+1), agap(level+1), aflip(level+1)
+'
+' directions
 DIM dx(3), dy(3)
 dx(0)=1: dy(0)=0
 dx(1)=0: dy(1)=-1
 dx(2)=-1: dy(2)=0
 dx(3)=0: dy(3)=1
 '
-REM turtle
-x = 100
-y = 100
-dir = 0
+' GAPS encoding: max 2 ops per gap
+DIM glen(4), gseq1(4), gseq2(4), gnext(4)
 '
+' gap 0: [+] -> B
+glen(0)=1: gseq1(0)=1: gnext(0)=1
+' gap 1: [F,-] -> A
+glen(1)=2: gseq1(1)=0: gseq2(1)=-1: gnext(1)=0
+' gap 2: [F] -> A
+glen(2)=1: gseq1(2)=0: gnext(2)=0
+' gap 3: [-,F] -> B
+glen(3)=2: gseq1(3)=-1: gseq2(3)=0: gnext(3)=1
+' gap 4: [+] -> end
+glen(4)=1: gseq1(4)=1: gnext(4)=-1
+'
+' turtle
+x = 100: y = 100: dir = 0
 MOVE x,y
 '
-REM push initial A
+' init stack
 sp = 1
-alevel(sp) = level
-astate(sp) = 0
-atype(sp) = 0: REM 0 = A, 1 = B
+alevel(1)=level
+agap(1)=0
+aflip(1)=0
 '
-GOSUB 1000
+WHILE sp > 0
+  lv = alevel(sp)
+  gap = agap(sp)
+  flip = aflip(sp)
+  IF lv = 0 THEN sp = sp - 1 ELSE GOSUB 1500
+WEND
 END
 '
-REM --- interpreter loop ---
-1000 WHILE sp > 0
-  level = alevel(sp)
-  state = astate(sp)
-  type = atype(sp)
-  IF level = 0 THEN sp = sp - 1 ELSE IF type = 0 THEN GOSUB 2000 ELSE GOSUB 3000
-WEND
+' execute gap
+1500 FOR i = 1 TO glen(gap)
+  IF i=1 THEN t = gseq1(gap) ELSE t = gseq2(gap)
+  IF t = 0 THEN GOSUB 2000 ELSE GOSUB 2100
+NEXT i
+'
+nt = gnext(gap)
+IF nt = -1 THEN sp = sp - 1: RETURN
+agap(sp) = gap + 1
+sp = sp + 1
+alevel(sp) = lv - 1
+agap(sp) = 0
+aflip(sp)=flip XOR nt
 RETURN
 '
-REM --- A: +BF-AFA-FB+
-2000 ON state+1 GOSUB 2010,2020,2030,2040,2050,2060,2070,2080,2090,2100,2110
-RETURN
-'
-REM +
-2010 dir = (dir + 1) AND 3: astate(sp)=1
-RETURN
-REM B
-2020 astate(sp)=2: sp=sp+1: atype(sp)=1: alevel(sp)=level-1: astate(sp)=0
-RETURN
-REM F
-2030 astate(sp)=3: GOSUB 4000
-RETURN
-REM -
-2040 dir = (dir + 3) AND 3: astate(sp)=4
-RETURN
-REM A
-2050 astate(sp)=5: sp=sp+1: atype(sp)=0: alevel(sp)=level-1: astate(sp)=0
-RETURN
-REM F
-2060 astate(sp)=6: GOSUB 4000
-RETURN
-REM A
-2070 astate(sp)=7: sp=sp+1: atype(sp)=0: alevel(sp)=level-1: astate(sp)=0
-RETURN
-REM -
-2080 dir = (dir + 3) AND 3: astate(sp)=8
-RETURN
-REM F
-2090 astate(sp)=9: GOSUB 4000
-RETURN
-REM B
-2100 astate(sp)=10: sp=sp+1: atype(sp)=1: alevel(sp)=level-1: astate(sp)=0
-RETURN
-REM + (final)
-2110 dir = (dir + 1) AND 3: sp=sp-1
-RETURN
-'
-REM --- B: -AF+BFB+FA-
-3000 ON state+1 GOSUB 3010,3020,3030,3040,3050,3060,3070,3080,3090,3100,3110
-RETURN
-'
-3010 dir = (dir + 3) AND 3: astate(sp)=1
-RETURN
-3020 astate(sp)=2: sp=sp+1: atype(sp)=0: alevel(sp)=level-1: astate(sp)=0
-RETURN
-3030 astate(sp)=3: GOSUB 4000
-RETURN
-3040 dir = (dir + 1) AND 3: astate(sp)=4
-RETURN
-3050 astate(sp)=5: sp=sp+1: atype(sp)=1: alevel(sp)=level-1: astate(sp)=0
-RETURN
-3060 astate(sp)=6: GOSUB 4000
-RETURN
-3070 astate(sp)=7: sp=sp+1: atype(sp)=1: alevel(sp)=level-1: astate(sp)=0
-RETURN
-3080 dir = (dir + 1) AND 3: astate(sp)=8
-RETURN
-3090 astate(sp)=9: GOSUB 4000
-RETURN
-3100 astate(sp)=10: sp=sp+1: atype(sp)=0: alevel(sp)=level-1: astate(sp)=0
-RETURN
-3110 dir = (dir + 3) AND 3: sp=sp-1
-RETURN
-'
-REM --- draw forward ---
-4000 x = x + dx(dir) * step1
+2000 x = x + dx(dir) * step1
 y = y - dy(dir) * step1
 DRAW x,y
+RETURN
+'
+2100 IF flip=1 THEN t = -t
+dir = (dir + t + 4) AND 3
 RETURN
 `);
