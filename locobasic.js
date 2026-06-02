@@ -3977,6 +3977,7 @@ ${workerFnString}
         }
         async nodeMain(core, locoVmWorkerName) {
             const config = core.getConfigMap();
+            config.example = "";
             core.parseArgs(global.process.argv.slice(2), config);
             this.locoVmWorkerName = locoVmWorkerName;
             if (config.input) {

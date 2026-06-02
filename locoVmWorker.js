@@ -90,8 +90,8 @@
             _graColorsForPens: [], // make sure to initialize with resetColorsForPens before usage
             _graCurrGraphicsPen: -1,
             _graCurrMode: 1,
-            _graGraphicsBuffer: [],
-            _graGraphicsPathBuffer: [],
+            _graGraphicsBuffer: "",
+            _graGraphicsPathBuffer: "",
             _graGraphicsX: 0,
             _graGraphicsY: 0,
             _graOutputGraphicsIndex: -1,
@@ -276,7 +276,7 @@
                 // no property deps
                 vm._graCurrGraphicsPen = -1;
                 if ("_graGraphicsBuffer" in vm) {
-                    vm._graGraphicsBuffer.length = 0;
+                    vm._graGraphicsBuffer = "";
                 }
                 vm._graGraphicsX = 0;
                 vm._graGraphicsY = 0;
@@ -379,7 +379,7 @@
             graAddGraphicsElement: (element) => {
                 vm.graSetOutputGraphicsIndex();
                 vm.graFlushGraphicsPath(); // maybe a path is open
-                vm._graGraphicsBuffer.push(element);
+                vm._graGraphicsBuffer += element;
             },
             // type: M | m | P | p | L | l
             graDrawMovePlot: (type, x, y, pen) => {
@@ -392,7 +392,7 @@
                 if (!vm._graGraphicsPathBuffer.length && type !== "M" && type !== "P") { // path must start with an absolute move
                     vm._graLastEmittedX = vm._graGraphicsX + vm._graOriginX;
                     vm._graLastEmittedY = 399 - vm._graGraphicsY - vm._graOriginY;
-                    vm._graGraphicsPathBuffer.push(`M${vm._graLastEmittedX} ${vm._graLastEmittedY}`);
+                    vm._graGraphicsPathBuffer += `M${vm._graLastEmittedX} ${vm._graLastEmittedY}`;
                 }
                 const isAbsolute = type === type.toUpperCase();
                 if (isAbsolute) {
@@ -454,25 +454,25 @@
                 else {
                     svgPathCmd = `${type}${x} ${y}`;
                 }
-                vm._graGraphicsPathBuffer.push(svgPathCmd);
+                vm._graGraphicsPathBuffer += svgPathCmd;
                 vm._graLastEmittedX = x;
                 vm._graLastEmittedY = y;
             },
             graFlushGraphicsPath: () => {
                 if (vm._graGraphicsPathBuffer.length) {
                     const strokeStr = vm._graCurrGraphicsPen >= 0 ? `stroke="${vm.graGetRgbColorStringForPen(vm._graCurrGraphicsPen)}" ` : "";
-                    vm._graGraphicsBuffer.push(`<path ${strokeStr}d="${vm._graGraphicsPathBuffer.join("")}" />`);
-                    vm._graGraphicsPathBuffer.length = 0;
+                    vm._graGraphicsBuffer += `<path ${strokeStr}d="${vm._graGraphicsPathBuffer}" />`;
+                    vm._graGraphicsPathBuffer = "";
                 }
             },
             graGetFlushedGraphics: () => {
                 vm.graFlushGraphicsPath();
                 if (vm._graGraphicsBuffer.length) {
-                    const graphicsBufferStr = vm._graGraphicsBuffer.join("\n");
-                    vm._graGraphicsBuffer.length = 0;
                     const backgroundColorStr = vm._graBackgroundColor !== "" ? ` style="background-color:${vm._graBackgroundColor}"` : '';
                     const strokeWidth = vm._cpcStrokeWidthForMode[vm._graCurrMode] + "px";
-                    return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" shape-rendering="optimizeSpeed" stroke="currentColor" stroke-width="${strokeWidth}"${backgroundColorStr}>\n${graphicsBufferStr}\n</svg>\n`;
+                    const result = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 640 400" shape-rendering="optimizeSpeed" stroke="currentColor" stroke-width="${strokeWidth}"${backgroundColorStr}>\n${vm._graGraphicsBuffer}\n</svg>\n`;
+                    vm._graGraphicsBuffer = "";
+                    return result;
                 }
                 return "";
             },
@@ -837,6 +837,17 @@
             if (!isNodeParentPort) {
                 parentPort.removeEventListener("error", errorEventHandler);
             }
+            const truncateOutput = (property) => {
+                if (!(property in vm)) {
+                    return; // maybe not for standalone program without graphics
+                }
+                const vm2 = vm;
+                const maxLength = 16777216; // 2^24 (16 MB)
+                if (vm2[property].length > maxLength) { // more that 16 MB? (e.g. for string > 536870868: RangeError: Invalid string length)
+                    console.error(`Long output truncated from ${vm2[property].length} to ${maxLength} characters (${property}).`);
+                    vm2[property] = vm2[property].substring(0, maxLength);
+                }
+            };
             const handleError = (err) => {
                 vm.remainAll();
                 const result = String(err);
@@ -846,6 +857,9 @@
                 else {
                     console.warn(err instanceof Error ? err.stack : result);
                 }
+                truncateOutput("_output");
+                truncateOutput("_graGraphicsPathBuffer");
+                truncateOutput("_graGraphicsBuffer");
                 vm.flush();
                 vm.postMessage({ type: 'result', result });
             };

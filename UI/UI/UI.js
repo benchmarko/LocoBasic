@@ -69,7 +69,7 @@ export class UI {
         this.addOutputText = (str, needCls, hasGraphics) => {
             const outputText = this.htmlElements.outputText;
             if (needCls) {
-                outputText.innerHTML = str;
+                outputText.innerHTML = str; // how to catch DOM error, e.g. from errors in SVG?
                 if (!hasGraphics) {
                     this.htmlElements.exportSvgButton.disabled = true;
                 }

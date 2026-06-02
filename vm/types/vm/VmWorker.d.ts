@@ -21,8 +21,8 @@ export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] 
     _graColorsForPens: number[];
     _graCurrGraphicsPen: number;
     _graCurrMode: number;
-    _graGraphicsBuffer: string[];
-    _graGraphicsPathBuffer: string[];
+    _graGraphicsBuffer: string;
+    _graGraphicsPathBuffer: string;
     _graGraphicsX: number;
     _graGraphicsY: number;
     _graOutputGraphicsIndex: number;
