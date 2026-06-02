@@ -278,6 +278,9 @@
                 if ("_graGraphicsBuffer" in vm) {
                     vm._graGraphicsBuffer = "";
                 }
+                if ("_graGraphicsPathBuffer" in vm) {
+                    vm._graGraphicsPathBuffer = "";
+                }
                 vm._graGraphicsX = 0;
                 vm._graGraphicsY = 0;
                 vm._graLastEmittedX = 0;
@@ -580,7 +583,8 @@
             min: (...nums) => Math.min.apply(null, nums),
             mode: (num) => {
                 vm._graCurrMode = num;
-                vm.origin(0, 0);
+                vm._graOriginX = 0;
+                vm._graOriginY = 0;
                 vm.cls();
             },
             move: (x, y, pen) => vm.graDrawMovePlot("M", x, y, pen),
