@@ -292,7 +292,7 @@ describe("VmWorker.vm core methods", () => {
     it("printTag handles graphics mode", () => {
         const vm = workerFn(getMockParentPort());
         vm.printTag("hello");
-        expect(vm._graGraphicsBuffer.join("")).toContain("hello");
+        expect(vm._graGraphicsBuffer).toContain("hello");
     });
 
     it("paper and pen handle browser and terminal output", () => {

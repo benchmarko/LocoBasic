@@ -333,6 +333,7 @@ export class NodeParts {
 
     public async nodeMain(core: ICore, locoVmWorkerName: string): Promise<void> {
         const config = core.getConfigMap();
+        config.example = "";
         core.parseArgs(global.process.argv.slice(2), config);
         this.locoVmWorkerName = locoVmWorkerName;
 
