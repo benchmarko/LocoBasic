@@ -214,7 +214,7 @@ export class UI implements IUI {
     addOutputText = (str: string, needCls?: boolean, hasGraphics?: boolean) => { // bound this
         const outputText = this.htmlElements.outputText;
         if (needCls) {
-            outputText.innerHTML = str;
+            outputText.innerHTML = str; // how to catch DOM error, e.g. from errors in SVG?
             if (!hasGraphics) {
                 this.htmlElements.exportSvgButton.disabled = true;
             }
