@@ -327,6 +327,9 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             if ("_graGraphicsBuffer" in vm) {
                 vm._graGraphicsBuffer = "";
             }
+            if ("_graGraphicsPathBuffer" in vm) {
+                vm._graGraphicsPathBuffer = "";
+            }
             vm._graGraphicsX = 0;
             vm._graGraphicsY = 0;
             vm._graLastEmittedX = 0;
@@ -672,7 +675,8 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
 
         mode: (num: number) => {
             vm._graCurrMode = num;
-            vm.origin(0, 0);
+            vm._graOriginX = 0;
+            vm._graOriginY = 0;
             vm.cls();
         },
         move: (x: number, y: number, pen?: number) => vm.graDrawMovePlot("M", x, y, pen),
