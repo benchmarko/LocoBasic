@@ -2006,6 +2006,16 @@
             semanticsHelper.addCompileMessage(`WARNING: Not supported: ${message}`);
             return `/* not supported: ${name}${uncommentNotSupported(argStr)} */`;
         };
+        function getFirstSubroutine(definedLabels) {
+            const usedLabels = semanticsHelper.getUsedLabels();
+            const gosubLabels = usedLabels["gosub"] || {};
+            for (const label of definedLabels) {
+                if (gosubLabels[label.label]) {
+                    return label; //subroutineStart = label;
+                }
+            }
+            return null;
+        }
         function processSubroutines(lineList, definedLabels, variableList, variableScopes) {
             const usedLabels = semanticsHelper.getUsedLabels();
             const gosubLabels = usedLabels["gosub"] || {};
@@ -2051,6 +2061,45 @@
             }
             return awaitLabels;
         }
+        function propagateAsync(lineList, definedLabels, seedAsyncLabels) {
+            const asyncLabels = new Set(seedAsyncLabels);
+            let changed = true;
+            while (changed) {
+                changed = false;
+                for (const d of definedLabels) {
+                    if (d.last < 0) {
+                        continue;
+                    }
+                    let functionNeedsAsync = false;
+                    // Add await before calls to already-async functions
+                    for (let i = d.first; i <= d.last; i += 1) {
+                        for (const asyncLabel of asyncLabels) {
+                            const call = `_${asyncLabel}(`;
+                            const awaitedCall = `await _${asyncLabel}(`;
+                            const funcDef = `function _${asyncLabel}(`;
+                            if (lineList[i].includes(call) && !lineList[i].includes(funcDef) && !lineList[i].includes(awaitedCall)) {
+                                lineList[i] = lineList[i].replace(call, awaitedCall);
+                                changed = true;
+                                functionNeedsAsync = true;
+                            }
+                            else if (lineList[i].includes(awaitedCall)) {
+                                functionNeedsAsync = true;
+                            }
+                        }
+                    }
+                    // If body now has await, mark this function async
+                    if (functionNeedsAsync && !asyncLabels.has(d.label)) {
+                        asyncLabels.add(d.label);
+                        // Replace first "function "with "async function" (function header at d.first injected by processSubroutines)
+                        if (lineList[d.first].includes("function ") && !lineList[d.first].includes("async function ")) {
+                            lineList[d.first] = lineList[d.first].replace("function ", "async function ");
+                        }
+                        changed = true;
+                    }
+                }
+            }
+            return asyncLabels;
+        }
         const addSemicolon = (str) => {
             return str.endsWith("}") ? str : str + ";"; // add semicolon, but not for closing bracket
         };
@@ -2070,6 +2119,20 @@
                 const variableDeclarations = globalVars.length ? "let " + globalVars.map((v) => semanticsHelper.getVariableEntry(v)?.type === "A" ? `${v} = []` : v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
                 const definedLabels = semanticsHelper.getDefinedLabels();
                 const awaitLabels = processSubroutines(lineList, definedLabels, variableList, variableScopes);
+                const asyncLabels = propagateAsync(lineList, definedLabels, awaitLabels);
+                //console.log("DEBUG: test: asyncLabels=", asyncLabels);
+                if (asyncLabels.size && definedLabels.length) { // add await to async function calls before subroutines
+                    const firstLabel = getFirstSubroutine(definedLabels);
+                    if (firstLabel) {
+                        const firstLabelIndex = firstLabel.first;
+                        for (const label of asyncLabels) {
+                            const regEx = new RegExp(`_${label}\\(\\);`, "g");
+                            for (let i = 0; i < firstLabelIndex; i += 1) {
+                                lineList[i] = lineList[i].replace(regEx, `await _${label}();`);
+                            }
+                        }
+                    }
+                }
                 const instrMap = semanticsHelper.getInstrMap();
                 const dataList = semanticsHelper.getDataList();
                 // Prepare data definition snippet if needed
@@ -2108,12 +2171,6 @@ ${dataList.join(",\n")}
                 let lineStr = codeLines.join('\n');
                 if (!lineStr.endsWith("\n")) {
                     lineStr += "\n";
-                }
-                if (awaitLabels.length) {
-                    for (const label of awaitLabels) {
-                        const regEx = new RegExp(`_${label}\\(\\);`, "g");
-                        lineStr = lineStr.replace(regEx, `await _${label}();`);
-                    }
                 }
                 return lineStr;
             },
