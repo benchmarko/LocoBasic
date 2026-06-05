@@ -168,6 +168,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "LocoBasic 2"
 		},
 		{
+			"key": "mandelb0",
+			"title": "Mandelbrot Set (ASCII)"
+		},
+		{
 			"key": "mandelbr",
 			"title": "Mandelbrot Set"
 		},

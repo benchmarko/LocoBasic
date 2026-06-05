@@ -10,6 +10,7 @@ REM modified
 ' By Richard Fairhurst
 '
 lbasic=&8000>0: 'fast hack to detect LocoBasic
+hasCircle=lbasic
 IF NOT lbasic THEN DEG
 INK 0,13:INK 1,0:INK 2,26:INK 3,2
 MODE 1
@@ -33,9 +34,9 @@ t=TIME+15:WHILE TIME<t:FRAME:WEND
 RETURN
 '
 650 x0=x:y0=200+y*10:r0=r
-GRAPHICS PEN 1:IF lbasic THEN |CIRCLE,x0,y0,r0,2 ELSE GOSUB 750
+GRAPHICS PEN 1:IF hasCircle THEN |CIRCLE,x0,y0,r0,2 ELSE GOSUB 750
 x0=x+20:y0=200+y*10-40:r0=r/(5*68/r)
-GRAPHICS PEN 3:IF lbasic THEN |CIRCLE,x0,y0,r0,3 ELSE GOSUB 750
+GRAPHICS PEN 3:IF hasCircle THEN |CIRCLE,x0,y0,r0,3 ELSE GOSUB 750
 RETURN
 '
 'circle without RSX
