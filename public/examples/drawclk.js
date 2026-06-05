@@ -9,13 +9,15 @@ REM GNU FDL 1.2 (https://www.gnu.org/licenses/fdl-1.2.html)
 REM modifications: draw clock every second, no xor mode; |CIRCLE; |TIME
 REM
 lbasic=&8000>0: 'fast hack to detect LocoBasic
+hasCircle=lbasic
+hasTime=lbasic
 IF lbasic THEN xd=1 ELSE xd=2 
 MODE 1
 DEG
 't$="01:30:00"
 ' https://www.cpcwiki.eu/index.php/Dobbertin_Smart_Watch
 'get current time from RTC ("HH MM SS")
-IF lbasic THEN t$=SPACE$(8):|TIME,@t$ ELSE INPUT "Current time (HH:MM:SS)";t$
+IF hasTime THEN t$=SPACE$(8):|TIME,@t$ ELSE INPUT "Current time (HH:MM:SS)";t$
 h=VAL(LEFT$(t$,2))
 m=VAL(MID$(t$,4,2))
 s=VAL(RIGHT$(t$,2))
@@ -43,7 +45,7 @@ FOR a=0 TO 360 STEP 6
   DRAW r*SIN(a),r*COS(a)
 NEXT
 '
-IF lbasic THEN |CIRCLE,320,200,r ELSE MOVE 0,r: FOR a=0 TO 360 STEP 6: DRAW r*SIN(a),r*COS(a): NEXT
+IF hasCircle THEN |CIRCLE,320,200,r ELSE MOVE 0,r: FOR a=0 TO 360 STEP 6: DRAW r*SIN(a),r*COS(a): NEXT
 '
 ' new sec
 s=s+1

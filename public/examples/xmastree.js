@@ -6,6 +6,10 @@ cpcBasic.addItem("", `
 REM xmastree - Christmas tree
 REM
 lbasic=&8000>0: 'fast hack to detect LocoBasic
+hasPolygon=lbasic
+hasCircle=lbasic
+hasRect=lbasic
+hasDate=lbasic
 sc=0
 WHILE sc < 1000
   GOSUB 100
@@ -29,7 +33,7 @@ maxwidth = 200
 ' star
 GRAPHICS PEN 1
 stary = height-(topy - 25)
-IF lbasic THEN |POLYGON, cx, stary, cx+7, stary-17, cx+24, stary-17, cx+10, stary-29, cx+15, stary-47, cx, stary-35, cx-15, stary-47, cx-10, stary-29, cx-24, stary-17, cx-7, stary-17, 1 ELSE PEN 1: GOSUB 1000
+IF hasPolygon THEN |POLYGON, cx, stary, cx+7, stary-17, cx+24, stary-17, cx+10, stary-29, cx+15, stary-47, cx, stary-35, cx-15, stary-47, cx-10, stary-29, cx-24, stary-17, cx-7, stary-17, 1 ELSE PEN 1: GOSUB 1000
 '
 ' layers
 GRAPHICS PEN 12
@@ -43,20 +47,20 @@ FOR i = 0 TO layers-1
   'yBot2 = height - yBot
   yt=height-ytop
   yb=height-ybot
-  IF lbasic THEN |POLYGON,cx - wtop,yt, cx + wtop,yt, cx + wbot,yb, cx - wbot,yb,12 ELSE MOVE cx-wtop,yt,12:DRAW cx+wtop,yt:DRAW cx+wbot,yb:DRAW cx-wbot,yb:DRAW cx-wtop,yt:MOVER 0,-4:'FILL 12
+  IF hasPolygon THEN |POLYGON,cx - wtop,yt, cx + wtop,yt, cx + wbot,yb, cx - wbot,yb,12 ELSE MOVE cx-wtop,yt,12:DRAW cx+wtop,yt:DRAW cx+wbot,yb:DRAW cx-wbot,yb:DRAW cx-wtop,yt:MOVER 0,-4:'FILL 12
   'ornaments
   FOR j = 0 TO 4
     ox = cx + (RND - 0.5) * wbot * 1.6
     oy = ytop + layerheight * (0.45 + RND * 0.2)
     col = INT(RND*15)+1
-    IF lbasic THEN |CIRCLE,ox,399-oy,5,col ELSE r=4:MOVE ox,height-(oy+r),col:FOR a=0 TO 360 STEP 60: DRAW ox+r*SIN(a),height-(oy+r*COS(a)): NEXT
+    IF hasCircle THEN |CIRCLE,ox,399-oy,5,col ELSE r=4:MOVE ox,height-(oy+r),col:FOR a=0 TO 360 STEP 60: DRAW ox+r*SIN(a),height-(oy+r*COS(a)): NEXT
 496 MOVER 0,2:'FILL col
   NEXT
 NEXT
 '
 'trunk
 GRAPHICS PEN 9
-IF lbasic THEN |RECT,cx - 16, height-bottomy, cx - 16+32, height-bottomy-45,9 ELSE MOVE cx-16,height-bottomy:DRAW cx+16,height-bottomy:DRAW cx+16,height-(bottomy+45):DRAW cx-16,height-(bottomy+45):DRAW cx-16,height-bottomy:MOVER 4,-4:'FILL 3
+IF hasRect THEN |RECT,cx - 16, height-bottomy, cx - 16+32, height-bottomy-45,9 ELSE MOVE cx-16,height-bottomy:DRAW cx+16,height-bottomy:DRAW cx+16,height-(bottomy+45):DRAW cx-16,height-(bottomy+45):DRAW cx-16,height-bottomy:MOVER 4,-4:'FILL 3
 RETURN
 '
 ' star (formula-based)
@@ -78,7 +82,7 @@ RETURN
 '
 ' check date
 2000 d$=SPACE$(11)
-IF lbasic THEN |DATE,@d$ ELSE d$="00 23 12 25"
+IF hasDate THEN |DATE,@d$ ELSE d$="00 23 12 25"
 day$=MID$(d$,4,2)
 month$=MID$(d$,7,2)
 year$=RIGHT$(d$,2)
