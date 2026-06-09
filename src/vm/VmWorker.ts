@@ -933,8 +933,34 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
 
         toRad: (num: number) => num * Math.PI / 180,
 
-        using: (format: string, ...args: number[]) => {
-            return args.map((arg) => vm.dec$(arg, format)).join('');
+        usingOne(tok: string, arg: string | number): string {
+            if (tok === "&") {
+                return String(arg);
+            }
+            if (tok === "!") {
+                return String(arg).charAt(0);
+            }
+            if (tok.startsWith("\\")) {
+                const s = String(arg);
+                return s.length >= tok.length ? s.substring(0, tok.length) : s + " ".repeat(tok.length - s.length);
+            }
+            return vm.dec$(Number(arg), tok);
+        },
+
+        using: (format: string, ...args: (string | number)[]) => {
+            const parts = format.split(/(!|&|\\ *\\|#[#,]*\.?#*)/);
+            const n = (parts.length - 1) >> 1;
+            let out = "";
+            if (n > 0) {
+                for (let i = 0; i < args.length; i += 1) {
+                    const ti = i % n;
+                    if (ti === 0) {
+                        out += parts[0];
+                    }
+                    out += vm.usingOne(parts[ti * 2 + 1], args[i]) + parts[ti * 2 + 2];
+                }
+            }
+            return out;
         },
 
         unt: (num: number) => num,

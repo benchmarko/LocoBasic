@@ -289,7 +289,7 @@ t = TIME + 50: WHILE TIME < t: FRAME: WEND
     - The [SPC](#spc) function prints the specified number of spaces.
   - In Locobasic, lines can have any length, no automatic newline is inserted.
   - When [TAG](#tag) is active, it creates [SVG text](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/text).
-  - **Limitations:** Formatting with [USING](#using) only for one number as with [DEC](#dec). No additional characters in the format string.
+  - Formatting with [USING](#using).
 
 #### RAD
 
@@ -352,8 +352,11 @@ t = TIME + 50: WHILE TIME < t: FRAME: WEND
 
 #### USING
 
-- `PRINT... USING formatString` uses *formatString* to format print arguments.
-- Allowed characters: ... (TODO).
+- `PRINT... USING formatString (,;) argument1 [(,;) argument2]` uses *formatString* to format print arguments.
+- Supports argument cycling and non-format characters
+  - Number format: #.# (see [DEC](#dec))
+  - String format: &=string, !=first character; /  /=length
+  - (Currently not supported: _ as escape character; , as thousands separator, ££, $$, ^^^^, sign +-)
 - See also: [DEC$](#dec), [PRINT](#print).
 
 #### WEND

@@ -1071,10 +1071,10 @@ ${dataList.join(",\n")}
 			return parameterString;
 		},
 
-		PrintArg_usingNum(_printLit: Node, format: Node, _semi: Node, numArgs: Node) {
+		PrintArg_using(_printLit: Node, format: Node, _semi: Node, anyArgs: Node) {
 			semanticsHelper.addInstr("using");
 			const formatString = format.eval();
-			const argumentList = evalChildren(numArgs.asIteration().children);
+			const argumentList = evalChildren(anyArgs.asIteration().children);
 			const parameterString = argumentList.join(', ');
 			return `using(${formatString}, ${parameterString})`;
 		},
