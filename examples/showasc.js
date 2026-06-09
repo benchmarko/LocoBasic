@@ -12,6 +12,7 @@ MODE 2
 FOR r=0 TO 15
   FOR c=32+r TO 112+r STEP 16
     PRINT USING "###";c;:PRINT ": ";CHR$(c);" ";
+    'or: PRINT USING "###: & ";c;CHR$(c);
   NEXT
   PRINT
 NEXT

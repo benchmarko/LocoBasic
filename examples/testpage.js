@@ -830,13 +830,14 @@ a$="test":b=2:PRINT a$;b;
 PRINT a=(29+1) MOD 10=0 AND 5=7; a$<>"a2" OR b$<>"2"
 '
 PRINT "PRINT USING: ";
-''PRINT USING "####";ri;
+ri=345:PRINT USING "####";ri;
 PRINT USING "##.##";-1.2;
 PRINT " / ";USING "###.###";-1.2;1.2
-''PRINT USING "### ########";a,b
-''PRINT USING "\\   \\";"n1";"n2";" xx3";
-''PRINT USING "!";"a1";"a2";
-''PRINT USING "&";"a1";"a2";
+a=51:b=123456:PRINT USING "<text before>###<text between>########<text after>";a,b
+PRINT USING "\\   \\";"n1";"n2";" xx3";
+PRINT USING "!";"a1";"b2";
+PRINT USING "&";"a1";"a2"
+'PRINT USING "### _#";5 'underscore as escape
 ''PRINT #9,TAB(t);t$;i;"h1"
 PRINT "PRINT comma:", "13","26 apples","39"; " (default zone 13)"
 PRINT "PRINT SPC:"; SPC(3);"13";SPC(13-2);"26 apples" SPC(13-9);"39"

@@ -549,11 +549,15 @@
     PrintCommaOp
       = ","
 
+    PrintUsingSep
+      = ";"
+      | ","
+
     PrintArg
       = &StrCmpExp NumExp -- strCmp
       | StrExp
       | NumExp
-      | using StrExp ";" NonemptyListOf<NumExp, ";"> -- usingNum
+      | using StrExp ";" ListOf<AnyExp, PrintUsingSep> -- using
       | Spc
       | Tab
       | PrintCommaOp -- commaOp
@@ -951,6 +955,9 @@
     AnyFnArgs
       = "(" ListOf<AnyFnArg, ","> ")"
 
+    AnyExp
+      = StrExp
+      | NumExp
 
     keyword
       = abs | after | and | asc | atn | auto | binS | border | break
@@ -2783,10 +2790,10 @@ ${dataList.join(",\n")}
                 const parameterString = args.children[0].eval();
                 return parameterString;
             },
-            PrintArg_usingNum(_printLit, format, _semi, numArgs) {
+            PrintArg_using(_printLit, format, _semi, anyArgs) {
                 semanticsHelper.addInstr("using");
                 const formatString = format.eval();
-                const argumentList = evalChildren(numArgs.asIteration().children);
+                const argumentList = evalChildren(anyArgs.asIteration().children);
                 const parameterString = argumentList.join(', ');
                 return `using(${formatString}, ${parameterString})`;
             },

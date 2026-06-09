@@ -479,11 +479,15 @@ export const arithmetic = {
     PrintCommaOp
       = ","
 
+    PrintUsingSep
+      = ";"
+      | ","
+
     PrintArg
       = &StrCmpExp NumExp -- strCmp
       | StrExp
       | NumExp
-      | using StrExp ";" NonemptyListOf<NumExp, ";"> -- usingNum
+      | using StrExp ";" ListOf<AnyExp, PrintUsingSep> -- using
       | Spc
       | Tab
       | PrintCommaOp -- commaOp
@@ -881,6 +885,9 @@ export const arithmetic = {
     AnyFnArgs
       = "(" ListOf<AnyFnArg, ","> ")"
 
+    AnyExp
+      = StrExp
+      | NumExp
 
     keyword
       = abs | after | and | asc | atn | auto | binS | border | break

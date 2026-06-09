@@ -142,7 +142,7 @@ export declare class Semantics implements ISemantics {
         Poke(lit: Node, num: Node, comma: Node, num2: Node): string;
         Pos(lit: Node, open: Node, streamLit: Node, num: Node, close: Node): string;
         PrintArg_strCmp(_cmp: Node, args: Node): any;
-        PrintArg_usingNum(_printLit: Node, format: Node, _semi: Node, numArgs: Node): string;
+        PrintArg_using(_printLit: Node, format: Node, _semi: Node, anyArgs: Node): string;
         PrintArg_commaOp(_comma: Node): string;
         StreamArg(streamLit: Node, stream: Node): string;
         Print(_printLit: Node, stream: Node, _comma: Node, args: Node, semi: Node): string;

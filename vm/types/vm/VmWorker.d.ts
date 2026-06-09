@@ -168,7 +168,8 @@ export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] 
     time: () => number;
     toDeg: (num: number) => number;
     toRad: (num: number) => number;
-    using: (format: string, ...args: number[]) => string;
+    usingOne(tok: string, arg: string | number): string;
+    using: (format: string, ...args: (string | number)[]) => string;
     unt: (num: number) => number;
     upper$: (str: string) => string;
     val1: (str: string) => number;

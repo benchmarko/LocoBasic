@@ -42,16 +42,7 @@ fac=lps/lpsr
 f=300*2/t 'not 2 sec?
 IF f>2 THEN l=INT(l*f):n=n+1 ELSE lp=0:'too fast, do it again
 WEND
-'PRINT USING "#### ### ##### ########## ##.### ####### ##### ########  &";m,n,t,l,sec,lps,lpsr,fac,d$
-PRINT USING "####";m;
-PRINT " ";USING "###";n;
-PRINT " ";USING "#####";t;
-PRINT " ";USING "##########";l;
-PRINT " ";USING "##.###";sec;
-PRINT " ";USING "#########";lps;
-PRINT " ";USING "#####";lpsr;
-PRINT " ";USING "########";fac;
-PRINT "  ";d$
+PRINT USING "#### ### ##### ########## ##.### ######### ##### ########  &";m,n,t,l,sec,lps,lpsr,fac,d$
 m=m+1
 WEND
 END

@@ -848,10 +848,10 @@ ${dataList.join(",\n")}
             const parameterString = args.children[0].eval();
             return parameterString;
         },
-        PrintArg_usingNum(_printLit, format, _semi, numArgs) {
+        PrintArg_using(_printLit, format, _semi, anyArgs) {
             semanticsHelper.addInstr("using");
             const formatString = format.eval();
-            const argumentList = evalChildren(numArgs.asIteration().children);
+            const argumentList = evalChildren(anyArgs.asIteration().children);
             const parameterString = argumentList.join(', ');
             return `using(${formatString}, ${parameterString})`;
         },

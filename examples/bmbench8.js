@@ -263,7 +263,7 @@ REM printResult(): void
 3500 PRINT: PRINT "Throughput for all benchmarks (loops per sec):"
 PRINT "BMR ("; prgLanguage$; ") :";
 FOR bench = bench1 TO bench2
-PRINT USING "#######.###"; benchres(bench);:PRINT " ";
+PRINT USING "#######.### "; benchres(bench);
 NEXT bench
 PRINT
 RETURN
@@ -296,10 +296,8 @@ IF tDelta < 0 THEN tDelta = -tDelta
 REM  xx IF tEsti > tMeas THEN tDelta = tEsti - tMeas ELSE tDelta = tMeas - tEsti
 loopsPsec = 0
 IF tMeas > 0 THEN loopsPsec = (loops * 1000) / tMeas
-PRINT USING "######.###";loopsPsec;
-PRINT "/s (time="; USING "#####.###"; tMeas;
-PRINT " ms, loops="; USING "#######"; loops;
-PRINT ", delta="; USING "#####.###"; tDelta;: PRINT " ms)"
+PRINT USING "######.###/s (time=#####.### ms, loops=#######";loopsPsec;tMeas;loops;
+PRINT USING ", delta=#####.### ms)";tDelta
 IF x <> -1 THEN GOSUB 4200 ELSE throughput = -1
 WEND
 RETURN

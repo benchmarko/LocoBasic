@@ -603,11 +603,7 @@ PRINT #2,"comma"
 ''PRINT #2,a$,b
 '
 PRINT "PRINT USING: ";
-''PRINT USING "####";ri;
-''PRINT USING "### ########";a,b
-''PRINT USING "\\   \\";"n1";"n2";" xx3";
-''PRINT USING "!";"a1";"a2";
-''PRINT USING "&";"a1";"a2";
+'PRINT USING "### _#";5 'underscore as escape
 ''PRINT #9,TAB(t);t$;i;"h1"
 '
 PRINT "?: ";
