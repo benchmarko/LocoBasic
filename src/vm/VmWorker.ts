@@ -152,7 +152,8 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             Object.keys(items).forEach(key => delete items[key]); // eslint-disable-line @typescript-eslint/no-dynamic-delete
         },
 
-        formatCommaOrTab: (str: string) => {
+        formatCommaOrTab: (str: string | undefined) => {
+            str = String(str);
             if (str === vm._commaOpChar) {
                 return " ".repeat(vm._zone - (vm._pos % vm._zone));
             } else if (str.charAt(0) === vm._tabOpChar) {
@@ -168,7 +169,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
 
         formatNumber1: (arg: number) => (arg >= 0 ? ` ${arg} ` : `${arg} `),
 
-        formatNumberArgs: (args: (string | number)[]) => args.map((arg) => (typeof arg === "number") ? vm.formatNumber1(arg) : arg),
+        formatNumberArgs: (args: (string | number | undefined)[]) => args.map((arg) => (typeof arg === "number") ? vm.formatNumber1(arg) : arg),
 
         onMessageHandler: (data: MessageToWorker) => {
             switch (data.type) {
@@ -307,7 +308,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             vm.createTimer(timer, () => fn(), timeout * 20, false);
         },
 
-        asc: (str: string) => str.charCodeAt(0),
+        asc: (str: string | undefined) => String(str).charCodeAt(0),
 
         atn: (num: number) => Math.atan(num),
 
@@ -351,7 +352,8 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
 
         creal: (num: number) => num,
 
-        dec$: (num: number, format: string) => {
+        dec$: (num: number, format: string | undefined) => {
+            format = String(format);
             const decimals = (format.split(".")[1] || "").length;
             const str = num.toFixed(decimals);
             const pad = " ".repeat(Math.max(0, format.length - str.length));
@@ -626,8 +628,8 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             });
         },
 
-        instr: (str: string, find: string, len: number) => {
-            return vm.convert2ControlCodes(str).indexOf(vm.convert2ControlCodes(find), len !== undefined ? len - 1 : len) + 1;
+        instr: (str: string | undefined, find: string | undefined, len: number) => {
+            return vm.convert2ControlCodes(String(str)).indexOf(vm.convert2ControlCodes(String(find)), len !== undefined ? len - 1 : len) + 1;
         },
 
         int: (num: number) => Math.floor(num),
@@ -637,9 +639,9 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
                 vm.postMessage({ type: 'keyDef', codes });
             }
         },
-        left$: (str: string, num: number) => str.slice(0, num),
+        left$: (str: string | undefined, num: number) => String(str).slice(0, num),
 
-        len: (str: string) => str.length,
+        len: (str: string | undefined) => String(str).length,
 
         lineInput: async (prompt: string): Promise<string> => {
             const inputPromise = new Promise<string | null>((resolve) => {
@@ -659,13 +661,15 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
 
         log10: (num: number) => Math.log10(num),
 
-        lower$: (str: string) => str.toLowerCase(),
+        lower$: (str: string | undefined) => String(str).toLowerCase(),
 
         max: (...nums: number[]) => Math.max.apply(null, nums),
 
-        mid$: (str: string, pos: number, len?: number) => str.substr(pos - 1, len),
+        mid$: (str: string | undefined, pos: number, len?: number) => String(str).substr(pos - 1, len),
 
-        mid$Assign: (s: string, start: number, newString: string, len?: number) => {
+        mid$Assign: (s: string | undefined, start: number, newString: string | undefined, len?: number) => {
+            s = String(s);
+            newString = String(newString);
             start -= 1;
             len = Math.min(len ?? newString.length, newString.length, s.length - start);
             return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
@@ -760,21 +764,21 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
 
         pos: () => vm._pos + 1,
 
-        print: (...args: (string | number)[]) => {
+        print: (...args: (string | number | undefined)[]) => {
             vm.printText(vm.formatNumberArgs(args).join(""));
         },
 
-        printTag: (...args: (string | number)[]) => {
+        printTag: (...args: (string | number | undefined)[]) => {
             return vm.graPrintGraphicsText(vm.formatNumberArgs(args).join(""));
         },
 
-        printTab: (...args: (string | number)[]) => {
+        printTab: (...args: (string | number | undefined)[]) => {
             const strArgs = vm.formatNumberArgs(args);
             for (const str of strArgs) {
                 vm.printText(vm.formatCommaOrTab(str));
             }
         },
-        printTabTag: (...args: (string | number)[]) => {
+        printTabTag: (...args: (string | number | undefined)[]) => {
             const strArgs = vm.formatNumberArgs(args);
             return vm.graPrintGraphicsText(strArgs.map(arg => vm.formatCommaOrTab(arg)).join(""));
             // For graphics output the text position does not change, so we can output all at once
@@ -813,7 +817,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
         restore: (label: string) => {
             vm._dataPtr = vm._restoreMap[label];
         },
-        right$: (str: string, num: number) => str.substring(str.length - num),
+        right$: (str: string | undefined, num: number) => String(str).substring(String(str).length - num),
 
         rnd: () => Math.random(),
 
@@ -923,7 +927,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
 
         string$Num: (len: number, num: number) => String.fromCharCode(num).repeat(len),
 
-        string$Str: (len: number, str: string) => str.repeat(len),
+        string$Str: (len: number, str: string | undefined) => String(str).repeat(len),
 
         tan: (num: number) => Math.tan(num),
 
@@ -947,8 +951,8 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             return vm.dec$(Number(arg), tok);
         },
 
-        using: (format: string, ...args: (string | number)[]) => {
-            const parts = format.split(/(!|&|\\ *\\|#[#,]*\.?#*)/);
+        using: (format: string | undefined, ...args: (string | number)[]) => {
+            const parts = String(format).split(/(!|&|\\ *\\|#[#,]*\.?#*)/);
             const n = (parts.length - 1) >> 1;
             let out = "";
             if (n > 0) {
@@ -965,19 +969,19 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
 
         unt: (num: number) => num,
 
-        upper$: (str: string) => str.toUpperCase(),
+        upper$: (str: string | undefined) => String(str).toUpperCase(),
 
         val1: (str: string) => Number(str),
 
-        val: (str: string) => Number(str.replace("&x", "0b").replace("&", "0x")),
+        val: (str: string | undefined) => Number(String(str).replace("&x", "0b").replace("&", "0x")),
 
         vpos: () => vm._vpos + 1,
 
-        write: (...args: (string | number)[]) => {
+        write: (...args: (string | number | undefined)[]) => {
             const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
             vm.printText(text);
         },
-        writeTag: (...args: (string | number)[]) => {
+        writeTag: (...args: (string | number | undefined)[]) => {
             const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
             return vm.graPrintGraphicsText(text);
         },
