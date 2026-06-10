@@ -865,14 +865,10 @@ export const workerFn = (parentPort) => {
             parentPort.removeEventListener("error", errorEventHandler);
         }
         const truncateOutput = (property) => {
-            if (!(property in vm)) {
-                return; // maybe not for standalone program without graphics
-            }
-            const vm2 = vm;
             const maxLength = 16777216; // 2^24 (16 MB)
-            if (vm2[property].length > maxLength) { // more that 16 MB? (e.g. for string > 536870868: RangeError: Invalid string length)
-                console.error(`Long output truncated from ${vm2[property].length} to ${maxLength} characters (${property}).`);
-                vm2[property] = vm2[property].substring(0, maxLength);
+            if (vm[property].length > maxLength) { // more that 16 MB? (e.g. for string > 536870868: RangeError: Invalid string length)
+                console.error(`Long output truncated from ${vm[property].length} to ${maxLength} characters (${property}).`);
+                vm[property] = vm[property].substring(0, maxLength);
             }
         };
         const handleError = (err) => {

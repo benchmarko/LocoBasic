@@ -5,7 +5,7 @@ type TimerType = {
     fn: () => void;
     timeout: number;
     repeat: boolean;
-    id: (number | NodeJS.Timeout);
+    id: ReturnType<typeof setTimeout> | 0;
 };
 export declare const workerFn: (parentPort: NodeWorkerThreadsType["parentPort"] | BrowserWorkerThreadsType["parentPort"]) => {
     _commaOpChar: string;
