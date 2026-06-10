@@ -12,7 +12,7 @@ type TimerType = {
     fn: () => void;
     timeout: number;
     repeat: boolean;
-    id: (number | NodeJS.Timeout);
+    id: ReturnType<typeof setTimeout> | 0;
 };
 
 export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | BrowserWorkerThreadsType["parentPort"]) => {
@@ -292,7 +292,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
 
         createTimer: (timer: number, fn: () => void, timeout: number, repeat: boolean) => {
             vm.remain(timer);
-            const timerObj = {
+            const timerObj: TimerType = {
                 fn,
                 timeout,
                 repeat,
@@ -1017,15 +1017,11 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             parentPort.removeEventListener("error", errorEventHandler);
         }
 
-        const truncateOutput = (property: string) => {
-            if (!(property in vm)) {
-                return; // maybe not for standalone program without graphics
-            }
-            const vm2 = vm as Record<string, any>;
+        const truncateOutput = (property: "_output" | "_graGraphicsPathBuffer" | "_graGraphicsBuffer") => {
             const maxLength = 16777216; // 2^24 (16 MB)
-            if (vm2[property].length > maxLength) { // more that 16 MB? (e.g. for string > 536870868: RangeError: Invalid string length)
-                console.error(`Long output truncated from ${vm2[property].length} to ${maxLength} characters (${property}).`);
-                vm2[property] = vm2[property].substring(0, maxLength);
+            if (vm[property].length > maxLength) { // more that 16 MB? (e.g. for string > 536870868: RangeError: Invalid string length)
+                console.error(`Long output truncated from ${vm[property].length} to ${maxLength} characters (${property}).`);
+                vm[property] = vm[property].substring(0, maxLength);
             }
         }
 
