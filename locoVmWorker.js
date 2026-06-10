@@ -132,6 +132,7 @@
                 Object.keys(items).forEach(key => delete items[key]); // eslint-disable-line @typescript-eslint/no-dynamic-delete
             },
             formatCommaOrTab: (str) => {
+                str = String(str);
                 if (str === vm._commaOpChar) {
                     return " ".repeat(vm._zone - (vm._pos % vm._zone));
                 }
@@ -264,7 +265,7 @@
             after: (timeout, timer, fn) => {
                 vm.createTimer(timer, () => fn(), timeout * 20, false);
             },
-            asc: (str) => str.charCodeAt(0),
+            asc: (str) => String(str).charCodeAt(0),
             atn: (num) => Math.atan(num),
             bin$: (num, pad = 0) => num.toString(2).toUpperCase().padStart(pad, "0"),
             chr$: (num) => String.fromCharCode(num),
@@ -299,6 +300,7 @@
             cos: (num) => Math.cos(num),
             creal: (num) => num,
             dec$: (num, format) => {
+                format = String(format);
                 const decimals = (format.split(".")[1] || "").length;
                 const str = num.toFixed(decimals);
                 const pad = " ".repeat(Math.max(0, format.length - str.length));
@@ -548,7 +550,7 @@
                 });
             },
             instr: (str, find, len) => {
-                return vm.convert2ControlCodes(str).indexOf(vm.convert2ControlCodes(find), len !== undefined ? len - 1 : len) + 1;
+                return vm.convert2ControlCodes(String(str)).indexOf(vm.convert2ControlCodes(String(find)), len !== undefined ? len - 1 : len) + 1;
             },
             int: (num) => Math.floor(num),
             keyDef: (num, repeat, ...codes) => {
@@ -556,8 +558,8 @@
                     vm.postMessage({ type: 'keyDef', codes });
                 }
             },
-            left$: (str, num) => str.slice(0, num),
-            len: (str) => str.length,
+            left$: (str, num) => String(str).slice(0, num),
+            len: (str) => String(str).length,
             lineInput: async (prompt) => {
                 const inputPromise = new Promise((resolve) => {
                     vm._inputResolvedFn = resolve;
@@ -572,10 +574,12 @@
             },
             log: (num) => Math.log(num),
             log10: (num) => Math.log10(num),
-            lower$: (str) => str.toLowerCase(),
+            lower$: (str) => String(str).toLowerCase(),
             max: (...nums) => Math.max.apply(null, nums),
-            mid$: (str, pos, len) => str.substr(pos - 1, len),
+            mid$: (str, pos, len) => String(str).substr(pos - 1, len),
             mid$Assign: (s, start, newString, len) => {
+                s = String(s);
+                newString = String(newString);
                 start -= 1;
                 len = Math.min(len ?? newString.length, newString.length, s.length - start);
                 return s.substring(0, start) + newString.substring(0, len) + s.substring(start + len);
@@ -706,7 +710,7 @@
             restore: (label) => {
                 vm._dataPtr = vm._restoreMap[label];
             },
-            right$: (str, num) => str.substring(str.length - num),
+            right$: (str, num) => String(str).substring(String(str).length - num),
             rnd: () => Math.random(),
             round1: (num) => Math.round(num),
             round: (num, dec) => Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec),
@@ -794,7 +798,7 @@
             stop: () => vm.flush(),
             str$: (num) => num >= 0 ? ` ${num}` : String(num),
             string$Num: (len, num) => String.fromCharCode(num).repeat(len),
-            string$Str: (len, str) => str.repeat(len),
+            string$Str: (len, str) => String(str).repeat(len),
             tan: (num) => Math.tan(num),
             time: () => ((Date.now() - vm._startTime) * 3 / 10) | 0,
             toDeg: (num) => num * 180 / Math.PI,
@@ -813,7 +817,7 @@
                 return vm.dec$(Number(arg), tok);
             },
             using: (format, ...args) => {
-                const parts = format.split(/(!|&|\\ *\\|#[#,]*\.?#*)/);
+                const parts = String(format).split(/(!|&|\\ *\\|#[#,]*\.?#*)/);
                 const n = (parts.length - 1) >> 1;
                 let out = "";
                 if (n > 0) {
@@ -828,9 +832,9 @@
                 return out;
             },
             unt: (num) => num,
-            upper$: (str) => str.toUpperCase(),
+            upper$: (str) => String(str).toUpperCase(),
             val1: (str) => Number(str),
-            val: (str) => Number(str.replace("&x", "0b").replace("&", "0x")),
+            val: (str) => Number(String(str).replace("&x", "0b").replace("&", "0x")),
             vpos: () => vm._vpos + 1,
             write: (...args) => {
                 const text = args.map((arg) => (typeof arg === "string") ? `"${arg}"` : `${arg}`).join(",") + "\n";
