@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { workerFn } from "../src/vm/VmWorker";
 import type { MessageFromWorker, MessageToWorker } from '../src/Interfaces';
 import { CommaOpChar, TabOpChar } from "../src/Constants";
@@ -6,9 +6,11 @@ import { CommaOpChar, TabOpChar } from "../src/Constants";
 function getMockParentPort() {
     const parentPort = {
         _testMessage: {} as MessageFromWorker,
+        _messages: [] as MessageFromWorker[],
         _messageHandler: {} as (data: MessageToWorker) => void,
         postMessage: (message: MessageFromWorker) => {
-            parentPort._testMessage = message
+            parentPort._testMessage = message;
+            parentPort._messages.push(message);
         },
         on: (_event: string, messageHandler: (data: MessageToWorker) => void) => {
             parentPort._messageHandler = messageHandler;
@@ -327,5 +329,290 @@ describe("VmWorker.vm core methods", () => {
 
         vm.print("\n");
         expect(vm.pos()).toBe(1);
+    });
+
+    it("timer lifecycle covers after/every/pause/resume/remain", () => {
+        vi.useFakeTimers();
+        try {
+            const vm = workerFn(getMockParentPort());
+            const onceFn = vi.fn();
+            const repeatFn = vi.fn();
+
+            vm.after(1, 1, onceFn);
+            vm.every(1, 2, repeatFn);
+
+            expect(Object.keys(vm._timerMap).sort()).toEqual(["1", "2"]);
+
+            vi.advanceTimersByTime(20);
+            expect(onceFn).toHaveBeenCalledTimes(1);
+            expect(repeatFn).toHaveBeenCalledTimes(1);
+
+            vm.pauseAllTimers();
+            vi.advanceTimersByTime(60);
+            expect(repeatFn).toHaveBeenCalledTimes(1);
+
+            vm.resumeAllTimers();
+            vi.advanceTimersByTime(60);
+            expect(repeatFn).toHaveBeenCalledTimes(4);
+
+            expect(vm.remain(1)).toBe(0);
+            vm.remainAll();
+            expect(Object.keys(vm._timerMap)).toEqual([]);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("graphics primitives produce expected SVG output", () => {
+        const vm = workerFn(getMockParentPort());
+        vm.mode(1);
+
+        vm.move(10, 20, 1);
+        vm.draw(20, 20, 1);
+        vm.drawr(0, 10, 1);
+        vm.plot(30, 40, 1);
+        vm.plotr(1, -1, 1);
+        vm.origin(5, 6);
+
+        vm.rsxCircle(100, 110, 12, 2);
+        vm.rsxEllipse(120, 130, 14, 6, 3);
+        vm.rsxRect(10, 40, 30, 20, 4);
+        vm.rsxPolygon(10, 10, 20, 10, 20, 20, 5);
+        vm.rsxArc(10, 20, 30, 40, 0, 0, 1, 50, 60, 6);
+
+        const svg = vm.graGetFlushedGraphics();
+        expect(svg).toContain("<svg");
+        expect(svg).toContain("<path");
+        expect(svg).toContain("<circle");
+        expect(svg).toContain("<ellipse");
+        expect(svg).toContain("<rect");
+        expect(svg).toContain("<polygon");
+    });
+
+    it("string/math helper methods work for representative inputs", () => {
+        const vm = workerFn(getMockParentPort());
+
+        expect(vm.convert2ControlCodes("\u0101A")).toBe("\u0001A");
+        expect(vm.instr("abcabc", "bc", 2)).toBe(2);
+        expect(vm.abs(-7)).toBe(7);
+        expect(vm.asc("A")).toBe(65);
+        expect(vm.chr$(65)).toBe("A");
+        expect(vm.cint(1.6)).toBe(2);
+        expect(vm.fix(-1.8)).toBe(-1);
+        expect(vm.int(-1.2)).toBe(-2);
+        expect(vm.max(2, 9, 1)).toBe(9);
+        expect(vm.min(2, 9, 1)).toBe(1);
+        expect(vm.sgn(-5)).toBe(-1);
+        expect(vm.space$(3)).toBe("   ");
+        expect(vm.spc(2)).toBe("  ");
+        expect(vm.string$Num(3, 65)).toBe("AAA");
+        expect(vm.string$Str(2, "xy")).toBe("xyxy");
+        expect(vm.lower$("AbC")).toBe("abc");
+        expect(vm.upper$("AbC")).toBe("ABC");
+        expect(vm.val1("12.5")).toBe(12.5);
+        expect(vm.using("! \\  \\ #.##", "HELLO", "A", 12.345)).toBe("H A    %12.35");
+    });
+
+    it("run message posts result and keyDef emits only expected sequence", async () => {
+        const parentPort = getMockParentPort();
+        const vm = workerFn(parentPort);
+
+        vm.keyDef(1, 1, 65, 66);
+        expect(parentPort._messages.length).toBe(0);
+
+        vm.keyDef(78, 1, 65, 66);
+        expect(parentPort._testMessage).toEqual({ type: 'keyDef', codes: [65, 66] });
+
+        parentPort._messageHandler({ type: 'run', code: 'return "OK";' });
+        await Promise.resolve();
+        await Promise.resolve();
+
+        const resultMsg = parentPort._messages.find((m) => m.type === 'result');
+        expect(resultMsg).toEqual({ type: 'result', result: 'OK' });
+    });
+
+    it("onMessage pause/continue/stop toggles state and resolves wait", async () => {
+        const vm = workerFn(getMockParentPort());
+
+        const waitPromise = new Promise<string>((resolve) => {
+            vm._waitResolvedFn = resolve;
+        });
+
+        vm.onMessageHandler({ type: 'pause' });
+        expect(vm._pausePromise).toBeDefined();
+
+        vm.onMessageHandler({ type: 'continue', result: 'done' });
+        await expect(waitPromise).resolves.toBe('done');
+
+        vm.onMessageHandler({ type: 'stop' });
+        expect(vm._stopRequested).toBe(true);
+        expect(Object.keys(vm._timerMap)).toEqual([]);
+    });
+
+    it("write outputs strings and numbers with quotes and commas", () => {
+        const vm = workerFn(getMockParentPort());
+        vm.cls();
+        vm.write("hello", 42, "world");
+        const output = vm.getFlushedText();
+        expect(output).toBe('"hello",42,"world"\n');
+    });
+
+    it("write outputs undefined as empty position", () => {
+        const vm = workerFn(getMockParentPort());
+        vm.cls();
+        vm.write(10, undefined, 20);
+        const output = vm.getFlushedText();
+        expect(output).toBe('10,undefined,20\n');
+    });
+
+    it("writeTag outputs to graphics buffer with quotes", () => {
+        const vm = workerFn(getMockParentPort());
+        vm.printTag("start");
+        vm.writeTag("x", 5, "y", 10);
+        expect(vm._graGraphicsBuffer).toContain('"x",5,"y",10');
+    });
+
+    it("onRun executes code and handles normal completion", async () => {
+        const parentPort = getMockParentPort();
+        workerFn(parentPort);
+
+        parentPort._messageHandler({
+            type: 'run',
+            code: 'const x = 1 + 1; _o.print(x); return "done";'
+        });
+
+        await Promise.resolve();
+        const resultMsg = parentPort._messages.find((m) => m.type === 'result');
+        expect(resultMsg).toEqual({ type: 'result', result: 'done' });
+        expect(parentPort._messages.some((m) => m.type === 'flush')).toBe(true);
+    });
+
+    it("onRun handles thrown errors during execution", async () => {
+        const parentPort = getMockParentPort();
+        workerFn(parentPort);
+
+        const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+        try {
+            parentPort._messageHandler({
+                type: 'run',
+                code: 'throw new Error("Test error");'
+            });
+
+            await new Promise(r => setTimeout(r, 50));
+
+            const resultMsg = parentPort._messages.find((m) => m.type === 'result');
+            expect(resultMsg).toBeDefined();
+            expect((resultMsg?.result as string)).toContain('Test error');
+        } finally {
+            warnSpy.mockRestore();
+        }
+    });
+
+    it("onRun handles INFO: errors (stop/frame completion)", async () => {
+        const parentPort = getMockParentPort();
+        workerFn(parentPort);
+
+        const logSpy = vi.spyOn(console, "log").mockImplementation(() => undefined);
+
+        try {
+            parentPort._messageHandler({
+                type: 'run',
+                code: 'throw new Error("INFO: Program stopped");'
+            });
+
+            await new Promise(r => setTimeout(r, 50));
+
+            const resultMsg = parentPort._messages.find((m) => m.type === 'result');
+            expect(resultMsg).toBeDefined();
+        } finally {
+            logSpy.mockRestore();
+        }
+    });
+
+    it("resetAll clears all state and timers", () => {
+        const vm = workerFn(getMockParentPort());
+        const fn = vi.fn();
+        
+        vm._data = [1, 2, 3];
+        vm._keyBuffer.push("A", "B");
+        vm._restoreMap["label"] = 5;
+        vm.after(1, 99, fn);
+
+        vm.resetAll();
+
+        expect(vm._data).toEqual([]);
+        expect(vm._keyBuffer).toEqual([]);
+        expect(vm._restoreMap).toEqual({});
+        expect(Object.keys(vm._timerMap)).toEqual([]);
+        expect(vm._output).toBe('');
+        expect(vm._stopRequested).toBe(false);
+    });
+
+    it("deleteAllItems clears object keys", () => {
+        const vm = workerFn(getMockParentPort());
+        const obj = { a: 1, b: 2, c: 3 };
+        
+        vm.deleteAllItems(obj);
+        
+        expect(Object.keys(obj)).toEqual([]);
+    });
+
+    it("math functions handle edge cases", () => {
+        const vm = workerFn(getMockParentPort());
+
+        expect(vm.sin(0)).toBe(0);
+        expect(vm.cos(0)).toBe(1);
+        expect(vm.tan(0)).toBe(0);
+        expect(vm.atn(0)).toBe(0);
+        expect(vm.exp(0)).toBe(1);
+        expect(vm.log(1)).toBe(0);
+        expect(vm.log10(1)).toBe(0);
+        expect(vm.sqr(4)).toBe(2);
+        expect(vm.creal(42)).toBe(42);
+    });
+
+    it("toDeg and toRad convert angles correctly", () => {
+        const vm = workerFn(getMockParentPort());
+        const pi = Math.PI;
+
+        expect(vm.toRad(180)).toBeCloseTo(pi, 10);
+        expect(vm.toDeg(pi)).toBeCloseTo(180, 10);
+    });
+
+    it("clearInput empties key buffer", () => {
+        const vm = workerFn(getMockParentPort());
+        
+        vm._keyBuffer.push("A", "B", "C");
+        expect(vm._keyBuffer.length).toBe(3);
+
+        vm.clearInput();
+
+        expect(vm._keyBuffer).toEqual([]);
+    });
+
+    it("end calls flush", () => {
+        const parentPort = getMockParentPort();
+        const vm = workerFn(parentPort);
+        
+        vm.print("test output");
+        vm.end();
+
+        const flushMsg = parentPort._messages.find((m) => m.type === 'flush');
+        expect(flushMsg).toBeDefined();
+        expect(flushMsg?.message).toContain('test output');
+    });
+
+    it("rsxSay posts speak message", () => {
+        const parentPort = getMockParentPort();
+        const vm = workerFn(parentPort);
+
+        vm.rsxSay("hello");
+
+        expect(parentPort._testMessage).toEqual({
+            type: 'speak',
+            message: 'hello',
+            pitch: 1
+        });
     });
 });

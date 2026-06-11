@@ -10,17 +10,16 @@ export class ScriptCreator {
     }
 
     // Build dependency map by analyzing vm properties
-    analyzeDependencies(vmObj: VMObject): Record<string, string[]> {
+    private analyzeDependencies(vmObj: VMObject): Record<string, string[]> {
+        const regexPrefix = "vm\\.";
+        // Find all <prefix>propertyName references (default prefix: vm.)
+        const regex = new RegExp(`${regexPrefix}([\\w$]+)`, "g");
         const depMap: Record<string, string[]> = {};
 
         for (const key in vmObj) {
             const deps: string[] = [];
             const noPropertyDeps = key === "cls"; // no property deps for cls function
-            const value = vmObj[key];
-            const valueStr = String(value);
-
-            // Find all vm.propertyName references
-            const regex = /vm\.([\w$]+)/g;
+            const valueStr = String(vmObj[key]);
             let match;
             while ((match = regex.exec(valueStr)) !== null) {
                 const refProp = match[1];
@@ -37,7 +36,7 @@ export class ScriptCreator {
     };
 
     // Calculate transitive closure of dependencies
-    getTransitiveDeps(usedFunctions: string[], depMap: Record<string, string[]>): Set<string> {
+    private getTransitiveDeps(usedFunctions: string[], depMap: Record<string, string[]>): Set<string> {
         const result = new Set<string>(usedFunctions);
         let changed = true;
 
@@ -58,7 +57,7 @@ export class ScriptCreator {
     }
 
     // Filter vm object based on used functions
-    filterVM(vmObj: VMObject, usedFunctions: string[]): Partial<VMObject> {
+    private filterVM(vmObj: VMObject, usedFunctions: string[]): Partial<VMObject> {
         const depMap = this.analyzeDependencies(vmObj);
 
         if (this.debug) {
@@ -149,7 +148,7 @@ export class ScriptCreator {
     }
 
     // Generate source code for filtered vm object
-    generateSource(vmObj: Partial<VMObject>): string {
+    private generateSource(vmObj: Partial<VMObject>): string {
         const indent = " ".repeat(8);
         let output = "";
 
