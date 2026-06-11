@@ -3294,14 +3294,14 @@ ${dataList.join(",\n")}
         }
         // Build dependency map by analyzing vm properties
         analyzeDependencies(vmObj) {
+            const regexPrefix = "vm\\.";
+            // Find all <prefix>propertyName references (default prefix: vm.)
+            const regex = new RegExp(`${regexPrefix}([\\w$]+)`, "g");
             const depMap = {};
             for (const key in vmObj) {
                 const deps = [];
                 const noPropertyDeps = key === "cls"; // no property deps for cls function
-                const value = vmObj[key];
-                const valueStr = String(value);
-                // Find all vm.propertyName references
-                const regex = /vm\.([\w$]+)/g;
+                const valueStr = String(vmObj[key]);
                 let match;
                 while ((match = regex.exec(valueStr)) !== null) {
                     const refProp = match[1];
