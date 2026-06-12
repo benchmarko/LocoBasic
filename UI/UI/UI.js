@@ -976,8 +976,9 @@ export class UI {
     getClickedKey(e) {
         let textNode = null;
         let offset;
-        if (document.caretPositionFromPoint) {
-            const caretPosition = document.caretPositionFromPoint(e.clientX, e.clientY);
+        const docWithCaretPosition = document;
+        if (docWithCaretPosition.caretPositionFromPoint) {
+            const caretPosition = docWithCaretPosition.caretPositionFromPoint(e.clientX, e.clientY);
             if (!caretPosition) {
                 return;
             }

@@ -5,1669 +5,1803 @@
 })(this, (function (exports) { 'use strict';
 
     class SearchHandler {
-        constructor(editor, searchInput, replaceInput, setFocus) {
-            this.editor = editor;
-            this.searchInput = searchInput;
-            this.replaceInput = replaceInput;
-            this.setFocus = setFocus;
+      constructor(editor, searchInput, replaceInput, setFocus) {
+        this.editor = editor;
+        this.searchInput = searchInput;
+        this.replaceInput = replaceInput;
+        this.setFocus = setFocus;
+      }
+      /**
+       * Common helper to find text in content and return its position and line information
+       */
+      findText(content, searchText, startOffset, backwards = false) {
+        let index;
+        if (backwards) {
+          const searchContent = content.substring(0, startOffset);
+          index = searchContent.lastIndexOf(searchText);
+        } else {
+          index = content.indexOf(searchText, startOffset);
         }
-        /**
-         * Common helper to find text in content and return its position and line information
-         */
-        findText(content, searchText, startOffset, backwards = false) {
-            let index;
-            if (backwards) {
-                const searchContent = content.substring(0, startOffset);
-                index = searchContent.lastIndexOf(searchText);
-            }
-            else {
-                index = content.indexOf(searchText, startOffset);
-            }
-            if (index === -1) {
-                return null;
-            }
-            const lines = content.split("\n");
-            let currentOffset = 0;
-            let lineNum = 0;
-            for (let i = 0; i < lines.length; i++) {
-                if (currentOffset + lines[i].length >= index) {
-                    lineNum = i;
-                    break;
-                }
-                currentOffset += lines[i].length + 1; // +1 for newline
-            }
-            const chStart = index - currentOffset;
-            const chEnd = chStart + searchText.length;
-            return { index, lineNum, chStart, chEnd };
+        if (index === -1) {
+          return null;
         }
-        /**
-         * Calculate offset from start based on cursor position
-         */
-        getCursorOffset(lines, cursor) {
-            let offset = 0;
-            for (let i = 0; i < cursor.line; i++) {
-                offset += lines[i].length + 1; // +1 for newline
-            }
-            offset += cursor.ch;
-            return offset;
+        const lines = content.split("\n");
+        let currentOffset = 0;
+        let lineNum = 0;
+        for (let i = 0; i < lines.length; i++) {
+          if (currentOffset + lines[i].length >= index) {
+            lineNum = i;
+            break;
+          }
+          currentOffset += lines[i].length + 1;
         }
-        searchNext() {
-            const searchText = this.searchInput.value;
-            if (!searchText) {
-                return;
-            }
-            const cursor = this.editor.getCursor("to");
-            const content = this.editor.getValue();
-            const lines = content.split("\n");
-            const offset = this.getCursorOffset(lines, cursor);
-            const result = this.findText(content, searchText, offset, false);
-            if (result) {
-                const { lineNum, chStart, chEnd } = result;
-                if (this.setFocus) {
-                    this.editor.focus(); // needed for mobile
-                }
-                this.editor.setSelection({ line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
-                this.editor.scrollIntoView({ line: lineNum, ch: chStart });
-            }
+        const chStart = index - currentOffset;
+        const chEnd = chStart + searchText.length;
+        return { index, lineNum, chStart, chEnd };
+      }
+      /**
+       * Calculate offset from start based on cursor position
+       */
+      getCursorOffset(lines, cursor) {
+        let offset = 0;
+        for (let i = 0; i < cursor.line; i++) {
+          offset += lines[i].length + 1;
         }
-        searchPrev() {
-            const searchText = this.searchInput.value;
-            if (!searchText) {
-                return;
-            }
-            const cursor = this.editor.getCursor("from");
-            const content = this.editor.getValue();
-            const lines = content.split("\n");
-            const offset = this.getCursorOffset(lines, cursor);
-            const result = this.findText(content, searchText, offset, true);
-            if (result) {
-                const { lineNum, chStart, chEnd } = result;
-                if (this.setFocus) {
-                    this.editor.focus(); // needed for mobile
-                }
-                this.editor.setSelection({ line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
-                this.editor.scrollIntoView({ line: lineNum, ch: chStart });
-            }
+        offset += cursor.ch;
+        return offset;
+      }
+      searchNext() {
+        const searchText = this.searchInput.value;
+        if (!searchText) {
+          return;
         }
-        replace() {
-            const searchText = this.searchInput.value;
-            const replaceText = this.replaceInput.value;
-            if (!searchText)
-                return;
-            const cursor = this.editor.getCursor("from");
-            const content = this.editor.getValue();
-            const lines = content.split("\n");
-            const offset = this.getCursorOffset(lines, cursor);
-            const result = this.findText(content, searchText, offset, false);
-            if (result) {
-                const { lineNum, chStart, chEnd } = result;
-                this.editor.replaceRange(replaceText, { line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
-                this.editor.setCursor({ line: lineNum, ch: chStart + replaceText.length });
-            }
+        const cursor = this.editor.getCursor("to");
+        const content = this.editor.getValue();
+        const lines = content.split("\n");
+        const offset = this.getCursorOffset(lines, cursor);
+        const result = this.findText(content, searchText, offset, false);
+        if (result) {
+          const { lineNum, chStart, chEnd } = result;
+          if (this.setFocus) {
+            this.editor.focus();
+          }
+          this.editor.setSelection({ line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
+          this.editor.scrollIntoView({ line: lineNum, ch: chStart });
         }
-        replaceAll() {
-            const searchText = this.searchInput.value;
-            const replaceText = this.replaceInput.value;
-            if (!searchText) {
-                return;
-            }
-            const content = this.editor.getValue();
-            const newContent = content.split(searchText).join(replaceText);
-            if (newContent !== content) {
-                this.editor.setValue(newContent);
-            }
+      }
+      searchPrev() {
+        const searchText = this.searchInput.value;
+        if (!searchText) {
+          return;
         }
+        const cursor = this.editor.getCursor("from");
+        const content = this.editor.getValue();
+        const lines = content.split("\n");
+        const offset = this.getCursorOffset(lines, cursor);
+        const result = this.findText(content, searchText, offset, true);
+        if (result) {
+          const { lineNum, chStart, chEnd } = result;
+          if (this.setFocus) {
+            this.editor.focus();
+          }
+          this.editor.setSelection({ line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
+          this.editor.scrollIntoView({ line: lineNum, ch: chStart });
+        }
+      }
+      replace() {
+        const searchText = this.searchInput.value;
+        const replaceText = this.replaceInput.value;
+        if (!searchText) return;
+        const cursor = this.editor.getCursor("from");
+        const content = this.editor.getValue();
+        const lines = content.split("\n");
+        const offset = this.getCursorOffset(lines, cursor);
+        const result = this.findText(content, searchText, offset, false);
+        if (result) {
+          const { lineNum, chStart, chEnd } = result;
+          this.editor.replaceRange(replaceText, { line: lineNum, ch: chStart }, { line: lineNum, ch: chEnd });
+          this.editor.setCursor({ line: lineNum, ch: chStart + replaceText.length });
+        }
+      }
+      replaceAll() {
+        const searchText = this.searchInput.value;
+        const replaceText = this.replaceInput.value;
+        if (!searchText) {
+          return;
+        }
+        const content = this.editor.getValue();
+        const newContent = content.split(searchText).join(replaceText);
+        if (newContent !== content) {
+          this.editor.setValue(newContent);
+        }
+      }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-extraneous-class
     class LocoBasicMode {
-        static getMode() {
-            function words(array) {
-                const keys = {};
-                for (let i = 0; i < array.length; i += 1) {
-                    keys[array[i]] = true;
-                }
-                return keys;
-            }
-            const keywords = [
-                "ABS", "AFTER", "AND", "ASC", "ATN", "AUTO", "BIN$", "BORDER", "BREAK", "CALL", "CAT", "CHAIN", "CHR$", "CINT", "CLEAR", "CLG", "CLOSEIN",
-                "CLOSEOUT", "CLS", "CONT", "COPYCHR$", "COS", "CREAL", "CURSOR", "DATA", "DEC$", "DEF", "DEFINT", "DEFREAL", "DEFSTR", "DEG", "DELETE",
-                "DERR", "DI", "DIM", "DRAW", "DRAWR", "EDIT", "EI", "ELSE", "END", "ENT", "ENV", "EOF", "ERASE", "ERL", "ERR", "ERROR", "EVERY", "EXP",
-                "FILL", "FIX", "FN", "FOR", "FRAME", "FRE", "GOSUB", "GOTO", "GRAPHICS", "HEX$", "HIMEM", "IF", "INK", "INKEY", "INKEY$", "INP", "INPUT",
-                "INSTR", "INT", "JOY", "KEY", "LEFT$", "LEN", "LET", "LINE", "LIST", "LOAD", "LOCATE", "LOG", "LOG10", "LOWER$", "MASK", "MAX", "MEMORY",
-                "MERGE", "MID$", "MIN", "MOD", "MODE", "MOVE", "MOVER", "NEW", "NEXT", "NOT", "ON", "OPENIN", "OPENOUT", "OR", "ORIGIN", "OUT", "PAPER",
-                "PEEK", "PEN", "PI", "PLOT", "PLOTR", "POKE", "POS", "PRINT", "RAD", "RANDOMIZE", "READ", "RELEASE", "REM", "REMAIN", "RENUM", "RESTORE",
-                "RESUME", "RETURN", "RIGHT$", "RND", "ROUND", "RUN", "SAVE", "SGN", "SIN", "SOUND", "SPACE$", "SPC", "SPEED", "SQ", "SQR", "STEP", "STOP",
-                "STR$", "STRING$", "SWAP", "SYMBOL", "TAB", "TAG", "TAGOFF", "TAN", "TEST", "TESTR", "THEN", "TIME", "TO", "TROFF", "TRON", "UNT", "UPPER$",
-                "USING", "VAL", "VPOS", "WAIT", "WEND", "WHILE", "WIDTH", "WINDOW", "WRITE", "XOR", "XPOS", "YPOS", "ZONE"
-            ];
-            const keywordMap = words([...keywords, ...keywords.map((word) => word.toLowerCase())]);
-            const isOperatorChar = /[+\-*=<>^\\@/]/;
-            function tokenString() {
-                return function (stream, state) {
-                    stream.eatWhile(/[^"]/);
-                    stream.next();
-                    state.tokenize = null;
-                    return "string";
-                };
-            }
-            function tokenBase(stream, state) {
-                const ch = stream.next();
-                if (ch === null) {
-                    return null;
-                }
-                if (ch === ":" || ch === ";") { // ; e.g. in print
-                    return null;
-                }
-                if (ch === "'") {
-                    stream.skipToEnd();
-                    return "comment";
-                }
-                if (ch === '"') {
-                    state.tokenize = tokenString();
-                    return state.tokenize(stream, state);
-                }
-                if (/[[\](),]/.test(ch)) {
-                    return null;
-                }
-                if (ch === "." && stream.match(/^\d\d*(?:[eE][+-]?\d+)?/)) {
-                    return "number";
-                }
-                else if (ch === "&" && stream.match(/^(?:[\dA-Fa-f]+|[Xx][01]+)/)) {
-                    return "number";
-                }
-                else if (/\d/.test(ch)) {
-                    stream.match(/^\d*(?:n|(?:\.\d*)?(?:[eE][+-]?\d+)?)?/);
-                    return "number";
-                }
-                if (isOperatorChar.test(ch)) {
-                    stream.eatWhile(isOperatorChar);
-                    return "operator";
-                }
-                if (ch === "?") {
-                    return "keyword";
-                }
-                if (ch === "F" && stream.eat("N") || ch === "f" && stream.eat("n")) {
-                    return "keyword";
-                }
-                stream.eatWhile(/[\w]/);
-                stream.eat("$");
-                const word = stream.current();
-                if (word === "REM" || word === "rem") {
-                    stream.skipToEnd();
-                    return "comment";
-                }
-                if (Object.prototype.hasOwnProperty.call(keywordMap, word)) {
-                    return "keyword";
-                }
-                return "variable";
-            }
-            // Interface
-            return {
-                startState: function () {
-                    return {
-                        tokenize: null
-                    };
-                },
-                token: function (stream, state) {
-                    if (stream.eatSpace()) {
-                        return null;
-                    }
-                    const style = (state.tokenize || tokenBase)(stream, state);
-                    return style;
-                }
-            };
+      static getMode() {
+        function words(array) {
+          const keys = {};
+          for (let i = 0; i < array.length; i += 1) {
+            keys[array[i]] = true;
+          }
+          return keys;
         }
+        const keywords = [
+          "ABS",
+          "AFTER",
+          "AND",
+          "ASC",
+          "ATN",
+          "AUTO",
+          "BIN$",
+          "BORDER",
+          "BREAK",
+          "CALL",
+          "CAT",
+          "CHAIN",
+          "CHR$",
+          "CINT",
+          "CLEAR",
+          "CLG",
+          "CLOSEIN",
+          "CLOSEOUT",
+          "CLS",
+          "CONT",
+          "COPYCHR$",
+          "COS",
+          "CREAL",
+          "CURSOR",
+          "DATA",
+          "DEC$",
+          "DEF",
+          "DEFINT",
+          "DEFREAL",
+          "DEFSTR",
+          "DEG",
+          "DELETE",
+          "DERR",
+          "DI",
+          "DIM",
+          "DRAW",
+          "DRAWR",
+          "EDIT",
+          "EI",
+          "ELSE",
+          "END",
+          "ENT",
+          "ENV",
+          "EOF",
+          "ERASE",
+          "ERL",
+          "ERR",
+          "ERROR",
+          "EVERY",
+          "EXP",
+          "FILL",
+          "FIX",
+          "FN",
+          "FOR",
+          "FRAME",
+          "FRE",
+          "GOSUB",
+          "GOTO",
+          "GRAPHICS",
+          "HEX$",
+          "HIMEM",
+          "IF",
+          "INK",
+          "INKEY",
+          "INKEY$",
+          "INP",
+          "INPUT",
+          "INSTR",
+          "INT",
+          "JOY",
+          "KEY",
+          "LEFT$",
+          "LEN",
+          "LET",
+          "LINE",
+          "LIST",
+          "LOAD",
+          "LOCATE",
+          "LOG",
+          "LOG10",
+          "LOWER$",
+          "MASK",
+          "MAX",
+          "MEMORY",
+          "MERGE",
+          "MID$",
+          "MIN",
+          "MOD",
+          "MODE",
+          "MOVE",
+          "MOVER",
+          "NEW",
+          "NEXT",
+          "NOT",
+          "ON",
+          "OPENIN",
+          "OPENOUT",
+          "OR",
+          "ORIGIN",
+          "OUT",
+          "PAPER",
+          "PEEK",
+          "PEN",
+          "PI",
+          "PLOT",
+          "PLOTR",
+          "POKE",
+          "POS",
+          "PRINT",
+          "RAD",
+          "RANDOMIZE",
+          "READ",
+          "RELEASE",
+          "REM",
+          "REMAIN",
+          "RENUM",
+          "RESTORE",
+          "RESUME",
+          "RETURN",
+          "RIGHT$",
+          "RND",
+          "ROUND",
+          "RUN",
+          "SAVE",
+          "SGN",
+          "SIN",
+          "SOUND",
+          "SPACE$",
+          "SPC",
+          "SPEED",
+          "SQ",
+          "SQR",
+          "STEP",
+          "STOP",
+          "STR$",
+          "STRING$",
+          "SWAP",
+          "SYMBOL",
+          "TAB",
+          "TAG",
+          "TAGOFF",
+          "TAN",
+          "TEST",
+          "TESTR",
+          "THEN",
+          "TIME",
+          "TO",
+          "TROFF",
+          "TRON",
+          "UNT",
+          "UPPER$",
+          "USING",
+          "VAL",
+          "VPOS",
+          "WAIT",
+          "WEND",
+          "WHILE",
+          "WIDTH",
+          "WINDOW",
+          "WRITE",
+          "XOR",
+          "XPOS",
+          "YPOS",
+          "ZONE"
+        ];
+        const keywordMap = words([...keywords, ...keywords.map((word) => word.toLowerCase())]);
+        const isOperatorChar = /[+\-*=<>^\\@/]/;
+        function tokenString() {
+          return function(stream, state) {
+            stream.eatWhile(/[^"]/);
+            stream.next();
+            state.tokenize = null;
+            return "string";
+          };
+        }
+        function tokenBase(stream, state) {
+          const ch = stream.next();
+          if (ch === null) {
+            return null;
+          }
+          if (ch === ":" || ch === ";") {
+            return null;
+          }
+          if (ch === "'") {
+            stream.skipToEnd();
+            return "comment";
+          }
+          if (ch === '"') {
+            state.tokenize = tokenString();
+            return state.tokenize(stream, state);
+          }
+          if (/[[\](),]/.test(ch)) {
+            return null;
+          }
+          if (ch === "." && stream.match(/^\d\d*(?:[eE][+-]?\d+)?/)) {
+            return "number";
+          } else if (ch === "&" && stream.match(/^(?:[\dA-Fa-f]+|[Xx][01]+)/)) {
+            return "number";
+          } else if (/\d/.test(ch)) {
+            stream.match(/^\d*(?:n|(?:\.\d*)?(?:[eE][+-]?\d+)?)?/);
+            return "number";
+          }
+          if (isOperatorChar.test(ch)) {
+            stream.eatWhile(isOperatorChar);
+            return "operator";
+          }
+          if (ch === "?") {
+            return "keyword";
+          }
+          if (ch === "F" && stream.eat("N") || ch === "f" && stream.eat("n")) {
+            return "keyword";
+          }
+          stream.eatWhile(/[\w]/);
+          stream.eat("$");
+          const word = stream.current();
+          if (word === "REM" || word === "rem") {
+            stream.skipToEnd();
+            return "comment";
+          }
+          if (Object.prototype.hasOwnProperty.call(keywordMap, word)) {
+            return "keyword";
+          }
+          return "variable";
+        }
+        return {
+          startState: function() {
+            return {
+              tokenize: null
+            };
+          },
+          token: function(stream, state) {
+            if (stream.eatSpace()) {
+              return null;
+            }
+            const style = (state.tokenize || tokenBase)(stream, state);
+            return style;
+          }
+        };
+      }
     }
 
     const basicErrors = [
-        "Improper argument", // 0
-        "Unexpected NEXT", // 1
-        "Syntax Error", // 2
-        "Unexpected RETURN", // 3
-        "DATA exhausted", // 4
-        "Improper argument", // 5
-        "Overflow", // 6
-        "Memory full", // 7
-        "Line does not exist", // 8
-        "Subscript out of range", // 9
-        "Array already dimensioned", // 10
-        "Division by zero", // 11
-        "Invalid direct command", // 12
-        "Type mismatch", // 13
-        "String space full", // 14
-        "String too long", // 15
-        "String expression too complex", // 16
-        "Cannot CONTinue", // 17
-        "Unknown user function", // 18
-        "RESUME missing", // 19
-        "Unexpected RESUME", // 20
-        "Direct command found", // 21
-        "Operand missing", // 22
-        "Line too long", // 23
-        "EOF met", // 24
-        "File type error", // 25
-        "NEXT missing", // 26
-        "File already open", // 27
-        "Unknown command", // 28
-        "WEND missing", // 29
-        "Unexpected WEND", // 30
-        "File not open", // 31,
-        "Broken", // 32 "Broken in" (derr=146: xxx not found)
-        "Unknown error" // 33...
+      "Improper argument",
+      // 0
+      "Unexpected NEXT",
+      // 1
+      "Syntax Error",
+      // 2
+      "Unexpected RETURN",
+      // 3
+      "DATA exhausted",
+      // 4
+      "Improper argument",
+      // 5
+      "Overflow",
+      // 6
+      "Memory full",
+      // 7
+      "Line does not exist",
+      // 8
+      "Subscript out of range",
+      // 9
+      "Array already dimensioned",
+      // 10
+      "Division by zero",
+      // 11
+      "Invalid direct command",
+      // 12
+      "Type mismatch",
+      // 13
+      "String space full",
+      // 14
+      "String too long",
+      // 15
+      "String expression too complex",
+      // 16
+      "Cannot CONTinue",
+      // 17
+      "Unknown user function",
+      // 18
+      "RESUME missing",
+      // 19
+      "Unexpected RESUME",
+      // 20
+      "Direct command found",
+      // 21
+      "Operand missing",
+      // 22
+      "Line too long",
+      // 23
+      "EOF met",
+      // 24
+      "File type error",
+      // 25
+      "NEXT missing",
+      // 26
+      "File already open",
+      // 27
+      "Unknown command",
+      // 28
+      "WEND missing",
+      // 29
+      "Unexpected WEND",
+      // 30
+      "File not open",
+      // 31,
+      "Broken",
+      // 32 "Broken in" (derr=146: xxx not found)
+      "Unknown error"
+      // 33...
     ];
 
     class VmMessageHandler {
-        constructor(callbacks, postMessage) {
-            this.code = "";
-            this.callbacks = callbacks;
-            this.postMessage = postMessage;
+      constructor(callbacks, postMessage) {
+        this.code = "";
+        this.callbacks = callbacks;
+        this.postMessage = postMessage;
+      }
+      setCode(code) {
+        this.code = code;
+      }
+      getFinishedPromise() {
+        return this.finishedPromise;
+      }
+      createFinishedPromise() {
+        if (this.finishedPromise) {
+          console.error("createFinishedPromise: Already created");
+          return this.finishedPromise;
         }
-        setCode(code) {
-            this.code = code;
+        this.finishedPromise = new Promise((resolve) => {
+          this.finishedResolverFn = resolve;
+        });
+        return this.finishedPromise;
+      }
+      onResultResolved(message = "") {
+        if (this.finishedResolverFn) {
+          this.finishedResolverFn(message);
+          this.finishedResolverFn = void 0;
+          this.finishedPromise = void 0;
         }
-        getFinishedPromise() {
-            return this.finishedPromise;
-        }
-        createFinishedPromise() {
-            if (this.finishedPromise) {
-                console.error("createFinishedPromise: Already created");
-                return this.finishedPromise;
+      }
+      static describeError(stringToEval, lineno, colno) {
+        const lines = stringToEval.split("\n");
+        const line = lines[lineno - 1];
+        return `${line}
+${" ".repeat(colno - 1) + "^"}`;
+      }
+      async handleMessage(data) {
+        switch (data.type) {
+          case "flush":
+            this.callbacks.onFlush(data.message, data.needCls, data.hasGraphics);
+            break;
+          case "geolocation": {
+            let result = "";
+            try {
+              result = await this.callbacks.onGeolocation();
+            } catch (msg) {
+              console.warn(msg);
+              this.callbacks.onFlush(String(msg));
             }
-            this.finishedPromise = new Promise((resolve) => {
-                this.finishedResolverFn = resolve;
-            });
-            return this.finishedPromise;
-        }
-        onResultResolved(message = "") {
-            if (this.finishedResolverFn) {
-                this.finishedResolverFn(message);
-                this.finishedResolverFn = undefined;
-                this.finishedPromise = undefined;
+            this.postMessage({ type: "continue", result });
+            break;
+          }
+          case "input": {
+            setTimeout(async () => {
+              const input = await this.callbacks.onInput(data.prompt);
+              this.postMessage({ type: "input", input });
+            }, 50);
+            break;
+          }
+          case "keyDef":
+            this.callbacks.onKeyDef(data.codes);
+            break;
+          case "result": {
+            let res = data.result || "";
+            if (res.startsWith("{")) {
+              const json = JSON.parse(res);
+              const { lineno, colno, message } = json;
+              if (message === "No Error: Parsing successful!") {
+                res = "";
+              } else {
+                res = `Syntax error thrown at: Line ${lineno - 2}, col: ${colno}
+` + VmMessageHandler.describeError(this.code, lineno - 2, colno) + "\n" + message;
+              }
+            } else if (res === "Error: INFO: Program stopped") {
+              res = "";
+            } else {
+              const match1 = res.match(/^Error: (\d+)$/);
+              if (match1) {
+                res += ": " + basicErrors[Number(match1[1])];
+              }
             }
-        }
-        static describeError(stringToEval, lineno, colno) {
-            const lines = stringToEval.split("\n");
-            const line = lines[lineno - 1];
-            return `${line}\n${" ".repeat(colno - 1) + "^"}`;
-        }
-        async handleMessage(data) {
-            switch (data.type) {
-                case 'flush':
-                    this.callbacks.onFlush(data.message, data.needCls, data.hasGraphics);
-                    break;
-                case 'geolocation': {
-                    let result = "";
-                    try {
-                        result = await this.callbacks.onGeolocation();
-                    }
-                    catch (msg) {
-                        console.warn(msg);
-                        this.callbacks.onFlush(String(msg));
-                        //this.postMessage({ type: 'stop' });
-                    }
-                    this.postMessage({ type: 'continue', result });
-                    break;
-                }
-                case 'input': {
-                    setTimeout(async () => {
-                        const input = await this.callbacks.onInput(data.prompt);
-                        this.postMessage({ type: 'input', input });
-                    }, 50); // 50ms delay to allow UI update
-                    break;
-                }
-                case 'keyDef':
-                    this.callbacks.onKeyDef(data.codes);
-                    break;
-                case 'result': {
-                    let res = data.result || "";
-                    if (res.startsWith("{")) {
-                        const json = JSON.parse(res);
-                        const { lineno, colno, message } = json;
-                        if (message === "No Error: Parsing successful!") {
-                            res = "";
-                        }
-                        else {
-                            res = `Syntax error thrown at: Line ${lineno - 2}, col: ${colno}\n`
-                                + VmMessageHandler.describeError(this.code, lineno - 2, colno) + "\n"
-                                + message;
-                        }
-                    }
-                    else if (res === "Error: INFO: Program stopped") {
-                        res = "";
-                    }
-                    else {
-                        const match1 = res.match(/^Error: (\d+)$/);
-                        if (match1) {
-                            res += ": " + basicErrors[Number(match1[1])];
-                        }
-                    }
-                    this.onResultResolved(res);
-                    break;
-                }
-                case 'speak': {
-                    try {
-                        await this.callbacks.onSpeak(data.message, data.pitch);
-                    }
-                    catch (msg) {
-                        console.log(msg);
-                        //this.postMessage({ type: 'stop' });
-                    }
-                    this.postMessage({ type: 'continue', result: '' });
-                    break;
-                }
-                default:
-                    console.error("VmMessageHandler: Unknown message type:", data);
-                    break;
+            this.onResultResolved(res);
+            break;
+          }
+          case "speak": {
+            try {
+              await this.callbacks.onSpeak(data.message, data.pitch);
+            } catch (msg) {
+              console.log(msg);
             }
+            this.postMessage({ type: "continue", result: "" });
+            break;
+          }
+          default:
+            console.error("VmMessageHandler: Unknown message type:", data);
+            break;
         }
+      }
     }
 
     class VmMain {
-        constructor(callbacks, createWebWorker) {
-            this.workerOnMessageHandler = (event) => {
-                const data = event.data;
-                this.messageHandler.handleMessage(data);
-            };
-            this.handleBeforeUnload = () => {
-                this.worker?.terminate();
-            };
-            this.messageHandler = new VmMessageHandler(callbacks, (message) => this.postMessage(message));
-            this.createWebWorker = createWebWorker;
-            window.addEventListener('beforeunload', this.handleBeforeUnload, { once: true });
+      constructor(callbacks, createWebWorker) {
+        this.workerOnMessageHandler = (event) => {
+          const data = event.data;
+          this.messageHandler.handleMessage(data);
+        };
+        this.handleBeforeUnload = () => {
+          this.worker?.terminate();
+        };
+        this.messageHandler = new VmMessageHandler(callbacks, (message) => this.postMessage(message));
+        this.createWebWorker = createWebWorker;
+        window.addEventListener("beforeunload", this.handleBeforeUnload, { once: true });
+      }
+      postMessage(message) {
+        this.worker?.postMessage(message);
+      }
+      async getOrCreateWorker() {
+        if (!this.worker) {
+          this.worker = await this.createWebWorker();
+          this.worker.onmessage = this.workerOnMessageHandler;
         }
-        postMessage(message) {
-            this.worker?.postMessage(message);
+        return this.worker;
+      }
+      async run(code) {
+        if (!code.endsWith("\n")) {
+          code += "\n";
         }
-        async getOrCreateWorker() {
-            if (!this.worker) {
-                this.worker = await this.createWebWorker();
-                this.worker.onmessage = this.workerOnMessageHandler;
-                // this.postMessage({ type: 'config', isTerminal: false }); // is default: isTerminal: false
-            }
-            return this.worker;
+        this.messageHandler.setCode(code);
+        await this.getOrCreateWorker();
+        const finishedPromise = this.messageHandler.createFinishedPromise();
+        this.postMessage({ type: "run", code });
+        return finishedPromise;
+      }
+      frameTime(time) {
+        this.postMessage({ type: "frameTime", time });
+      }
+      stop() {
+        console.log("stop: Stop requested.");
+        this.postMessage({ type: "stop" });
+      }
+      pause() {
+        console.log("pause: Pause requested.");
+        this.postMessage({ type: "pause" });
+      }
+      resume() {
+        console.log("resume: Resume requested.");
+        this.postMessage({ type: "resume" });
+      }
+      reset() {
+        if (this.worker) {
+          this.worker.terminate();
+          this.worker = void 0;
         }
-        async run(code) {
-            if (!code.endsWith("\n")) {
-                code += "\n"; // make sure the script ends with a new line (needed for line comment in last line)
-            }
-            this.messageHandler.setCode(code); // for error message
-            await this.getOrCreateWorker();
-            const finishedPromise = this.messageHandler.createFinishedPromise();
-            this.postMessage({ type: 'run', code });
-            return finishedPromise;
+        this.messageHandler.onResultResolved("terminated.");
+      }
+      putKeys(keys) {
+        this.postMessage({ type: "putKeys", keys });
+      }
+      isRunning() {
+        return this.messageHandler.getFinishedPromise() !== void 0;
+      }
+      async waitForFinish(timeout) {
+        const finishedPromise = this.messageHandler.getFinishedPromise();
+        if (finishedPromise) {
+          let timeoutId;
+          const timeoutPromise = new Promise((resolve) => {
+            timeoutId = setTimeout(() => {
+              this.reset();
+              resolve("timeout");
+            }, timeout);
+          });
+          finishedPromise.then(() => clearTimeout(timeoutId));
+          return Promise.race([finishedPromise, timeoutPromise]);
         }
-        frameTime(time) {
-            this.postMessage({ type: 'frameTime', time });
-        }
-        stop() {
-            console.log("stop: Stop requested.");
-            this.postMessage({ type: 'stop' });
-        }
-        pause() {
-            console.log("pause: Pause requested.");
-            this.postMessage({ type: 'pause' });
-        }
-        resume() {
-            console.log("resume: Resume requested.");
-            this.postMessage({ type: 'resume' });
-        }
-        reset() {
-            if (this.worker) {
-                this.worker.terminate();
-                this.worker = undefined;
-            }
-            this.messageHandler.onResultResolved("terminated.");
-        }
-        putKeys(keys) {
-            this.postMessage({ type: 'putKeys', keys });
-        }
-        isRunning() {
-            return this.messageHandler.getFinishedPromise() !== undefined;
-        }
-        async waitForFinish(timeout) {
-            const finishedPromise = this.messageHandler.getFinishedPromise();
-            if (finishedPromise) {
-                let timeoutId;
-                const timeoutPromise = new Promise((resolve) => {
-                    timeoutId = setTimeout(() => {
-                        this.reset();
-                        resolve("timeout");
-                    }, timeout);
-                });
-                finishedPromise.then(() => clearTimeout(timeoutId));
-                return Promise.race([finishedPromise, timeoutPromise]);
-            }
-            return Promise.resolve("Not running");
-        }
+        return Promise.resolve("Not running");
+      }
     }
 
     function initHtmlElements() {
-        const doc = window.document;
-        return {
-            autoCompileInput: doc.getElementById("autoCompileInput"),
-            autoExecuteInput: doc.getElementById("autoExecuteInput"),
-            basicArea: doc.getElementById("basicArea"),
-            basicEditor: doc.getElementById("basicEditor"),
-            basicReplaceButton: window.document.getElementById("basicReplaceButton"),
-            basicReplaceAllButton: window.document.getElementById("basicReplaceAllButton"),
-            basicReplaceInput: doc.getElementById("basicReplaceInput"),
-            basicSearchButton: window.document.getElementById("basicSearchButton"),
-            basicSearchInput: doc.getElementById("basicSearchInput"),
-            basicSearchNextButton: window.document.getElementById("basicSearchNextButton"),
-            basicSearchPrevButton: window.document.getElementById("basicSearchPrevButton"),
-            basicSearchPopover: doc.getElementById("basicSearchPopover"),
-            compileButton: doc.getElementById("compileButton"),
-            compiledArea: doc.getElementById("compiledArea"),
-            compiledEditor: doc.getElementById("compiledEditor"),
-            compiledReplaceButton: window.document.getElementById("compiledReplaceButton"),
-            compiledReplaceAllButton: window.document.getElementById("compiledReplaceAllButton"),
-            compiledReplaceInput: doc.getElementById("compiledReplaceInput"),
-            compiledSearchButton: window.document.getElementById("compiledSearchButton"),
-            compiledSearchInput: doc.getElementById("compiledSearchInput"),
-            compiledSearchNextButton: window.document.getElementById("compiledSearchNextButton"),
-            compiledSearchPrevButton: window.document.getElementById("compiledSearchPrevButton"),
-            compiledSearchPopover: doc.getElementById("compiledSearchPopover"),
-            convertButton: doc.getElementById("convertButton"),
-            convertPopover: doc.getElementById("convertPopover"),
-            databaseSelect: doc.getElementById("databaseSelect"),
-            enterButton: doc.getElementById("enterButton"),
-            exampleSearchClearButton: doc.getElementById("exampleSearchClearButton"),
-            exampleSearchInput: doc.getElementById("exampleSearchInput"),
-            exampleSelect: doc.getElementById("exampleSelect"),
-            executeButton: doc.getElementById("executeButton"),
-            exportSvgButton: doc.getElementById("exportSvgButton"),
-            frameInput: window.document.getElementById("frameInput"),
-            frameInputLabelNumber: window.document.getElementById("frameInputLabelNumber"),
-            fullscreenButton: doc.getElementById("fullscreenButton"),
-            helpButton: doc.getElementById("helpButton"),
-            labelAddButton: doc.getElementById("labelAddButton"),
-            labelRemoveButton: doc.getElementById("labelRemoveButton"),
-            outputArea: doc.getElementById("outputArea"),
-            outputConsoleInput: doc.getElementById("outputConsoleInput"),
-            outputOptionsButton: doc.getElementById("outputOptionsButton"),
-            outputOptionsPopover: doc.getElementById("outputOptionsPopover"),
-            outputText: doc.getElementById("outputText"),
-            pauseButton: doc.getElementById("pauseButton"),
-            resetButton: doc.getElementById("resetButton"),
-            resumeButton: doc.getElementById("resumeButton"),
-            showBasicInput: doc.getElementById("showBasicInput"),
-            showCompiledInput: doc.getElementById("showCompiledInput"),
-            showOutputInput: doc.getElementById("showOutputInput"),
-            standaloneButton: doc.getElementById("standaloneButton"),
-            startSpeechButton: doc.getElementById("startSpeechButton"),
-            stopButton: doc.getElementById("stopButton"),
-            userKeys: doc.getElementById("userKeys")
-        };
+      const doc = window.document;
+      return {
+        autoCompileInput: doc.getElementById("autoCompileInput"),
+        autoExecuteInput: doc.getElementById("autoExecuteInput"),
+        basicArea: doc.getElementById("basicArea"),
+        basicEditor: doc.getElementById("basicEditor"),
+        basicReplaceButton: window.document.getElementById("basicReplaceButton"),
+        basicReplaceAllButton: window.document.getElementById("basicReplaceAllButton"),
+        basicReplaceInput: doc.getElementById("basicReplaceInput"),
+        basicSearchButton: window.document.getElementById("basicSearchButton"),
+        basicSearchInput: doc.getElementById("basicSearchInput"),
+        basicSearchNextButton: window.document.getElementById("basicSearchNextButton"),
+        basicSearchPrevButton: window.document.getElementById("basicSearchPrevButton"),
+        basicSearchPopover: doc.getElementById("basicSearchPopover"),
+        compileButton: doc.getElementById("compileButton"),
+        compiledArea: doc.getElementById("compiledArea"),
+        compiledEditor: doc.getElementById("compiledEditor"),
+        compiledReplaceButton: window.document.getElementById("compiledReplaceButton"),
+        compiledReplaceAllButton: window.document.getElementById("compiledReplaceAllButton"),
+        compiledReplaceInput: doc.getElementById("compiledReplaceInput"),
+        compiledSearchButton: window.document.getElementById("compiledSearchButton"),
+        compiledSearchInput: doc.getElementById("compiledSearchInput"),
+        compiledSearchNextButton: window.document.getElementById("compiledSearchNextButton"),
+        compiledSearchPrevButton: window.document.getElementById("compiledSearchPrevButton"),
+        compiledSearchPopover: doc.getElementById("compiledSearchPopover"),
+        convertButton: doc.getElementById("convertButton"),
+        convertPopover: doc.getElementById("convertPopover"),
+        databaseSelect: doc.getElementById("databaseSelect"),
+        enterButton: doc.getElementById("enterButton"),
+        exampleSearchClearButton: doc.getElementById("exampleSearchClearButton"),
+        exampleSearchInput: doc.getElementById("exampleSearchInput"),
+        exampleSelect: doc.getElementById("exampleSelect"),
+        executeButton: doc.getElementById("executeButton"),
+        exportSvgButton: doc.getElementById("exportSvgButton"),
+        frameInput: window.document.getElementById("frameInput"),
+        frameInputLabelNumber: window.document.getElementById("frameInputLabelNumber"),
+        fullscreenButton: doc.getElementById("fullscreenButton"),
+        helpButton: doc.getElementById("helpButton"),
+        labelAddButton: doc.getElementById("labelAddButton"),
+        labelRemoveButton: doc.getElementById("labelRemoveButton"),
+        outputArea: doc.getElementById("outputArea"),
+        outputConsoleInput: doc.getElementById("outputConsoleInput"),
+        outputOptionsButton: doc.getElementById("outputOptionsButton"),
+        outputOptionsPopover: doc.getElementById("outputOptionsPopover"),
+        outputText: doc.getElementById("outputText"),
+        pauseButton: doc.getElementById("pauseButton"),
+        resetButton: doc.getElementById("resetButton"),
+        resumeButton: doc.getElementById("resumeButton"),
+        showBasicInput: doc.getElementById("showBasicInput"),
+        showCompiledInput: doc.getElementById("showCompiledInput"),
+        showOutputInput: doc.getElementById("showOutputInput"),
+        standaloneButton: doc.getElementById("standaloneButton"),
+        startSpeechButton: doc.getElementById("startSpeechButton"),
+        stopButton: doc.getElementById("stopButton"),
+        userKeys: doc.getElementById("userKeys")
+      };
     }
     const escapeText = (str) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;");
     class UI {
-        constructor() {
-            this.compiledMessages = [];
-            this.initialUserAction = false;
-            this.locoVmWorkerName = "";
-            this.isMobile = false;
-            this.addOutputText = (str, needCls, hasGraphics) => {
-                const outputText = this.htmlElements.outputText;
-                if (needCls) {
-                    outputText.innerHTML = str; // how to catch DOM error, e.g. from errors in SVG?
-                    if (!hasGraphics) {
-                        this.htmlElements.exportSvgButton.disabled = true;
-                    }
-                }
-                else {
-                    outputText.innerHTML += str;
-                }
-                if (hasGraphics) {
-                    this.htmlElements.exportSvgButton.disabled = false;
-                }
-                else {
-                    this.scrollToBottom(outputText);
-                }
-            };
-            this.addOutputToBrowserConsole = (str, needCls, hasGraphics) => {
-                if (needCls) {
-                    console.clear();
-                }
-                if (hasGraphics) {
-                    const svgDataUrl = `data:image/svg+xml;base64,${btoa(str)}`; // we assume the str is the full SVG content
-                    console.log('%c ', `background-image: url(${svgDataUrl}); padding-left: 320px; padding-top: 200px;`);
-                }
-                else {
-                    console.log(str);
-                }
-            };
-            this.onSetUiKeys = (codes) => {
-                if (codes.length) {
-                    const code = codes[0];
-                    const userKeys = this.htmlElements.userKeys;
-                    if (code) {
-                        const char = String.fromCharCode(code);
-                        const buttonStr = `<button data-key="${code}" title="${char}">${char}</button>`;
-                        userKeys.innerHTML += buttonStr;
-                    }
-                    else {
-                        userKeys.innerHTML = "";
-                    }
-                }
-            };
-            this.onGeolocation = async () => {
-                if (navigator.geolocation) {
-                    return new Promise((resolve, reject) => {
-                        this.geolocationPromiseRejecter = reject;
-                        const positionCallback = (position) => {
-                            const { latitude, longitude } = position.coords;
-                            const json = {
-                                latitude,
-                                longitude
-                            };
-                            resolve(JSON.stringify(json));
-                            this.geolocationPromiseRejecter = undefined;
-                        };
-                        const rejectCallback = (error) => {
-                            reject(`ERROR: Geolocation error (${error.code}): ${error.message}`);
-                            this.geolocationPromiseRejecter = undefined;
-                        };
-                        const options = {
-                            enableHighAccuracy: true,
-                            timeout: 10000,
-                            maximumAge: 0
-                        };
-                        navigator.geolocation.getCurrentPosition(positionCallback, rejectCallback, options);
-                    });
-                }
-                return Promise.reject("ERROR: Geolocation is not supported by this browser.");
-            };
-            this.onSpeak = async (text, pitch) => {
-                const debug = this.getCore().getConfigMap().debug;
-                if (debug) {
-                    console.log("onSpeak: ", text, pitch);
-                }
-                const msg = await this.getSpeechSynthesisUtterance();
-                if (this.htmlElements.stopButton.disabled) { // Stop button inactive, program already stopped?
-                    return Promise.reject("Speech canceled.");
-                }
-                msg.text = text;
-                msg.pitch = pitch; // 0 to 2
-                return new Promise((resolve, reject) => {
-                    msg.onend = () => resolve();
-                    msg.onerror = (event) => {
-                        reject(new Error(`Speech synthesis: ${event.error}`));
-                    };
-                    window.speechSynthesis.speak(msg);
-                });
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onExecuteButtonClick = async (_event) => {
-                if (this.hasCompiledError()) {
-                    return;
-                }
-                this.beforeExecute();
-                const compiledScript = this.getCompiledCm().getValue(); // Execute the compiled script
-                const output = await this.getVmMain().run(compiledScript);
-                if (output) { // some remaining output?
-                    this.addOutputText(output);
-                }
-                if (this.compiledMessages.length) { // compile warning messages?
-                    const messageString = escapeText(this.compiledMessages.join("\n"));
-                    this.addOutputText(`<hr><details><summary>Compile warning messages: ${this.compiledMessages.length}</summary>${messageString}</details>`);
-                }
-                this.afterExecute();
-            };
-            this.onCompiledTextChange = () => {
-                if (this.hasCompiledError()) {
-                    return;
-                }
-                if (this.htmlElements.autoExecuteInput.checked) {
-                    const executeButton = this.htmlElements.executeButton;
-                    if (!executeButton.disabled) {
-                        executeButton.dispatchEvent(new Event("click"));
-                    }
-                }
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onCompileButtonClick = (_event) => {
-                const core = this.getCore();
-                this.htmlElements.compileButton.disabled = true;
-                const input = this.getBasicCm().getValue();
-                UI.asyncDelay(() => {
-                    const { compiledScript, messages } = core.compileScript(input);
-                    this.compiledMessages = messages;
-                    this.getCompiledCm().setValue(compiledScript);
-                    this.htmlElements.compileButton.disabled = false;
-                    if (!compiledScript.startsWith("ERROR:")) {
-                        this.htmlElements.labelRemoveButton.disabled = false;
-                    }
-                }, 1);
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onEnterButtonClick = (_event) => {
-                if (this.consoleInputSubmit) {
-                    this.consoleInputSubmit("Enter");
-                }
-                else {
-                    this.putKeysInBuffer("\x0d");
-                }
-                this.clickStartSpeechButton(); // we just did a user interaction
-            };
-            this.onAutoCompileInputChange = (event) => {
-                const autoCompileInput = event.target;
-                this.updateConfigParameter("autoCompile", autoCompileInput.checked);
-            };
-            this.onAutoExecuteInputChange = (event) => {
-                const autoExecuteInput = event.target;
-                this.updateConfigParameter("autoExecute", autoExecuteInput.checked);
-            };
-            this.onShowOutputInputChange = (event) => {
-                const showOutputInput = event.target;
-                const outputArea = this.htmlElements.outputArea;
-                outputArea.hidden = !showOutputInput.checked;
-                this.updateConfigParameter("showOutput", showOutputInput.checked);
-            };
-            this.onShowBasicInputChange = (event) => {
-                const showBasicInput = event.target;
-                const basicArea = this.htmlElements.basicArea;
-                basicArea.hidden = !showBasicInput.checked;
-                if (!basicArea.hidden) {
-                    this.getBasicCm().refresh();
-                }
-                this.updateConfigParameter("showBasic", showBasicInput.checked);
-            };
-            this.onShowCompiledInputChange = (event) => {
-                const showCompiledInput = event.target;
-                const compiledArea = this.htmlElements.compiledArea;
-                compiledArea.hidden = !showCompiledInput.checked;
-                if (!compiledArea.hidden) {
-                    this.getCompiledCm().refresh();
-                }
-                this.updateConfigParameter("showCompiled", showCompiledInput.checked);
-            };
-            this.onOutputConsoleInputChange = (event) => {
-                const outputConsoleInput = event.target;
-                this.updateConfigParameter("outputConsole", outputConsoleInput.checked);
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onStopButtonClick = (_event) => {
-                this.cancelSpeech(); // maybe a speech was waiting
-                this.cancelGeolocation(); // maybe a geolocation was waiting
-                this.clickStartSpeechButton(); // we just did a user interaction
-                this.htmlElements.stopButton.disabled = true;
-                this.htmlElements.pauseButton.disabled = true;
-                this.htmlElements.resumeButton.disabled = true;
-                // Resolve any pending input
-                if (this.consoleInputSubmit) {
-                    this.consoleInputSubmit(null);
-                }
-                this.getVmMain().stop();
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onPauseButtonClick = (_event) => {
-                this.cancelSpeech(); // maybe a speech was waiting
-                this.clickStartSpeechButton(); // we just did a user interaction
-                this.htmlElements.pauseButton.disabled = true;
-                this.htmlElements.resumeButton.disabled = false;
-                this.getVmMain().pause();
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onResumeButtonClick = (_event) => {
-                this.htmlElements.pauseButton.disabled = false;
-                this.htmlElements.resumeButton.disabled = true;
-                this.getVmMain().resume();
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onResetButtonClick = (_event) => {
-                this.cancelSpeech();
-                this.cancelGeolocation(); // maybe a geolocation was waiting
-                this.clickStartSpeechButton(); // we just did a user interaction
-                // Resolve any pending input
-                if (this.consoleInputSubmit) {
-                    this.consoleInputSubmit(null);
-                }
-                this.getVmMain().reset();
-                const frameInput = this.htmlElements.frameInput;
-                if (Number(frameInput.value) !== 50) {
-                    frameInput.value = "50"; // default frame rate
-                    frameInput.dispatchEvent(new Event("change"));
-                }
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onOutputOptionsButtonClick = (_event) => {
-                this.togglePopoverHidden(this.htmlElements.outputOptionsPopover);
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onConvertButtonClick = (_event) => {
-                this.togglePopoverHidden(this.htmlElements.convertPopover);
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onBasicSearchButtonClick = (_event) => {
-                const basicSearchPopover = this.htmlElements.basicSearchPopover;
-                this.togglePopoverHidden(basicSearchPopover);
-                if (!basicSearchPopover.hidden) {
-                    this.htmlElements.basicSearchInput.focus();
-                }
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onCompiledSearchButtonClick = (_event) => {
-                const compiledSearchPopover = this.htmlElements.compiledSearchPopover;
-                this.togglePopoverHidden(compiledSearchPopover);
-                if (!compiledSearchPopover.hidden) {
-                    this.htmlElements.compiledSearchInput.focus();
-                }
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onBasicReplaceButtonClick = (_event) => {
-                if (this.basicSearchHandler) {
-                    this.basicSearchHandler.replace();
-                }
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onBasicReplaceAllButtonClick = (_event) => {
-                if (this.basicSearchHandler) {
-                    this.basicSearchHandler.replaceAll();
-                }
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onCompiledReplaceButtonClick = (_event) => {
-                if (this.compiledSearchHandler) {
-                    this.compiledSearchHandler.replace();
-                }
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onCompiledReplaceAllButtonClick = (_event) => {
-                if (this.compiledSearchHandler) {
-                    this.compiledSearchHandler.replaceAll();
-                }
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onBasicSearchNextButtonClick = (_event) => {
-                if (this.basicSearchHandler) {
-                    this.basicSearchHandler.searchNext();
-                }
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onBasicSearchPrevButtonClick = (_event) => {
-                if (this.basicSearchHandler) {
-                    this.basicSearchHandler.searchPrev();
-                }
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onCompiledSearchNextButtonClick = (_event) => {
-                if (this.compiledSearchHandler) {
-                    this.compiledSearchHandler.searchNext();
-                }
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onCompiledSearchPrevButtonClick = (_event) => {
-                if (this.compiledSearchHandler) {
-                    this.compiledSearchHandler.searchPrev();
-                }
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onBasicSearchInputChange = (_event) => {
-                // Update search as user types (CodeMirror search addon will handle this)
-            };
-            this.onBasicSearchInputKeydown = (event) => {
-                if (event.key === "Enter") {
-                    event.preventDefault();
-                    // Check if Shift is pressed for previous search
-                    if (event.shiftKey) {
-                        this.onBasicSearchPrevButtonClick(event);
-                        this.setDelayedFocus(this.htmlElements.basicSearchPrevButton);
-                    }
-                    else {
-                        this.onBasicSearchNextButtonClick(event);
-                        this.setDelayedFocus(this.htmlElements.basicSearchNextButton);
-                    }
-                }
-                else if (event.key === "f" && (event.metaKey === true || event.ctrlKey === true)) {
-                    event.preventDefault();
-                    this.onBasicSearchNextButtonClick(event);
-                    this.setDelayedFocus(this.htmlElements.basicSearchNextButton);
-                }
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onCompiledSearchInputChange = (_event) => {
-                // Update search as user types
-            };
-            this.onCompiledSearchInputKeydown = (event) => {
-                if (event.key === "Enter") {
-                    event.preventDefault();
-                    // Check if Shift is pressed for previous search
-                    if (event.shiftKey) {
-                        this.onCompiledSearchPrevButtonClick(event);
-                    }
-                    else {
-                        this.onCompiledSearchNextButtonClick(event);
-                    }
-                }
-                else if (event.key === "f" && (event.metaKey === true || event.ctrlKey === true)) {
-                    event.preventDefault();
-                    this.onCompiledSearchNextButtonClick(event);
-                }
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onExampleSearchInputInput = async (_event) => {
-                const core = this.getCore();
-                const config = core.getConfigMap();
-                const exampleFilter = this.htmlElements.exampleSearchInput.value.toLowerCase();
-                this.updateConfigParameter("exampleFilter", exampleFilter);
-                //config.exampleFilter = exampleFilter;
-                const databaseMap = core.getDatabaseMap();
-                const databaseItem = databaseMap[config.database];
-                const exampleMap = await this.getExampleMap(databaseItem);
-                this.setExampleSelectOptions(exampleMap, config.example, exampleFilter);
-                const exampleSelect = this.htmlElements.exampleSelect;
-                if (exampleSelect.options.length === 1) {
-                    exampleSelect.selectedIndex = 0;
-                    exampleSelect.dispatchEvent(new Event("change"));
-                }
-            };
-            this.onExampleSearchInputKeydown = (event) => {
-                const exampleSelect = this.htmlElements.exampleSelect;
-                if (exampleSelect.value === "") {
-                    return;
-                }
-                if (event.key === "Enter") {
-                    event.preventDefault();
-                    this.htmlElements.exampleSelect.focus();
-                }
-            };
-            this.onExampleSelectKeydown = (event) => {
-                const exampleSelect = this.htmlElements.exampleSelect;
-                if (exampleSelect.value === "") {
-                    return;
-                }
-                if (event.key === "Enter") {
-                    event.preventDefault();
-                    if (exampleSelect.options.length === 1) {
-                        exampleSelect.selectedIndex = 0;
-                        exampleSelect.dispatchEvent(new Event("change"));
-                    }
-                }
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onExampleSearchClearButtonClick = (_event) => {
-                const exampleSearchInput = this.htmlElements.exampleSearchInput;
-                exampleSearchInput.value = '';
-                exampleSearchInput.dispatchEvent(new Event("input"));
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onFullscreenButtonClick = async (_event) => {
-                const outputText = this.htmlElements.outputText;
-                const fullscreenchangedHandler = (event) => {
-                    const target = event.target;
-                    if (!document.fullscreenElement) {
-                        target.removeEventListener("fullscreenchange", fullscreenchangedHandler);
-                    }
-                };
-                outputText.addEventListener("fullscreenchange", fullscreenchangedHandler); // { once: true}?
-                await outputText.requestFullscreen.call(outputText); // can we ALLOW_KEYBOARD_INPUT?
-            };
-            this.onFrameInputChange = (event) => {
-                const frameInput = event.target;
-                const value = Number(frameInput.value);
-                this.getVmMain().frameTime(value);
-                this.htmlElements.frameInputLabelNumber.innerText = `${frameInput.value}`;
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onLabelAddButtonClick = (_event) => {
-                const input = this.getBasicCm().getValue();
-                const output = input ? UI.addLabels(input) : "";
-                if (output && output !== input) {
-                    this.getBasicCm().setValue(output);
-                }
-            };
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            this.onLabelRemoveButtonClick = (_event) => {
-                const input = this.getBasicCm().getValue();
-                const core = this.getCore();
-                const semantics = core.getSemantics();
-                const usedLabels = semantics.getUsedLabels();
-                const allUsedLabels = {};
-                for (const type of Object.keys(usedLabels)) {
-                    for (const label of Object.keys(usedLabels[type])) {
-                        allUsedLabels[label] = true;
-                    }
-                }
-                const output = UI.removeUnusedLabels(input, allUsedLabels);
-                if (output && output !== input) {
-                    this.getBasicCm().setValue(output);
-                }
-            };
-            this.onBasicTextChange = async () => {
-                this.htmlElements.labelRemoveButton.disabled = true;
-                if (this.htmlElements.autoCompileInput.checked) {
-                    const compileButton = this.htmlElements.compileButton;
-                    if (!compileButton.disabled) {
-                        compileButton.dispatchEvent(new Event("click"));
-                    }
-                }
-            };
-            this.onExampleSelectChange = async (event) => {
-                const exampleSelect = event.target;
-                const exampleName = exampleSelect.value;
-                if (this.getVmMain().isRunning()) {
-                    const stopTimeout = 300;
-                    this.htmlElements.stopButton.dispatchEvent(new Event("click")); // stop running program
-                    await this.getVmMain().waitForFinish(stopTimeout); // wait max x ms until termination
-                }
-                this.addOutputText("", true); // clear output
-                const example = this.getCore().getExample(exampleName); //.script || "";
-                if (example) {
-                    this.updateConfigParameter("example", exampleName);
-                    const script = await this.getExampleScript(example);
-                    this.getBasicCm().setValue(script);
-                }
-                else {
-                    console.warn("onExampleSelectChange: example not found:", exampleName);
-                }
-            };
-            this.onDatabaseSelectChange = async (event) => {
-                const core = this.getCore();
-                const databaseSelect = event.target;
-                const database = databaseSelect.value;
-                const config = core.getConfigMap();
-                config.database = database;
-                const databaseMap = core.getDatabaseMap();
-                const databaseItem = databaseMap[database];
-                if (databaseItem) {
-                    this.updateConfigParameter("database", database);
-                }
-                const exampleMap = await this.getExampleMap(databaseItem);
-                this.setExampleSelectOptions(exampleMap, config.example, config.exampleFilter);
-                // Clear search input when database changes
-                // TODO this.htmlElements.exampleSearchInput.value = "";
-                const exampleSelect = this.htmlElements.exampleSelect;
-                exampleSelect.dispatchEvent(new Event("change"));
-            };
-            this.onHelpButtonClick = () => {
-                window.open("https://github.com/benchmarko/LocoBasic/#readme");
-            };
-            this.onExportSvgButtonClick = () => {
-                const outputText = this.htmlElements.outputText;
-                const svgElements = outputText.getElementsByTagName("svg");
-                if (!svgElements.length) {
-                    console.warn("onExportSvgButtonClick: No SVG found.");
-                    return;
-                }
-                const svgElement = svgElements[0];
-                const svgData = svgElement.outerHTML;
-                const preface = '<?xml version="1.0" standalone="no"?>\r\n';
-                const svgBlob = new Blob([preface, svgData], {
-                    type: "image/svg+xml;charset=utf-8"
-                });
-                const example = this.getExampleName();
-                const filename = `${example}.svg`;
-                UI.fnDownloadBlob(svgBlob, filename);
-            };
-            this.onStandaloneButtonClick = async () => {
-                const locoVmWorker = await this.getLocoVmWorker();
-                const core = this.getCore();
-                const compiledScript = this.getCompiledCm().getValue();
-                const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
-                const output = core.createStandaloneScript(locoVmWorker, compiledScript, Object.keys(usedInstrMap));
-                const blob = new Blob([output], { type: "text/javascript" });
-                const objectURL = window.URL.createObjectURL(blob);
-                const win = window.open(objectURL, "Standalone Script", "width=640,height=300,resizable=yes,scrollbars=yes,dependent=yes");
-                if (win && win.focus) {
-                    win.focus();
-                }
-                window.URL.revokeObjectURL(objectURL);
-            };
-            this.fnOnKeyPressHandler = (event) => this.onOutputTextKeydown(event);
-            this.fnOnClickHandler = (event) => this.onOutputTextClick(event);
-            this.fnOnUserKeyClickHandler = (event) => this.onUserKeyClick(event);
-            this.htmlElements = initHtmlElements();
-        }
-        isCodeMirrorSetValue(args) {
-            // CodeMirror passes change metadata in args[1][0].origin
-            // "setValue" indicates programmatic change (not user input)
-            const changeMetadata = args?.[1]?.[0];
-            return changeMetadata?.origin === "setValue";
-        }
-        debounce(func, getDelay) {
-            let timeoutId;
-            return (...args) => {
-                // Use immediate delay (0ms) for programmatic changes, normal delay for user input
-                const delay = this.isCodeMirrorSetValue(args) ? 0 : getDelay();
-                clearTimeout(timeoutId);
-                timeoutId = setTimeout(() => {
-                    func(...args);
-                }, delay);
-            };
-        }
-        static asyncDelay(fn, timeout) {
-            window.setTimeout(fn, timeout);
-        }
-        getCore() {
-            return this.core;
-        }
-        getVmMain() {
-            return this.vmMain;
-        }
-        getBasicCm() {
-            return this.basicCm;
-        }
-        getCompiledCm() {
-            return this.compiledCm;
-        }
-        cancelSpeech() {
-            if (this.speechSynthesisUtterance && this.speechSynthesisUtterance.text) {
-                window.speechSynthesis.cancel();
+      constructor() {
+        this.compiledMessages = [];
+        this.initialUserAction = false;
+        this.locoVmWorkerName = "";
+        this.isMobile = false;
+        this.addOutputText = (str, needCls, hasGraphics) => {
+          const outputText = this.htmlElements.outputText;
+          if (needCls) {
+            outputText.innerHTML = str;
+            if (!hasGraphics) {
+              this.htmlElements.exportSvgButton.disabled = true;
             }
-        }
-        cancelGeolocation() {
-            if (this.geolocationPromiseRejecter) {
-                this.geolocationPromiseRejecter("ERROR: Geolocation request canceled.");
-                this.geolocationPromiseRejecter = undefined;
-            }
-        }
-        togglePopoverHidden(popover) {
-            popover.hidden = !popover.hidden;
-            if (!popover.hidden) {
-                if (this.openedPopover && this.openedPopover !== popover) {
-                    this.openedPopover.hidden = true;
-                }
-                this.openedPopover = popover;
-            }
-            else {
-                this.openedPopover = undefined;
-            }
-        }
-        async fnLoadScriptOrStyle(script) {
-            return new Promise((resolve, reject) => {
-                const onScriptLoad = function (event) {
-                    const type = event.type; // "load" or "error"
-                    const node = event.currentTarget;
-                    const key = node.getAttribute("data-key");
-                    node.removeEventListener("load", onScriptLoad, false);
-                    node.removeEventListener("error", onScriptLoad, false);
-                    if (type === "load") {
-                        resolve(key);
-                    }
-                    else {
-                        reject(key);
-                    }
-                };
-                script.addEventListener("load", onScriptLoad, false);
-                script.addEventListener("error", onScriptLoad, false);
-                document.getElementsByTagName("head")[0].appendChild(script);
-            });
-        }
-        async loadScript(url, key) {
-            const script = document.createElement("script");
-            script.type = "text/javascript";
-            script.async = true;
-            script.src = url;
-            script.setAttribute("data-key", key);
-            return this.fnLoadScriptOrStyle(script);
-        }
-        getCurrentDataKey() {
-            return document.currentScript && document.currentScript.getAttribute("data-key") || "";
-        }
-        scrollToBottom(element) {
-            element.scrollTop = element.scrollHeight;
-        }
-        onUserKeyClick(event) {
-            const target = event.target;
-            const dataKey = target.getAttribute("data-key");
-            if (dataKey !== null) {
-                this.putKeysInBuffer(String.fromCharCode(Number(dataKey)));
-            }
-        }
-        async waitForVoices(callback) {
-            return new Promise((resolve) => {
-                window.speechSynthesis.addEventListener("voiceschanged", () => {
-                    callback();
-                    resolve();
-                }, { once: true });
-                if (window.speechSynthesis.getVoices().length) {
-                    callback();
-                    resolve();
-                }
-            });
-        }
-        async waitForUserInteraction(element) {
-            element.hidden = !element.hidden;
-            return new Promise((resolve) => {
-                element.addEventListener("click", () => {
-                    element.hidden = true;
-                    resolve();
-                }, { once: true });
-            });
-        }
-        showConsoleInput(prompt) {
-            return new Promise((resolve) => {
-                const outputText = this.htmlElements.outputText;
-                // Add prompt to output
-                const promptDiv = document.createElement("div");
-                promptDiv.textContent = prompt;
-                outputText.appendChild(promptDiv);
-                // Create input field
-                const input = document.createElement("input");
-                input.type = "text";
-                input.className = "console-input";
-                outputText.appendChild(input);
-                // Auto-scroll to input
-                this.scrollToBottom(outputText);
-                input.focus();
-                const handleSubmit = (submitKey) => {
-                    const isEnter = submitKey === "Enter";
-                    // Replace input with submitted value, or empty for cancel
-                    input.replaceWith(document.createTextNode((isEnter ? input.value : "") + "\n"));
-                    this.scrollToBottom(outputText);
-                    this.consoleInputSubmit = undefined;
-                    resolve(isEnter ? input.value : null);
-                };
-                input.addEventListener("keypress", (e) => {
-                    e.stopPropagation(); // Prevent event from bubbling to outputText listeners
-                    if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleSubmit(e.key);
-                    }
-                });
-                // Also stop keydown propagation
-                input.addEventListener("keydown", (e) => {
-                    e.stopPropagation();
-                });
-                this.consoleInputSubmit = handleSubmit;
-            });
-        }
-        logVoiceDebugInfo(selectedVoice) {
-            const debug = this.getCore().getConfigMap().debug;
-            if (debug > 1) {
-                const voicesString = window.speechSynthesis.getVoices().map((v, i) => `${i}: ${v.lang}: ${v.name}`).join("\n ");
-                const msg = `getSpeechSynthesisUtterance: voice=${selectedVoice?.lang}: ${selectedVoice?.name}, voices:\n ${voicesString}`;
-                console.log(msg);
-                if (debug >= 16) {
-                    this.addOutputText(msg + "\n");
-                }
-            }
-        }
-        async getSpeechSynthesisUtterance() {
-            if (this.speechSynthesisUtterance) {
-                return this.speechSynthesisUtterance;
-            }
-            if (!window.speechSynthesis) {
-                throw new Error("Speech Synthesis API is not supported in this browser.");
-            }
-            this.speechSynthesisUtterance = new SpeechSynthesisUtterance();
-            const utterance = this.speechSynthesisUtterance;
-            utterance.lang = document.documentElement.lang || "en";
-            const selectVoice = () => {
-                const voices = window.speechSynthesis.getVoices();
-                return voices.find((voice) => voice.lang === "en-GB" && voice.name === "Daniel");
-            };
-            const onVoicesChanged = () => {
-                const selectedVoice = selectVoice();
-                if (selectedVoice) {
-                    utterance.voice = selectedVoice;
-                }
-                this.logVoiceDebugInfo(selectedVoice);
-            };
-            await this.waitForVoices(onVoicesChanged);
-            if (!this.initialUserAction) {
-                await this.waitForUserInteraction(this.htmlElements.startSpeechButton);
-            }
-            return utterance;
-        }
-        updateConfigParameter(name, value) {
-            const core = this.getCore();
-            const configAsRecord = core.getConfigMap();
-            const defaultConfigAsRecord = core.getDefaultConfigMap();
-            configAsRecord[name] = value;
-            const url = new URL(window.location.href);
-            if (configAsRecord[name] !== defaultConfigAsRecord[name]) {
-                url.searchParams.set(name, String(value));
-            }
-            else {
-                url.searchParams.delete(name);
-            }
-            history.pushState({}, "", url.href);
-        }
-        hasCompiledError() {
-            const compiledScript = this.getCompiledCm().getValue();
-            const hasError = compiledScript.startsWith("ERROR:");
-            this.addOutputText(hasError ? escapeText(compiledScript) : "", true);
-            return hasError;
-        }
-        beforeExecute() {
-            this.htmlElements.convertPopover.hidden = true;
-            this.htmlElements.convertButton.disabled = true;
-            this.htmlElements.enterButton.disabled = false;
-            this.htmlElements.executeButton.disabled = true;
-            this.htmlElements.pauseButton.disabled = false;
-            this.htmlElements.resumeButton.disabled = true;
-            this.htmlElements.stopButton.disabled = false;
-            const outputText = this.htmlElements.outputText;
-            outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
-            outputText.addEventListener("click", this.fnOnClickHandler, false);
+          } else {
+            outputText.innerHTML += str;
+          }
+          if (hasGraphics) {
+            this.htmlElements.exportSvgButton.disabled = false;
+          } else {
+            this.scrollToBottom(outputText);
+          }
+        };
+        this.addOutputToBrowserConsole = (str, needCls, hasGraphics) => {
+          if (needCls) {
+            console.clear();
+          }
+          if (hasGraphics) {
+            const svgDataUrl = `data:image/svg+xml;base64,${btoa(str)}`;
+            console.log("%c ", `background-image: url(${svgDataUrl}); padding-left: 320px; padding-top: 200px;`);
+          } else {
+            console.log(str);
+          }
+        };
+        this.onSetUiKeys = (codes) => {
+          if (codes.length) {
+            const code = codes[0];
             const userKeys = this.htmlElements.userKeys;
-            userKeys.addEventListener("click", this.fnOnUserKeyClickHandler, false);
-        }
-        afterExecute() {
-            const outputText = this.htmlElements.outputText;
-            outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
-            outputText.removeEventListener("click", this.fnOnClickHandler, false);
-            this.onSetUiKeys([0]); // remove user keys
-            this.htmlElements.convertButton.disabled = false;
-            this.htmlElements.enterButton.disabled = true;
-            this.htmlElements.executeButton.disabled = false;
-            this.htmlElements.pauseButton.disabled = true;
-            this.htmlElements.resumeButton.disabled = true;
-            this.htmlElements.stopButton.disabled = true;
-        }
-        clickStartSpeechButton() {
-            const startSpeechButton = this.htmlElements.startSpeechButton;
-            if (!startSpeechButton.hidden) { // if the startSpeech button is visible, activate it to allow speech
-                startSpeechButton.dispatchEvent(new Event("click"));
+            if (code) {
+              const char = String.fromCharCode(code);
+              const buttonStr = `<button data-key="${code}" title="${char}">${char}</button>`;
+              userKeys.innerHTML += buttonStr;
+            } else {
+              userKeys.innerHTML = "";
             }
-        }
-        setDelayedFocus(element) {
-            if (this.isMobile) {
-                const delay = 100;
-                UI.asyncDelay(() => {
-                    element.focus();
-                }, delay);
-            }
-        }
-        static addLabels(input) {
-            const lineParts = input.split("\n");
-            let lastLine = 0;
-            for (let i = 0; i < lineParts.length; i += 1) {
-                let lineNum = parseInt(lineParts[i], 10);
-                if (isNaN(lineNum)) {
-                    lineNum = lastLine + 1;
-                    lineParts[i] = `${lineNum} ${lineParts[i]}`;
-                }
-                lastLine = lineNum;
-            }
-            return lineParts.join("\n");
-        }
-        static removeUnusedLabels(input, usedLabels) {
-            const lineParts = input.split("\n");
-            for (let i = 0; i < lineParts.length; i += 1) {
-                const lineNum = parseInt(lineParts[i], 10);
-                if (!isNaN(lineNum) && !usedLabels[lineNum]) {
-                    lineParts[i] = lineParts[i].replace(/^\d+\s/, "");
-                }
-            }
-            return lineParts.join("\n");
-        }
-        async getExampleScript(example) {
-            if (example.script !== undefined) {
-                return example.script;
-            }
-            const core = this.getCore();
-            const database = core.getDatabase();
-            const scriptName = database.source + "/" + example.key + ".js";
-            try {
-                await this.loadScript(scriptName, example.key);
-            }
-            catch (error) {
-                console.error("Load Example", scriptName, error);
-            }
-            return example.script || "";
-        }
-        setExampleSelectOptions(exampleMap, exampleKey, searchTerm) {
-            const maxTitleLength = 160;
-            const maxTextLength = 60; // (32 visible?)
-            const exampleSelect = this.htmlElements.exampleSelect;
-            exampleSelect.options.length = 0;
-            for (const key of Object.keys(exampleMap)) {
-                const example = exampleMap[key];
-                if (example.meta !== "D") { // skip data files
-                    const title = (key + ": " + example.title).substring(0, maxTitleLength);
-                    // Check if title or key matches the search term
-                    if (searchTerm == "" || title.toLowerCase().includes(searchTerm)) {
-                        const option = window.document.createElement("option");
-                        option.value = key;
-                        option.text = title.substring(0, maxTextLength);
-                        option.title = title;
-                        option.selected = key === exampleKey;
-                        exampleSelect.add(option);
-                    }
-                }
-            }
-        }
-        async getExampleMap(databaseItem) {
-            if (databaseItem.exampleMap) {
-                return databaseItem.exampleMap;
-            }
-            databaseItem.exampleMap = {};
-            const scriptName = databaseItem.source + "/0index.js";
-            try {
-                await this.loadScript(scriptName, "0index");
-            }
-            catch (error) {
-                console.error("Load Example Map ", scriptName, error);
-            }
-            return databaseItem.exampleMap;
-        }
-        setDatabaseSelectOptions(databaseMap, database) {
-            const databaseSelect = this.htmlElements.databaseSelect;
-            databaseSelect.options.length = 0;
-            for (const key of Object.keys(databaseMap)) {
-                const example = databaseMap[key];
-                const option = window.document.createElement("option");
-                option.value = key;
-                option.text = key;
-                option.title = example.source;
-                option.selected = key === database;
-                databaseSelect.add(option);
-            }
-        }
-        static fnDownloadBlob(blob, filename) {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            const clickHandler = function () {
-                setTimeout(function () {
-                    URL.revokeObjectURL(url);
-                    a.removeEventListener("click", clickHandler);
-                }, 150);
-            };
-            a.href = url;
-            a.download = filename;
-            a.addEventListener("click", clickHandler, false);
-            a.click();
-        }
-        getExampleName() {
-            const input = this.getBasicCm().getValue();
-            const firstLine = input.slice(0, input.indexOf("\n"));
-            const matches = firstLine.match(/^\s*\d*\s*(?:REM|rem|')\s*(\w+)/);
-            const name = matches ? matches[1] : this.getCore().getConfigMap().example || "locobasic";
-            return name;
-        }
-        putKeysInBuffer(keys) {
-            if (this.getCore().getConfigMap().debug) {
-                console.log("putKeysInBuffer:", keys);
-            }
-            this.getVmMain().putKeys(keys);
-        }
-        onOutputTextKeydown(event) {
-            const key = event.key;
-            let putKey = "";
-            if (key.length === 1) {
-                if (event.ctrlKey === false) {
-                    putKey = key;
-                }
-            }
-            else if (key === "Escape") {
-                this.cancelSpeech();
-                this.getVmMain().stop(); // request stop
-            }
-            else if (key === "Enter") {
-                putKey = "\x0d";
-            }
-            else if (key === "Dead") {
-                //const keyAndCode = `${key}-${event.code}`;
-                const code = event.code;
-                if (code === "KeyN") {
-                    putKey = "~";
-                }
-                else if (event.code === "IntlBackslash") {
-                    putKey = "^";
-                }
-            }
-            if (putKey) {
-                this.putKeysInBuffer(putKey);
-                event.preventDefault();
-            }
-        }
-        getClickedKey(e) {
-            let textNode = null;
-            let offset;
-            if (document.caretPositionFromPoint) {
-                const caretPosition = document.caretPositionFromPoint(e.clientX, e.clientY);
-                if (!caretPosition) {
-                    return;
-                }
-                textNode = caretPosition.offsetNode;
-                offset = caretPosition.offset;
-            }
-            else if (document.caretRangeFromPoint) {
-                // Use WebKit-proprietary fallback method
-                const range = document.caretRangeFromPoint(e.clientX, e.clientY);
-                if (!range) {
-                    return;
-                }
-                textNode = range.startContainer;
-                offset = range.startOffset;
-            }
-            else {
-                return;
-            }
-            if (textNode?.nodeType === 3) { // Check if the node is a text node
-                const textContent = textNode.textContent;
-                return textContent ? textContent.charAt(offset) : "";
-            }
-        }
-        onOutputTextClick(event) {
-            const key = this.getClickedKey(event);
-            if (key) {
-                this.putKeysInBuffer(key);
-                event.preventDefault(); // Prevent default action if needed
-            }
-        }
-        fnDecodeUri(s) {
-            let decoded = "";
-            try {
-                decoded = decodeURIComponent(s.replace(/\+/g, " "));
-            }
-            catch (err) {
-                if (err instanceof Error) {
-                    err.message += ": " + s;
-                }
-                console.error(err);
-            }
-            return decoded;
-        }
-        parseUri(config) {
-            const urlQuery = window.location.search.substring(1);
-            const rSearch = /([^&=]+)=?([^&]*)/g;
-            const args = [];
-            let match;
-            while ((match = rSearch.exec(urlQuery)) !== null) {
-                const name = this.fnDecodeUri(match[1]);
-                const value = this.fnDecodeUri(match[2]);
-                if (value !== null && config[name] !== undefined) {
-                    args.push(name + "=" + value);
-                }
-            }
-            return args;
-        }
-        initializeEditor(editorElement, mode, changeHandler, debounceDelay) {
-            const editor = window.CodeMirror(editorElement, {
-                lineNumbers: true,
-                mode,
-            });
-            editor.on("changes", this.debounce(changeHandler, () => debounceDelay)); // changeHandler.bind(this)
-            return editor;
-        }
-        syncInputState(input, configValue) {
-            if (input.checked !== configValue) {
-                input.checked = configValue;
-                input.dispatchEvent(new Event("change"));
-            }
-        }
-        async getLocoVmWorker() {
-            if (!window.locoVmWorker) {
-                await this.loadScript(this.locoVmWorkerName, "");
-            }
-            return window.locoVmWorker;
-        }
-        async createWebWorker() {
-            let worker;
-            // Detect if running on file:// protocol
-            const isFileProtocol = window.location.protocol === 'file:';
-            if (isFileProtocol) {
-                const locoVmWorker = await this.getLocoVmWorker();
-                const preparedWorkerFnString = String(locoVmWorker.workerFn);
-                const workerScript = `(${preparedWorkerFnString})(self);`;
-                // Use Blob for file:// protocol
-                const blob = new Blob([workerScript], { type: "text/javascript" });
-                const objectURL = window.URL.createObjectURL(blob);
-                worker = new Worker(objectURL);
-                window.URL.revokeObjectURL(objectURL);
-            }
-            else {
-                // Use file-based worker for http/https
-                const workerUrl = new URL(this.locoVmWorkerName, window.location.href);
-                worker = new Worker(workerUrl);
-            }
-            return worker;
-        }
-        createMessageHandlerCallbacks() {
-            const callbacks = {
-                onFlush: (message, needCls, hasGraphics) => {
-                    const outputConsole = this.getCore().getConfigMap().outputConsole;
-                    if (outputConsole) {
-                        this.addOutputToBrowserConsole(message, needCls, hasGraphics);
-                    }
-                    else {
-                        this.addOutputText(message, needCls, hasGraphics);
-                    }
-                },
-                onInput: async (prompt) => {
-                    const input = await this.showConsoleInput(prompt);
-                    this.htmlElements.exampleSelect.focus();
-                    return input;
-                },
-                onGeolocation: () => this.onGeolocation(),
-                onSpeak: (message, pitch) => this.onSpeak(message, pitch),
-                onKeyDef: (codes) => {
-                    this.onSetUiKeys(codes);
-                }
-            };
-            return callbacks;
-        }
-        // simple mobile device detection
-        static isMobile() {
-            const regex = /Mobi|Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
-            return regex.test(navigator.userAgent);
-        }
-        onWindowLoadContinue(core, locoVmWorkerName) {
-            this.isMobile = UI.isMobile();
-            this.core = core;
-            const config = core.getConfigMap();
-            const args = this.parseUri(config);
-            core.parseArgs(args, config);
-            this.locoVmWorkerName = locoVmWorkerName;
-            // Map of event types and element IDs to event handlers
-            const eventHandlers = {
-                change: {
-                    autoCompileInput: this.onAutoCompileInputChange,
-                    autoExecuteInput: this.onAutoExecuteInputChange,
-                    basicSearchInput: this.onBasicSearchInputChange,
-                    compiledSearchInput: this.onCompiledSearchInputChange,
-                    databaseSelect: this.onDatabaseSelectChange,
-                    exampleSelect: this.onExampleSelectChange,
-                    frameInput: this.onFrameInputChange,
-                    outputConsoleInput: this.onOutputConsoleInputChange,
-                    showOutputInput: this.onShowOutputInputChange,
-                    showBasicInput: this.onShowBasicInputChange,
-                    showCompiledInput: this.onShowCompiledInputChange,
-                },
-                click: {
-                    outputOptionsButton: this.onOutputOptionsButtonClick,
-                    compileButton: this.onCompileButtonClick,
-                    enterButton: this.onEnterButtonClick,
-                    executeButton: this.onExecuteButtonClick,
-                    stopButton: this.onStopButtonClick,
-                    pauseButton: this.onPauseButtonClick,
-                    resumeButton: this.onResumeButtonClick,
-                    resetButton: this.onResetButtonClick,
-                    convertButton: this.onConvertButtonClick,
-                    basicReplaceButton: this.onBasicReplaceButtonClick,
-                    basicReplaceAllButton: this.onBasicReplaceAllButtonClick,
-                    basicSearchButton: this.onBasicSearchButtonClick,
-                    basicSearchNextButton: this.onBasicSearchNextButtonClick,
-                    basicSearchPrevButton: this.onBasicSearchPrevButtonClick,
-                    compiledReplaceButton: this.onCompiledReplaceButtonClick,
-                    compiledReplaceAllButton: this.onCompiledReplaceAllButtonClick,
-                    compiledSearchButton: this.onCompiledSearchButtonClick,
-                    compiledSearchNextButton: this.onCompiledSearchNextButtonClick,
-                    compiledSearchPrevButton: this.onCompiledSearchPrevButtonClick,
-                    exampleSearchClearButton: this.onExampleSearchClearButtonClick,
-                    labelAddButton: this.onLabelAddButtonClick,
-                    labelRemoveButton: this.onLabelRemoveButtonClick,
-                    helpButton: this.onHelpButtonClick,
-                    exportSvgButton: this.onExportSvgButtonClick,
-                    fullscreenButton: this.onFullscreenButtonClick,
-                    standaloneButton: this.onStandaloneButtonClick
-                },
-                input: {
-                    exampleSearchInput: this.debounce((e) => { this.onExampleSearchInputInput(e); }, () => 400),
-                },
-                keydown: {
-                    basicSearchInput: (e) => this.onBasicSearchInputKeydown(e), // handle Enter key
-                    compiledSearchInput: (e) => this.onCompiledSearchInputKeydown(e), // handle Enter key
-                    exampleSearchInput: (e) => this.onExampleSearchInputKeydown(e),
-                    exampleSelect: (e) => this.onExampleSelectKeydown(e)
-                },
-            };
-            // Attach event listeners based on the eventHandlers map
-            Object.entries(eventHandlers).forEach(([eventType, handlers]) => {
-                Object.entries(handlers).forEach(([id, handler]) => {
-                    const element = this.htmlElements[id];
-                    element.addEventListener(eventType, handler, false);
-                });
-            });
-            // Initialize CodeMirror editors
-            const WinCodeMirror = window.CodeMirror;
-            if (WinCodeMirror) {
-                const getModeFn = LocoBasicMode.getMode;
-                WinCodeMirror.defineMode("lbasic", getModeFn);
-                this.basicCm = this.initializeEditor(this.htmlElements.basicEditor, "lbasic", this.onBasicTextChange, config.debounceCompile);
-                this.compiledCm = this.initializeEditor(this.htmlElements.compiledEditor, "javascript", this.onCompiledTextChange, config.debounceExecute);
-                // Initialize SearchHandler instances for both editors
-                if (this.basicCm) {
-                    this.basicSearchHandler = new SearchHandler(this.basicCm, this.htmlElements.basicSearchInput, this.htmlElements.basicReplaceInput, this.isMobile);
-                }
-                if (this.compiledCm) {
-                    this.compiledSearchHandler = new SearchHandler(this.compiledCm, this.htmlElements.compiledSearchInput, this.htmlElements.compiledReplaceInput, this.isMobile);
-                }
-                WinCodeMirror.commands.find = () => {
-                    if (this.htmlElements.basicSearchPopover.hidden) {
-                        this.htmlElements.basicSearchButton.dispatchEvent(new Event("click"));
-                    }
-                    else {
-                        this.htmlElements.basicSearchNextButton.dispatchEvent(new Event("click"));
-                    }
+          }
+        };
+        this.onGeolocation = async () => {
+          if (navigator.geolocation) {
+            return new Promise((resolve, reject) => {
+              this.geolocationPromiseRejecter = reject;
+              const positionCallback = (position) => {
+                const { latitude, longitude } = position.coords;
+                const json = {
+                  latitude,
+                  longitude
                 };
-                // find, findNext, findPrev, clearSearch, replace, replaceAll
-            }
-            // Handle browser navigation (popstate)
-            window.addEventListener("popstate", (event) => {
-                if (event.state) {
-                    Object.assign(config, core.getDefaultConfigMap()); // load defaults
-                    const args = this.parseUri(config);
-                    core.parseArgs(args, config);
-                    this.htmlElements.databaseSelect.dispatchEvent(new Event("change"));
-                }
+                resolve(JSON.stringify(json));
+                this.geolocationPromiseRejecter = void 0;
+              };
+              const rejectCallback = (error) => {
+                reject(`ERROR: Geolocation error (${error.code}): ${error.message}`);
+                this.geolocationPromiseRejecter = void 0;
+              };
+              const options = {
+                enableHighAccuracy: true,
+                timeout: 1e4,
+                maximumAge: 0
+              };
+              navigator.geolocation.getCurrentPosition(positionCallback, rejectCallback, options);
             });
-            // Sync UI state with config
-            this.syncInputState(this.htmlElements.autoCompileInput, config.autoCompile);
-            this.syncInputState(this.htmlElements.autoExecuteInput, config.autoExecute);
-            this.syncInputState(this.htmlElements.outputConsoleInput, config.outputConsole);
-            this.syncInputState(this.htmlElements.showOutputInput, config.showOutput);
-            this.syncInputState(this.htmlElements.showBasicInput, config.showBasic);
-            this.syncInputState(this.htmlElements.showCompiledInput, config.showCompiled);
-            window.document.addEventListener("click", () => {
-                this.initialUserAction = true;
-            }, { once: true });
-            const messageHandlerCallbacks = this.createMessageHandlerCallbacks();
-            this.vmMain = new VmMain(messageHandlerCallbacks, () => this.createWebWorker());
-            this.htmlElements.exampleSearchInput.value = config.exampleFilter;
-            // Initialize database and examples
-            UI.asyncDelay(() => {
-                const databaseMap = core.initDatabaseMap();
-                this.setDatabaseSelectOptions(databaseMap, config.database);
-                const url = window.location.href;
-                history.replaceState({}, "", url);
-                this.htmlElements.databaseSelect.dispatchEvent(new Event("change"));
-            }, 10);
+          }
+          return Promise.reject("ERROR: Geolocation is not supported by this browser.");
+        };
+        this.onSpeak = async (text, pitch) => {
+          const debug = this.getCore().getConfigMap().debug;
+          if (debug) {
+            console.log("onSpeak: ", text, pitch);
+          }
+          const msg = await this.getSpeechSynthesisUtterance();
+          if (this.htmlElements.stopButton.disabled) {
+            return Promise.reject("Speech canceled.");
+          }
+          msg.text = text;
+          msg.pitch = pitch;
+          return new Promise((resolve, reject) => {
+            msg.onend = () => resolve();
+            msg.onerror = (event) => {
+              reject(new Error(`Speech synthesis: ${event.error}`));
+            };
+            window.speechSynthesis.speak(msg);
+          });
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onExecuteButtonClick = async (_event) => {
+          if (this.hasCompiledError()) {
+            return;
+          }
+          this.beforeExecute();
+          const compiledScript = this.getCompiledCm().getValue();
+          const output = await this.getVmMain().run(compiledScript);
+          if (output) {
+            this.addOutputText(output);
+          }
+          if (this.compiledMessages.length) {
+            const messageString = escapeText(this.compiledMessages.join("\n"));
+            this.addOutputText(`<hr><details><summary>Compile warning messages: ${this.compiledMessages.length}</summary>${messageString}</details>`);
+          }
+          this.afterExecute();
+        };
+        this.onCompiledTextChange = () => {
+          if (this.hasCompiledError()) {
+            return;
+          }
+          if (this.htmlElements.autoExecuteInput.checked) {
+            const executeButton = this.htmlElements.executeButton;
+            if (!executeButton.disabled) {
+              executeButton.dispatchEvent(new Event("click"));
+            }
+          }
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onCompileButtonClick = (_event) => {
+          const core = this.getCore();
+          this.htmlElements.compileButton.disabled = true;
+          const input = this.getBasicCm().getValue();
+          UI.asyncDelay(() => {
+            const { compiledScript, messages } = core.compileScript(input);
+            this.compiledMessages = messages;
+            this.getCompiledCm().setValue(compiledScript);
+            this.htmlElements.compileButton.disabled = false;
+            if (!compiledScript.startsWith("ERROR:")) {
+              this.htmlElements.labelRemoveButton.disabled = false;
+            }
+          }, 1);
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onEnterButtonClick = (_event) => {
+          if (this.consoleInputSubmit) {
+            this.consoleInputSubmit("Enter");
+          } else {
+            this.putKeysInBuffer("\r");
+          }
+          this.clickStartSpeechButton();
+        };
+        this.onAutoCompileInputChange = (event) => {
+          const autoCompileInput = event.target;
+          this.updateConfigParameter("autoCompile", autoCompileInput.checked);
+        };
+        this.onAutoExecuteInputChange = (event) => {
+          const autoExecuteInput = event.target;
+          this.updateConfigParameter("autoExecute", autoExecuteInput.checked);
+        };
+        this.onShowOutputInputChange = (event) => {
+          const showOutputInput = event.target;
+          const outputArea = this.htmlElements.outputArea;
+          outputArea.hidden = !showOutputInput.checked;
+          this.updateConfigParameter("showOutput", showOutputInput.checked);
+        };
+        this.onShowBasicInputChange = (event) => {
+          const showBasicInput = event.target;
+          const basicArea = this.htmlElements.basicArea;
+          basicArea.hidden = !showBasicInput.checked;
+          if (!basicArea.hidden) {
+            this.getBasicCm().refresh();
+          }
+          this.updateConfigParameter("showBasic", showBasicInput.checked);
+        };
+        this.onShowCompiledInputChange = (event) => {
+          const showCompiledInput = event.target;
+          const compiledArea = this.htmlElements.compiledArea;
+          compiledArea.hidden = !showCompiledInput.checked;
+          if (!compiledArea.hidden) {
+            this.getCompiledCm().refresh();
+          }
+          this.updateConfigParameter("showCompiled", showCompiledInput.checked);
+        };
+        this.onOutputConsoleInputChange = (event) => {
+          const outputConsoleInput = event.target;
+          this.updateConfigParameter("outputConsole", outputConsoleInput.checked);
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onStopButtonClick = (_event) => {
+          this.cancelSpeech();
+          this.cancelGeolocation();
+          this.clickStartSpeechButton();
+          this.htmlElements.stopButton.disabled = true;
+          this.htmlElements.pauseButton.disabled = true;
+          this.htmlElements.resumeButton.disabled = true;
+          if (this.consoleInputSubmit) {
+            this.consoleInputSubmit(null);
+          }
+          this.getVmMain().stop();
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onPauseButtonClick = (_event) => {
+          this.cancelSpeech();
+          this.clickStartSpeechButton();
+          this.htmlElements.pauseButton.disabled = true;
+          this.htmlElements.resumeButton.disabled = false;
+          this.getVmMain().pause();
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onResumeButtonClick = (_event) => {
+          this.htmlElements.pauseButton.disabled = false;
+          this.htmlElements.resumeButton.disabled = true;
+          this.getVmMain().resume();
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onResetButtonClick = (_event) => {
+          this.cancelSpeech();
+          this.cancelGeolocation();
+          this.clickStartSpeechButton();
+          if (this.consoleInputSubmit) {
+            this.consoleInputSubmit(null);
+          }
+          this.getVmMain().reset();
+          const frameInput = this.htmlElements.frameInput;
+          if (Number(frameInput.value) !== 50) {
+            frameInput.value = "50";
+            frameInput.dispatchEvent(new Event("change"));
+          }
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onOutputOptionsButtonClick = (_event) => {
+          this.togglePopoverHidden(this.htmlElements.outputOptionsPopover);
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onConvertButtonClick = (_event) => {
+          this.togglePopoverHidden(this.htmlElements.convertPopover);
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onBasicSearchButtonClick = (_event) => {
+          const basicSearchPopover = this.htmlElements.basicSearchPopover;
+          this.togglePopoverHidden(basicSearchPopover);
+          if (!basicSearchPopover.hidden) {
+            this.htmlElements.basicSearchInput.focus();
+          }
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onCompiledSearchButtonClick = (_event) => {
+          const compiledSearchPopover = this.htmlElements.compiledSearchPopover;
+          this.togglePopoverHidden(compiledSearchPopover);
+          if (!compiledSearchPopover.hidden) {
+            this.htmlElements.compiledSearchInput.focus();
+          }
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onBasicReplaceButtonClick = (_event) => {
+          if (this.basicSearchHandler) {
+            this.basicSearchHandler.replace();
+          }
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onBasicReplaceAllButtonClick = (_event) => {
+          if (this.basicSearchHandler) {
+            this.basicSearchHandler.replaceAll();
+          }
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onCompiledReplaceButtonClick = (_event) => {
+          if (this.compiledSearchHandler) {
+            this.compiledSearchHandler.replace();
+          }
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onCompiledReplaceAllButtonClick = (_event) => {
+          if (this.compiledSearchHandler) {
+            this.compiledSearchHandler.replaceAll();
+          }
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onBasicSearchNextButtonClick = (_event) => {
+          if (this.basicSearchHandler) {
+            this.basicSearchHandler.searchNext();
+          }
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onBasicSearchPrevButtonClick = (_event) => {
+          if (this.basicSearchHandler) {
+            this.basicSearchHandler.searchPrev();
+          }
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onCompiledSearchNextButtonClick = (_event) => {
+          if (this.compiledSearchHandler) {
+            this.compiledSearchHandler.searchNext();
+          }
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onCompiledSearchPrevButtonClick = (_event) => {
+          if (this.compiledSearchHandler) {
+            this.compiledSearchHandler.searchPrev();
+          }
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onBasicSearchInputChange = (_event) => {
+        };
+        this.onBasicSearchInputKeydown = (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            if (event.shiftKey) {
+              this.onBasicSearchPrevButtonClick(event);
+              this.setDelayedFocus(this.htmlElements.basicSearchPrevButton);
+            } else {
+              this.onBasicSearchNextButtonClick(event);
+              this.setDelayedFocus(this.htmlElements.basicSearchNextButton);
+            }
+          } else if (event.key === "f" && (event.metaKey === true || event.ctrlKey === true)) {
+            event.preventDefault();
+            this.onBasicSearchNextButtonClick(event);
+            this.setDelayedFocus(this.htmlElements.basicSearchNextButton);
+          }
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onCompiledSearchInputChange = (_event) => {
+        };
+        this.onCompiledSearchInputKeydown = (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            if (event.shiftKey) {
+              this.onCompiledSearchPrevButtonClick(event);
+            } else {
+              this.onCompiledSearchNextButtonClick(event);
+            }
+          } else if (event.key === "f" && (event.metaKey === true || event.ctrlKey === true)) {
+            event.preventDefault();
+            this.onCompiledSearchNextButtonClick(event);
+          }
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onExampleSearchInputInput = async (_event) => {
+          const core = this.getCore();
+          const config = core.getConfigMap();
+          const exampleFilter = this.htmlElements.exampleSearchInput.value.toLowerCase();
+          this.updateConfigParameter("exampleFilter", exampleFilter);
+          const databaseMap = core.getDatabaseMap();
+          const databaseItem = databaseMap[config.database];
+          const exampleMap = await this.getExampleMap(databaseItem);
+          this.setExampleSelectOptions(exampleMap, config.example, exampleFilter);
+          const exampleSelect = this.htmlElements.exampleSelect;
+          if (exampleSelect.options.length === 1) {
+            exampleSelect.selectedIndex = 0;
+            exampleSelect.dispatchEvent(new Event("change"));
+          }
+        };
+        this.onExampleSearchInputKeydown = (event) => {
+          const exampleSelect = this.htmlElements.exampleSelect;
+          if (exampleSelect.value === "") {
+            return;
+          }
+          if (event.key === "Enter") {
+            event.preventDefault();
+            this.htmlElements.exampleSelect.focus();
+          }
+        };
+        this.onExampleSelectKeydown = (event) => {
+          const exampleSelect = this.htmlElements.exampleSelect;
+          if (exampleSelect.value === "") {
+            return;
+          }
+          if (event.key === "Enter") {
+            event.preventDefault();
+            if (exampleSelect.options.length === 1) {
+              exampleSelect.selectedIndex = 0;
+              exampleSelect.dispatchEvent(new Event("change"));
+            }
+          }
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onExampleSearchClearButtonClick = (_event) => {
+          const exampleSearchInput = this.htmlElements.exampleSearchInput;
+          exampleSearchInput.value = "";
+          exampleSearchInput.dispatchEvent(new Event("input"));
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onFullscreenButtonClick = async (_event) => {
+          const outputText = this.htmlElements.outputText;
+          const fullscreenchangedHandler = (event) => {
+            const target = event.target;
+            if (!document.fullscreenElement) {
+              target.removeEventListener("fullscreenchange", fullscreenchangedHandler);
+            }
+          };
+          outputText.addEventListener("fullscreenchange", fullscreenchangedHandler);
+          await outputText.requestFullscreen.call(outputText);
+        };
+        this.onFrameInputChange = (event) => {
+          const frameInput = event.target;
+          const value = Number(frameInput.value);
+          this.getVmMain().frameTime(value);
+          this.htmlElements.frameInputLabelNumber.innerText = `${frameInput.value}`;
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onLabelAddButtonClick = (_event) => {
+          const input = this.getBasicCm().getValue();
+          const output = input ? UI.addLabels(input) : "";
+          if (output && output !== input) {
+            this.getBasicCm().setValue(output);
+          }
+        };
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        this.onLabelRemoveButtonClick = (_event) => {
+          const input = this.getBasicCm().getValue();
+          const core = this.getCore();
+          const semantics = core.getSemantics();
+          const usedLabels = semantics.getUsedLabels();
+          const allUsedLabels = {};
+          for (const type of Object.keys(usedLabels)) {
+            for (const label of Object.keys(usedLabels[type])) {
+              allUsedLabels[label] = true;
+            }
+          }
+          const output = UI.removeUnusedLabels(input, allUsedLabels);
+          if (output && output !== input) {
+            this.getBasicCm().setValue(output);
+          }
+        };
+        this.onBasicTextChange = async () => {
+          this.htmlElements.labelRemoveButton.disabled = true;
+          if (this.htmlElements.autoCompileInput.checked) {
+            const compileButton = this.htmlElements.compileButton;
+            if (!compileButton.disabled) {
+              compileButton.dispatchEvent(new Event("click"));
+            }
+          }
+        };
+        this.onExampleSelectChange = async (event) => {
+          const exampleSelect = event.target;
+          const exampleName = exampleSelect.value;
+          if (this.getVmMain().isRunning()) {
+            const stopTimeout = 300;
+            this.htmlElements.stopButton.dispatchEvent(new Event("click"));
+            await this.getVmMain().waitForFinish(stopTimeout);
+          }
+          this.addOutputText("", true);
+          const example = this.getCore().getExample(exampleName);
+          if (example) {
+            this.updateConfigParameter("example", exampleName);
+            const script = await this.getExampleScript(example);
+            this.getBasicCm().setValue(script);
+          } else {
+            console.warn("onExampleSelectChange: example not found:", exampleName);
+          }
+        };
+        this.onDatabaseSelectChange = async (event) => {
+          const core = this.getCore();
+          const databaseSelect = event.target;
+          const database = databaseSelect.value;
+          const config = core.getConfigMap();
+          config.database = database;
+          const databaseMap = core.getDatabaseMap();
+          const databaseItem = databaseMap[database];
+          if (databaseItem) {
+            this.updateConfigParameter("database", database);
+          }
+          const exampleMap = await this.getExampleMap(databaseItem);
+          this.setExampleSelectOptions(exampleMap, config.example, config.exampleFilter);
+          const exampleSelect = this.htmlElements.exampleSelect;
+          exampleSelect.dispatchEvent(new Event("change"));
+        };
+        this.onHelpButtonClick = () => {
+          window.open("https://github.com/benchmarko/LocoBasic/#readme");
+        };
+        this.onExportSvgButtonClick = () => {
+          const outputText = this.htmlElements.outputText;
+          const svgElements = outputText.getElementsByTagName("svg");
+          if (!svgElements.length) {
+            console.warn("onExportSvgButtonClick: No SVG found.");
+            return;
+          }
+          const svgElement = svgElements[0];
+          const svgData = svgElement.outerHTML;
+          const preface = '<?xml version="1.0" standalone="no"?>\r\n';
+          const svgBlob = new Blob([preface, svgData], {
+            type: "image/svg+xml;charset=utf-8"
+          });
+          const example = this.getExampleName();
+          const filename = `${example}.svg`;
+          UI.fnDownloadBlob(svgBlob, filename);
+        };
+        this.onStandaloneButtonClick = async () => {
+          const locoVmWorker = await this.getLocoVmWorker();
+          const core = this.getCore();
+          const compiledScript = this.getCompiledCm().getValue();
+          const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
+          const output = core.createStandaloneScript(locoVmWorker, compiledScript, Object.keys(usedInstrMap));
+          const blob = new Blob([output], { type: "text/javascript" });
+          const objectURL = window.URL.createObjectURL(blob);
+          const win = window.open(objectURL, "Standalone Script", "width=640,height=300,resizable=yes,scrollbars=yes,dependent=yes");
+          if (win && win.focus) {
+            win.focus();
+          }
+          window.URL.revokeObjectURL(objectURL);
+        };
+        this.fnOnKeyPressHandler = (event) => this.onOutputTextKeydown(event);
+        this.fnOnClickHandler = (event) => this.onOutputTextClick(event);
+        this.fnOnUserKeyClickHandler = (event) => this.onUserKeyClick(event);
+        this.htmlElements = initHtmlElements();
+      }
+      isCodeMirrorSetValue(args) {
+        const changeMetadata = args?.[1]?.[0];
+        return changeMetadata?.origin === "setValue";
+      }
+      debounce(func, getDelay) {
+        let timeoutId;
+        return (...args) => {
+          const delay = this.isCodeMirrorSetValue(args) ? 0 : getDelay();
+          clearTimeout(timeoutId);
+          timeoutId = setTimeout(() => {
+            func(...args);
+          }, delay);
+        };
+      }
+      static asyncDelay(fn, timeout) {
+        window.setTimeout(fn, timeout);
+      }
+      getCore() {
+        return this.core;
+      }
+      getVmMain() {
+        return this.vmMain;
+      }
+      getBasicCm() {
+        return this.basicCm;
+      }
+      getCompiledCm() {
+        return this.compiledCm;
+      }
+      cancelSpeech() {
+        if (this.speechSynthesisUtterance && this.speechSynthesisUtterance.text) {
+          window.speechSynthesis.cancel();
         }
+      }
+      cancelGeolocation() {
+        if (this.geolocationPromiseRejecter) {
+          this.geolocationPromiseRejecter("ERROR: Geolocation request canceled.");
+          this.geolocationPromiseRejecter = void 0;
+        }
+      }
+      togglePopoverHidden(popover) {
+        popover.hidden = !popover.hidden;
+        if (!popover.hidden) {
+          if (this.openedPopover && this.openedPopover !== popover) {
+            this.openedPopover.hidden = true;
+          }
+          this.openedPopover = popover;
+        } else {
+          this.openedPopover = void 0;
+        }
+      }
+      async fnLoadScriptOrStyle(script) {
+        return new Promise((resolve, reject) => {
+          const onScriptLoad = function(event) {
+            const type = event.type;
+            const node = event.currentTarget;
+            const key = node.getAttribute("data-key");
+            node.removeEventListener("load", onScriptLoad, false);
+            node.removeEventListener("error", onScriptLoad, false);
+            if (type === "load") {
+              resolve(key);
+            } else {
+              reject(key);
+            }
+          };
+          script.addEventListener("load", onScriptLoad, false);
+          script.addEventListener("error", onScriptLoad, false);
+          document.getElementsByTagName("head")[0].appendChild(script);
+        });
+      }
+      async loadScript(url, key) {
+        const script = document.createElement("script");
+        script.type = "text/javascript";
+        script.async = true;
+        script.src = url;
+        script.setAttribute("data-key", key);
+        return this.fnLoadScriptOrStyle(script);
+      }
+      getCurrentDataKey() {
+        return document.currentScript && document.currentScript.getAttribute("data-key") || "";
+      }
+      scrollToBottom(element) {
+        element.scrollTop = element.scrollHeight;
+      }
+      onUserKeyClick(event) {
+        const target = event.target;
+        const dataKey = target.getAttribute("data-key");
+        if (dataKey !== null) {
+          this.putKeysInBuffer(String.fromCharCode(Number(dataKey)));
+        }
+      }
+      async waitForVoices(callback) {
+        return new Promise((resolve) => {
+          window.speechSynthesis.addEventListener("voiceschanged", () => {
+            callback();
+            resolve();
+          }, { once: true });
+          if (window.speechSynthesis.getVoices().length) {
+            callback();
+            resolve();
+          }
+        });
+      }
+      async waitForUserInteraction(element) {
+        element.hidden = !element.hidden;
+        return new Promise((resolve) => {
+          element.addEventListener("click", () => {
+            element.hidden = true;
+            resolve();
+          }, { once: true });
+        });
+      }
+      showConsoleInput(prompt) {
+        return new Promise((resolve) => {
+          const outputText = this.htmlElements.outputText;
+          const promptDiv = document.createElement("div");
+          promptDiv.textContent = prompt;
+          outputText.appendChild(promptDiv);
+          const input = document.createElement("input");
+          input.type = "text";
+          input.className = "console-input";
+          outputText.appendChild(input);
+          this.scrollToBottom(outputText);
+          input.focus();
+          const handleSubmit = (submitKey) => {
+            const isEnter = submitKey === "Enter";
+            input.replaceWith(document.createTextNode((isEnter ? input.value : "") + "\n"));
+            this.scrollToBottom(outputText);
+            this.consoleInputSubmit = void 0;
+            resolve(isEnter ? input.value : null);
+          };
+          input.addEventListener("keypress", (e) => {
+            e.stopPropagation();
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleSubmit(e.key);
+            }
+          });
+          input.addEventListener("keydown", (e) => {
+            e.stopPropagation();
+          });
+          this.consoleInputSubmit = handleSubmit;
+        });
+      }
+      logVoiceDebugInfo(selectedVoice) {
+        const debug = this.getCore().getConfigMap().debug;
+        if (debug > 1) {
+          const voicesString = window.speechSynthesis.getVoices().map((v, i) => `${i}: ${v.lang}: ${v.name}`).join("\n ");
+          const msg = `getSpeechSynthesisUtterance: voice=${selectedVoice?.lang}: ${selectedVoice?.name}, voices:
+ ${voicesString}`;
+          console.log(msg);
+          if (debug >= 16) {
+            this.addOutputText(msg + "\n");
+          }
+        }
+      }
+      async getSpeechSynthesisUtterance() {
+        if (this.speechSynthesisUtterance) {
+          return this.speechSynthesisUtterance;
+        }
+        if (!window.speechSynthesis) {
+          throw new Error("Speech Synthesis API is not supported in this browser.");
+        }
+        this.speechSynthesisUtterance = new SpeechSynthesisUtterance();
+        const utterance = this.speechSynthesisUtterance;
+        utterance.lang = document.documentElement.lang || "en";
+        const selectVoice = () => {
+          const voices = window.speechSynthesis.getVoices();
+          return voices.find((voice) => voice.lang === "en-GB" && voice.name === "Daniel");
+        };
+        const onVoicesChanged = () => {
+          const selectedVoice = selectVoice();
+          if (selectedVoice) {
+            utterance.voice = selectedVoice;
+          }
+          this.logVoiceDebugInfo(selectedVoice);
+        };
+        await this.waitForVoices(onVoicesChanged);
+        if (!this.initialUserAction) {
+          await this.waitForUserInteraction(this.htmlElements.startSpeechButton);
+        }
+        return utterance;
+      }
+      updateConfigParameter(name, value) {
+        const core = this.getCore();
+        const configAsRecord = core.getConfigMap();
+        const defaultConfigAsRecord = core.getDefaultConfigMap();
+        configAsRecord[name] = value;
+        const url = new URL(window.location.href);
+        if (configAsRecord[name] !== defaultConfigAsRecord[name]) {
+          url.searchParams.set(name, String(value));
+        } else {
+          url.searchParams.delete(name);
+        }
+        history.pushState({}, "", url.href);
+      }
+      hasCompiledError() {
+        const compiledScript = this.getCompiledCm().getValue();
+        const hasError = compiledScript.startsWith("ERROR:");
+        this.addOutputText(hasError ? escapeText(compiledScript) : "", true);
+        return hasError;
+      }
+      beforeExecute() {
+        this.htmlElements.convertPopover.hidden = true;
+        this.htmlElements.convertButton.disabled = true;
+        this.htmlElements.enterButton.disabled = false;
+        this.htmlElements.executeButton.disabled = true;
+        this.htmlElements.pauseButton.disabled = false;
+        this.htmlElements.resumeButton.disabled = true;
+        this.htmlElements.stopButton.disabled = false;
+        const outputText = this.htmlElements.outputText;
+        outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
+        outputText.addEventListener("click", this.fnOnClickHandler, false);
+        const userKeys = this.htmlElements.userKeys;
+        userKeys.addEventListener("click", this.fnOnUserKeyClickHandler, false);
+      }
+      afterExecute() {
+        const outputText = this.htmlElements.outputText;
+        outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
+        outputText.removeEventListener("click", this.fnOnClickHandler, false);
+        this.onSetUiKeys([0]);
+        this.htmlElements.convertButton.disabled = false;
+        this.htmlElements.enterButton.disabled = true;
+        this.htmlElements.executeButton.disabled = false;
+        this.htmlElements.pauseButton.disabled = true;
+        this.htmlElements.resumeButton.disabled = true;
+        this.htmlElements.stopButton.disabled = true;
+      }
+      clickStartSpeechButton() {
+        const startSpeechButton = this.htmlElements.startSpeechButton;
+        if (!startSpeechButton.hidden) {
+          startSpeechButton.dispatchEvent(new Event("click"));
+        }
+      }
+      setDelayedFocus(element) {
+        if (this.isMobile) {
+          const delay = 100;
+          UI.asyncDelay(() => {
+            element.focus();
+          }, delay);
+        }
+      }
+      static addLabels(input) {
+        const lineParts = input.split("\n");
+        let lastLine = 0;
+        for (let i = 0; i < lineParts.length; i += 1) {
+          let lineNum = parseInt(lineParts[i], 10);
+          if (isNaN(lineNum)) {
+            lineNum = lastLine + 1;
+            lineParts[i] = `${lineNum} ${lineParts[i]}`;
+          }
+          lastLine = lineNum;
+        }
+        return lineParts.join("\n");
+      }
+      static removeUnusedLabels(input, usedLabels) {
+        const lineParts = input.split("\n");
+        for (let i = 0; i < lineParts.length; i += 1) {
+          const lineNum = parseInt(lineParts[i], 10);
+          if (!isNaN(lineNum) && !usedLabels[lineNum]) {
+            lineParts[i] = lineParts[i].replace(/^\d+\s/, "");
+          }
+        }
+        return lineParts.join("\n");
+      }
+      async getExampleScript(example) {
+        if (example.script !== void 0) {
+          return example.script;
+        }
+        const core = this.getCore();
+        const database = core.getDatabase();
+        const scriptName = database.source + "/" + example.key + ".js";
+        try {
+          await this.loadScript(scriptName, example.key);
+        } catch (error) {
+          console.error("Load Example", scriptName, error);
+        }
+        return example.script || "";
+      }
+      setExampleSelectOptions(exampleMap, exampleKey, searchTerm) {
+        const maxTitleLength = 160;
+        const maxTextLength = 60;
+        const exampleSelect = this.htmlElements.exampleSelect;
+        exampleSelect.options.length = 0;
+        for (const key of Object.keys(exampleMap)) {
+          const example = exampleMap[key];
+          if (example.meta !== "D") {
+            const title = (key + ": " + example.title).substring(0, maxTitleLength);
+            if (searchTerm == "" || title.toLowerCase().includes(searchTerm)) {
+              const option = window.document.createElement("option");
+              option.value = key;
+              option.text = title.substring(0, maxTextLength);
+              option.title = title;
+              option.selected = key === exampleKey;
+              exampleSelect.add(option);
+            }
+          }
+        }
+      }
+      async getExampleMap(databaseItem) {
+        if (databaseItem.exampleMap) {
+          return databaseItem.exampleMap;
+        }
+        databaseItem.exampleMap = {};
+        const scriptName = databaseItem.source + "/0index.js";
+        try {
+          await this.loadScript(scriptName, "0index");
+        } catch (error) {
+          console.error("Load Example Map ", scriptName, error);
+        }
+        return databaseItem.exampleMap;
+      }
+      setDatabaseSelectOptions(databaseMap, database) {
+        const databaseSelect = this.htmlElements.databaseSelect;
+        databaseSelect.options.length = 0;
+        for (const key of Object.keys(databaseMap)) {
+          const example = databaseMap[key];
+          const option = window.document.createElement("option");
+          option.value = key;
+          option.text = key;
+          option.title = example.source;
+          option.selected = key === database;
+          databaseSelect.add(option);
+        }
+      }
+      static fnDownloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const clickHandler = function() {
+          setTimeout(function() {
+            URL.revokeObjectURL(url);
+            a.removeEventListener("click", clickHandler);
+          }, 150);
+        };
+        a.href = url;
+        a.download = filename;
+        a.addEventListener("click", clickHandler, false);
+        a.click();
+      }
+      getExampleName() {
+        const input = this.getBasicCm().getValue();
+        const firstLine = input.slice(0, input.indexOf("\n"));
+        const matches = firstLine.match(/^\s*\d*\s*(?:REM|rem|')\s*(\w+)/);
+        const name = matches ? matches[1] : this.getCore().getConfigMap().example || "locobasic";
+        return name;
+      }
+      putKeysInBuffer(keys) {
+        if (this.getCore().getConfigMap().debug) {
+          console.log("putKeysInBuffer:", keys);
+        }
+        this.getVmMain().putKeys(keys);
+      }
+      onOutputTextKeydown(event) {
+        const key = event.key;
+        let putKey = "";
+        if (key.length === 1) {
+          if (event.ctrlKey === false) {
+            putKey = key;
+          }
+        } else if (key === "Escape") {
+          this.cancelSpeech();
+          this.getVmMain().stop();
+        } else if (key === "Enter") {
+          putKey = "\r";
+        } else if (key === "Dead") {
+          const code = event.code;
+          if (code === "KeyN") {
+            putKey = "~";
+          } else if (event.code === "IntlBackslash") {
+            putKey = "^";
+          }
+        }
+        if (putKey) {
+          this.putKeysInBuffer(putKey);
+          event.preventDefault();
+        }
+      }
+      getClickedKey(e) {
+        let textNode = null;
+        let offset;
+        const docWithCaretPosition = document;
+        if (docWithCaretPosition.caretPositionFromPoint) {
+          const caretPosition = docWithCaretPosition.caretPositionFromPoint(e.clientX, e.clientY);
+          if (!caretPosition) {
+            return;
+          }
+          textNode = caretPosition.offsetNode;
+          offset = caretPosition.offset;
+        } else if (document.caretRangeFromPoint) {
+          const range = document.caretRangeFromPoint(e.clientX, e.clientY);
+          if (!range) {
+            return;
+          }
+          textNode = range.startContainer;
+          offset = range.startOffset;
+        } else {
+          return;
+        }
+        if (textNode?.nodeType === 3) {
+          const textContent = textNode.textContent;
+          return textContent ? textContent.charAt(offset) : "";
+        }
+      }
+      onOutputTextClick(event) {
+        const key = this.getClickedKey(event);
+        if (key) {
+          this.putKeysInBuffer(key);
+          event.preventDefault();
+        }
+      }
+      fnDecodeUri(s) {
+        let decoded = "";
+        try {
+          decoded = decodeURIComponent(s.replace(/\+/g, " "));
+        } catch (err) {
+          if (err instanceof Error) {
+            err.message += ": " + s;
+          }
+          console.error(err);
+        }
+        return decoded;
+      }
+      parseUri(config) {
+        const urlQuery = window.location.search.substring(1);
+        const rSearch = /([^&=]+)=?([^&]*)/g;
+        const args = [];
+        let match;
+        while ((match = rSearch.exec(urlQuery)) !== null) {
+          const name = this.fnDecodeUri(match[1]);
+          const value = this.fnDecodeUri(match[2]);
+          if (value !== null && config[name] !== void 0) {
+            args.push(name + "=" + value);
+          }
+        }
+        return args;
+      }
+      initializeEditor(editorElement, mode, changeHandler, debounceDelay) {
+        const editor = window.CodeMirror(editorElement, {
+          lineNumbers: true,
+          mode
+        });
+        editor.on("changes", this.debounce(changeHandler, () => debounceDelay));
+        return editor;
+      }
+      syncInputState(input, configValue) {
+        if (input.checked !== configValue) {
+          input.checked = configValue;
+          input.dispatchEvent(new Event("change"));
+        }
+      }
+      async getLocoVmWorker() {
+        if (!window.locoVmWorker) {
+          await this.loadScript(this.locoVmWorkerName, "");
+        }
+        return window.locoVmWorker;
+      }
+      async createWebWorker() {
+        let worker;
+        const isFileProtocol = window.location.protocol === "file:";
+        if (isFileProtocol) {
+          const locoVmWorker = await this.getLocoVmWorker();
+          const preparedWorkerFnString = String(locoVmWorker.workerFn);
+          const workerScript = `(${preparedWorkerFnString})(self);`;
+          const blob = new Blob([workerScript], { type: "text/javascript" });
+          const objectURL = window.URL.createObjectURL(blob);
+          worker = new Worker(objectURL);
+          window.URL.revokeObjectURL(objectURL);
+        } else {
+          const workerUrl = new URL(this.locoVmWorkerName, window.location.href);
+          worker = new Worker(workerUrl);
+        }
+        return worker;
+      }
+      createMessageHandlerCallbacks() {
+        const callbacks = {
+          onFlush: (message, needCls, hasGraphics) => {
+            const outputConsole = this.getCore().getConfigMap().outputConsole;
+            if (outputConsole) {
+              this.addOutputToBrowserConsole(message, needCls, hasGraphics);
+            } else {
+              this.addOutputText(message, needCls, hasGraphics);
+            }
+          },
+          onInput: async (prompt) => {
+            const input = await this.showConsoleInput(prompt);
+            this.htmlElements.exampleSelect.focus();
+            return input;
+          },
+          onGeolocation: () => this.onGeolocation(),
+          onSpeak: (message, pitch) => this.onSpeak(message, pitch),
+          onKeyDef: (codes) => {
+            this.onSetUiKeys(codes);
+          }
+        };
+        return callbacks;
+      }
+      // simple mobile device detection
+      static isMobile() {
+        const regex = /Mobi|Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+        return regex.test(navigator.userAgent);
+      }
+      onWindowLoadContinue(core, locoVmWorkerName) {
+        this.isMobile = UI.isMobile();
+        this.core = core;
+        const config = core.getConfigMap();
+        const args = this.parseUri(config);
+        core.parseArgs(args, config);
+        this.locoVmWorkerName = locoVmWorkerName;
+        const eventHandlers = {
+          change: {
+            autoCompileInput: this.onAutoCompileInputChange,
+            autoExecuteInput: this.onAutoExecuteInputChange,
+            basicSearchInput: this.onBasicSearchInputChange,
+            compiledSearchInput: this.onCompiledSearchInputChange,
+            databaseSelect: this.onDatabaseSelectChange,
+            exampleSelect: this.onExampleSelectChange,
+            frameInput: this.onFrameInputChange,
+            outputConsoleInput: this.onOutputConsoleInputChange,
+            showOutputInput: this.onShowOutputInputChange,
+            showBasicInput: this.onShowBasicInputChange,
+            showCompiledInput: this.onShowCompiledInputChange
+          },
+          click: {
+            outputOptionsButton: this.onOutputOptionsButtonClick,
+            compileButton: this.onCompileButtonClick,
+            enterButton: this.onEnterButtonClick,
+            executeButton: this.onExecuteButtonClick,
+            stopButton: this.onStopButtonClick,
+            pauseButton: this.onPauseButtonClick,
+            resumeButton: this.onResumeButtonClick,
+            resetButton: this.onResetButtonClick,
+            convertButton: this.onConvertButtonClick,
+            basicReplaceButton: this.onBasicReplaceButtonClick,
+            basicReplaceAllButton: this.onBasicReplaceAllButtonClick,
+            basicSearchButton: this.onBasicSearchButtonClick,
+            basicSearchNextButton: this.onBasicSearchNextButtonClick,
+            basicSearchPrevButton: this.onBasicSearchPrevButtonClick,
+            compiledReplaceButton: this.onCompiledReplaceButtonClick,
+            compiledReplaceAllButton: this.onCompiledReplaceAllButtonClick,
+            compiledSearchButton: this.onCompiledSearchButtonClick,
+            compiledSearchNextButton: this.onCompiledSearchNextButtonClick,
+            compiledSearchPrevButton: this.onCompiledSearchPrevButtonClick,
+            exampleSearchClearButton: this.onExampleSearchClearButtonClick,
+            labelAddButton: this.onLabelAddButtonClick,
+            labelRemoveButton: this.onLabelRemoveButtonClick,
+            helpButton: this.onHelpButtonClick,
+            exportSvgButton: this.onExportSvgButtonClick,
+            fullscreenButton: this.onFullscreenButtonClick,
+            standaloneButton: this.onStandaloneButtonClick
+          },
+          input: {
+            exampleSearchInput: this.debounce((e) => {
+              this.onExampleSearchInputInput(e);
+            }, () => 400)
+          },
+          keydown: {
+            basicSearchInput: (e) => this.onBasicSearchInputKeydown(e),
+            // handle Enter key
+            compiledSearchInput: (e) => this.onCompiledSearchInputKeydown(e),
+            // handle Enter key
+            exampleSearchInput: (e) => this.onExampleSearchInputKeydown(e),
+            exampleSelect: (e) => this.onExampleSelectKeydown(e)
+          }
+        };
+        Object.entries(eventHandlers).forEach(([eventType, handlers]) => {
+          Object.entries(handlers).forEach(([id, handler]) => {
+            const element = this.htmlElements[id];
+            element.addEventListener(eventType, handler, false);
+          });
+        });
+        const WinCodeMirror = window.CodeMirror;
+        if (WinCodeMirror) {
+          const getModeFn = LocoBasicMode.getMode;
+          WinCodeMirror.defineMode("lbasic", getModeFn);
+          this.basicCm = this.initializeEditor(this.htmlElements.basicEditor, "lbasic", this.onBasicTextChange, config.debounceCompile);
+          this.compiledCm = this.initializeEditor(this.htmlElements.compiledEditor, "javascript", this.onCompiledTextChange, config.debounceExecute);
+          if (this.basicCm) {
+            this.basicSearchHandler = new SearchHandler(
+              this.basicCm,
+              this.htmlElements.basicSearchInput,
+              this.htmlElements.basicReplaceInput,
+              this.isMobile
+            );
+          }
+          if (this.compiledCm) {
+            this.compiledSearchHandler = new SearchHandler(
+              this.compiledCm,
+              this.htmlElements.compiledSearchInput,
+              this.htmlElements.compiledReplaceInput,
+              this.isMobile
+            );
+          }
+          WinCodeMirror.commands.find = () => {
+            if (this.htmlElements.basicSearchPopover.hidden) {
+              this.htmlElements.basicSearchButton.dispatchEvent(new Event("click"));
+            } else {
+              this.htmlElements.basicSearchNextButton.dispatchEvent(new Event("click"));
+            }
+          };
+        }
+        window.addEventListener("popstate", (event) => {
+          if (event.state) {
+            Object.assign(config, core.getDefaultConfigMap());
+            const args2 = this.parseUri(config);
+            core.parseArgs(args2, config);
+            this.htmlElements.databaseSelect.dispatchEvent(new Event("change"));
+          }
+        });
+        this.syncInputState(this.htmlElements.autoCompileInput, config.autoCompile);
+        this.syncInputState(this.htmlElements.autoExecuteInput, config.autoExecute);
+        this.syncInputState(this.htmlElements.outputConsoleInput, config.outputConsole);
+        this.syncInputState(this.htmlElements.showOutputInput, config.showOutput);
+        this.syncInputState(this.htmlElements.showBasicInput, config.showBasic);
+        this.syncInputState(this.htmlElements.showCompiledInput, config.showCompiled);
+        window.document.addEventListener("click", () => {
+          this.initialUserAction = true;
+        }, { once: true });
+        const messageHandlerCallbacks = this.createMessageHandlerCallbacks();
+        this.vmMain = new VmMain(messageHandlerCallbacks, () => this.createWebWorker());
+        this.htmlElements.exampleSearchInput.value = config.exampleFilter;
+        UI.asyncDelay(() => {
+          const databaseMap = core.initDatabaseMap();
+          this.setDatabaseSelectOptions(databaseMap, config.database);
+          const url = window.location.href;
+          history.replaceState({}, "", url);
+          this.htmlElements.databaseSelect.dispatchEvent(new Event("change"));
+        }, 10);
+      }
     }
 
     exports.UI = UI;
