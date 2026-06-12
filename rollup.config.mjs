@@ -1,20 +1,26 @@
 // rollup.config.js
-import typescript from 'rollup-plugin-typescript2';
+import esbuild from "rollup-plugin-esbuild";
 
 export default [
   {
-  input: 'src/main.ts',  // main entry
+  input: "src/main.ts",  // main entry
   output: {
-    file: 'dist/locobasic.js',
-    format: 'umd',
+    file: "dist/locobasic.js",
+    format: "umd",
     sourcemap: true,
-    name: 'locobasic',
+    name: "locobasic",
     globals: {
-      'ohm-js': 'ohm'
+      "ohm-js": "ohm"
     }
   },
-  external: ['ohm-js'],
-  plugins: [typescript()]
+  external: ["ohm-js"],
+  plugins: [
+    esbuild({
+      include: /src\/.*\.ts$/,
+      target: "es2020",
+      tsconfig: "./src/tsconfig.json"
+    })
+  ]
 },
 {
   input: "./src/UI/UI.ts", // main entry
@@ -25,7 +31,9 @@ export default [
     name: "locobasicUI"
   },
   plugins: [
-    typescript({
+    esbuild({
+      include: /src\/.*\.ts$/,
+      target: "es2020",
       tsconfig: "./src/UI/tsconfig.json"
     })
   ]
@@ -39,7 +47,9 @@ export default [
     name: "locoVmWorker"
   },
   plugins: [
-    typescript({
+    esbuild({
+      include: /src\/.*\.ts$/,
+      target: "es2020",
       tsconfig: "./src/vm/tsconfig.json"
     })
   ]

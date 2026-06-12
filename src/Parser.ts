@@ -62,11 +62,10 @@ export class Parser {
             }
 
             const matchResult = matcher.match();
-            if (matchResult.succeeded()) {
-                return this.ohmSemantics(matchResult).eval() as string;
-            } else {
+            if (matchResult.failed()) {
                 return `ERROR: Parsing failed: ${matchResult.message}`;
             }
+            return this.ohmSemantics(matchResult).eval() as string;
         } catch (error) {
             return `ERROR: Parsing evaluator failed: ${error instanceof Error ? error.message : "unknown"}`;
         }

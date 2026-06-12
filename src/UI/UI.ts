@@ -1154,9 +1154,15 @@ export class UI implements IUI {
     private getClickedKey(e: MouseEvent): string | undefined {
         let textNode: Node | null = null;
         let offset: number;
+        const docWithCaretPosition = document as Document & {
+            caretPositionFromPoint?: (x: number, y: number) => {
+                offsetNode: Node;
+                offset: number;
+            } | null;
+        };
 
-        if (document.caretPositionFromPoint) {
-            const caretPosition = document.caretPositionFromPoint(e.clientX, e.clientY);
+        if (docWithCaretPosition.caretPositionFromPoint) {
+            const caretPosition = docWithCaretPosition.caretPositionFromPoint(e.clientX, e.clientY);
             if (!caretPosition) {
                 return;
             }
