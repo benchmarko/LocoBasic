@@ -66,6 +66,21 @@ export class UI {
         this.initialUserAction = false;
         this.locoVmWorkerName = "";
         this.isMobile = false;
+        this.keyMap = {
+            "ArrowUp-ArrowUp": "\xf0",
+            "ArrowDown-ArrowDown": "\xf1",
+            "ArrowLeft-ArrowLeft": "\xf2",
+            "ArrowRight-ArrowRight": "\xf3",
+            "Backspace-Backspace": "\x7f",
+            "Dead-Equal": "\xb4", // ´
+            "Dead-Equal-shift": "`",
+            "Dead-IntlBackslash": "^",
+            "Dead-KeyN": "~",
+            "Delete-Delete": "\x10",
+            "Enter-Enter": "\x0d",
+            "Enter-NumpadEnter": "\x0d",
+            "Tab-Tab": "\x09"
+        };
         this.addOutputText = (str, needCls, hasGraphics) => {
             const outputText = this.htmlElements.outputText;
             if (needCls) {
@@ -801,6 +816,7 @@ export class UI {
         const outputText = this.htmlElements.outputText;
         outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.addEventListener("click", this.fnOnClickHandler, false);
+        outputText.focus();
         const userKeys = this.htmlElements.userKeys;
         userKeys.addEventListener("click", this.fnOnUserKeyClickHandler, false);
     }
@@ -952,21 +968,18 @@ export class UI {
             }
         }
         else if (key === "Escape") {
-            this.cancelSpeech();
-            this.getVmMain().stop(); // request stop
-        }
-        else if (key === "Enter") {
-            putKey = "\x0d";
-        }
-        else if (key === "Dead") {
-            //const keyAndCode = `${key}-${event.code}`;
-            const code = event.code;
-            if (code === "KeyN") {
-                putKey = "~";
+            const stopButton = this.htmlElements.stopButton;
+            if (!stopButton.disabled) {
+                stopButton.dispatchEvent(new Event("click"));
             }
-            else if (event.code === "IntlBackslash") {
-                putKey = "^";
-            }
+        }
+        else {
+            const combinedKey = key + "-" + event.code + (event.shiftKey ? "-shift" : "");
+            putKey = this.keyMap[combinedKey];
+        }
+        const debug = this.getCore().getConfigMap().debug;
+        if (debug > 3) {
+            console.log("onOutputTextKeydown:", event, putKey);
         }
         if (putKey) {
             this.putKeysInBuffer(putKey);

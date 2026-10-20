@@ -51,7 +51,7 @@ PRINT "You answered";ca;"question";t$;" correctly out of";STR$(ri);" (";ROUND(10
 RETURN
 '
 ' Read data (questions and answers)
-400 ma=7: 'maximum number of answers
+400 ma=8: 'maximum number of answers
 READ ng: 'number of groups
 DIM q$(ng,ma),a$(ng,ma),na(ng)
 ta=0: 'total number of answers

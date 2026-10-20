@@ -681,6 +681,22 @@ ${" ".repeat(colno - 1) + "^"}`;
         this.initialUserAction = false;
         this.locoVmWorkerName = "";
         this.isMobile = false;
+        this.keyMap = {
+          "ArrowUp-ArrowUp": "\xF0",
+          "ArrowDown-ArrowDown": "\xF1",
+          "ArrowLeft-ArrowLeft": "\xF2",
+          "ArrowRight-ArrowRight": "\xF3",
+          "Backspace-Backspace": "\x7F",
+          "Dead-Equal": "\xB4",
+          // ´
+          "Dead-Equal-shift": "`",
+          "Dead-IntlBackslash": "^",
+          "Dead-KeyN": "~",
+          "Delete-Delete": "",
+          "Enter-Enter": "\r",
+          "Enter-NumpadEnter": "\r",
+          "Tab-Tab": "	"
+        };
         this.addOutputText = (str, needCls, hasGraphics) => {
           const outputText = this.htmlElements.outputText;
           if (needCls) {
@@ -1387,6 +1403,7 @@ ${" ".repeat(colno - 1) + "^"}`;
         const outputText = this.htmlElements.outputText;
         outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.addEventListener("click", this.fnOnClickHandler, false);
+        outputText.focus();
         const userKeys = this.htmlElements.userKeys;
         userKeys.addEventListener("click", this.fnOnUserKeyClickHandler, false);
       }
@@ -1534,17 +1551,17 @@ ${" ".repeat(colno - 1) + "^"}`;
             putKey = key;
           }
         } else if (key === "Escape") {
-          this.cancelSpeech();
-          this.getVmMain().stop();
-        } else if (key === "Enter") {
-          putKey = "\r";
-        } else if (key === "Dead") {
-          const code = event.code;
-          if (code === "KeyN") {
-            putKey = "~";
-          } else if (event.code === "IntlBackslash") {
-            putKey = "^";
+          const stopButton = this.htmlElements.stopButton;
+          if (!stopButton.disabled) {
+            stopButton.dispatchEvent(new Event("click"));
           }
+        } else {
+          const combinedKey = key + "-" + event.code + (event.shiftKey ? "-shift" : "");
+          putKey = this.keyMap[combinedKey];
+        }
+        const debug = this.getCore().getConfigMap().debug;
+        if (debug > 3) {
+          console.log("onOutputTextKeydown:", event, putKey);
         }
         if (putKey) {
           this.putKeysInBuffer(putKey);

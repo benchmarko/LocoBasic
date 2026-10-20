@@ -23,6 +23,7 @@ export declare class UI implements IUI {
     private htmlElements;
     private openedPopover?;
     private isMobile;
+    private keyMap;
     constructor();
     private isCodeMirrorSetValue;
     private debounce;
