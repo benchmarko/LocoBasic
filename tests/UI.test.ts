@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { UI } from '../src/UI/UI';
 //import path from 'path';
 
-(globalThis as any).window = {
+(globalThis as any).window = { // eslint-disable-line @typescript-eslint/no-explicit-any
   document: {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     getElementById: (_elementId: string) => { return {} as HTMLElement; }
