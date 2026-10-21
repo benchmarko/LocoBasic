@@ -725,16 +725,14 @@ ${" ".repeat(colno - 1) + "^"}`;
           }
         };
         this.onSetUiKeys = (codes) => {
-          if (codes.length) {
-            const code = codes[0];
-            const userKeys = this.htmlElements.userKeys;
-            if (code) {
-              const char = String.fromCharCode(code);
-              const buttonStr = `<button data-key="${code}" title="${char}">${char}</button>`;
-              userKeys.innerHTML += buttonStr;
-            } else {
-              userKeys.innerHTML = "";
-            }
+          const userKeys = this.htmlElements.userKeys;
+          if (codes[0] === 0) {
+            userKeys.innerHTML = "";
+          } else {
+            userKeys.innerHTML += codes.map((code) => {
+              const char = code === 32 ? "&nbsp;" : String.fromCharCode(code);
+              return `<button data-key="${code}" title="${char}">${char}</button>`;
+            }).join("");
           }
         };
         this.onGeolocation = async () => {
@@ -1403,7 +1401,6 @@ ${" ".repeat(colno - 1) + "^"}`;
         const outputText = this.htmlElements.outputText;
         outputText.addEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.addEventListener("click", this.fnOnClickHandler, false);
-        outputText.focus();
         const userKeys = this.htmlElements.userKeys;
         userKeys.addEventListener("click", this.fnOnUserKeyClickHandler, false);
       }
@@ -1717,10 +1714,16 @@ ${" ".repeat(colno - 1) + "^"}`;
             outputOptionsButton: this.onOutputOptionsButtonClick,
             compileButton: this.onCompileButtonClick,
             enterButton: this.onEnterButtonClick,
-            executeButton: this.onExecuteButtonClick,
+            executeButton: (event) => {
+              this.htmlElements.outputText.focus();
+              this.onExecuteButtonClick(event);
+            },
             stopButton: this.onStopButtonClick,
             pauseButton: this.onPauseButtonClick,
-            resumeButton: this.onResumeButtonClick,
+            resumeButton: (event) => {
+              this.htmlElements.outputText.focus();
+              this.onResumeButtonClick(event);
+            },
             resetButton: this.onResetButtonClick,
             convertButton: this.onConvertButtonClick,
             basicReplaceButton: this.onBasicReplaceButtonClick,
