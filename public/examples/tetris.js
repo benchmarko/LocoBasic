@@ -11,6 +11,7 @@ DIM b(9,19),p(6,3)
 FOR s=0 TO 6:FOR r=0 TO 3:READ p(s,r):NEXT r:NEXT s
 s=INT(RND(1)*7):ns=INT(RND(1)*7):r=0:px=3:py=0:l=0
 GOSUB 9000
+k$="adw s":GOSUB 9700: 'LocoBasic keys
 dt=TIME+150
 100 k$=""
 WHILE k$<>"q"
@@ -31,7 +32,7 @@ END
 5000 ok=1:mu=p(s,nr):IF mu<0 THEN mu=mu+65536
 FOR yy=0 TO 3
  FOR xx=0 TO 3
-  q=INT(mu/2^(15-yy*4-xx)) MOD 2
+  q=UNT(INT(mu/2^(15-yy*4-xx))) MOD 2
   IF q<>0 THEN bx=nx+xx:by=ny+yy:IF bx<0 OR bx>9 OR by>=20 THEN ok=0
   IF q<>0 AND bx>=0 AND bx<=9 AND by>=0 AND by<20 THEN IF b(bx,by)<>0 THEN ok=0
  NEXT xx
@@ -43,7 +44,7 @@ RETURN
 6000 mu=p(s,r):IF mu<0 THEN mu=mu+65536
 FOR yy=0 TO 3
  FOR xx=0 TO 3
-  q=INT(mu/2^(15-yy*4-xx)) MOD 2
+  q=UNT(INT(mu/2^(15-yy*4-xx))) MOD 2
   IF q<>0 THEN bx=px+xx:by=py+yy:IF by>=0 THEN b(bx,by)=s+1
  NEXT xx
 NEXT yy
@@ -75,7 +76,7 @@ FOR y=0 TO 19
  row$="|"
  FOR x=0 TO 9
   v=b(x,y):cx=x-px:cy=y-py
-  IF cx>=0 AND cx<4 AND cy>=0 AND cy<4 THEN q=INT(mu/2^(15-cy*4-cx)) MOD 2:IF q<>0 THEN v=s+1
+  IF cx>=0 AND cx<4 AND cy>=0 AND cy<4 THEN q=UNT(INT(mu/2^(15-cy*4-cx))) MOD 2:IF q<>0 THEN v=s+1
   IF v=0 THEN row$=row$+"  " ELSE row$=row$+"[]"
  NEXT x
  row$=row$+"|"
@@ -92,9 +93,15 @@ RETURN
 '
 ' draw one preview row, printing spaces for empty cells so old blocks are erased
 9200 FOR x=0 TO 3
- q=INT(mu2/2^(15-y*4-x)) MOD 2
+ q=UNT(INT(mu2/2^(15-y*4-x))) MOD 2
  IF q=0 THEN row$=row$+"  " ELSE row$=row$+"[]"
 NEXT x
+RETURN
+'
+' define user keys for LocoBasic UI
+9700 FOR i=1 TO LEN(k$)
+  KEY DEF 78,1,ASC(MID$(k$,i,1))
+NEXT i
 RETURN
 '
 ' four 16-bit 4x4 masks per piece, ordered I,T,O,S,Z,J,L; bit 15 is top-left
