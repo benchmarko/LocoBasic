@@ -10,23 +10,25 @@ export class ScriptCreator {
     }
 
     // Build dependency map by analyzing vm properties
-    private analyzeDependencies(vmObj: VMObject): Record<string, string[]> {
-        const regexPrefix = "vm\\.";
-        // Find all <prefix>propertyName references (default prefix: vm.)
-        const regex = new RegExp(`${regexPrefix}([\\w$]+)`, "g");
+    private analyzeDependencies(vmObj: VMObject, regexPrefix: string): Record<string, string[]> {
         const depMap: Record<string, string[]> = {};
 
         for (const key in vmObj) {
             const deps: string[] = [];
-            const noPropertyDeps = key === "cls"; // no property deps for cls function
-            const valueStr = String(vmObj[key]);
+            const value = vmObj[key];
+            const valueStr = String(value);
+
+            // Find all <prefix>propertyName references (default prefix: vm.)
+            const regex = new RegExp(`${regexPrefix}([\\w$]+)`, "g");
             let match;
             while ((match = regex.exec(valueStr)) !== null) {
                 const refProp = match[1];
                 if (!deps.includes(refProp)) {
-                    if (!refProp.startsWith("_") || !noPropertyDeps) {
-                        deps.push(refProp);
+                    // cls manages state directly; don't include its private references as dependencies
+                    if (key === "cls" && refProp.startsWith("_")) {
+                        continue;
                     }
+                    deps.push(refProp);
                 }
             }
 
@@ -57,8 +59,8 @@ export class ScriptCreator {
     }
 
     // Filter vm object based on used functions
-    private filterVM(vmObj: VMObject, usedFunctions: string[]): Partial<VMObject> {
-        const depMap = this.analyzeDependencies(vmObj);
+    private filterVM(vmObj: VMObject, usedFunctions: string[], regexPrefix: string): Partial<VMObject> {
+        const depMap = this.analyzeDependencies(vmObj, regexPrefix);
 
         if (this.debug) {
             const allKeys = Object.keys(vmObj);
@@ -73,6 +75,24 @@ export class ScriptCreator {
 
         // Get transitive closure
         const includeKeys = this.getTransitiveDeps(usedFunctions, depMap);
+
+        // Build set of private properties that are actually referenced by included functions
+        const referencedPrivateProps = new Set<string>();
+        for (const key of Array.from(includeKeys)) {
+            const deps = depMap[key] || [];
+            for (const dep of deps) {
+                if (dep.startsWith("_")) {
+                    referencedPrivateProps.add(dep);
+                }
+            }
+        }
+
+        // Remove private properties that are NOT referenced by any included function
+        includeKeys.forEach(key => {
+            if (key.startsWith("_") && !referencedPrivateProps.has(key)) {
+                includeKeys.delete(key);
+            }
+        });
 
         // Build filtered object (maintain original vm order)
         const filtered: Partial<VMObject> = {};
@@ -89,21 +109,27 @@ export class ScriptCreator {
         return filtered;
     }
 
-    private createParentPort(): NodeWorkerThreadsType["parentPort"] {
-        const parentPort = new class {
+    private createParentPort(isTerminal: boolean): NodeWorkerThreadsType["parentPort"] {
+        const parentPort = {
             // Dummy message handler
-            onMessageHandler: (data: MessageToWorker) => void = (data: MessageToWorker) => {
+            onMessageHandler: (data: MessageToWorker) => {
                 console.log("onMessageHandler called with:", data);
-            }
+            },
 
             // This method will be stringified into the standalone script
-            on(_event: string, messageHandler: (data: MessageToWorker) => void) {
+            on: isTerminal ? function (this: { onMessageHandler: (data: MessageToWorker) => void }, _event: string, messageHandler: (data: MessageToWorker) => void) {
                 this.onMessageHandler = messageHandler;
                 this.onMessageHandler({
                     type: "config",
                     isTerminal: true
                 });
-            }
+            } : function (this: { onMessageHandler: (data: MessageToWorker) => void }, _event: string, messageHandler: (data: MessageToWorker) => void) {
+                this.onMessageHandler = messageHandler;
+                this.onMessageHandler({
+                    type: "config",
+                    isTerminal: false
+                });
+            },
 
             // This method will be stringified into the standalone script
             postMessage(data: MessageFromWorker) {
@@ -143,7 +169,7 @@ export class ScriptCreator {
 
                 }
             }
-        }
+        };
         return parentPort;
     }
 
@@ -162,12 +188,19 @@ export class ScriptCreator {
         return output;
     }
 
-    private compiledCodeInFrame(compiledScript: string, workerFnString: string) {
-        const parentPort = this.createParentPort();
+    private compiledCodeInFrame(compiledScript: string, workerFnString: string, isTerminal: boolean) {
+        const parentPort = this.createParentPort(isTerminal);
         const parentFns: string[] = [];
 
-        parentFns.push(String(parentPort.on));
-        parentFns.push(String(parentPort.postMessage));
+        const ensureNamedObjectMethod = (methodName: string, fnStr: string): string => {
+            if (fnStr.startsWith("function")) {
+                return `${methodName}${fnStr.substring("function".length)}`;
+            }
+            return fnStr;
+        };
+
+        parentFns.push(ensureNamedObjectMethod("on", String(parentPort.on)));
+        parentFns.push(ensureNamedObjectMethod("postMessage", String(parentPort.postMessage)));
 
         // replace indentation
         const parentPortStr = parentFns.map((fnStr) => fnStr.replace(/\n\s{12}/g, "\n")).join(",\n    ");
@@ -191,16 +224,16 @@ ${workerFnString}
         return inFrame;
     }
 
-    public createStandaloneScript(workerFn: NodeWorkerFnType, compiledScript: string, usedInstr: string[]) {
+    public createStandaloneScript(workerFn: NodeWorkerFnType, compiledScript: string, usedInstr: string[], regexPrefix = "vm\\.", isTerminal = true) {
         const mockParent = {
             on: () => undefined,
             postMessage: () => undefined,
         };
         const vmObj = workerFn.workerFn(mockParent);
-        const filteredVM = this.filterVM(vmObj as VMObject, [...usedInstr, "flush", "onMessageHandler"]);
+        const filteredVM = this.filterVM(vmObj as VMObject, [...usedInstr, "flush", "onMessageHandler"], regexPrefix);
         const workerString = this.generateSource(filteredVM);
 
-        const inFrame = this.compiledCodeInFrame(compiledScript, workerString);
+        const inFrame = this.compiledCodeInFrame(compiledScript, workerString, isTerminal);
         return inFrame;
     }
 }

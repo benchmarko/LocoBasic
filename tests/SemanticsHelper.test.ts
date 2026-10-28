@@ -33,9 +33,9 @@ describe('SemanticsHelper Class', () => {
 
     it('should add and retrieve instructions correctly', () => {
         const helper = new SemanticsHelper();
-        helper.addInstr('testInstr');
+        helper.addInstr('print');
         const instrMap = helper.getInstrMap();
-        expect(instrMap['testInstr']).toBe(1);
+        expect(instrMap.print).toBe(1);
     });
 
     it('should correctly prefix reserved keywords with an underscore', () => {

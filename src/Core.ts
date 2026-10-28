@@ -191,11 +191,11 @@ export class Core implements ICore {
         return config;
     }
 
-    public createStandaloneScript(workerFn: NodeWorkerFnType, compiledScript: string, usedInstr: string[]): string {
+    public createStandaloneScript(workerFn: NodeWorkerFnType, compiledScript: string, usedInstr: string[], regexPrefix = "vm\\.", isTerminal = true): string {
         if (!this.scriptCreator) {
             this.scriptCreator = new ScriptCreator(this.config.debug);
         }
-        const inFrame = this.scriptCreator.createStandaloneScript(workerFn, compiledScript, usedInstr);
+        const inFrame = this.scriptCreator.createStandaloneScript(workerFn, compiledScript, usedInstr, regexPrefix, isTerminal);
         return inFrame;
     }
 }

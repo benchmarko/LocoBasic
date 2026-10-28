@@ -1118,7 +1118,7 @@ export class UI implements IUI {
         const core = this.getCore();
         const compiledScript = this.getCompiledCm().getValue();
         const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
-        const output = core.createStandaloneScript(locoVmWorker, compiledScript, Object.keys(usedInstrMap));
+        const output = core.createStandaloneScript(locoVmWorker, compiledScript, Object.keys(usedInstrMap), "vm\\.", core.getConfigMap().standaloneTerminal);
 
         const blob = new Blob([output], { type: "text/javascript" });
         const objectURL = window.URL.createObjectURL(blob);

@@ -32,14 +32,14 @@ function getSemanticsActions(semanticsHelper: SemanticsHelper) {
 	const adaptIdentName = (str: string) => str.replace(/\./g, "_");
 
 	const drawMovePlot = (lit: Node, x: Node, _comma1: Node, y: Node, _comma2: Node, pen: Node, _comma3: Node, mode: Node) => {
-		const command = lit.sourceString.toLowerCase();
+		const command = lit.sourceString.toLowerCase() as "draw" | "drawr" | "move" | "mover" | "plot" | "plotr";
 		semanticsHelper.addInstr(command);
 		const modeStr = mode.child(0) ? notSupported(mode.child(0)) : "";
 		return `${command}(${x.eval()}, ${y.eval()}${evalOptionalArg(pen)}${modeStr})`;
 	};
 
 	const cosSinTan = (lit: Node, _open: Node, num: Node, _close: Node) => { // eslint-disable-line @typescript-eslint/no-unused-vars
-		const func = lit.sourceString.toLowerCase();
+		const func = lit.sourceString.toLowerCase() as "cos" | "sin" | "tan";
 		semanticsHelper.addInstr(func);
 
 		if (!semanticsHelper.getDeg()) {
@@ -1094,7 +1094,7 @@ ${dataList.join(",\n")}
 
 			const tag = semanticsHelper.getTag();
 			const hasCommaOrTab = parameterString.includes(`"${CommaOpChar}`) || parameterString.includes(`"${TabOpChar}`);
-			const printInstr = (hasCommaOrTab ? "printTab" : "print") + (tag ? "Tag" : "");
+			const printInstr = ((hasCommaOrTab ? "printTab" : "print") + (tag ? "Tag" : "")) as "print" | "printTab" | "printTag" | "printTabTag";
 
 			semanticsHelper.addInstr(printInstr);
 
@@ -1191,7 +1191,7 @@ ${dataList.join(",\n")}
 				return notSupported(_rsxLit, cmd, e);
 			}
 
-			const rsxCall = "rsx" + stringCapitalize(cmdString);
+			const rsxCall = ("rsx" + stringCapitalize(cmdString)) as "rsxArc" | "rsxCircle" | "rsxDate" | "rsxEllipse" | "rsxGeolocation" | "rsxPitch" | "rsxPolygon" | "rsxRect" | "rsxSay" | "rsxTime";
 			semanticsHelper.addInstr(rsxCall);
 
 			const asyncStr = ["geolocation", "say"].includes(cmdString) ? "await " : "";
@@ -1561,7 +1561,7 @@ ${dataList.join(",\n")}
 			const valueStr = isStringIdent ? ', ""' : "";
 			const indicesStr2 = isMultiDimensional ? `[${indicesStr}]` : indicesStr;
 
-			let instr = "";
+			let instr: "dim" | "dim1" | "dim1i16" = "dim1";
 			if (isMultiDimensional) {
 				instr = "dim";
 			} else if (!isStringIdent && semanticsHelper.getVarLetterType(identStr) === "I") { // defint seen?

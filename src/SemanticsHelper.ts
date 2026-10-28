@@ -1,4 +1,4 @@
-import type { DefinedLabelEntryType, UsedLabelEntryType } from "./Interfaces";
+import type { DefinedLabelEntryType, InstrMapType, UsedLabelEntryType, VmInstructionName } from "./Interfaces";
 
 interface VariableEntryType {
     count: number;
@@ -23,7 +23,7 @@ export class SemanticsHelper {
     private dataIndex = 0;
     private readonly restoreMap: Record<string, number> = {};
     private static readonly reJsKeyword = /^(arguments|await|break|case|catch|class|const|continue|debugger|default|delete|do|else|enum|eval|export|extends|false|finally|for|function|if|implements|import|in|instanceof|interface|let|new|null|package|private|protected|public|return|static|super|switch|this|throw|true|try|typeof|var|void|while|with|yield)$/;
-    private readonly instrMap: Record<string, number> = {};
+    private readonly instrMap: InstrMapType = {};
     private isDeg = false;
     private isTag = false;
     private defContextStatus = ""; // collect | use | ""
@@ -110,11 +110,11 @@ export class SemanticsHelper {
         return this.usedLabels;
     }
 
-    public getInstrMap(): Record<string, number> {
+    public getInstrMap(): InstrMapType {
         return this.instrMap;
     }
 
-    public addInstr(name: string): number {
+    public addInstr(name: VmInstructionName): number {
         this.instrMap[name] = (this.instrMap[name] || 0) + 1;
         return this.instrMap[name];
     }

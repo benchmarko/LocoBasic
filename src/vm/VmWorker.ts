@@ -1,4 +1,4 @@
-import type { BrowserWorkerThreadsType, MessageFromWorker, MessageToWorker, NodeWorkerThreadsType } from "../Interfaces";
+import type { BrowserWorkerThreadsType, MessageFromWorker, MessageToWorker, NodeWorkerThreadsType, VmApi, VmInstructionName } from "../Interfaces";
 
 declare function require(name: string): NodeWorkerThreadsType;
 
@@ -15,7 +15,7 @@ type TimerType = {
     id: ReturnType<typeof setTimeout> | 0;
 };
 
-export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | BrowserWorkerThreadsType["parentPort"]) => {
+export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | BrowserWorkerThreadsType["parentPort"]): VmApi => {
     const isNodeParentPort = 'on' in parentPort;
 
     // The vm object will be passed to the worker's code as `_o`
@@ -1074,7 +1074,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
             onMessageHandler(data);
         });
     }
-    return vm;
+    return (vm satisfies Record<VmInstructionName, unknown>) as unknown as VmApi;
 };
 
 if (typeof require !== "undefined") { // node.js worker environment
