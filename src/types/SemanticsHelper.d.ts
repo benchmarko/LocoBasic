@@ -1,4 +1,4 @@
-import type { DefinedLabelEntryType, UsedLabelEntryType } from "./Interfaces";
+import type { DefinedLabelEntryType, InstrMapType, UsedLabelEntryType, VmInstructionName } from "./Interfaces";
 interface VariableEntryType {
     count: number;
     type: string;
@@ -40,8 +40,8 @@ export declare class SemanticsHelper {
     getDefinedLabels(): DefinedLabelEntryType[];
     addUsedLabel(label: string, type: string): void;
     getUsedLabels(): Record<string, Record<string, UsedLabelEntryType>>;
-    getInstrMap(): Record<string, number>;
-    addInstr(name: string): number;
+    getInstrMap(): InstrMapType;
+    addInstr(name: VmInstructionName): number;
     getVariables(): string[];
     private createVariableOrCount;
     getVariable(name: string, type?: string): string;

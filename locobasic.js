@@ -3190,7 +3190,7 @@ ${initialIndent}}`;
           const isStringIdent = identStr.endsWith("$");
           const valueStr = isStringIdent ? ', ""' : "";
           const indicesStr2 = isMultiDimensional ? `[${indicesStr}]` : indicesStr;
-          let instr = "";
+          let instr = "dim1";
           if (isMultiDimensional) {
             instr = "dim";
           } else if (!isStringIdent && semanticsHelper.getVarLetterType(identStr) === "I") {
@@ -3298,21 +3298,21 @@ ${initialIndent}}`;
         this.debug = debug;
       }
       // Build dependency map by analyzing vm properties
-      analyzeDependencies(vmObj) {
-        const regexPrefix = "vm\\.";
-        const regex = new RegExp(`${regexPrefix}([\\w$]+)`, "g");
+      analyzeDependencies(vmObj, regexPrefix) {
         const depMap = {};
         for (const key in vmObj) {
           const deps = [];
-          const noPropertyDeps = key === "cls";
-          const valueStr = String(vmObj[key]);
+          const value = vmObj[key];
+          const valueStr = String(value);
+          const regex = new RegExp(`${regexPrefix}([\\w$]+)`, "g");
           let match;
           while ((match = regex.exec(valueStr)) !== null) {
             const refProp = match[1];
             if (!deps.includes(refProp)) {
-              if (!refProp.startsWith("_") || !noPropertyDeps) {
-                deps.push(refProp);
+              if (key === "cls" && refProp.startsWith("_")) {
+                continue;
               }
+              deps.push(refProp);
             }
           }
           depMap[key] = deps;
@@ -3338,8 +3338,8 @@ ${initialIndent}}`;
         return result;
       }
       // Filter vm object based on used functions
-      filterVM(vmObj, usedFunctions) {
-        const depMap = this.analyzeDependencies(vmObj);
+      filterVM(vmObj, usedFunctions, regexPrefix) {
+        const depMap = this.analyzeDependencies(vmObj, regexPrefix);
         if (this.debug) {
           const allKeys = Object.keys(vmObj);
           for (const fn of usedFunctions) {
@@ -3351,6 +3351,20 @@ ${initialIndent}}`;
           }
         }
         const includeKeys = this.getTransitiveDeps(usedFunctions, depMap);
+        const referencedPrivateProps = /* @__PURE__ */ new Set();
+        for (const key of Array.from(includeKeys)) {
+          const deps = depMap[key] || [];
+          for (const dep of deps) {
+            if (dep.startsWith("_")) {
+              referencedPrivateProps.add(dep);
+            }
+          }
+        }
+        includeKeys.forEach((key) => {
+          if (key.startsWith("_") && !referencedPrivateProps.has(key)) {
+            includeKeys.delete(key);
+          }
+        });
         const filtered = {};
         for (const key in vmObj) {
           if (includeKeys.has(key)) {
@@ -3362,22 +3376,26 @@ ${initialIndent}}`;
         }
         return filtered;
       }
-      createParentPort() {
-        const parentPort = new class {
-          constructor() {
-            // Dummy message handler
-            this.onMessageHandler = (data) => {
-              console.log("onMessageHandler called with:", data);
-            };
-          }
+      createParentPort(isTerminal) {
+        const parentPort = {
+          // Dummy message handler
+          onMessageHandler: (data) => {
+            console.log("onMessageHandler called with:", data);
+          },
           // This method will be stringified into the standalone script
-          on(_event, messageHandler) {
+          on: isTerminal ? function(_event, messageHandler) {
             this.onMessageHandler = messageHandler;
             this.onMessageHandler({
               type: "config",
               isTerminal: true
             });
-          }
+          } : function(_event, messageHandler) {
+            this.onMessageHandler = messageHandler;
+            this.onMessageHandler({
+              type: "config",
+              isTerminal: false
+            });
+          },
           // This method will be stringified into the standalone script
           postMessage(data) {
             switch (data.type) {
@@ -3415,7 +3433,7 @@ ${initialIndent}}`;
                 break;
             }
           }
-        }();
+        };
         return parentPort;
       }
       // Generate source code for filtered vm object
@@ -3432,11 +3450,17 @@ ${initialIndent}}`;
         }
         return output;
       }
-      compiledCodeInFrame(compiledScript, workerFnString) {
-        const parentPort = this.createParentPort();
+      compiledCodeInFrame(compiledScript, workerFnString, isTerminal) {
+        const parentPort = this.createParentPort(isTerminal);
         const parentFns = [];
-        parentFns.push(String(parentPort.on));
-        parentFns.push(String(parentPort.postMessage));
+        const ensureNamedObjectMethod = (methodName, fnStr) => {
+          if (fnStr.startsWith("function")) {
+            return `${methodName}${fnStr.substring("function".length)}`;
+          }
+          return fnStr;
+        };
+        parentFns.push(ensureNamedObjectMethod("on", String(parentPort.on)));
+        parentFns.push(ensureNamedObjectMethod("postMessage", String(parentPort.postMessage)));
         const parentPortStr = parentFns.map((fnStr) => fnStr.replace(/\n\s{12}/g, "\n")).join(",\n    ");
         const inFrame = `(async (_o) => {
     ${compiledScript}
@@ -3456,15 +3480,15 @@ ${workerFnString}
 });`;
         return inFrame;
       }
-      createStandaloneScript(workerFn, compiledScript, usedInstr) {
+      createStandaloneScript(workerFn, compiledScript, usedInstr, regexPrefix = "vm\\.", isTerminal = true) {
         const mockParent = {
           on: () => void 0,
           postMessage: () => void 0
         };
         const vmObj = workerFn.workerFn(mockParent);
-        const filteredVM = this.filterVM(vmObj, [...usedInstr, "flush", "onMessageHandler"]);
+        const filteredVM = this.filterVM(vmObj, [...usedInstr, "flush", "onMessageHandler"], regexPrefix);
         const workerString = this.generateSource(filteredVM);
-        const inFrame = this.compiledCodeInFrame(compiledScript, workerString);
+        const inFrame = this.compiledCodeInFrame(compiledScript, workerString, isTerminal);
         return inFrame;
       }
     }
@@ -3620,11 +3644,11 @@ ${workerFnString}
         }
         return config;
       }
-      createStandaloneScript(workerFn, compiledScript, usedInstr) {
+      createStandaloneScript(workerFn, compiledScript, usedInstr, regexPrefix = "vm\\.", isTerminal = true) {
         if (!this.scriptCreator) {
           this.scriptCreator = new ScriptCreator(this.config.debug);
         }
-        const inFrame = this.scriptCreator.createStandaloneScript(workerFn, compiledScript, usedInstr);
+        const inFrame = this.scriptCreator.createStandaloneScript(workerFn, compiledScript, usedInstr, regexPrefix, isTerminal);
         return inFrame;
       }
     }
@@ -3974,7 +3998,7 @@ ${" ".repeat(colno - 1) + "^"}`;
           }, 5e3);
         } else {
           const workerFn = this.getNodeWorkerFn(this.locoVmWorkerName);
-          const inFrame = core.createStandaloneScript(workerFn, compiledScript, Object.keys(usedInstrMap));
+          const inFrame = core.createStandaloneScript(workerFn, compiledScript, Object.keys(usedInstrMap), "vm\\.", core.getConfigMap().standaloneTerminal);
           console.log(inFrame);
         }
       }
@@ -4020,6 +4044,7 @@ ${" ".repeat(colno - 1) + "^"}`;
       async nodeMain(core, locoVmWorkerName) {
         const config = core.getConfigMap();
         config.example = "";
+        config.standaloneTerminal = true;
         core.parseArgs(global.process.argv.slice(2), config);
         this.locoVmWorkerName = locoVmWorkerName;
         if (config.input) {
@@ -4113,6 +4138,7 @@ node dist/locobasic.js example=testpage action=compile | node
       grammar: "basic",
       // basic or strict
       input: "",
+      standaloneTerminal: false,
       outputConsole: false,
       showBasic: true,
       showCompiled: false,

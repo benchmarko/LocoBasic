@@ -157,11 +157,11 @@ export class Core {
         }
         return config;
     }
-    createStandaloneScript(workerFn, compiledScript, usedInstr) {
+    createStandaloneScript(workerFn, compiledScript, usedInstr, regexPrefix = "vm\\.", isTerminal = true) {
         if (!this.scriptCreator) {
             this.scriptCreator = new ScriptCreator(this.config.debug);
         }
-        const inFrame = this.scriptCreator.createStandaloneScript(workerFn, compiledScript, usedInstr);
+        const inFrame = this.scriptCreator.createStandaloneScript(workerFn, compiledScript, usedInstr, regexPrefix, isTerminal);
         return inFrame;
     }
 }

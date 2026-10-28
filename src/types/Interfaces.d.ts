@@ -26,6 +26,7 @@ export type ConfigType = {
     fileName: string;
     grammar: string;
     input: string;
+    standaloneTerminal: boolean;
     showBasic: boolean;
     showCompiled: boolean;
     showOutput: boolean;
@@ -45,7 +46,49 @@ export interface ISemantics {
     getHelper(): SemanticsHelperType;
 }
 export type SemanticsHelperType = {
-    getInstrMap(): Record<string, number>;
+    getInstrMap(): InstrMapType;
+};
+export type VmInstructionName = "abs" | "after" | "asc" | "atn" | "bin$" | "chr$" | "cint" | "clearInput" | "cls" | "cos" | "creal" | "dec$" | "dim" | "dim1" | "dim1i16" | "draw" | "drawr" | "end" | "every" | "exp" | "fix" | "frame" | "graphicsPen" | "hex$" | "ink" | "inkey$" | "input" | "instr" | "int" | "keyDef" | "left$" | "len" | "lineInput" | "log" | "log10" | "lower$" | "max" | "mid$" | "mid$Assign" | "min" | "mode" | "move" | "mover" | "origin" | "paper" | "pen" | "pi" | "plot" | "plotr" | "pos" | "print" | "printTab" | "printTag" | "printTabTag" | "read" | "remain" | "restore" | "right$" | "rnd" | "round" | "round1" | "rsxArc" | "rsxCircle" | "rsxDate" | "rsxEllipse" | "rsxGeolocation" | "rsxPitch" | "rsxPolygon" | "rsxRect" | "rsxSay" | "rsxTime" | "sgn" | "sin" | "space$" | "spc" | "sqr" | "stop" | "str$" | "string$Num" | "string$Str" | "tan" | "time" | "toDeg" | "toRad" | "unt" | "upper$" | "using" | "val" | "val1" | "vpos" | "write" | "writeTag" | "xpos" | "ypos" | "zone";
+export type InstrMapType = Partial<Record<VmInstructionName, number>>;
+type VmInstructionFn = {
+    bivarianceHack: (...args: unknown[]) => unknown;
+}["bivarianceHack"];
+export type VmApi = {
+    pi: number;
+} & {
+    [K in Exclude<VmInstructionName, "pi" | "rsxDate" | "rsxTime">]: VmInstructionFn;
+} & {
+    getFlushedText: () => string;
+    graGetFlushedGraphics: () => string;
+    convert2ControlCodes: (str: string) => string;
+    escapeText: (str: string) => string;
+    onMessageHandler: (data: MessageToWorker) => void;
+    pauseAllTimers: () => void;
+    resumeAllTimers: () => void;
+    remainAll: () => void;
+    resetAll: () => void;
+    deleteAllItems: (items: Record<string, unknown>) => void;
+    rsxDate: (arg: string) => string[];
+    rsxTime: (arg: string) => string[];
+    _output: string;
+    _isTerminal: boolean;
+    _paperValue: number;
+    _penValue: number;
+    _pos: number;
+    _vpos: number;
+    _needCls: boolean;
+    _data: (string | number)[];
+    _dataPtr: number;
+    _graBackgroundColor: string;
+    _restoreMap: Record<string, number>;
+    _rsxPitch: number;
+    _stopRequested: boolean;
+    _keyBuffer: string[];
+    _graColorsForPens: number[];
+    _graGraphicsBuffer: string;
+    _timerMap: Record<number, unknown>;
+    _pausePromise: Promise<void> | undefined;
+    _waitResolvedFn: ((value: string) => void) | null;
 };
 export type CompileResultType = {
     compiledScript: string;
@@ -65,7 +108,7 @@ export interface ICore {
     addIndex: (dir: string, input: Record<string, ExampleType[]> | (() => void)) => void;
     addItem(key: string, input: string | (() => void)): void;
     parseArgs(args: string[], config: Record<string, ConfigEntryType>): void;
-    createStandaloneScript(workerFn: NodeWorkerFnType, compiledScript: string, usedInstr: string[]): string;
+    createStandaloneScript(workerFn: NodeWorkerFnType, compiledScript: string, usedInstr: string[], regexPrefix?: string, isTerminal?: boolean): string;
 }
 export type MessageToWorker = {
     type: 'config';
@@ -115,7 +158,7 @@ export type MessageFromWorker = {
 };
 export type VMObject = Record<string, unknown>;
 export type NodeWorkerFnType = {
-    workerFn: (parentPort: NodeWorkerThreadsType["parentPort"]) => VMObject;
+    workerFn: (parentPort: NodeWorkerThreadsType["parentPort"]) => VmApi;
 };
 export interface NodeWorkerType {
     on: (event: string, listener: (data: MessageFromWorker) => void) => void;
@@ -140,4 +183,5 @@ export interface IUI {
     getCurrentDataKey(): string;
     onWindowLoadContinue(core: ICore, locoVmWorkerName: string): void;
 }
+export {};
 //# sourceMappingURL=Interfaces.d.ts.map

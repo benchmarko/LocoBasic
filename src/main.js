@@ -14,6 +14,7 @@ const core = new Core({
     fileName: "",
     grammar: "basic", // basic or strict
     input: "",
+    standaloneTerminal: false,
     outputConsole: false,
     showBasic: true,
     showCompiled: false,

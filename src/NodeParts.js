@@ -209,7 +209,7 @@ export class NodeParts {
         }
         else { // compile only: output standalone script
             const workerFn = this.getNodeWorkerFn(this.locoVmWorkerName);
-            const inFrame = core.createStandaloneScript(workerFn, compiledScript, Object.keys(usedInstrMap));
+            const inFrame = core.createStandaloneScript(workerFn, compiledScript, Object.keys(usedInstrMap), "vm\\.", core.getConfigMap().standaloneTerminal);
             console.log(inFrame);
         }
     }
@@ -257,6 +257,7 @@ export class NodeParts {
     async nodeMain(core, locoVmWorkerName) {
         const config = core.getConfigMap();
         config.example = "";
+        config.standaloneTerminal = true; // node default
         core.parseArgs(global.process.argv.slice(2), config);
         this.locoVmWorkerName = locoVmWorkerName;
         if (config.input) {

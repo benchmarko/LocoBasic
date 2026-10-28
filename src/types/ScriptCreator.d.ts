@@ -8,6 +8,6 @@ export declare class ScriptCreator {
     private createParentPort;
     private generateSource;
     private compiledCodeInFrame;
-    createStandaloneScript(workerFn: NodeWorkerFnType, compiledScript: string, usedInstr: string[]): string;
+    createStandaloneScript(workerFn: NodeWorkerFnType, compiledScript: string, usedInstr: string[], regexPrefix?: string, isTerminal?: boolean): string;
 }
 //# sourceMappingURL=ScriptCreator.d.ts.map

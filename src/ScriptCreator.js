@@ -4,22 +4,23 @@ export class ScriptCreator {
         this.debug = debug;
     }
     // Build dependency map by analyzing vm properties
-    analyzeDependencies(vmObj) {
-        const regexPrefix = "vm\\.";
-        // Find all <prefix>propertyName references (default prefix: vm.)
-        const regex = new RegExp(`${regexPrefix}([\\w$]+)`, "g");
+    analyzeDependencies(vmObj, regexPrefix) {
         const depMap = {};
         for (const key in vmObj) {
             const deps = [];
-            const noPropertyDeps = key === "cls"; // no property deps for cls function
-            const valueStr = String(vmObj[key]);
+            const value = vmObj[key];
+            const valueStr = String(value);
+            // Find all <prefix>propertyName references (default prefix: vm.)
+            const regex = new RegExp(`${regexPrefix}([\\w$]+)`, "g");
             let match;
             while ((match = regex.exec(valueStr)) !== null) {
                 const refProp = match[1];
                 if (!deps.includes(refProp)) {
-                    if (!refProp.startsWith("_") || !noPropertyDeps) {
-                        deps.push(refProp);
+                    // cls manages state directly; don't include its private references as dependencies
+                    if (key === "cls" && refProp.startsWith("_")) {
+                        continue;
                     }
+                    deps.push(refProp);
                 }
             }
             depMap[key] = deps;
@@ -46,8 +47,8 @@ export class ScriptCreator {
         return result;
     }
     // Filter vm object based on used functions
-    filterVM(vmObj, usedFunctions) {
-        const depMap = this.analyzeDependencies(vmObj);
+    filterVM(vmObj, usedFunctions, regexPrefix) {
+        const depMap = this.analyzeDependencies(vmObj, regexPrefix);
         if (this.debug) {
             const allKeys = Object.keys(vmObj);
             for (const fn of usedFunctions) {
@@ -58,6 +59,22 @@ export class ScriptCreator {
         }
         // Get transitive closure
         const includeKeys = this.getTransitiveDeps(usedFunctions, depMap);
+        // Build set of private properties that are actually referenced by included functions
+        const referencedPrivateProps = new Set();
+        for (const key of Array.from(includeKeys)) {
+            const deps = depMap[key] || [];
+            for (const dep of deps) {
+                if (dep.startsWith("_")) {
+                    referencedPrivateProps.add(dep);
+                }
+            }
+        }
+        // Remove private properties that are NOT referenced by any included function
+        includeKeys.forEach(key => {
+            if (key.startsWith("_") && !referencedPrivateProps.has(key)) {
+                includeKeys.delete(key);
+            }
+        });
         // Build filtered object (maintain original vm order)
         const filtered = {};
         for (const key in vmObj) {
@@ -70,22 +87,26 @@ export class ScriptCreator {
         }
         return filtered;
     }
-    createParentPort() {
-        const parentPort = new class {
-            constructor() {
-                // Dummy message handler
-                this.onMessageHandler = (data) => {
-                    console.log("onMessageHandler called with:", data);
-                };
-            }
+    createParentPort(isTerminal) {
+        const parentPort = {
+            // Dummy message handler
+            onMessageHandler: (data) => {
+                console.log("onMessageHandler called with:", data);
+            },
             // This method will be stringified into the standalone script
-            on(_event, messageHandler) {
+            on: isTerminal ? function (_event, messageHandler) {
                 this.onMessageHandler = messageHandler;
                 this.onMessageHandler({
                     type: "config",
                     isTerminal: true
                 });
-            }
+            } : function (_event, messageHandler) {
+                this.onMessageHandler = messageHandler;
+                this.onMessageHandler({
+                    type: "config",
+                    isTerminal: false
+                });
+            },
             // This method will be stringified into the standalone script
             postMessage(data) {
                 switch (data.type) {
@@ -139,11 +160,17 @@ export class ScriptCreator {
         }
         return output;
     }
-    compiledCodeInFrame(compiledScript, workerFnString) {
-        const parentPort = this.createParentPort();
+    compiledCodeInFrame(compiledScript, workerFnString, isTerminal) {
+        const parentPort = this.createParentPort(isTerminal);
         const parentFns = [];
-        parentFns.push(String(parentPort.on));
-        parentFns.push(String(parentPort.postMessage));
+        const ensureNamedObjectMethod = (methodName, fnStr) => {
+            if (fnStr.startsWith("function")) {
+                return `${methodName}${fnStr.substring("function".length)}`;
+            }
+            return fnStr;
+        };
+        parentFns.push(ensureNamedObjectMethod("on", String(parentPort.on)));
+        parentFns.push(ensureNamedObjectMethod("postMessage", String(parentPort.postMessage)));
         // replace indentation
         const parentPortStr = parentFns.map((fnStr) => fnStr.replace(/\n\s{12}/g, "\n")).join(",\n    ");
         const inFrame = `(async (_o) => {
@@ -164,15 +191,15 @@ ${workerFnString}
 });`;
         return inFrame;
     }
-    createStandaloneScript(workerFn, compiledScript, usedInstr) {
+    createStandaloneScript(workerFn, compiledScript, usedInstr, regexPrefix = "vm\\.", isTerminal = true) {
         const mockParent = {
             on: () => undefined,
             postMessage: () => undefined,
         };
         const vmObj = workerFn.workerFn(mockParent);
-        const filteredVM = this.filterVM(vmObj, [...usedInstr, "flush", "onMessageHandler"]);
+        const filteredVM = this.filterVM(vmObj, [...usedInstr, "flush", "onMessageHandler"], regexPrefix);
         const workerString = this.generateSource(filteredVM);
-        const inFrame = this.compiledCodeInFrame(compiledScript, workerString);
+        const inFrame = this.compiledCodeInFrame(compiledScript, workerString, isTerminal);
         return inFrame;
     }
 }

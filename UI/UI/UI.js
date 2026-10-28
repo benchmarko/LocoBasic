@@ -577,7 +577,7 @@ export class UI {
             const core = this.getCore();
             const compiledScript = this.getCompiledCm().getValue();
             const usedInstrMap = core.getSemantics().getHelper().getInstrMap();
-            const output = core.createStandaloneScript(locoVmWorker, compiledScript, Object.keys(usedInstrMap));
+            const output = core.createStandaloneScript(locoVmWorker, compiledScript, Object.keys(usedInstrMap), "vm\\.", core.getConfigMap().standaloneTerminal);
             const blob = new Blob([output], { type: "text/javascript" });
             const objectURL = window.URL.createObjectURL(blob);
             const win = window.open(objectURL, "Standalone Script", "width=640,height=300,resizable=yes,scrollbars=yes,dependent=yes");

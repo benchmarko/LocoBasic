@@ -867,7 +867,7 @@ ${dataList.join(",\n")}
             const parameterString = argumentList.join(', ') || "";
             const tag = semanticsHelper.getTag();
             const hasCommaOrTab = parameterString.includes(`"${CommaOpChar}`) || parameterString.includes(`"${TabOpChar}`);
-            const printInstr = (hasCommaOrTab ? "printTab" : "print") + (tag ? "Tag" : "");
+            const printInstr = ((hasCommaOrTab ? "printTab" : "print") + (tag ? "Tag" : ""));
             semanticsHelper.addInstr(printInstr);
             let newlineString = "";
             if (!semi.sourceString) {
@@ -944,7 +944,7 @@ ${dataList.join(",\n")}
             if (!knownRsx.includes(cmdString)) {
                 return notSupported(_rsxLit, cmd, e);
             }
-            const rsxCall = "rsx" + stringCapitalize(cmdString);
+            const rsxCall = ("rsx" + stringCapitalize(cmdString));
             semanticsHelper.addInstr(rsxCall);
             const asyncStr = ["geolocation", "say"].includes(cmdString) ? "await " : "";
             if (rsxArgs === "") {
@@ -1240,7 +1240,7 @@ ${dataList.join(",\n")}
             const isStringIdent = identStr.endsWith("$");
             const valueStr = isStringIdent ? ', ""' : "";
             const indicesStr2 = isMultiDimensional ? `[${indicesStr}]` : indicesStr;
-            let instr = "";
+            let instr = "dim1";
             if (isMultiDimensional) {
                 instr = "dim";
             }
