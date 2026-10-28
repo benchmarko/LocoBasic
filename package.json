@@ -1,6 +1,6 @@
 {
   "name": "locobasic",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "# LocoBasic - Loco BASIC",
   "type": "commonjs",
   "main": "./dist/locobasic.js",
