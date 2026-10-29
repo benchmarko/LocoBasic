@@ -757,6 +757,8 @@ ${dataList.join(",\n")}
 		},
 
 		IfBlock(_ifLit: Node, condExp: Node, _thenLit: Node, thenContent: Node, _thenSeparator: Node, elseBlock: Node, _endifLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			semanticsHelper.reportSyntaxExtension("multi-line IF", _ifLit.source.getLineAndColumnMessage());
+
 			const initialIndent = semanticsHelper.getIndentStr();
 			semanticsHelper.addIndent(2);
 			const increasedIndent = semanticsHelper.getIndentStr();

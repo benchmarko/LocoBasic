@@ -115,15 +115,11 @@ export class Core implements ICore {
     public compileScript(script: string): CompileResultType {
         if (!this.arithmeticParser) {
             const semanticsActionDict = this.semantics.getSemanticsActionDict();
-            if (this.config.grammar === "strict") {
-                const basicParser = new Parser(arithmetic.basicGrammar, semanticsActionDict);
-                this.arithmeticParser = new Parser(arithmetic.strictGrammar, semanticsActionDict, basicParser);
-            } else {
-                this.arithmeticParser = new Parser(arithmetic.basicGrammar, semanticsActionDict);
-            }
+            this.arithmeticParser = new Parser(arithmetic.basicGrammar, semanticsActionDict);
         }
         this.semantics.resetParser();
         const semanticsHelper = this.semantics.getHelper();
+        semanticsHelper.setSyntaxTarget(this.config.syntax);
 
         const preprocessedScript = Core.expandNextStatements(script, semanticsHelper); // some preprocessing
 

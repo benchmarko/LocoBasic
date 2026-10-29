@@ -26,11 +26,26 @@ export class SemanticsHelper {
     private readonly instrMap: InstrMapType = {};
     private isDeg = false;
     private isTag = false;
+    private syntaxTarget: "loco20" | "loco11" = "loco20";
     private defContextStatus = ""; // collect | use | ""
     private readonly defContextVars: string[] = [];
 
     public addCompileMessage(message: string): void {
         this.compileMessages.push(message);
+    }
+
+    public getSyntaxTarget(): "loco20" | "loco11" {
+        return this.syntaxTarget;
+    }
+
+    public setSyntaxTarget(syntaxTarget: "loco20" | "loco11"): void {
+        this.syntaxTarget = syntaxTarget;
+    }
+
+    public reportSyntaxExtension(feature: string, location: string): void {
+        if (this.syntaxTarget === "loco11") {
+            this.addCompileMessage(`WARNING: Not valid Loco BASIC 1.1 syntax: ${feature} (${location})`);
+        }
     }
 
     public getCompileMessages(): string[] {

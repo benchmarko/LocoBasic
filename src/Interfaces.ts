@@ -26,10 +26,10 @@ export type ConfigType = {
     debounceCompile: number;
     debounceExecute: number;
     debug: number;
+    syntax: "loco11" | "loco20";
     example: string;
     exampleFilter: string;
     fileName: string;
-    grammar: string; // "basic" or "strict"
     input: string;
     standaloneTerminal: boolean;
     showBasic: boolean;

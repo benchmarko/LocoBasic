@@ -49,7 +49,7 @@ Other examples:
    node dist/locobasic.js input='PRINT "Hello!"'
    node dist/locobasic.js input="?3 + 5 * (2 - 8)"
    node dist/locobasic.js example=binary database=rosetta databaseDirs=examples,https://benchmarko.github.io/CPCBasicApps/rosetta
-   node dist/locobasic.js grammar=strict ... (strict mode: see below)
+  node dist/locobasic.js syntax=loco11 example=euler
    ```
 
    This command compiles the input code into a standalone JavaScript file which can output text:
@@ -148,7 +148,7 @@ Keywords must be written in either all uppercase (preferred) or all lowercase ch
 
 #### ENDIF
 
-- `ENDIF` Ends a multi-line [IF](#if). (Only supported in LocoBasic.)
+- `ENDIF` Ends a multi-line [IF](#if). (Only supported in LocoBasic: loco20)
 
 #### ERASE
 
@@ -883,7 +883,7 @@ Consequences:
 - example=locobas -- Selected example in the current **database**
 - exampleFilter= -- Example filter value for the search field (Browser)
 - fileName= -- Specify a BASIC file (nodeJS)
-- grammar=basic -- Possible options: basic or strict
+- syntax=loco20 -- Syntax target: loco20 or loco11; currently reports multi-line IF only
 - input= -- Specify a BASIC string (nodeJS)
 - outputConsole=false -- Redirect output to the Browser Devtools console
 - showBasic=true -- Show the BASIC editor (Browser)

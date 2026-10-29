@@ -391,9 +391,9 @@ database=examples
 debounceCompile=800
 debounceExecute=400
 debug=0
+syntax=loco20|loco11
 example=euler
 fileName=<file>
-grammar=<name>
 input=<statements>
 
 - Examples for compile and run:
@@ -404,7 +404,7 @@ node dist/locobasic.js example=euler
 node dist/locobasic.js example=abelian1
 node dist/locobasic.js example=archidr > test1.svg
 node dist/locobasic.js example=binary database=rosetta databaseDirs=examples,https://benchmarko.github.io/CPCBasicApps/apps,https://benchmarko.github.io/CPCBasicApps/rosetta
-node dist/locobasic.js grammar='strict' input='a$="Bob":PRINT "Hello ";a$;"!"'
+node dist/locobasic.js syntax=locomotive example=euler
 node dist/locobasic.js fileName=dist/examples/example.bas  (if you have an example.bas file)
 
 - Example for compile only:
