@@ -9,10 +9,10 @@ const core = new Core({
     debounceCompile: 800,
     debounceExecute: 400,
     debug: 0,
+    syntax: "loco20",
     example: "locobas",
     exampleFilter: "",
     fileName: "",
-    grammar: "basic", // basic or strict
     input: "",
     standaloneTerminal: false,
     outputConsole: false,

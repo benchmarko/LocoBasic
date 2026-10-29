@@ -22,9 +22,13 @@ export declare class SemanticsHelper {
     private readonly instrMap;
     private isDeg;
     private isTag;
+    private syntaxTarget;
     private defContextStatus;
     private readonly defContextVars;
     addCompileMessage(message: string): void;
+    getSyntaxTarget(): "loco20" | "loco11";
+    setSyntaxTarget(syntaxTarget: "loco20" | "loco11"): void;
+    reportSyntaxExtension(feature: string, location: string): void;
     getCompileMessages(): string[];
     getDeg(): boolean;
     setDeg(isDeg: boolean): void;

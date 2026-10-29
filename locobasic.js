@@ -1353,343 +1353,6 @@
     eol (end of line)
       = "\\n"
     }
-  `,
-      strictGrammar: `strictGrammar <: basicGrammar {
-    abs
-      := "ABS" ~identPart
-    after
-      := "AFTER" ~identPart
-    and
-      := "AND" ~identPart
-    asc
-      := "ASC" ~identPart
-    atn
-      := "ATN" ~identPart
-    auto
-      := "AUTO" ~identPart
-    binS
-      := "BIN$" ~identPart
-    border
-      := "BORDER" ~identPart
-    break
-      := "BREAK" ~identPart
-    call
-      := "CALL" ~identPart
-    cat
-      := "CAT" ~identPart
-    chain
-      := "CHAIN" ~identPart
-    chrS
-      := "CHR$" ~identPart
-    cint
-      := "CINT" ~identPart
-    clear
-      := "CLEAR" ~identPart
-    clg
-      := "CLG" ~identPart
-    closein
-      := "CLOSEIN" ~identPart
-    closeout
-      := "CLOSEOUT" ~identPart
-    cls
-      := "CLS" ~identPart
-    cont
-      := "CONT" ~identPart
-    copychrS
-      := "COPYCHR$" ~identPart
-    cos
-      := "COS" ~identPart
-    creal
-      := "CREAL" ~identPart
-    cursor
-      := "CURSOR" ~identPart
-    data
-      := "DATA" ~identPart
-    decS
-      := "DEC$" ~identPart
-    def
-      := "DEF" ~identPart
-    defint
-      := "DEFINT" ~identPart
-    defreal
-      := "DEFREAL" ~identPart
-    defstr
-      := "DEFSTR" ~identPart
-    deg
-      := "DEG" ~identPart
-    delete
-      := "DELETE" ~identPart
-    derr
-      := "DERR" ~identPart
-    di
-      := "DI" ~identPart
-    dim
-      := "DIM" ~identPart
-    draw
-      := "DRAW" ~identPart
-    drawr
-      := "DRAWR" ~identPart
-    edit
-      := "EDIT" ~identPart
-    ei
-      := "EI" ~identPart
-    else
-      := "ELSE" ~identPart
-    endif
-      := "ENDIF" ~identPart
-    endLit
-      := "END" ~identPart
-    ent
-      := "ENT" ~identPart
-    env
-      := "ENV" ~identPart
-    eof
-      := "EOF" ~identPart
-    erase
-      := "ERASE" ~identPart
-    erl
-      := "ERL" ~identPart
-    err
-      := "ERR" ~identPart
-    error
-      := "ERROR" ~identPart
-    every
-      := "EVERY" ~identPart
-    exp
-      := "EXP" ~identPart
-    fill
-      := "FILL" ~identPart
-    fix
-      := "FIX" ~identPart
-    fn
-      := "FN"
-    for
-      := "FOR" ~identPart
-    frame
-      := "FRAME" ~identPart
-    fre
-      := "FRE" ~identPart
-    gosub
-      := "GOSUB" ~identPart
-    goto
-      := "GOTO" ~identPart
-    graphics
-      := "GRAPHICS" ~identPart
-    hexS
-      := "HEX$" ~identPart
-    himem
-      := "HIMEM" ~identPart
-    if
-      := "IF" ~identPart
-    ink
-      := "INK" ~identPart
-    inkey
-      := "INKEY" ~identPart
-    inkeyS
-      := "INKEY$" ~identPart
-    inp
-      := "INP" ~identPart
-    input
-      := "INPUT" ~identPart
-    instr
-      := "INSTR" ~identPart
-    int
-      := "INT" ~identPart
-    joy
-      := "JOY" ~identPart
-    key
-      := "KEY" ~identPart
-    leftS
-      := "LEFT$" ~identPart
-    len
-      := "LEN" ~identPart
-    let
-      := "LET" ~identPart
-    line
-      := "LINE" ~identPart
-    list
-      := "LIST" ~identPart
-    load
-      := "LOAD" ~identPart
-    locate
-      := "LOCATE" ~identPart
-    log
-      := "LOG" ~identPart
-    log10
-      := "LOG10" ~identPart
-    lowerS
-      := "LOWER$" ~identPart
-    mask
-      := "MASK" ~identPart
-    max
-      := "MAX" ~identPart
-    memory
-      := "MEMORY" ~identPart
-    merge
-      := "MERGE" ~identPart
-    midS
-      := "MID$" ~identPart
-    min
-      := "MIN" ~identPart
-    mod
-      := "MOD" ~identPart
-    mode
-      := "MODE" ~identPart
-    move
-      := "MOVE" ~identPart
-    mover
-      := "MOVER" ~identPart
-    new
-      := "NEW" ~identPart
-    next
-      := "NEXT" ~identPart
-    not
-      := "NOT" ~identPart
-    on
-      := "ON" ~identPart
-    openin
-      := "OPENIN" ~identPart
-    openout
-      := "OPENOUT" ~identPart
-    or
-      := "OR" ~identPart
-    origin
-      := "ORIGIN" ~identPart
-    out
-      := "OUT" ~identPart
-    paper
-      := "PAPER" ~identPart
-    peek
-      := "PEEK" ~identPart
-    pen
-      := "PEN" ~identPart
-    pi
-      := "PI" ~identPart
-    plot
-      := "PLOT" ~identPart
-    plotr
-      := "PLOTR" ~identPart
-    poke
-      := "POKE" ~identPart
-    pos
-      := "POS" ~identPart
-    print
-      := "PRINT" ~identPart
-    rad
-      := "RAD" ~identPart
-    randomize
-      := "RANDOMIZE" ~identPart
-    read
-      := "READ" ~identPart
-    release
-      := "RELEASE" ~identPart
-    rem
-      := "REM" ~identPart
-    remain
-      := "REMAIN" ~identPart
-    renum
-      := "RENUM" ~identPart
-    restore
-      := "RESTORE" ~identPart
-    resume
-      := "RESUME" ~identPart
-    return
-      := "RETURN" ~identPart
-    rightS
-      := "RIGHT$" ~identPart
-    rnd
-      := "RND" ~identPart
-    round
-      := "ROUND" ~identPart
-    run
-      := "RUN" ~identPart
-    save
-      := "SAVE" ~identPart
-    sgn
-      := "SGN" ~identPart
-    sin
-      := "SIN" ~identPart
-    sound
-      := "SOUND" ~identPart
-    spaceS
-      := "SPACE$" ~identPart
-    spc
-      := "SPC" ~identPart
-    speed
-      := "SPEED" ~identPart
-    sq
-      := "SQ" ~identPart
-    sqr
-      := "SQR" ~identPart
-    step
-      := "STEP" ~identPart
-    stop
-      := "STOP" ~identPart
-    strS
-      := "STR$" ~identPart
-    stringS
-      := "STRING$" ~identPart
-    swap
-      := "SWAP" ~identPart
-    symbol
-      := "SYMBOL" ~identPart
-    tab
-      := "TAB" ~identPart
-    tag
-      := "TAG" ~identPart
-    tagoff
-      := "TAGOFF" ~identPart
-    tan
-      := "TAN" ~identPart
-    test
-      := "TEST" ~identPart
-    testr
-      := "TESTR" ~identPart
-    then
-      := "THEN" ~identPart
-    time
-      := "TIME" ~identPart
-    to
-      := "TO" ~identPart
-    troff
-      := "TROFF" ~identPart
-    tron
-      := "TRON" ~identPart
-    unt
-      := "UNT" ~identPart
-    upperS
-      := "UPPER$" ~identPart
-    using
-      := "USING" ~identPart
-    val
-      := "VAL" ~identPart
-    vpos
-      := "VPOS" ~identPart
-    wait
-      := "WAIT" ~identPart
-    wend
-      := "WEND" ~identPart
-    while
-      := "WHILE" ~identPart
-    width
-      := "WIDTH" ~identPart
-    window
-      := "WINDOW" ~identPart
-    write
-      := "WRITE" ~identPart
-    xor
-      := "XOR" ~identPart
-    xpos
-      := "XPOS" ~identPart
-    ypos
-      := "YPOS" ~identPart
-    zone
-      := "ZONE" ~identPart
-
-    identStart := lower
-
-    rsxIdentName := upper (upper | digit | ".")*
-}
   `
     };
 
@@ -1710,12 +1373,24 @@
         this.instrMap = {};
         this.isDeg = false;
         this.isTag = false;
+        this.syntaxTarget = "loco20";
         this.defContextStatus = "";
         // collect | use | ""
         this.defContextVars = [];
       }
       addCompileMessage(message) {
         this.compileMessages.push(message);
+      }
+      getSyntaxTarget() {
+        return this.syntaxTarget;
+      }
+      setSyntaxTarget(syntaxTarget) {
+        this.syntaxTarget = syntaxTarget;
+      }
+      reportSyntaxExtension(feature, location) {
+        if (this.syntaxTarget === "loco11") {
+          this.addCompileMessage(`WARNING: Not valid Loco BASIC 1.1 syntax: ${feature} (${location})`);
+        }
       }
       getCompileMessages() {
         return this.compileMessages;
@@ -2557,6 +2232,7 @@ ${dataList.join(",\n")}
           return evalChildren(elseContent.children).join(";");
         },
         IfBlock(_ifLit, condExp, _thenLit, thenContent, _thenSeparator, elseBlock, _endifLit) {
+          semanticsHelper.reportSyntaxExtension("multi-line IF", _ifLit.source.getLineAndColumnMessage());
           const initialIndent = semanticsHelper.getIndentStr();
           semanticsHelper.addIndent(2);
           const increasedIndent = semanticsHelper.getIndentStr();
@@ -3608,15 +3284,11 @@ ${workerFnString}
       compileScript(script) {
         if (!this.arithmeticParser) {
           const semanticsActionDict = this.semantics.getSemanticsActionDict();
-          if (this.config.grammar === "strict") {
-            const basicParser = new Parser(arithmetic.basicGrammar, semanticsActionDict);
-            this.arithmeticParser = new Parser(arithmetic.strictGrammar, semanticsActionDict, basicParser);
-          } else {
-            this.arithmeticParser = new Parser(arithmetic.basicGrammar, semanticsActionDict);
-          }
+          this.arithmeticParser = new Parser(arithmetic.basicGrammar, semanticsActionDict);
         }
         this.semantics.resetParser();
         const semanticsHelper = this.semantics.getHelper();
+        semanticsHelper.setSyntaxTarget(this.config.syntax);
         const preprocessedScript = Core.expandNextStatements(script, semanticsHelper);
         const compiledScript = this.arithmeticParser.parseAndEval(preprocessedScript);
         const messages = semanticsHelper.getCompileMessages();
@@ -4094,9 +3766,9 @@ database=examples
 debounceCompile=800
 debounceExecute=400
 debug=0
+syntax=loco20|loco11
 example=euler
 fileName=<file>
-grammar=<name>
 input=<statements>
 
 - Examples for compile and run:
@@ -4107,7 +3779,7 @@ node dist/locobasic.js example=euler
 node dist/locobasic.js example=abelian1
 node dist/locobasic.js example=archidr > test1.svg
 node dist/locobasic.js example=binary database=rosetta databaseDirs=examples,https://benchmarko.github.io/CPCBasicApps/apps,https://benchmarko.github.io/CPCBasicApps/rosetta
-node dist/locobasic.js grammar='strict' input='a$="Bob":PRINT "Hello ";a$;"!"'
+node dist/locobasic.js syntax=locomotive example=euler
 node dist/locobasic.js fileName=dist/examples/example.bas  (if you have an example.bas file)
 
 - Example for compile only:
@@ -4132,11 +3804,10 @@ node dist/locobasic.js example=testpage action=compile | node
       debounceCompile: 800,
       debounceExecute: 400,
       debug: 0,
+      syntax: "loco20",
       example: "locobas",
       exampleFilter: "",
       fileName: "",
-      grammar: "basic",
-      // basic or strict
       input: "",
       standaloneTerminal: false,
       outputConsole: false,

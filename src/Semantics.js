@@ -603,6 +603,7 @@ ${dataList.join(",\n")}
             return evalChildren(elseContent.children).join(';');
         },
         IfBlock(_ifLit, condExp, _thenLit, thenContent, _thenSeparator, elseBlock, _endifLit) {
+            semanticsHelper.reportSyntaxExtension("multi-line IF", _ifLit.source.getLineAndColumnMessage());
             const initialIndent = semanticsHelper.getIndentStr();
             semanticsHelper.addIndent(2);
             const increasedIndent = semanticsHelper.getIndentStr();

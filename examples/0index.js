@@ -299,6 +299,10 @@ cpcBasic.addIndex("./examples", {
 			"key": "testkey",
 			"title": "Test keys (keyboard)"
 		},
+		{
+			"key": "testloco",
+			"title": "Test LocoBasic syntax"
+		},
         {
 			"key": "testpage",
 			"title": "Test Page"

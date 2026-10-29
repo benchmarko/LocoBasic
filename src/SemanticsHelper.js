@@ -15,11 +15,23 @@ export class SemanticsHelper {
         this.instrMap = {};
         this.isDeg = false;
         this.isTag = false;
+        this.syntaxTarget = "loco20";
         this.defContextStatus = ""; // collect | use | ""
         this.defContextVars = [];
     }
     addCompileMessage(message) {
         this.compileMessages.push(message);
+    }
+    getSyntaxTarget() {
+        return this.syntaxTarget;
+    }
+    setSyntaxTarget(syntaxTarget) {
+        this.syntaxTarget = syntaxTarget;
+    }
+    reportSyntaxExtension(feature, location) {
+        if (this.syntaxTarget === "loco11") {
+            this.addCompileMessage(`WARNING: Not valid Loco BASIC 1.1 syntax: ${feature} (${location})`);
+        }
     }
     getCompileMessages() {
         return this.compileMessages;
