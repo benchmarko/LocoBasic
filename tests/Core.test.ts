@@ -28,7 +28,7 @@ function createCore(syntax: ConfigType["syntax"]) {
 describe("Core syntax target", () => {
     const source = `10 IF X > 5 THEN
 20 PRINT "X is greater than 5"
-30 ENDIF`;
+30 END IF`;
 
     it("keeps LocoBasic as the default syntax target", () => {
         const result = createCore("loco20").compileScript(source);

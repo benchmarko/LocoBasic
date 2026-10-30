@@ -27,6 +27,12 @@ export class SemanticsHelper {
     private isDeg = false;
     private isTag = false;
     private syntaxTarget: "loco20" | "loco11" = "loco20";
+    private currentRoutineKind: "function" | "sub" | "" = "";
+    private currentRoutineName = "";
+    private readonly routineLocals: Record<string, Record<string, boolean>> = {};
+    private readonly routineParameters: Record<string, Record<string, boolean>> = {};
+    private readonly routineShared: Record<string, Record<string, boolean>> = {};
+    private readonly routineFunctions: Record<string, boolean> = {};
     private defContextStatus = ""; // collect | use | ""
     private readonly defContextVars: string[] = [];
 
@@ -66,6 +72,68 @@ export class SemanticsHelper {
 
     public setTag(isTag: boolean): void {
         this.isTag = isTag;
+    }
+
+    public beginRoutine(name: string, kind: "function" | "sub"): void {
+        this.currentRoutineKind = kind;
+        this.currentRoutineName = name.toLowerCase();
+        this.currentFunction = `routine:${this.currentRoutineName}`;
+        this.routineLocals[this.currentRoutineName] = {};
+        this.routineParameters[this.currentRoutineName] = {};
+        this.routineShared[this.currentRoutineName] = {};
+    }
+
+    public endRoutine(): void {
+        this.currentRoutineKind = "";
+        this.currentRoutineName = "";
+        this.currentFunction = "";
+    }
+
+    public getCurrentRoutineKind(): "function" | "sub" | "" {
+        return this.currentRoutineKind;
+    }
+
+    public getCurrentRoutineName(): string {
+        return this.currentRoutineName;
+    }
+
+    public registerRoutineFunction(name: string): void {
+        this.routineFunctions[name.toLowerCase()] = true;
+    }
+
+    public isRoutineFunction(name: string): boolean {
+        return Boolean(this.routineFunctions[name.toLowerCase()]);
+    }
+
+    public isRoutineScope(name: string): boolean {
+        return name.startsWith("routine:");
+    }
+
+    public addRoutineParameter(name: string): void {
+        name = name.toLowerCase();
+        this.routineLocals[this.currentRoutineName][name] = true;
+        this.routineParameters[this.currentRoutineName][name] = true;
+        this.createVariableOrCount(name, name.endsWith("$") ? "S" : "", this.currentFunction);
+    }
+
+    public addSharedVariable(name: string, type = ""): void {
+        if (!this.currentRoutineKind) {
+            this.addCompileMessage("ERROR: SHARED is only valid inside a FUNCTION or SUB.");
+            return;
+        }
+        name = name.toLowerCase();
+        this.routineShared[this.currentRoutineName][name] = true;
+        this.createVariableOrCount(name, type || (name.endsWith("$") ? "S" : ""), "");
+    }
+
+    public getRoutineLocalVariables(name: string): string[] {
+        return Object.keys(this.routineLocals[name] || {}).filter(variableName =>
+            !this.routineParameters[name]?.[variableName] && !this.routineShared[name]?.[variableName]
+        );
+    }
+
+    public getRoutineReturnVariable(): string {
+        return "_routineResult";
     }
 
     public addIndent(num: number): number {
@@ -138,7 +206,7 @@ export class SemanticsHelper {
         return Object.keys(this.variables);
     }
 
-    private createVariableOrCount(name: string, type: string) {
+    private createVariableOrCount(name: string, type: string, scope = this.currentFunction) {
         if (!this.variables[name]) {
             this.variables[name] = {
                 count: 1,
@@ -157,7 +225,7 @@ export class SemanticsHelper {
             this.variableScopes[name] = {};
         }
         const variableScope = this.variableScopes[name];
-        variableScope[this.currentFunction] = (variableScope[this.currentFunction] || 0) + 1;
+        variableScope[scope] = (variableScope[scope] || 0) + 1;
     }
 
     public getVariable(name: string, type = ""): string {
@@ -171,9 +239,26 @@ export class SemanticsHelper {
             name = `_${name}`;
         }
 
+        if (name === this.getRoutineReturnVariable().toLowerCase()) {
+            return this.getRoutineReturnVariable();
+        }
+
+        if (this.currentRoutineKind === "function" && name === this.currentRoutineName) {
+            return this.getRoutineReturnVariable();
+        }
+
         const defContextStatus = this.defContextStatus;
         if (defContextStatus === "") { // not in defContext?
-            this.createVariableOrCount(name, type);
+            if (this.currentRoutineKind) {
+                if (this.routineShared[this.currentRoutineName]?.[name]) {
+                    this.createVariableOrCount(name, type, "");
+                } else {
+                    this.routineLocals[this.currentRoutineName][name] = true;
+                    this.createVariableOrCount(name, type, this.currentFunction);
+                }
+            } else {
+                this.createVariableOrCount(name, type);
+            }
         } else if (defContextStatus === "collect") {
             this.defContextVars.push(name);
         } else if (defContextStatus === "use") {
@@ -253,6 +338,12 @@ export class SemanticsHelper {
         SemanticsHelper.deleteAllItems(this.instrMap);
         this.isDeg = false;
         this.isTag = false;
+        this.currentRoutineKind = "";
+        this.currentRoutineName = "";
+        SemanticsHelper.deleteAllItems(this.routineLocals);
+        SemanticsHelper.deleteAllItems(this.routineParameters);
+        SemanticsHelper.deleteAllItems(this.routineShared);
+        SemanticsHelper.deleteAllItems(this.routineFunctions);
         this.defContextStatus = "";
         this.defContextVars.length = 0;
     }

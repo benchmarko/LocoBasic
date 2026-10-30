@@ -95,6 +95,11 @@ export class Core implements ICore {
                 comment = line.slice(commentIdx);
             }
 
+            // Preserve source offsets while shielding END IF from the END statement parser.
+            code = code.replace(/^(\s*(?:\d+\s+)?END)([ \t]+)IF([ \t]*)$/i, (_match, prefix: string, separator: string, trailing: string) =>
+                `${prefix}_IF${" ".repeat(separator.length - 1)}${trailing}`
+            );
+
             // Replace NEXT i,j,k with NEXT i : NEXT j : NEXT k (not inside strings)
             code = code.replace(/NEXT\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)+)/gi, (match, vars: string, offset: number) => {
                 const before = code.slice(0, offset);

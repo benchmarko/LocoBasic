@@ -103,6 +103,13 @@ Keywords must be written in either all uppercase (preferred) or all lowercase ch
 - If there are no arguments, do not use parentheses.
 - See also: [FN](#fn).
 
+#### FUNCTION and SUB (BASIC 2 Plus)
+
+- `FUNCTION name(parameters) ... END FUNCTION` returns a value by assigning it to `name` inside the function.
+- `SUB name(parameters) ... END SUB` defines a procedure called with `CALL name(arguments)`.
+- Variables used inside a routine are local by default. Declare a global variable with `SHARED name[, name ...]`; use `SHARED vec[]` for an array. Scalars and arrays can be mixed, for example `SHARED total, vec[]`.
+- Routines must be declared before use.
+
 #### DEFINT
 
 - `DEFINT a` Defines, that (numerical) array variables starting with letter "a" will be integer. - That means, when you use DIM a(num), a typed Int16Array is created instead of an untyped Array.
@@ -146,9 +153,9 @@ Keywords must be written in either all uppercase (preferred) or all lowercase ch
 - `END` Ends execution.
   - This is currently the same as [STOP](#stop).
 
-#### ENDIF
+#### END IF (BASIC 2 Plus)
 
-- `ENDIF` Ends a multi-line [IF](#if). (Only supported in LocoBasic: loco20)
+- `END IF` Ends a multi-line [IF](#if). (Only supported with LocoBasic syntax: loco20)
 
 #### ERASE
 
@@ -194,6 +201,8 @@ t = TIME + 50: WHILE TIME < t: FRAME: WEND
 #### IF
 
 - `IF expression THEN statements [ELSE statements]` control structure (in one line).
+or:
+- `IF expression THEN statements [ELSE statements] END IF` multi-line IF (BASIC 2 Plus).
 
 #### INK
 
@@ -816,7 +825,7 @@ Operators \* / \\ [MOD](#mod) + - [AND](#and) [OR](#or) [XOR](#xor) are left-ass
 ### Control Structures
 
 - [IF](#if) ... [THEN](#then) ... [ELSE](#else)
-- [ENDIF](#endif) (LocoBasic only)
+- [END IF](#end-if) (LocoBasic only)
 - [FOR](#for) ... [NEXT](#next)
 - [WHILE](#while) ... [WEND](#wend)
 
@@ -883,7 +892,7 @@ Consequences:
 - example=locobas -- Selected example in the current **database**
 - exampleFilter= -- Example filter value for the search field (Browser)
 - fileName= -- Specify a BASIC file (nodeJS)
-- syntax=loco20 -- Syntax target: loco20 or loco11; currently reports multi-line IF only
+- syntax=loco20 -- Syntax target: loco11 (Locomotive Basic 1.1) or loco20 (with Locomotive BASIC 2 Plus extensions)
 - input= -- Specify a BASIC string (nodeJS)
 - outputConsole=false -- Redirect output to the Browser Devtools console
 - showBasic=true -- Show the BASIC editor (Browser)
@@ -914,6 +923,10 @@ Consequences:
   [Schneider CPC 6128 Benutzerhandbuch](https://acpc.me/ACME/MANUELS/[DEU]DEUTSCH(GERMAN)/CPC6128_SCHNEIDER[DEU]_Erste_Ausgabe_1985[OCR].pdf)
 
 - [Locomotive BASIC](https://www.cpcwiki.eu/index.php/Locomotive_BASIC) - Description of the CPC Basic Dialect
+
+- [Locomotive BASIC 2 Plus](https://archive.org/details/basic2plusreference)
+
+- [ABASC (Amstrad BASic Compiler)](https://github.com/fragarco/abasc/blob/main/docs/en/abasc.md), with several features from Locomotive BASIC 2 Plus
 
 - [GodSVG Editor](https://www.godsvg.com/editor/) - Edit SVG drawings
 

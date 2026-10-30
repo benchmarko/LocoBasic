@@ -249,7 +249,7 @@ export class UI implements IUI {
         }
         if (hasGraphics) {
             const svgDataUrl = `data:image/svg+xml;base64,${btoa(str)}`; // we assume the str is the full SVG content
-            console.log('%c ', `background-image: url(${ svgDataUrl }); padding-left: 320px; padding-top: 200px;`);
+            console.log('%c ', `background-image: url(${svgDataUrl}); padding-left: 320px; padding-top: 200px;`);
         } else {
             console.log(str);
         }
@@ -1396,7 +1396,7 @@ export class UI implements IUI {
         // Initialize CodeMirror editors
         const WinCodeMirror = window.CodeMirror;
         if (WinCodeMirror) {
-            const getModeFn = LocoBasicMode.getMode;
+            const getModeFn = () => LocoBasicMode.getMode(config.syntax);
             WinCodeMirror.defineMode("lbasic", getModeFn);
 
             this.basicCm = this.initializeEditor(this.htmlElements.basicEditor, "lbasic", this.onBasicTextChange, config.debounceCompile);

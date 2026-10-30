@@ -1,4 +1,5 @@
 import type { Mode, StringStream } from 'codemirror';
+import type { ConfigType } from '../Interfaces';
 
 // Codemirror Mode defining syntax highlighting for Loco-BASIC 
 
@@ -8,7 +9,7 @@ interface State {
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class LocoBasicMode {
-    public static getMode(): Mode<State> {
+    public static getMode(syntax: ConfigType["syntax"] = "loco20"): Mode<State> {
         function words(array: string[]) {
             const keys: Record<string, boolean> = {};
             for (let i = 0; i < array.length; i += 1) {
@@ -30,6 +31,9 @@ export class LocoBasicMode {
             "USING", "VAL", "VPOS", "WAIT", "WEND", "WHILE", "WIDTH", "WINDOW", "WRITE", "XOR", "XPOS", "YPOS", "ZONE"
         ];
 
+        if (syntax === "loco20") {
+            keywords.push("FUNCTION", "SUB", "SHARED");
+        }
         const keywordMap = words([...keywords, ...keywords.map((word) => word.toLowerCase())]);
 
         const isOperatorChar = /[+\-*=<>^\\@/]/;

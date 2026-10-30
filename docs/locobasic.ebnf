@@ -48,7 +48,7 @@ ControlStatement =
 
 IfStmt =
       "if" , CondExp , "then" , Statement
-    | "if" , CondExp , "then" , eol , { StatementList , eol } , "endif" ;
+      | "if" , CondExp , "then" , eol , { StatementList , eol } , "end" , "if" ;
 
 ForStmt =
       "for" , PlainIdent , "=" , NumExp , "to" , NumExp , [ "step" , NumExp ] , eol ,

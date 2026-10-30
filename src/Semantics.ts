@@ -123,7 +123,8 @@ function getSemanticsActions(semanticsHelper: SemanticsHelper) {
 				const funcVars: string[] = [];
 				for (const varName of variableList) {
 					const usage = variableScopes[varName];
-					if (usage[subroutineStart.label] && Object.keys(usage).length === 1) {
+					const nonRoutineScopes = Object.keys(usage).filter(scope => !semanticsHelper.isRoutineScope(scope));
+					if (usage[subroutineStart.label] && nonRoutineScopes.length === 1) {
 						funcVars.push(varName);
 					}
 				}
@@ -207,6 +208,24 @@ function getSemanticsActions(semanticsHelper: SemanticsHelper) {
 		return str.charAt(0).toUpperCase() + str.substring(1);
 	};
 
+	const formatIfBlock = (ifLit: Node, condExp: Node, thenContent: Node, elseBody?: string) => {
+		semanticsHelper.reportSyntaxExtension("multi-line IF", ifLit.source.getLineAndColumnMessage());
+
+		const initialIndent = semanticsHelper.getIndentStr();
+		semanticsHelper.addIndent(2);
+		const increasedIndent = semanticsHelper.getIndentStr();
+		const condition = condExp.eval();
+		const thenBody = evalChildren(thenContent.children).join("");
+
+		let result = `if (${condition}) {\n${increasedIndent}${thenBody}`;
+		if (elseBody !== undefined) {
+			result += `\n${initialIndent}} else {\n${increasedIndent}${elseBody}`;
+		}
+		result += `\n${initialIndent}}`;
+		semanticsHelper.addIndent(-2);
+		return result;
+	};
+
 	const semantics = {
 		Program(lines: Node) {
 			const lineList = evalChildren(lines.children);
@@ -216,7 +235,8 @@ function getSemanticsActions(semanticsHelper: SemanticsHelper) {
 			// Create global variable declarations (excluding function-local ones)
 			const globalVars = variableList.filter(varName => {
 				const usage = variableScopes[varName];
-				return usage[""] || Object.keys(usage).length !== 1;
+				const nonRoutineScopes = Object.keys(usage).filter(scope => !semanticsHelper.isRoutineScope(scope));
+				return usage[""] || nonRoutineScopes.length > 1;
 			});
 
 			const variableDeclarations = globalVars.length ? "let " + globalVars.map((v) => semanticsHelper.getVariableEntry(v)?.type === "A" ? `${v} = []` : v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
@@ -426,7 +446,13 @@ ${dataList.join(",\n")}
 			return notSupported(lit, num, comma, num2);
 		},
 
-		Call(lit: Node, args: Node) {
+		Call_routine(_callLit: Node, name: Node, args: Node) {
+			semanticsHelper.reportSyntaxExtension("CALL procedure", _callLit.source.getLineAndColumnMessage());
+			const argumentString = args.child(0)?.eval() || "()";
+			return `await sub_${name.eval().toLowerCase()}${argumentString}`;
+		},
+
+		Call_machine(lit: Node, args: Node) {
 			const num = Number(args.asIteration().child(0).eval()); // only works for constants
 			let result = "";
 			switch (num) {
@@ -547,6 +573,72 @@ ${dataList.join(",\n")}
 
 			const fnIdent = semanticsHelper.getVariable(`fn${name}`);
 			return `${fnIdent} = ${argStr} => ${defBody}`;
+		},
+
+		FunctionBlock(_functionLit: Node, name: Node, args: Node, _eol: Node, body: Node, _functionEnd: Node, _terminator: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			const functionName = name.eval().toLowerCase();
+			semanticsHelper.registerRoutineFunction(functionName);
+			semanticsHelper.beginRoutine(functionName, "function");
+			const argumentString = args.child(0)?.eval() || "()";
+			semanticsHelper.addIndent(2);
+			const bodyString = body.eval() as string;
+			semanticsHelper.addIndent(-2);
+			const localVariables = semanticsHelper.getRoutineLocalVariables(functionName);
+			const localDeclarations = localVariables.map(variableName => {
+				const entry = semanticsHelper.getVariableEntry(variableName);
+				return entry?.type === "A" ? `${variableName} = []` : variableName.endsWith("$") ? `${variableName} = ""` : `${variableName} = 0`;
+			});
+			localDeclarations.push(`${semanticsHelper.getRoutineReturnVariable()} = 0`);
+			semanticsHelper.endRoutine();
+			semanticsHelper.reportSyntaxExtension("FUNCTION", _functionLit.source.getLineAndColumnMessage());
+			return `async function ${functionName}${argumentString} {\n  let ${localDeclarations.join(", ")};\n${bodyString}\n  return ${semanticsHelper.getRoutineReturnVariable()};\n}`;
+		},
+
+		FunctionBody(lines: Node) {
+			return evalChildren(lines.children).join("\n");
+		},
+
+		SubBlock(_subLit: Node, name: Node, args: Node, _eol: Node, body: Node, _subEnd: Node, _terminator: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			const procedureName = `sub_${name.eval().toLowerCase()}`;
+			semanticsHelper.beginRoutine(name.eval().toLowerCase(), "sub");
+			const argumentString = args.child(0)?.eval() || "()";
+			semanticsHelper.addIndent(2);
+			const bodyString = body.eval() as string;
+			semanticsHelper.addIndent(-2);
+			const localVariables = semanticsHelper.getRoutineLocalVariables(name.eval().toLowerCase());
+			const localDeclarations = localVariables.map(variableName => {
+				const entry = semanticsHelper.getVariableEntry(variableName);
+				return entry?.type === "A" ? `${variableName} = []` : variableName.endsWith("$") ? `${variableName} = ""` : `${variableName} = 0`;
+			});
+			semanticsHelper.endRoutine();
+			semanticsHelper.reportSyntaxExtension("SUB", _subLit.source.getLineAndColumnMessage());
+			const declarations = localDeclarations.length ? `  let ${localDeclarations.join(", ")};\n` : "";
+			return `async function ${procedureName}${argumentString} {\n${declarations}${bodyString}\n}`;
+		},
+
+		SubBody(lines: Node) {
+			return evalChildren(lines.children).join("\n");
+		},
+
+		RoutineParams(_open: Node, params: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			const argumentNames = params.asIteration().children.map(param => param.eval());
+			for (const name of argumentNames) {
+				semanticsHelper.addRoutineParameter(name);
+			}
+			return `(${argumentNames.join(", ")})`;
+		},
+
+		Shared(_sharedLit: Node, names: Node) {
+			semanticsHelper.reportSyntaxExtension("SHARED declaration", _sharedLit.source.getLineAndColumnMessage());
+			for (const name of names.asIteration().children) {
+				name.eval();
+			}
+			return "";
+		},
+
+		SharedVariable(name: Node, array: Node) {
+			semanticsHelper.addSharedVariable(name.eval(), array.children.length ? "A" : "");
+			return "";
 		},
 
 		Defint(_lit: Node, letterRange: Node) {
@@ -751,33 +843,24 @@ ${dataList.join(",\n")}
 			return thenStatement;
 		},
 
-		IfElseBlock(_elseLit: Node, elseContent: Node, _elseSeparator: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			// IfElseBlock just returns the else body for IfBlock to use
-			return evalChildren(elseContent.children).join(';');
+		IfBlockContent(separator: Node, statements: Node) {
+			return `${separator.child(0)?.eval() || ""}${statements.eval()}`;
 		},
 
-		IfBlock(_ifLit: Node, condExp: Node, _thenLit: Node, thenContent: Node, _thenSeparator: Node, elseBlock: Node, _endifLit: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			semanticsHelper.reportSyntaxExtension("multi-line IF", _ifLit.source.getLineAndColumnMessage());
+		IfElseBlock(_separator: Node, _elseLit: Node, elseContent: Node) {
+			return evalChildren(elseContent.children).join("");
+		},
 
-			const initialIndent = semanticsHelper.getIndentStr();
-			semanticsHelper.addIndent(2);
-			const increasedIndent = semanticsHelper.getIndentStr();
+		IfBlock(block: Node) {
+			return block.eval();
+		},
 
-			const condition = condExp.eval();
-			const thenBody = evalChildren(thenContent.children).join(';');
+		IfBlock_noElse(_ifLit: Node, condExp: Node, _thenLit: Node, thenContent: Node, _ifEnd: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return formatIfBlock(_ifLit, condExp, thenContent);
+		},
 
-			let result = `if (${condition}) {\n${increasedIndent}${thenBody}`;
-
-			// Handle optional ELSE block
-			if (elseBlock.child(0)) {
-				const elseBody = elseBlock.child(0).eval();
-				result += `\n${initialIndent}} else {\n${increasedIndent}${elseBody}`;
-			}
-
-			result += `\n${initialIndent}}`;
-
-			semanticsHelper.addIndent(-2);
-			return result;
+		IfBlock_else(_ifLit: Node, condExp: Node, _thenLit: Node, thenContent: Node, elseBlock: Node, _ifEnd: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
+			return formatIfBlock(_ifLit, condExp, thenContent, elseBlock.eval() as string);
 		},
 
 		If_singleLine(_iflit: Node, condExp: Node, thenStat: Node, colons: Node, elseLit: Node, elseStat: Node) {
@@ -1547,7 +1630,12 @@ ${dataList.join(",\n")}
 		},
 
 		ArrayIdent(ident: Node, _open: Node, e: Node, _close: Node) { // eslint-disable-line @typescript-eslint/no-unused-vars
-			const name = semanticsHelper.getVariable(ident.eval(), "A");
+			const identName = ident.eval().toLowerCase();
+			if (semanticsHelper.isRoutineFunction(identName)) {
+				const argumentsList = e.asIteration().children.map(argument => argument.eval()).join(", ");
+				return `await ${identName}(${argumentsList})`;
+			}
+			const name = semanticsHelper.getVariable(identName, "A");
 			return `${name}[${e.eval()}]`;
 		},
 
