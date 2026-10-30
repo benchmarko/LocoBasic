@@ -118,7 +118,7 @@
     }
 
     class LocoBasicMode {
-      static getMode() {
+      static getMode(syntax = "loco20") {
         function words(array) {
           const keys = {};
           for (let i = 0; i < array.length; i += 1) {
@@ -292,6 +292,9 @@
           "YPOS",
           "ZONE"
         ];
+        if (syntax === "loco20") {
+          keywords.push("FUNCTION", "SUB", "SHARED");
+        }
         const keywordMap = words([...keywords, ...keywords.map((word) => word.toLowerCase())]);
         const isOperatorChar = /[+\-*=<>^\\@/]/;
         function tokenString() {
@@ -1766,7 +1769,7 @@ ${" ".repeat(colno - 1) + "^"}`;
         });
         const WinCodeMirror = window.CodeMirror;
         if (WinCodeMirror) {
-          const getModeFn = LocoBasicMode.getMode;
+          const getModeFn = () => LocoBasicMode.getMode(config.syntax);
           WinCodeMirror.defineMode("lbasic", getModeFn);
           this.basicCm = this.initializeEditor(this.htmlElements.basicEditor, "lbasic", this.onBasicTextChange, config.debounceCompile);
           this.compiledCm = this.initializeEditor(this.htmlElements.compiledEditor, "javascript", this.onCompiledTextChange, config.debounceExecute);

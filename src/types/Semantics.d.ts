@@ -25,7 +25,8 @@ export declare class Semantics implements ISemantics {
         Auto(lit: Node, label: Node, comma: Node, step: Node): string;
         BinS(_binLit: Node, _open: Node, num: Node, _comma: Node, pad: Node, _close: Node): string;
         Border(lit: Node, num: Node, comma: Node, num2: Node): string;
-        Call(lit: Node, args: Node): string;
+        Call_routine(_callLit: Node, name: Node, args: Node): string;
+        Call_machine(lit: Node, args: Node): string;
         Cat: (str: Node, ...args: Node[]) => string;
         Chain(lit: Node, merge: Node, file: Node, comma: Node, num: Node, comma2: Node, del: Node): string;
         ChrS(_chrLit: Node, _open: Node, e: Node, _close: Node): string;
@@ -47,6 +48,13 @@ export declare class Semantics implements ISemantics {
         Def(_defLit: Node, _fnLit: Node, assign: Node): string;
         DefArgs(_open: Node, arrayIdents: Node, _close: Node): string;
         DefAssign(ident: Node, args: Node, _equal: Node, e: Node): string;
+        FunctionBlock(_functionLit: Node, name: Node, args: Node, _eol: Node, body: Node, _functionEnd: Node, _terminator: Node): string;
+        FunctionBody(lines: Node): string;
+        SubBlock(_subLit: Node, name: Node, args: Node, _eol: Node, body: Node, _subEnd: Node, _terminator: Node): string;
+        SubBody(lines: Node): string;
+        RoutineParams(_open: Node, params: Node, _close: Node): string;
+        Shared(_sharedLit: Node, names: Node): string;
+        SharedVariable(name: Node, array: Node): string;
         Defint(_lit: Node, letterRange: Node): string;
         Defreal(lit: Node, letterRange: Node): string;
         Defstr(lit: Node, letterRange: Node): string;
@@ -86,8 +94,11 @@ export declare class Semantics implements ISemantics {
         Himem(lit: Node): string;
         IfExp_label(label: Node): string;
         IfThen_then(_thenLit: Node, thenStat: Node): any;
-        IfElseBlock(_elseLit: Node, elseContent: Node, _elseSeparator: Node): string;
-        IfBlock(_ifLit: Node, condExp: Node, _thenLit: Node, thenContent: Node, _thenSeparator: Node, elseBlock: Node, _endifLit: Node): string;
+        IfBlockContent(separator: Node, statements: Node): string;
+        IfElseBlock(_separator: Node, _elseLit: Node, elseContent: Node): string;
+        IfBlock(block: Node): any;
+        IfBlock_noElse(_ifLit: Node, condExp: Node, _thenLit: Node, thenContent: Node, _ifEnd: Node): string;
+        IfBlock_else(_ifLit: Node, condExp: Node, _thenLit: Node, thenContent: Node, elseBlock: Node, _ifEnd: Node): string;
         If_singleLine(_iflit: Node, condExp: Node, thenStat: Node, colons: Node, elseLit: Node, elseStat: Node): string;
         If_multiLine(block: Node): any;
         Ink(_inkLit: Node, num: Node, _comma: Node, col: Node, _comma2: Node, col2: Node): string;

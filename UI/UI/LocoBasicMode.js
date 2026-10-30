@@ -1,6 +1,6 @@
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class LocoBasicMode {
-    static getMode() {
+    static getMode(syntax = "loco20") {
         function words(array) {
             const keys = {};
             for (let i = 0; i < array.length; i += 1) {
@@ -20,6 +20,9 @@ export class LocoBasicMode {
             "STR$", "STRING$", "SWAP", "SYMBOL", "TAB", "TAG", "TAGOFF", "TAN", "TEST", "TESTR", "THEN", "TIME", "TO", "TROFF", "TRON", "UNT", "UPPER$",
             "USING", "VAL", "VPOS", "WAIT", "WEND", "WHILE", "WIDTH", "WINDOW", "WRITE", "XOR", "XPOS", "YPOS", "ZONE"
         ];
+        if (syntax === "loco20") {
+            keywords.push("FUNCTION", "SUB", "SHARED");
+        }
         const keywordMap = words([...keywords, ...keywords.map((word) => word.toLowerCase())]);
         const isOperatorChar = /[+\-*=<>^\\@/]/;
         function tokenString() {

@@ -65,7 +65,7 @@
       basicGrammar: `
     Arithmetic {
     Program
-      = Line*
+      = (FunctionBlock | SubBlock | Line)*
 
     Line
       = Label? Statements ":"* Comment? (eol | end)
@@ -171,6 +171,7 @@
       | Window
       | Write
       | Zone
+      | Shared
       | ArrayAssign
       | Assign
 
@@ -214,7 +215,8 @@
       = border NumExp ("," NumExp)?
 
     Call
-      = call NonemptyListOf<NumExp, ",">
+      = call ident AnyFnArgs? -- routine
+      | call NonemptyListOf<NumExp, ","> -- machine
 
     Cat
       = cat
@@ -286,6 +288,36 @@
     DefAssign
       = PlainIdent DefArgs? "=" NumExp
       | StrPlainIdent DefArgs? "=" StrExp
+
+    FunctionBlock
+      = function ident RoutineParams? eol FunctionBody FunctionEnd (eol | end)
+
+    FunctionBody
+      = (~FunctionEnd Line)*
+
+    FunctionEnd
+      = endLit function
+
+    SubBlock
+      = sub ident RoutineParams? eol SubBody SubEnd (eol | end)
+
+    SubBody
+      = (~SubEnd Line)*
+
+    SubEnd
+      = endLit sub
+
+    RoutineParams
+      = "(" ListOf<SimpleIdent, ","> ")"
+
+    Shared
+      = shared NonemptyListOf<SharedVariable, ",">
+
+    SharedVariable
+      = (strIdent | ident) SharedArray?
+
+    SharedArray
+      = "[" "]"
 
     LabelRange
       = label ("-" label)?
@@ -741,10 +773,20 @@
       | Goto
 
     IfElseBlock
-      = else LoopBlockContent* LoopBlockSeparator
+      = LoopBlockSeparator? else IfBlockContent*
+
+    IfBlockContent
+      = LoopBlockSeparator? ~(endIf | else) Statements
+
+    IfEnd
+      = LoopBlockSeparator? endIf
+
+    endIf
+      = "END_IF" ~identPart
 
     IfBlock
-      = if CondExp then LoopBlockContent* LoopBlockSeparator IfElseBlock? endif
+      = if CondExp then IfBlockContent* IfEnd -- noElse
+      | if CondExp then IfBlockContent* IfElseBlock IfEnd -- else
 
     If
       = if CondExp IfThen (":"* else IfExp)? -- singleLine
@@ -954,12 +996,12 @@
       = abs | after | and | asc | atn | auto | binS | border | break
       | call | cat | chain | chrS | cint | clear | clg | closein | closeout | cls | cont | copychrS | cos | creal | cursor
       | data | decS | def | defint | defreal | defstr | deg | delete | derr | di | dim | draw | drawr
-      | edit | ei | else | endif | endLit | ent | env | eof | erase | erl | err | error | every | exp | fill | fix | fn | for | frame | fre | gosub | goto | graphics
+      | edit | ei | else | endLit | ent | env | eof | erase | erl | err | error | every | exp | fill | fix | fn | for | frame | fre | function | gosub | goto | graphics
       | hexS | himem | if | ink | inkey | inkeyS|  inp | input | instr | int | joy | key | leftS | len | let | line | list | load | locate | log | log10 | lowerS
       | mask | max | memory | merge | midS | min | mod | mode | move | mover | new | next | not | on | openin | openout | or | origin | out
       | paper | peek | pen | pi | plot | plotr | poke | pos | print
       | rad | randomize | read | release | rem | remain | renum | restore | resume | return | rightS | rnd | round | run
-      | save | sgn | sin | sound | spaceS | spc | speed | sq | sqr | step | stop | strS | stringS | swap | symbol
+      | save | sgn | shared | sin | sound | spaceS | spc | speed | sq | sqr | step | stop | strS | stringS | sub | swap | symbol
       | tab | tag | tagoff | tan | test | testr | then | time | to | troff | tron | unt | upperS | using
       | val | vpos | wait | wend | while | width | window | write | xor | xpos | ypos | zone
 
@@ -1043,8 +1085,6 @@
       = ("ei" | "EI") ~identPart
     else
       = ("else" | "ELSE") ~identPart
-    endif
-      = ("endif" | "ENDIF") ~identPart
     endLit
       = ("end" | "END") ~identPart
     ent
@@ -1293,6 +1333,12 @@
       = ("ypos" | "YPOS") ~identPart
     zone
       = ("zone" | "ZONE") ~identPart
+    function
+      = ("function" | "FUNCTION") ~identPart
+    sub
+      = ("sub" | "SUB") ~identPart
+    shared
+      = ("shared" | "SHARED") ~identPart
 
     ident (an identifier)
       = ~keyword identName ("%" | "!")?
@@ -1374,6 +1420,12 @@
         this.isDeg = false;
         this.isTag = false;
         this.syntaxTarget = "loco20";
+        this.currentRoutineKind = "";
+        this.currentRoutineName = "";
+        this.routineLocals = {};
+        this.routineParameters = {};
+        this.routineShared = {};
+        this.routineFunctions = {};
         this.defContextStatus = "";
         // collect | use | ""
         this.defContextVars = [];
@@ -1406,6 +1458,57 @@
       }
       setTag(isTag) {
         this.isTag = isTag;
+      }
+      beginRoutine(name, kind) {
+        this.currentRoutineKind = kind;
+        this.currentRoutineName = name.toLowerCase();
+        this.currentFunction = `routine:${this.currentRoutineName}`;
+        this.routineLocals[this.currentRoutineName] = {};
+        this.routineParameters[this.currentRoutineName] = {};
+        this.routineShared[this.currentRoutineName] = {};
+      }
+      endRoutine() {
+        this.currentRoutineKind = "";
+        this.currentRoutineName = "";
+        this.currentFunction = "";
+      }
+      getCurrentRoutineKind() {
+        return this.currentRoutineKind;
+      }
+      getCurrentRoutineName() {
+        return this.currentRoutineName;
+      }
+      registerRoutineFunction(name) {
+        this.routineFunctions[name.toLowerCase()] = true;
+      }
+      isRoutineFunction(name) {
+        return Boolean(this.routineFunctions[name.toLowerCase()]);
+      }
+      isRoutineScope(name) {
+        return name.startsWith("routine:");
+      }
+      addRoutineParameter(name) {
+        name = name.toLowerCase();
+        this.routineLocals[this.currentRoutineName][name] = true;
+        this.routineParameters[this.currentRoutineName][name] = true;
+        this.createVariableOrCount(name, name.endsWith("$") ? "S" : "", this.currentFunction);
+      }
+      addSharedVariable(name, type = "") {
+        if (!this.currentRoutineKind) {
+          this.addCompileMessage("ERROR: SHARED is only valid inside a FUNCTION or SUB.");
+          return;
+        }
+        name = name.toLowerCase();
+        this.routineShared[this.currentRoutineName][name] = true;
+        this.createVariableOrCount(name, type || (name.endsWith("$") ? "S" : ""), "");
+      }
+      getRoutineLocalVariables(name) {
+        return Object.keys(this.routineLocals[name] || {}).filter(
+          (variableName) => !this.routineParameters[name]?.[variableName] && !this.routineShared[name]?.[variableName]
+        );
+      }
+      getRoutineReturnVariable() {
+        return "_routineResult";
       }
       addIndent(num) {
         this.indent += num;
@@ -1464,7 +1567,7 @@
       getVariables() {
         return Object.keys(this.variables);
       }
-      createVariableOrCount(name, type) {
+      createVariableOrCount(name, type, scope = this.currentFunction) {
         if (!this.variables[name]) {
           this.variables[name] = {
             count: 1,
@@ -1482,7 +1585,7 @@
           this.variableScopes[name] = {};
         }
         const variableScope = this.variableScopes[name];
-        variableScope[this.currentFunction] = (variableScope[this.currentFunction] || 0) + 1;
+        variableScope[scope] = (variableScope[scope] || 0) + 1;
       }
       getVariable(name, type = "") {
         name = name.toLowerCase();
@@ -1493,9 +1596,24 @@
         if (_SemanticsHelper.reJsKeyword.test(name)) {
           name = `_${name}`;
         }
+        if (name === this.getRoutineReturnVariable().toLowerCase()) {
+          return this.getRoutineReturnVariable();
+        }
+        if (this.currentRoutineKind === "function" && name === this.currentRoutineName) {
+          return this.getRoutineReturnVariable();
+        }
         const defContextStatus = this.defContextStatus;
         if (defContextStatus === "") {
-          this.createVariableOrCount(name, type);
+          if (this.currentRoutineKind) {
+            if (this.routineShared[this.currentRoutineName]?.[name]) {
+              this.createVariableOrCount(name, type, "");
+            } else {
+              this.routineLocals[this.currentRoutineName][name] = true;
+              this.createVariableOrCount(name, type, this.currentFunction);
+            }
+          } else {
+            this.createVariableOrCount(name, type);
+          }
         } else if (defContextStatus === "collect") {
           this.defContextVars.push(name);
         } else if (defContextStatus === "use") {
@@ -1563,6 +1681,12 @@
         _SemanticsHelper.deleteAllItems(this.instrMap);
         this.isDeg = false;
         this.isTag = false;
+        this.currentRoutineKind = "";
+        this.currentRoutineName = "";
+        _SemanticsHelper.deleteAllItems(this.routineLocals);
+        _SemanticsHelper.deleteAllItems(this.routineParameters);
+        _SemanticsHelper.deleteAllItems(this.routineShared);
+        _SemanticsHelper.deleteAllItems(this.routineFunctions);
         this.defContextStatus = "";
         this.defContextVars.length = 0;
       }
@@ -1739,7 +1863,8 @@
             const funcVars = [];
             for (const varName of variableList) {
               const usage = variableScopes[varName];
-              if (usage[subroutineStart.label] && Object.keys(usage).length === 1) {
+              const nonRoutineScopes = Object.keys(usage).filter((scope) => !semanticsHelper.isRoutineScope(scope));
+              if (usage[subroutineStart.label] && nonRoutineScopes.length === 1) {
                 funcVars.push(varName);
               }
             }
@@ -1809,6 +1934,25 @@ ${indentStr}  let ` + funcVars.map((v) => semanticsHelper.getVariableEntry(v)?.t
       const stringCapitalize = (str) => {
         return str.charAt(0).toUpperCase() + str.substring(1);
       };
+      const formatIfBlock = (ifLit, condExp, thenContent, elseBody) => {
+        semanticsHelper.reportSyntaxExtension("multi-line IF", ifLit.source.getLineAndColumnMessage());
+        const initialIndent = semanticsHelper.getIndentStr();
+        semanticsHelper.addIndent(2);
+        const increasedIndent = semanticsHelper.getIndentStr();
+        const condition = condExp.eval();
+        const thenBody = evalChildren(thenContent.children).join("");
+        let result = `if (${condition}) {
+${increasedIndent}${thenBody}`;
+        if (elseBody !== void 0) {
+          result += `
+${initialIndent}} else {
+${increasedIndent}${elseBody}`;
+        }
+        result += `
+${initialIndent}}`;
+        semanticsHelper.addIndent(-2);
+        return result;
+      };
       const semantics = {
         Program(lines) {
           const lineList = evalChildren(lines.children);
@@ -1816,7 +1960,8 @@ ${indentStr}  let ` + funcVars.map((v) => semanticsHelper.getVariableEntry(v)?.t
           const variableScopes = semanticsHelper.getVariableScopes();
           const globalVars = variableList.filter((varName) => {
             const usage = variableScopes[varName];
-            return usage[""] || Object.keys(usage).length !== 1;
+            const nonRoutineScopes = Object.keys(usage).filter((scope) => !semanticsHelper.isRoutineScope(scope));
+            return usage[""] || nonRoutineScopes.length > 1;
           });
           const variableDeclarations = globalVars.length ? "let " + globalVars.map((v) => semanticsHelper.getVariableEntry(v)?.type === "A" ? `${v} = []` : v.endsWith("$") ? `${v} = ""` : `${v} = 0`).join(", ") + ";" : "";
           const definedLabels = semanticsHelper.getDefinedLabels();
@@ -1979,7 +2124,12 @@ ${dataList.join(",\n")}
         Border(lit, num, comma, num2) {
           return notSupported(lit, num, comma, num2);
         },
-        Call(lit, args) {
+        Call_routine(_callLit, name, args) {
+          semanticsHelper.reportSyntaxExtension("CALL procedure", _callLit.source.getLineAndColumnMessage());
+          const argumentString = args.child(0)?.eval() || "()";
+          return `await sub_${name.eval().toLowerCase()}${argumentString}`;
+        },
+        Call_machine(lit, args) {
           const num = Number(args.asIteration().child(0).eval());
           let result = "";
           switch (num) {
@@ -2074,6 +2224,72 @@ ${dataList.join(",\n")}
           semanticsHelper.setDefContextStatus("");
           const fnIdent = semanticsHelper.getVariable(`fn${name}`);
           return `${fnIdent} = ${argStr} => ${defBody}`;
+        },
+        FunctionBlock(_functionLit, name, args, _eol, body, _functionEnd, _terminator) {
+          const functionName = name.eval().toLowerCase();
+          semanticsHelper.registerRoutineFunction(functionName);
+          semanticsHelper.beginRoutine(functionName, "function");
+          const argumentString = args.child(0)?.eval() || "()";
+          semanticsHelper.addIndent(2);
+          const bodyString = body.eval();
+          semanticsHelper.addIndent(-2);
+          const localVariables = semanticsHelper.getRoutineLocalVariables(functionName);
+          const localDeclarations = localVariables.map((variableName) => {
+            const entry = semanticsHelper.getVariableEntry(variableName);
+            return entry?.type === "A" ? `${variableName} = []` : variableName.endsWith("$") ? `${variableName} = ""` : `${variableName} = 0`;
+          });
+          localDeclarations.push(`${semanticsHelper.getRoutineReturnVariable()} = 0`);
+          semanticsHelper.endRoutine();
+          semanticsHelper.reportSyntaxExtension("FUNCTION", _functionLit.source.getLineAndColumnMessage());
+          return `async function ${functionName}${argumentString} {
+  let ${localDeclarations.join(", ")};
+${bodyString}
+  return ${semanticsHelper.getRoutineReturnVariable()};
+}`;
+        },
+        FunctionBody(lines) {
+          return evalChildren(lines.children).join("\n");
+        },
+        SubBlock(_subLit, name, args, _eol, body, _subEnd, _terminator) {
+          const procedureName = `sub_${name.eval().toLowerCase()}`;
+          semanticsHelper.beginRoutine(name.eval().toLowerCase(), "sub");
+          const argumentString = args.child(0)?.eval() || "()";
+          semanticsHelper.addIndent(2);
+          const bodyString = body.eval();
+          semanticsHelper.addIndent(-2);
+          const localVariables = semanticsHelper.getRoutineLocalVariables(name.eval().toLowerCase());
+          const localDeclarations = localVariables.map((variableName) => {
+            const entry = semanticsHelper.getVariableEntry(variableName);
+            return entry?.type === "A" ? `${variableName} = []` : variableName.endsWith("$") ? `${variableName} = ""` : `${variableName} = 0`;
+          });
+          semanticsHelper.endRoutine();
+          semanticsHelper.reportSyntaxExtension("SUB", _subLit.source.getLineAndColumnMessage());
+          const declarations = localDeclarations.length ? `  let ${localDeclarations.join(", ")};
+` : "";
+          return `async function ${procedureName}${argumentString} {
+${declarations}${bodyString}
+}`;
+        },
+        SubBody(lines) {
+          return evalChildren(lines.children).join("\n");
+        },
+        RoutineParams(_open, params, _close) {
+          const argumentNames = params.asIteration().children.map((param) => param.eval());
+          for (const name of argumentNames) {
+            semanticsHelper.addRoutineParameter(name);
+          }
+          return `(${argumentNames.join(", ")})`;
+        },
+        Shared(_sharedLit, names) {
+          semanticsHelper.reportSyntaxExtension("SHARED declaration", _sharedLit.source.getLineAndColumnMessage());
+          for (const name of names.asIteration().children) {
+            name.eval();
+          }
+          return "";
+        },
+        SharedVariable(name, array) {
+          semanticsHelper.addSharedVariable(name.eval(), array.children.length ? "A" : "");
+          return "";
         },
         Defint(_lit, letterRange) {
           const lettersAndRanges = evalChildren(letterRange.asIteration().children);
@@ -2228,28 +2444,20 @@ ${dataList.join(",\n")}
           const thenStatement = thenStat.eval();
           return thenStatement;
         },
-        IfElseBlock(_elseLit, elseContent, _elseSeparator) {
-          return evalChildren(elseContent.children).join(";");
+        IfBlockContent(separator, statements) {
+          return `${separator.child(0)?.eval() || ""}${statements.eval()}`;
         },
-        IfBlock(_ifLit, condExp, _thenLit, thenContent, _thenSeparator, elseBlock, _endifLit) {
-          semanticsHelper.reportSyntaxExtension("multi-line IF", _ifLit.source.getLineAndColumnMessage());
-          const initialIndent = semanticsHelper.getIndentStr();
-          semanticsHelper.addIndent(2);
-          const increasedIndent = semanticsHelper.getIndentStr();
-          const condition = condExp.eval();
-          const thenBody = evalChildren(thenContent.children).join(";");
-          let result = `if (${condition}) {
-${increasedIndent}${thenBody}`;
-          if (elseBlock.child(0)) {
-            const elseBody = elseBlock.child(0).eval();
-            result += `
-${initialIndent}} else {
-${increasedIndent}${elseBody}`;
-          }
-          result += `
-${initialIndent}}`;
-          semanticsHelper.addIndent(-2);
-          return result;
+        IfElseBlock(_separator, _elseLit, elseContent) {
+          return evalChildren(elseContent.children).join("");
+        },
+        IfBlock(block) {
+          return block.eval();
+        },
+        IfBlock_noElse(_ifLit, condExp, _thenLit, thenContent, _ifEnd) {
+          return formatIfBlock(_ifLit, condExp, thenContent);
+        },
+        IfBlock_else(_ifLit, condExp, _thenLit, thenContent, elseBlock, _ifEnd) {
+          return formatIfBlock(_ifLit, condExp, thenContent, elseBlock.eval());
         },
         If_singleLine(_iflit, condExp, thenStat, colons, elseLit, elseStat) {
           const initialIndent = semanticsHelper.getIndentStr();
@@ -2853,7 +3061,12 @@ ${initialIndent}}`;
           return evalChildren(args.asIteration().children).join("][");
         },
         ArrayIdent(ident, _open, e, _close) {
-          const name = semanticsHelper.getVariable(ident.eval(), "A");
+          const identName = ident.eval().toLowerCase();
+          if (semanticsHelper.isRoutineFunction(identName)) {
+            const argumentsList = e.asIteration().children.map((argument) => argument.eval()).join(", ");
+            return `await ${identName}(${argumentsList})`;
+          }
+          const name = semanticsHelper.getVariable(identName, "A");
           return `${name}[${e.eval()}]`;
         },
         DimArrayArgs(args) {
@@ -3267,6 +3480,10 @@ ${workerFnString}
             code = line.slice(0, commentIdx);
             comment = line.slice(commentIdx);
           }
+          code = code.replace(
+            /^(\s*(?:\d+\s+)?END)([ \t]+)IF([ \t]*)$/i,
+            (_match, prefix, separator, trailing) => `${prefix}_IF${" ".repeat(separator.length - 1)}${trailing}`
+          );
           code = code.replace(/NEXT\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)+)/gi, (match, vars, offset) => {
             const before = code.slice(0, offset);
             const quoteCount = (before.match(/"/g) || []).length;

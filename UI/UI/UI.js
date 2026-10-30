@@ -1192,7 +1192,7 @@ export class UI {
         // Initialize CodeMirror editors
         const WinCodeMirror = window.CodeMirror;
         if (WinCodeMirror) {
-            const getModeFn = LocoBasicMode.getMode;
+            const getModeFn = () => LocoBasicMode.getMode(config.syntax);
             WinCodeMirror.defineMode("lbasic", getModeFn);
             this.basicCm = this.initializeEditor(this.htmlElements.basicEditor, "lbasic", this.onBasicTextChange, config.debounceCompile);
             this.compiledCm = this.initializeEditor(this.htmlElements.compiledEditor, "javascript", this.onCompiledTextChange, config.debounceExecute);

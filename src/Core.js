@@ -103,6 +103,8 @@ export class Core {
                 code = line.slice(0, commentIdx);
                 comment = line.slice(commentIdx);
             }
+            // Preserve source offsets while shielding END IF from the END statement parser.
+            code = code.replace(/^(\s*(?:\d+\s+)?END)([ \t]+)IF([ \t]*)$/i, (_match, prefix, separator, trailing) => `${prefix}_IF${" ".repeat(separator.length - 1)}${trailing}`);
             // Replace NEXT i,j,k with NEXT i : NEXT j : NEXT k (not inside strings)
             code = code.replace(/NEXT\s+([a-zA-Z_][a-zA-Z0-9_]*(?:\s*,\s*[a-zA-Z_][a-zA-Z0-9_]*)+)/gi, (match, vars, offset) => {
                 const before = code.slice(0, offset);

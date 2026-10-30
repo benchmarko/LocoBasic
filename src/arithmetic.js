@@ -4,7 +4,7 @@ export const arithmetic = {
     basicGrammar: `
     Arithmetic {
     Program
-      = Line*
+      = (FunctionBlock | SubBlock | Line)*
 
     Line
       = Label? Statements ":"* Comment? (eol | end)
@@ -110,6 +110,7 @@ export const arithmetic = {
       | Window
       | Write
       | Zone
+      | Shared
       | ArrayAssign
       | Assign
 
@@ -153,7 +154,8 @@ export const arithmetic = {
       = border NumExp ("," NumExp)?
 
     Call
-      = call NonemptyListOf<NumExp, ",">
+      = call ident AnyFnArgs? -- routine
+      | call NonemptyListOf<NumExp, ","> -- machine
 
     Cat
       = cat
@@ -225,6 +227,36 @@ export const arithmetic = {
     DefAssign
       = PlainIdent DefArgs? "=" NumExp
       | StrPlainIdent DefArgs? "=" StrExp
+
+    FunctionBlock
+      = function ident RoutineParams? eol FunctionBody FunctionEnd (eol | end)
+
+    FunctionBody
+      = (~FunctionEnd Line)*
+
+    FunctionEnd
+      = endLit function
+
+    SubBlock
+      = sub ident RoutineParams? eol SubBody SubEnd (eol | end)
+
+    SubBody
+      = (~SubEnd Line)*
+
+    SubEnd
+      = endLit sub
+
+    RoutineParams
+      = "(" ListOf<SimpleIdent, ","> ")"
+
+    Shared
+      = shared NonemptyListOf<SharedVariable, ",">
+
+    SharedVariable
+      = (strIdent | ident) SharedArray?
+
+    SharedArray
+      = "[" "]"
 
     LabelRange
       = label ("-" label)?
@@ -680,10 +712,20 @@ export const arithmetic = {
       | Goto
 
     IfElseBlock
-      = else LoopBlockContent* LoopBlockSeparator
+      = LoopBlockSeparator? else IfBlockContent*
+
+    IfBlockContent
+      = LoopBlockSeparator? ~(endIf | else) Statements
+
+    IfEnd
+      = LoopBlockSeparator? endIf
+
+    endIf
+      = "END_IF" ~identPart
 
     IfBlock
-      = if CondExp then LoopBlockContent* LoopBlockSeparator IfElseBlock? endif
+      = if CondExp then IfBlockContent* IfEnd -- noElse
+      | if CondExp then IfBlockContent* IfElseBlock IfEnd -- else
 
     If
       = if CondExp IfThen (":"* else IfExp)? -- singleLine
@@ -893,12 +935,12 @@ export const arithmetic = {
       = abs | after | and | asc | atn | auto | binS | border | break
       | call | cat | chain | chrS | cint | clear | clg | closein | closeout | cls | cont | copychrS | cos | creal | cursor
       | data | decS | def | defint | defreal | defstr | deg | delete | derr | di | dim | draw | drawr
-      | edit | ei | else | endif | endLit | ent | env | eof | erase | erl | err | error | every | exp | fill | fix | fn | for | frame | fre | gosub | goto | graphics
+      | edit | ei | else | endLit | ent | env | eof | erase | erl | err | error | every | exp | fill | fix | fn | for | frame | fre | function | gosub | goto | graphics
       | hexS | himem | if | ink | inkey | inkeyS|  inp | input | instr | int | joy | key | leftS | len | let | line | list | load | locate | log | log10 | lowerS
       | mask | max | memory | merge | midS | min | mod | mode | move | mover | new | next | not | on | openin | openout | or | origin | out
       | paper | peek | pen | pi | plot | plotr | poke | pos | print
       | rad | randomize | read | release | rem | remain | renum | restore | resume | return | rightS | rnd | round | run
-      | save | sgn | sin | sound | spaceS | spc | speed | sq | sqr | step | stop | strS | stringS | swap | symbol
+      | save | sgn | shared | sin | sound | spaceS | spc | speed | sq | sqr | step | stop | strS | stringS | sub | swap | symbol
       | tab | tag | tagoff | tan | test | testr | then | time | to | troff | tron | unt | upperS | using
       | val | vpos | wait | wend | while | width | window | write | xor | xpos | ypos | zone
 
@@ -982,8 +1024,6 @@ export const arithmetic = {
       = ("ei" | "EI") ~identPart
     else
       = ("else" | "ELSE") ~identPart
-    endif
-      = ("endif" | "ENDIF") ~identPart
     endLit
       = ("end" | "END") ~identPart
     ent
@@ -1232,6 +1272,12 @@ export const arithmetic = {
       = ("ypos" | "YPOS") ~identPart
     zone
       = ("zone" | "ZONE") ~identPart
+    function
+      = ("function" | "FUNCTION") ~identPart
+    sub
+      = ("sub" | "SUB") ~identPart
+    shared
+      = ("shared" | "SHARED") ~identPart
 
     ident (an identifier)
       = ~keyword identName ("%" | "!")?
