@@ -52,6 +52,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Bounce"
 		},
 		{
+			"key": "bounce2",
+			"title": "Bounce 2 (loco20)"
+		},
+		{
 			"key": "chaos",
 			"title": "Chaos game"
 		},
@@ -160,6 +164,10 @@ cpcBasic.addIndex("./examples", {
 			"title": "Game of Life"
 		},
 		{
+			"key": "lifegam2",
+			"title": "Game of Life 2 (loco20)"
+		},
+		{
 			"key": "locobas",
 			"title": "LocoBasic"
 		},
@@ -230,6 +238,10 @@ cpcBasic.addIndex("./examples", {
 		{
 			"key": "rectree",
 			"title": "Recursive Tree"
+		},
+		{
+			"key": "rectree2",
+			"title": "Recursive Tree 2 (loco20)"
 		},
 		{
 			"key": "reftime",

@@ -29,6 +29,15 @@ function createCore(syntax: ConfigType["syntax"] = "loco20") {
     return new Core(config);
 }
 
+function readExampleSource(example: string) {
+    let source = "";
+    runInNewContext(readFileSync(`public/examples/${example}.js`, "utf8"), {
+        cpcBasic: { addItem: (_key: string, script: string) => { source = script; } }
+    });
+    expect(source).not.toBe("");
+    return source.replace(/^\n/, "").replace(/\n$/, "");
+}
+
 describe("Loco 2.0 routines", () => {
     it("returns a function value by assigning to its own name", async () => {
         const result = createCore().compileScript(`FUNCTION pow2(x)
@@ -192,15 +201,119 @@ CALL record(${input})`);
         expect(await execution).toBe(expected);
     });
 
-    it("compiles the testloco example without warnings", () => {
-        let source = "";
-        runInNewContext(readFileSync("public/examples/testloco.js", "utf8"), {
-            cpcBasic: { addItem: (_key: string, script: string) => { source = script; } }
-        });
-        expect(source).not.toBe("");
-        const result = createCore().compileScript(source.replace(/^\n/, "").replace(/\n$/, ""));
+    it.each(["testloco", "bounce2", "lifegam2", "rectree2"])("compiles the %s example without warnings", (example) => {
+        const result = createCore().compileScript(readExampleSource(example));
         expect(result.compiledScript).not.toContain("ERROR:");
         expect(result.messages).toEqual([]);
+    });
+
+    it.each([true, false])("preserves bounce drawing and timing with circle RSX enabled: %s", async (hasCircle) => {
+        async function runBounce(example: string) {
+            let source = readExampleSource(example);
+            if (!hasCircle) {
+                source = source.replace("lbasic=&8000>0", "lbasic=0").replace("hasCircle=&8000>0", "hasCircle=0");
+            }
+            const result = createCore().compileScript(source);
+            expect(result.compiledScript).not.toContain("ERROR:");
+            const commands: (string | number)[][] = [];
+            let ticks = 0;
+            const vm = workerFn({ on: () => { }, postMessage: () => { } });
+            const execution = runInNewContext(`(async () => {${result.compiledScript}})()`, {
+                _o: {
+                    ...vm,
+                    cls: () => { commands.push(["cls"]); },
+                    graphicsPen: (pen: number) => { commands.push(["pen", pen]); },
+                    rsxCircle: (...args: number[]) => { commands.push(["circle", ...args]); },
+                    move: (...args: number[]) => { commands.push(["move", ...args]); },
+                    draw: (...args: number[]) => { commands.push(["draw", ...args]); },
+                    time: () => ticks,
+                    frame: async () => { ticks += 3; }
+                }
+            }, { timeout: 1000 }) as Promise<void>;
+            await execution;
+            return { commands, ticks };
+        }
+
+        const original = await runBounce("bounce");
+        const structured = await runBounce("bounce2");
+        expect(structured).toEqual(original);
+        expect(structured.commands.filter(command => command[0] === "cls")).toHaveLength(43);
+        expect(structured.commands.filter(command => command[0] === (hasCircle ? "circle" : "move"))).toHaveLength(172);
+        expect(structured.ticks).toBe(43 * 15);
+    });
+
+    it.each([1, 42])("preserves Game of Life generations and timing with random seed %s", async (initialSeed) => {
+        async function runLife(example: string) {
+            const result = createCore().compileScript(readExampleSource(example));
+            expect(result.compiledScript).not.toContain("ERROR:");
+            const output: unknown[][] = [];
+            let seed = initialSeed;
+            let randomCalls = 0;
+            let ticks = 0;
+            let generations = 0;
+            const vm = workerFn({ on: () => { }, postMessage: () => { } });
+            const execution = runInNewContext(`(async () => {${result.compiledScript}})()`, {
+                _o: Object.assign(vm, {
+                    cls: () => { },
+                    print: (...args: unknown[]) => {
+                        if (args[0] === "L I F E G A M E") {
+                            generations += 1;
+                        }
+                        output.push(args);
+                    },
+                    rnd: () => {
+                        randomCalls += 1;
+                        seed = seed * 16807 % 2147483647;
+                        return (seed - 1) / 2147483646;
+                    },
+                    time: () => ticks,
+                    frame: async () => { ticks += 200; }
+                })
+            }, { timeout: 1000 }) as Promise<void>;
+            await execution;
+            return { output, generations, randomCalls, ticks };
+        }
+
+        const original = await runLife("lifegame");
+        const structured = await runLife("lifegam2");
+        expect(structured).toEqual(original);
+        expect(structured.generations).toBe(10);
+        expect(structured.randomCalls).toBe(100);
+        expect(structured.ticks).toBe(2000);
+    });
+
+    it("preserves recursive tree drawing with per-call branch locals", async () => {
+        async function runTree(example: string) {
+            const result = createCore().compileScript(readExampleSource(example));
+            expect(result.compiledScript).not.toContain("ERROR:");
+            if (example === "rectree2") {
+                const globalDeclarations = result.compiledScript.slice(0, result.compiledScript.indexOf("async function"));
+                expect(globalDeclarations).not.toMatch(/\b(?:savedx|savedy|savedheading|depth|length|angle)\s*=/);
+                expect(result.compiledScript).toContain("let savedx = 0, savedy = 0, savedheading = 0;");
+                expect(result.compiledScript).not.toMatch(/\b(?:xa|ya|wa)\s*=/);
+            }
+            const commands: (string | number)[][] = [];
+            let ticks = 0;
+            const vm = workerFn({ on: () => { }, postMessage: () => { } });
+            const execution = runInNewContext(`(async () => {${result.compiledScript}})()`, {
+                _o: Object.assign(vm, {
+                    cls: () => { commands.push(["cls"]); },
+                    origin: (...args: number[]) => { commands.push(["origin", ...args]); },
+                    move: (...args: number[]) => { commands.push(["move", ...args]); },
+                    draw: (...args: number[]) => { commands.push(["draw", ...args]); },
+                    time: () => ticks,
+                    frame: async () => { ticks += 150; }
+                })
+            }, { timeout: 1000 }) as Promise<void>;
+            await execution;
+            return { commands, ticks };
+        }
+
+        const original = await runTree("rectree");
+        const structured = await runTree("rectree2");
+        expect(structured).toEqual(original);
+        expect(structured.commands.some(command => command[0] === "draw")).toBe(true);
+        expect(structured.ticks).toBeGreaterThan(0);
     });
 
     it("reports BASIC 2 routine syntax in loco11 mode", () => {
