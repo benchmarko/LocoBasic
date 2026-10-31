@@ -4,6 +4,7 @@
 
 cpcBasic.addItem("", `
 REM factoria - Big Factorials
+REM CPCBasic-keys: ["1","","2","","3","","4","","5","","6","","7","","8","","9","","0","",127,"Del",13,"Enter"]
 MODE 2
 PRINT "Big Factorials"
 INPUT "Which number:"; n
