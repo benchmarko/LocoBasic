@@ -7,6 +7,7 @@ REM nqueens - N-queens problem
 REM https://rosettacode.org/wiki/N-queens_problem#Locomotive_Basic
 REM GNU FDL 1.2 (https://www.gnu.org/licenses/fdl-1.2.html)
 REM modifications: print board without LOCATE; GOTO removed
+REM CPCBasic-keys: ["1","","2","","3","","4","","5","","6","","7","","8","","9","","0","",127,"Del",13,"Enter"]
 MODE 1
 n=3: WHILE n<4
 INPUT "How many queens (N>=4)";n

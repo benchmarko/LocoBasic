@@ -6,7 +6,7 @@ cpcBasic.addItem("", `
 REM tester - Tester
 REM Marco Vieth
 REM
-REM CPCBasic-keys: ["1",,"2",,"3",,"4",,"5",,"6",,"7",,"8",,"9",,"0",]
+REM CPCBasic-keys: ["1","","2","","3","","4","","5","","6","","7","","8","","9","","0",""]
 MODE 2
 PRINT "Universal Tester / Universeller Tester"
 PRINT

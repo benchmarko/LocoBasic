@@ -5,6 +5,7 @@
 cpcBasic.addItem("", `
 REM funcspec - Functional Spectrum
 REM
+REM CPCBasic-keys: ["1","","2","","3","","4","","5","","6","","7","","8","","9","","0","",127,"Del",13,"Enter"]
 m = 3
 lbasic = &8000>0: ' fast hack to detect LocoBasic
 xd = 2 ^ (2 - MIN(m, 2))

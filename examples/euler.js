@@ -4,6 +4,7 @@
 
 cpcBasic.addItem("", `
 REM euler - Compute e with 10000 digits
+REM CPCBasic-keys: ["1","","2","","3","","4","","5","","6","","7","","8","","9","","0","",127,"Del",13,"Enter"]
 MODE 2
 PRINT "Compute e with up to 10000 digits (or more)"
 PRINT "Digits up to 10000 are checked."
