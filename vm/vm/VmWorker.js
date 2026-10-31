@@ -166,7 +166,7 @@ export const workerFn = (parentPort) => {
                     vm.pauseAllTimers();
                     break;
                 case 'putKeys':
-                    vm._keyBuffer.push(data.keys); // currently only one key
+                    vm._keyBuffer.push(...data.keys.split(""));
                     break;
                 case 'resume':
                     vm.resolvePause();
@@ -174,6 +174,7 @@ export const workerFn = (parentPort) => {
                     break;
                 case 'stop':
                     vm._stopRequested = true;
+                    vm.resolveInput(null);
                     vm.remainAll();
                     vm.resolvePause();
                     break;
@@ -547,11 +548,6 @@ export const workerFn = (parentPort) => {
             return vm.convert2ControlCodes(String(str)).indexOf(vm.convert2ControlCodes(String(find)), len !== undefined ? len - 1 : len) + 1;
         },
         int: (num) => Math.floor(num),
-        keyDef: (num, repeat, ...codes) => {
-            if (num === 78 && repeat === 1) {
-                vm.postMessage({ type: 'keyDef', codes });
-            }
-        },
         left$: (str, num) => String(str).slice(0, num),
         len: (str) => String(str).length,
         lineInput: async (prompt) => {

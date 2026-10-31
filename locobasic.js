@@ -2526,12 +2526,6 @@ ${initialIndent}}`;
           return notSupported(lit, num, comma, str);
         },
         Key_def(lit, defLit, num, comma, repeat, comma2, codes) {
-          if (num.eval() === "78" && repeat.eval() === "1") {
-            const codeList = codes.child(0) ? evalChildren(codes.child(0).asIteration().children) : void 0;
-            const codeListStr = codeList ? `, ${codeList.join(", ")}` : "";
-            semanticsHelper.addInstr("keyDef");
-            return `keyDef(${num.eval()}, ${repeat.eval()}${codeListStr})`;
-          }
           return notSupported(lit, defLit, num, comma, repeat, comma2, codes.child(0) ? codes.child(0).asIteration() : codes);
         },
         LeftS(_leftLit, _open, pos, _comma, len, _close) {
@@ -3307,7 +3301,7 @@ ${initialIndent}}`;
                   input: ""
                 });
                 break;
-              case "keyDef":
+              case "inputKeys":
                 break;
               case "result":
                 break;
@@ -3600,9 +3594,6 @@ ${" ".repeat(colno - 1) + "^"}`;
             }, 50);
             break;
           }
-          case "keyDef":
-            this.callbacks.onKeyDef(data.codes);
-            break;
           case "result": {
             let res = data.result || "";
             if (res.startsWith("{")) {
@@ -3836,8 +3827,6 @@ ${" ".repeat(colno - 1) + "^"}`;
             return "";
           },
           onSpeak: async () => {
-          },
-          onKeyDef: () => {
           }
         };
         return callbacks;

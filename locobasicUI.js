@@ -500,9 +500,6 @@ ${" ".repeat(colno - 1) + "^"}`;
             }, 50);
             break;
           }
-          case "keyDef":
-            this.callbacks.onKeyDef(data.codes);
-            break;
           case "result": {
             let res = data.result || "";
             if (res.startsWith("{")) {
@@ -681,6 +678,7 @@ ${" ".repeat(colno - 1) + "^"}`;
     class UI {
       constructor() {
         this.compiledMessages = [];
+        this.compiledSource = "";
         this.initialUserAction = false;
         this.locoVmWorkerName = "";
         this.isMobile = false;
@@ -696,6 +694,8 @@ ${" ".repeat(colno - 1) + "^"}`;
           "Dead-IntlBackslash": "^",
           "Dead-KeyN": "~",
           "Delete-Delete": "",
+          "Escape-Escape": "B",
+          // not really used
           "Enter-Enter": "\r",
           "Enter-NumpadEnter": "\r",
           "Tab-Tab": "	"
@@ -820,6 +820,7 @@ ${" ".repeat(colno - 1) + "^"}`;
           UI.asyncDelay(() => {
             const { compiledScript, messages } = core.compileScript(input);
             this.compiledMessages = messages;
+            this.compiledSource = input;
             this.getCompiledCm().setValue(compiledScript);
             this.htmlElements.compileButton.disabled = false;
             if (!compiledScript.startsWith("ERROR:")) {
@@ -829,11 +830,7 @@ ${" ".repeat(colno - 1) + "^"}`;
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onEnterButtonClick = (_event) => {
-          if (this.consoleInputSubmit) {
-            this.consoleInputSubmit("Enter");
-          } else {
-            this.putKeysInBuffer("\r");
-          }
+          this.putKeys("\r");
           this.clickStartSpeechButton();
         };
         this.onAutoCompileInputChange = (event) => {
@@ -880,8 +877,8 @@ ${" ".repeat(colno - 1) + "^"}`;
           this.htmlElements.stopButton.disabled = true;
           this.htmlElements.pauseButton.disabled = true;
           this.htmlElements.resumeButton.disabled = true;
-          if (this.consoleInputSubmit) {
-            this.consoleInputSubmit(null);
+          if (this.consoleInputKey) {
+            this.consoleInputKey(null);
           }
           this.getVmMain().stop();
         };
@@ -904,8 +901,8 @@ ${" ".repeat(colno - 1) + "^"}`;
           this.cancelSpeech();
           this.cancelGeolocation();
           this.clickStartSpeechButton();
-          if (this.consoleInputSubmit) {
-            this.consoleInputSubmit(null);
+          if (this.consoleInputKey) {
+            this.consoleInputKey(null);
           }
           this.getVmMain().reset();
           const frameInput = this.htmlElements.frameInput;
@@ -1186,6 +1183,11 @@ ${" ".repeat(colno - 1) + "^"}`;
           }
           window.URL.revokeObjectURL(objectURL);
         };
+        this.testGetMethods = () => {
+          return {
+            parseUserKeys: UI.parseUserKeys
+          };
+        };
         this.fnOnKeyPressHandler = (event) => this.onOutputTextKeydown(event);
         this.fnOnClickHandler = (event) => this.onOutputTextClick(event);
         this.fnOnUserKeyClickHandler = (event) => this.onUserKeyClick(event);
@@ -1279,8 +1281,29 @@ ${" ".repeat(colno - 1) + "^"}`;
         const target = event.target;
         const dataKey = target.getAttribute("data-key");
         if (dataKey !== null) {
-          this.putKeysInBuffer(String.fromCharCode(Number(dataKey)));
+          const key = String.fromCharCode(Number(dataKey));
+          this.putKeys(key);
         }
+      }
+      appendUiKeys(keys) {
+        const userKeys = this.htmlElements.userKeys;
+        for (const item of keys) {
+          const code = item.code;
+          const name = item.text || String.fromCharCode(code);
+          const button = window.document.createElement("button");
+          button.type = "button";
+          button.textContent = name;
+          button.setAttribute("data-key", String(code));
+          button.setAttribute("aria-label", name);
+          button.title = `${name} (${code})`;
+          userKeys.appendChild(button);
+        }
+        userKeys.hidden = !userKeys.childElementCount;
+      }
+      clearUiKeys() {
+        const userKeys = this.htmlElements.userKeys;
+        userKeys.replaceChildren();
+        userKeys.hidden = true;
       }
       async waitForVoices(callback) {
         return new Promise((resolve) => {
@@ -1315,24 +1338,34 @@ ${" ".repeat(colno - 1) + "^"}`;
           outputText.appendChild(input);
           this.scrollToBottom(outputText);
           input.focus();
-          const handleSubmit = (submitKey) => {
-            const isEnter = submitKey === "Enter";
+          const handleKeyInput = (key) => {
+            const isEnter = key === "\r";
+            if (!isEnter && key !== null) {
+              const start = input.selectionStart ?? input.value.length;
+              const end = input.selectionEnd ?? start;
+              if (key.charCodeAt(0) === 127) {
+                input.setRangeText("", start === end ? Math.max(0, start - 1) : start, end, "end");
+              } else {
+                input.setRangeText(key, start, end, "end");
+              }
+              return;
+            }
             input.replaceWith(document.createTextNode((isEnter ? input.value : "") + "\n"));
             this.scrollToBottom(outputText);
-            this.consoleInputSubmit = void 0;
+            this.consoleInputKey = void 0;
             resolve(isEnter ? input.value : null);
           };
           input.addEventListener("keypress", (e) => {
             e.stopPropagation();
             if (e.key === "Enter") {
               e.preventDefault();
-              handleSubmit(e.key);
+              handleKeyInput("\r");
             }
           });
           input.addEventListener("keydown", (e) => {
             e.stopPropagation();
           });
-          this.consoleInputSubmit = handleSubmit;
+          this.consoleInputKey = handleKeyInput;
         });
       }
       logVoiceDebugInfo(selectedVoice) {
@@ -1393,6 +1426,30 @@ ${" ".repeat(colno - 1) + "^"}`;
         this.addOutputText(hasError ? escapeText(compiledScript) : "", true);
         return hasError;
       }
+      static parseUserKeys(source) {
+        const keys = [];
+        for (const [index, line] of source.split(/\r?\n/).entries()) {
+          const declaration = /^\s*(?:\d+\s*)?(?:REM\s+|'\s*)CPCBasic-keys:\s*\[(.*)\]$/i.exec(line);
+          if (!declaration) {
+            continue;
+          }
+          const items = declaration[1].split(",");
+          if (items.length % 2 !== 0) {
+            console.warn(`CPCBasic-keys at line ${index + 1}: Wrong number of items: ${items.length}`);
+            continue;
+          }
+          for (let i = 0; i < items.length; i += 2) {
+            const [key, value] = [items[i], items[i + 1]];
+            const code = key.startsWith('"') ? key.charCodeAt(1) : Number(key);
+            const text = value.startsWith('"') ? value.slice(1, -1).replace(/\\u([0-9a-f]{4})/gi, (_, h) => String.fromCharCode(parseInt(h, 16))) : value.length ? String.fromCharCode(Number(value)) : "";
+            keys.push({
+              code,
+              text
+            });
+          }
+        }
+        return keys;
+      }
       beforeExecute() {
         this.htmlElements.convertPopover.hidden = true;
         this.htmlElements.convertButton.disabled = true;
@@ -1406,12 +1463,17 @@ ${" ".repeat(colno - 1) + "^"}`;
         outputText.addEventListener("click", this.fnOnClickHandler, false);
         const userKeys = this.htmlElements.userKeys;
         userKeys.addEventListener("click", this.fnOnUserKeyClickHandler, false);
+        this.clearUiKeys();
+        const keys = UI.parseUserKeys(this.compiledSource);
+        this.appendUiKeys(keys);
       }
       afterExecute() {
         const outputText = this.htmlElements.outputText;
         outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.removeEventListener("click", this.fnOnClickHandler, false);
-        this.onSetUiKeys([0]);
+        this.htmlElements.userKeys.querySelectorAll("button").forEach((button) => {
+          button.disabled = true;
+        });
         this.htmlElements.convertButton.disabled = false;
         this.htmlElements.enterButton.disabled = true;
         this.htmlElements.executeButton.disabled = false;
@@ -1543,6 +1605,13 @@ ${" ".repeat(colno - 1) + "^"}`;
         }
         this.getVmMain().putKeys(keys);
       }
+      putKeys(keys) {
+        if (this.consoleInputKey) {
+          this.consoleInputKey(keys);
+        } else {
+          this.putKeysInBuffer(keys);
+        }
+      }
       onOutputTextKeydown(event) {
         const key = event.key;
         let putKey = "";
@@ -1550,21 +1619,22 @@ ${" ".repeat(colno - 1) + "^"}`;
           if (event.ctrlKey === false) {
             putKey = key;
           }
-        } else if (key === "Escape") {
-          const stopButton = this.htmlElements.stopButton;
-          if (!stopButton.disabled) {
-            stopButton.dispatchEvent(new Event("click"));
-          }
         } else {
           const combinedKey = key + "-" + event.code + (event.shiftKey ? "-shift" : "");
           putKey = this.keyMap[combinedKey];
+          if (key === "Escape") {
+            const stopButton = this.htmlElements.stopButton;
+            if (!stopButton.disabled) {
+              stopButton.dispatchEvent(new Event("click"));
+            }
+          }
         }
         const debug = this.getCore().getConfigMap().debug;
         if (debug > 3) {
           console.log("onOutputTextKeydown:", event, putKey);
         }
         if (putKey) {
-          this.putKeysInBuffer(putKey);
+          this.putKeys(putKey);
           event.preventDefault();
         }
       }
@@ -1597,7 +1667,7 @@ ${" ".repeat(colno - 1) + "^"}`;
       onOutputTextClick(event) {
         const key = this.getClickedKey(event);
         if (key) {
-          this.putKeysInBuffer(key);
+          this.putKeys(key);
           event.preventDefault();
         }
       }
@@ -1680,10 +1750,7 @@ ${" ".repeat(colno - 1) + "^"}`;
             return input;
           },
           onGeolocation: () => this.onGeolocation(),
-          onSpeak: (message, pitch) => this.onSpeak(message, pitch),
-          onKeyDef: (codes) => {
-            this.onSetUiKeys(codes);
-          }
+          onSpeak: (message, pitch) => this.onSpeak(message, pitch)
         };
         return callbacks;
       }

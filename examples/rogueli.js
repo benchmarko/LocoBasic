@@ -8,6 +8,7 @@ REM MV, 2026 (Generated with the help of AI)
 REM Rogue like simple game
 REM Player is @, monsters are g, exit is >, walls are #.
 REM Move with w,a,s,d (or keypad 8 2 4 6).
+REM CPCBasic-keys: ["w","","a","","s","","d",""]
 '
 'rogue like with dirty redraw
 '
@@ -25,7 +26,6 @@ GOSUB 1100
 GOSUB 1200
 GOSUB 2000
 PRINT "Move with w s a d, or keypad 8 2 4 6."
-k$="wasd":GOSUB 9400
 WHILE dirty=0:GOSUB 3000:WEND
 CLS:GOSUB 2000
 win=0
@@ -131,11 +131,5 @@ RETURN
 NEXT i
 IF hp<=0 THEN game=0
 IF px=ex AND py=ey THEN win=1:game=0: 'PRINT "ESCAPED"
-RETURN
-'
-' define user keys for LocoBasic UI
-9400 FOR i=1 TO LEN(k$)
-  KEY DEF 78,1,ASC(MID$(k$,i,1))
-NEXT i
 RETURN
 `);

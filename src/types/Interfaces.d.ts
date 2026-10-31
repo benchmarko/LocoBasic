@@ -48,7 +48,7 @@ export interface ISemantics {
 export type SemanticsHelperType = {
     getInstrMap(): InstrMapType;
 };
-export type VmInstructionName = "abs" | "after" | "asc" | "atn" | "bin$" | "chr$" | "cint" | "clearInput" | "cls" | "cos" | "creal" | "dec$" | "dim" | "dim1" | "dim1i16" | "draw" | "drawr" | "end" | "every" | "exp" | "fix" | "frame" | "graphicsPen" | "hex$" | "ink" | "inkey$" | "input" | "instr" | "int" | "keyDef" | "left$" | "len" | "lineInput" | "log" | "log10" | "lower$" | "max" | "mid$" | "mid$Assign" | "min" | "mode" | "move" | "mover" | "origin" | "paper" | "pen" | "pi" | "plot" | "plotr" | "pos" | "print" | "printTab" | "printTag" | "printTabTag" | "read" | "remain" | "restore" | "right$" | "rnd" | "round" | "round1" | "rsxArc" | "rsxCircle" | "rsxDate" | "rsxEllipse" | "rsxGeolocation" | "rsxPitch" | "rsxPolygon" | "rsxRect" | "rsxSay" | "rsxTime" | "sgn" | "sin" | "space$" | "spc" | "sqr" | "stop" | "str$" | "string$Num" | "string$Str" | "tan" | "time" | "toDeg" | "toRad" | "unt" | "upper$" | "using" | "val" | "val1" | "vpos" | "write" | "writeTag" | "xpos" | "ypos" | "zone";
+export type VmInstructionName = "abs" | "after" | "asc" | "atn" | "bin$" | "chr$" | "cint" | "clearInput" | "cls" | "cos" | "creal" | "dec$" | "dim" | "dim1" | "dim1i16" | "draw" | "drawr" | "end" | "every" | "exp" | "fix" | "frame" | "graphicsPen" | "hex$" | "ink" | "inkey$" | "input" | "instr" | "int" | "left$" | "len" | "lineInput" | "log" | "log10" | "lower$" | "max" | "mid$" | "mid$Assign" | "min" | "mode" | "move" | "mover" | "origin" | "paper" | "pen" | "pi" | "plot" | "plotr" | "pos" | "print" | "printTab" | "printTag" | "printTabTag" | "read" | "remain" | "restore" | "right$" | "rnd" | "round" | "round1" | "rsxArc" | "rsxCircle" | "rsxDate" | "rsxEllipse" | "rsxGeolocation" | "rsxPitch" | "rsxPolygon" | "rsxRect" | "rsxSay" | "rsxTime" | "sgn" | "sin" | "space$" | "spc" | "sqr" | "stop" | "str$" | "string$Num" | "string$Str" | "tan" | "time" | "toDeg" | "toRad" | "unt" | "upper$" | "using" | "val" | "val1" | "vpos" | "write" | "writeTag" | "xpos" | "ypos" | "zone";
 export type InstrMapType = Partial<Record<VmInstructionName, number>>;
 type VmInstructionFn = {
     bivarianceHack: (...args: unknown[]) => unknown;
@@ -146,8 +146,8 @@ export type MessageFromWorker = {
     type: 'input';
     prompt: string;
 } | {
-    type: 'keyDef';
-    codes: number[];
+    type: 'inputKeys';
+    keys: string;
 } | {
     type: 'result';
     result: string;

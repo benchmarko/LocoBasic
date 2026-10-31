@@ -58,9 +58,6 @@ export class VmMessageHandler {
                 }, 50); // 50ms delay to allow UI update
                 break;
             }
-            case 'keyDef':
-                this.callbacks.onKeyDef(data.codes);
-                break;
             case 'result': {
                 let res = data.result || "";
                 if (res.startsWith("{")) {

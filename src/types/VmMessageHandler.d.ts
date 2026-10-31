@@ -4,7 +4,6 @@ export interface VmMessageHandlerCallbacks {
     onInput(prompt: string): Promise<string | null>;
     onGeolocation(): Promise<string>;
     onSpeak(message: string, pitch: number): Promise<void>;
-    onKeyDef(codes: number[]): void;
 }
 export declare class VmMessageHandler {
     private readonly callbacks;

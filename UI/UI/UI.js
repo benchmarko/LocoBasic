@@ -63,6 +63,7 @@ const escapeText = (str) => str.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 export class UI {
     constructor() {
         this.compiledMessages = [];
+        this.compiledSource = "";
         this.initialUserAction = false;
         this.locoVmWorkerName = "";
         this.isMobile = false;
@@ -77,6 +78,7 @@ export class UI {
             "Dead-IntlBackslash": "^",
             "Dead-KeyN": "~",
             "Delete-Delete": "\x10",
+            "Escape-Escape": "\x42", // not really used
             "Enter-Enter": "\x0d",
             "Enter-NumpadEnter": "\x0d",
             "Tab-Tab": "\x09"
@@ -205,6 +207,7 @@ export class UI {
             UI.asyncDelay(() => {
                 const { compiledScript, messages } = core.compileScript(input);
                 this.compiledMessages = messages;
+                this.compiledSource = input;
                 this.getCompiledCm().setValue(compiledScript);
                 this.htmlElements.compileButton.disabled = false;
                 if (!compiledScript.startsWith("ERROR:")) {
@@ -214,12 +217,7 @@ export class UI {
         };
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         this.onEnterButtonClick = (_event) => {
-            if (this.consoleInputSubmit) {
-                this.consoleInputSubmit("Enter");
-            }
-            else {
-                this.putKeysInBuffer("\x0d");
-            }
+            this.putKeys("\r");
             this.clickStartSpeechButton(); // we just did a user interaction
         };
         this.onAutoCompileInputChange = (event) => {
@@ -267,8 +265,8 @@ export class UI {
             this.htmlElements.pauseButton.disabled = true;
             this.htmlElements.resumeButton.disabled = true;
             // Resolve any pending input
-            if (this.consoleInputSubmit) {
-                this.consoleInputSubmit(null);
+            if (this.consoleInputKey) {
+                this.consoleInputKey(null);
             }
             this.getVmMain().stop();
         };
@@ -292,8 +290,8 @@ export class UI {
             this.cancelGeolocation(); // maybe a geolocation was waiting
             this.clickStartSpeechButton(); // we just did a user interaction
             // Resolve any pending input
-            if (this.consoleInputSubmit) {
-                this.consoleInputSubmit(null);
+            if (this.consoleInputKey) {
+                this.consoleInputKey(null);
             }
             this.getVmMain().reset();
             const frameInput = this.htmlElements.frameInput;
@@ -586,6 +584,11 @@ export class UI {
             }
             window.URL.revokeObjectURL(objectURL);
         };
+        this.testGetMethods = () => {
+            return {
+                parseUserKeys: UI.parseUserKeys
+            };
+        };
         this.fnOnKeyPressHandler = (event) => this.onOutputTextKeydown(event);
         this.fnOnClickHandler = (event) => this.onOutputTextClick(event);
         this.fnOnUserKeyClickHandler = (event) => this.onUserKeyClick(event);
@@ -684,8 +687,29 @@ export class UI {
         const target = event.target;
         const dataKey = target.getAttribute("data-key");
         if (dataKey !== null) {
-            this.putKeysInBuffer(String.fromCharCode(Number(dataKey)));
+            const key = String.fromCharCode(Number(dataKey));
+            this.putKeys(key);
         }
+    }
+    appendUiKeys(keys) {
+        const userKeys = this.htmlElements.userKeys;
+        for (const item of keys) {
+            const code = item.code;
+            const name = item.text || String.fromCharCode(code);
+            const button = window.document.createElement("button");
+            button.type = "button";
+            button.textContent = name;
+            button.setAttribute("data-key", String(code));
+            button.setAttribute("aria-label", name);
+            button.title = `${name} (${code})`;
+            userKeys.appendChild(button);
+        }
+        userKeys.hidden = !userKeys.childElementCount;
+    }
+    clearUiKeys() {
+        const userKeys = this.htmlElements.userKeys;
+        userKeys.replaceChildren();
+        userKeys.hidden = true;
     }
     async waitForVoices(callback) {
         return new Promise((resolve) => {
@@ -723,26 +747,37 @@ export class UI {
             // Auto-scroll to input
             this.scrollToBottom(outputText);
             input.focus();
-            const handleSubmit = (submitKey) => {
-                const isEnter = submitKey === "Enter";
+            const handleKeyInput = (key) => {
+                const isEnter = key === "\r";
+                if (!isEnter && key !== null) {
+                    const start = input.selectionStart ?? input.value.length;
+                    const end = input.selectionEnd ?? start;
+                    if (key.charCodeAt(0) === 127) { //Delete?
+                        input.setRangeText("", start === end ? Math.max(0, start - 1) : start, end, "end");
+                    }
+                    else {
+                        input.setRangeText(key, start, end, "end");
+                    }
+                    return;
+                }
                 // Replace input with submitted value, or empty for cancel
                 input.replaceWith(document.createTextNode((isEnter ? input.value : "") + "\n"));
                 this.scrollToBottom(outputText);
-                this.consoleInputSubmit = undefined;
+                this.consoleInputKey = undefined;
                 resolve(isEnter ? input.value : null);
             };
             input.addEventListener("keypress", (e) => {
                 e.stopPropagation(); // Prevent event from bubbling to outputText listeners
                 if (e.key === "Enter") {
                     e.preventDefault();
-                    handleSubmit(e.key);
+                    handleKeyInput("\r");
                 }
             });
             // Also stop keydown propagation
             input.addEventListener("keydown", (e) => {
                 e.stopPropagation();
             });
-            this.consoleInputSubmit = handleSubmit;
+            this.consoleInputKey = handleKeyInput;
         });
     }
     logVoiceDebugInfo(selectedVoice) {
@@ -803,6 +838,30 @@ export class UI {
         this.addOutputText(hasError ? escapeText(compiledScript) : "", true);
         return hasError;
     }
+    static parseUserKeys(source) {
+        const keys = [];
+        for (const [index, line] of source.split(/\r?\n/).entries()) {
+            const declaration = /^\s*(?:\d+\s*)?(?:REM\s+|'\s*)CPCBasic-keys:\s*\[(.*)\]$/i.exec(line);
+            if (!declaration) {
+                continue;
+            }
+            const items = declaration[1].split(",");
+            if (items.length % 2 !== 0) {
+                console.warn(`CPCBasic-keys at line ${index + 1}: Wrong number of items: ${items.length}`);
+                continue;
+            }
+            for (let i = 0; i < items.length; i += 2) {
+                const [key, value] = [items[i], items[i + 1]];
+                const code = key.startsWith('"') ? key.charCodeAt(1) : Number(key);
+                const text = value.startsWith('"') ? value.slice(1, -1).replace(/\\u([0-9a-f]{4})/gi, (_, h) => String.fromCharCode(parseInt(h, 16))) : value.length ? String.fromCharCode(Number(value)) : "";
+                keys.push({
+                    code,
+                    text
+                });
+            }
+        }
+        return keys;
+    }
     beforeExecute() {
         this.htmlElements.convertPopover.hidden = true;
         this.htmlElements.convertButton.disabled = true;
@@ -816,12 +875,20 @@ export class UI {
         outputText.addEventListener("click", this.fnOnClickHandler, false);
         const userKeys = this.htmlElements.userKeys;
         userKeys.addEventListener("click", this.fnOnUserKeyClickHandler, false);
+        this.clearUiKeys();
+        const keys = UI.parseUserKeys(this.compiledSource);
+        this.appendUiKeys(keys);
+        //for (const warning of warnings) {
+        //    console.warn(warning);
+        //}
     }
     afterExecute() {
         const outputText = this.htmlElements.outputText;
         outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.removeEventListener("click", this.fnOnClickHandler, false);
-        this.onSetUiKeys([0]); // remove user keys
+        this.htmlElements.userKeys.querySelectorAll("button").forEach(button => {
+            button.disabled = true;
+        });
         this.htmlElements.convertButton.disabled = false;
         this.htmlElements.enterButton.disabled = true;
         this.htmlElements.executeButton.disabled = false;
@@ -956,6 +1023,14 @@ export class UI {
         }
         this.getVmMain().putKeys(keys);
     }
+    putKeys(keys) {
+        if (this.consoleInputKey) {
+            this.consoleInputKey(keys);
+        }
+        else {
+            this.putKeysInBuffer(keys);
+        }
+    }
     onOutputTextKeydown(event) {
         const key = event.key;
         let putKey = "";
@@ -964,22 +1039,22 @@ export class UI {
                 putKey = key;
             }
         }
-        else if (key === "Escape") {
-            const stopButton = this.htmlElements.stopButton;
-            if (!stopButton.disabled) {
-                stopButton.dispatchEvent(new Event("click"));
-            }
-        }
         else {
             const combinedKey = key + "-" + event.code + (event.shiftKey ? "-shift" : "");
             putKey = this.keyMap[combinedKey];
+            if (key === "Escape") {
+                const stopButton = this.htmlElements.stopButton;
+                if (!stopButton.disabled) {
+                    stopButton.dispatchEvent(new Event("click"));
+                }
+            }
         }
         const debug = this.getCore().getConfigMap().debug;
         if (debug > 3) {
             console.log("onOutputTextKeydown:", event, putKey);
         }
         if (putKey) {
-            this.putKeysInBuffer(putKey);
+            this.putKeys(putKey);
             event.preventDefault();
         }
     }
@@ -1015,7 +1090,7 @@ export class UI {
     onOutputTextClick(event) {
         const key = this.getClickedKey(event);
         if (key) {
-            this.putKeysInBuffer(key);
+            this.putKeys(key);
             event.preventDefault(); // Prevent default action if needed
         }
     }
@@ -1104,10 +1179,7 @@ export class UI {
                 return input;
             },
             onGeolocation: () => this.onGeolocation(),
-            onSpeak: (message, pitch) => this.onSpeak(message, pitch),
-            onKeyDef: (codes) => {
-                this.onSetUiKeys(codes);
-            }
+            onSpeak: (message, pitch) => this.onSpeak(message, pitch)
         };
         return callbacks;
     }

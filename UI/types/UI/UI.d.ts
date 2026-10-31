@@ -12,13 +12,14 @@ export declare class UI implements IUI {
     private basicSearchHandler?;
     private compiledSearchHandler?;
     private compiledMessages;
+    private compiledSource;
     private initialUserAction;
     private readonly fnOnKeyPressHandler;
     private readonly fnOnClickHandler;
     private readonly fnOnUserKeyClickHandler;
     private speechSynthesisUtterance?;
     private locoVmWorkerName;
-    private consoleInputSubmit?;
+    private consoleInputKey?;
     private geolocationPromiseRejecter?;
     private htmlElements;
     private openedPopover?;
@@ -42,6 +43,8 @@ export declare class UI implements IUI {
     addOutputText: (str: string, needCls?: boolean, hasGraphics?: boolean) => void;
     addOutputToBrowserConsole: (str: string, needCls?: boolean, hasGraphics?: boolean) => void;
     private onUserKeyClick;
+    private appendUiKeys;
+    private clearUiKeys;
     private onSetUiKeys;
     private waitForVoices;
     private waitForUserInteraction;
@@ -52,6 +55,7 @@ export declare class UI implements IUI {
     private onSpeak;
     private updateConfigParameter;
     private hasCompiledError;
+    private static parseUserKeys;
     private beforeExecute;
     private afterExecute;
     private onExecuteButtonClick;
@@ -109,6 +113,7 @@ export declare class UI implements IUI {
     private onExportSvgButtonClick;
     private onStandaloneButtonClick;
     private putKeysInBuffer;
+    private putKeys;
     private onOutputTextKeydown;
     private getClickedKey;
     private onOutputTextClick;
@@ -121,5 +126,8 @@ export declare class UI implements IUI {
     private createMessageHandlerCallbacks;
     private static isMobile;
     onWindowLoadContinue(core: ICore, locoVmWorkerName: string): void;
+    testGetMethods: () => {
+        parseUserKeys: typeof UI.parseUserKeys;
+    };
 }
 //# sourceMappingURL=UI.d.ts.map
