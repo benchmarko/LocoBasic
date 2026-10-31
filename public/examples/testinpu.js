@@ -4,6 +4,9 @@
 
 cpcBasic.addItem("", `
 REM testinpu - Test Input
+REM CPCBasic-keys: ["1",,"2",,"3",,"4",,"5",,"6",,"7",,"8",,"9",,"0",]
+REM CPCBasic-keys: ["a",,"b",,"c",]
+REM CPCBasic-keys: [44,,32,"Space",127,"Delete",13,"Enter"]
 CLS
 PRINT "Test Input"
 PRINT

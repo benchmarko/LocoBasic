@@ -944,13 +944,6 @@ ${dataList.join(",\n")}
 		},
 
 		Key_def(lit: Node, defLit: Node, num: Node, comma: Node, repeat: Node, comma2: Node, codes: Node) {
-			//const codesIteration = codes.child(0) ? codes.child(0).asIteration() : undefined;
-			if (num.eval() === "78" && repeat.eval() === "1") {
-				const codeList = codes.child(0) ? evalChildren(codes.child(0).asIteration().children) : undefined;
-				const codeListStr = codeList ? `, ${codeList.join(", ")}` : "";
-				semanticsHelper.addInstr("keyDef");
-				return `keyDef(${num.eval()}, ${repeat.eval()}${codeListStr})`;
-			}
 			return notSupported(lit, defLit, num, comma, repeat, comma2, codes.child(0) ? codes.child(0).asIteration() : codes);
 		},
 

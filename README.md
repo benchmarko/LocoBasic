@@ -59,6 +59,18 @@ Other examples:
    node hello1.js
    ```
 
+## Program Keys
+
+Programs can declare on-screen keys in a standalone BASIC comment:
+
+```basic
+REM CPCBasic-keys: ["a","a","d",""," ","Space",13,"Enter"]
+```
+
+The value is a flat array of `key, text` pairs, where `key` is a single-character string or an integer CPC character
+codes from 0 to 255, `text` is the button text or a code which is converted to a button text letter.
+The button text can contain Unicode escapes, e.g. `\u21BB`. In JavaScript it must be written as `\\u21BB`.
+
 ---
 
 ## Keyword reference
@@ -103,12 +115,13 @@ Keywords must be written in either all uppercase (preferred) or all lowercase ch
 - If there are no arguments, do not use parentheses.
 - See also: [FN](#fn).
 
-#### FUNCTION and SUB (BASIC 2 Plus)
+#### FUNCTION and SUB
 
 - `FUNCTION name(parameters) ... END FUNCTION` returns a value by assigning it to `name` inside the function.
 - `SUB name(parameters) ... END SUB` defines a procedure called with `CALL name(arguments)`.
 - Variables used inside a routine are local by default. Declare a global variable with `SHARED name[, name ...]`; use `SHARED vec[]` for an array. Scalars and arrays can be mixed, for example `SHARED total, vec[]`.
 - Routines must be declared before use.
+- Only available with BASIC 2 Plus (LocoBasic syntax: loco20)
 
 #### DEFINT
 
@@ -153,9 +166,10 @@ Keywords must be written in either all uppercase (preferred) or all lowercase ch
 - `END` Ends execution.
   - This is currently the same as [STOP](#stop).
 
-#### END IF (BASIC 2 Plus)
+#### END IF
 
-- `END IF` Ends a multi-line [IF](#if). (Only supported with LocoBasic syntax: loco20)
+- `END IF` Ends a multi-line [IF](#if).
+- Only available with BASIC 2 Plus (LocoBasic syntax: loco20)
 
 #### ERASE
 
@@ -204,6 +218,8 @@ t = TIME + 50: WHILE TIME < t: FRAME: WEND
 or:
 - `IF expression THEN statements [ELSE statements] END IF` multi-line IF (BASIC 2 Plus).
 
+- See also: [THEN](#then), [ELSE](#else), [END IF](#end-if).
+
 #### INK
 
 - `INK pen,color` Sets the *color* (0..27) for [PEN](#pen) *pen* and [GRAPHICS PEN](#graphics-pen) *pen* (0..15).
@@ -216,14 +232,6 @@ or:
 - The input is split at "," and the parts are assigned to multiple variables
 - **Note:** Currently the variables must have the same type.
 - See also: [LINE INPUT](#line-input).
-
-#### KEY DEF
-
-- `KEY DEF 78,1,k` Creates a user-defined input button with the character for ASCII code *k* on the UI.
-- Use multiple calls with different *k* to add other buttons. Use k=0 to remove all user buttons.
-- This variant is only available in LocoBasic (it should have "no function" in Locomotive BASIC).
-- Other variants of *KEY DEF* (known from Locomotive BASIC) are not supported.
-- See example script [testkey](https://benchmarko.github.io/LocoBasic/?example=testkey).
 
 #### LINE INPUT
 
@@ -866,7 +874,7 @@ Consequences:
 
  auto border break call cat chain clear clg closein closeout cont copychr$
  cursor defreal defstr delete derr di edit ei eof erl err fill fre
- goto graphicsPaper himem inkey inp joy line list load locate mask memory merge new
+ goto graphicsPaper himem inkey inp joy key "key def" line list load locate mask memory merge new
  openin openout out peek poke randomize release renum resume run
  save sound speed sq swap symbol test testr troff tron unt wait width window
 
@@ -932,4 +940,4 @@ Consequences:
 
 - Another BASIC compiler: [ugBASIC](https://ugbasic.iwashere.eu/target/cpc#examples)
 
-### **mv, 03/2026**
+### **mv, 10/2026**

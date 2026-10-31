@@ -415,13 +415,7 @@ describe("VmWorker.vm core methods", () => {
 
     it("run message posts result and keyDef emits only expected sequence", async () => {
         const parentPort = getMockParentPort();
-        const vm = workerFn(parentPort);
-
-        vm.keyDef(1, 1, 65, 66);
-        expect(parentPort._messages.length).toBe(0);
-
-        vm.keyDef(78, 1, 65, 66);
-        expect(parentPort._testMessage).toEqual({ type: 'keyDef', codes: [65, 66] });
+        workerFn(parentPort);
 
         parentPort._messageHandler({ type: 'run', code: 'return "OK";' });
         await Promise.resolve();

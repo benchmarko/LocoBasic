@@ -109,6 +109,58 @@ body {
   gap: 4px;
   align-items: center;
   flex-wrap: wrap;
+  padding-top: 8px;
+}
+
+#userKeys[hidden] {
+  display: none;
+}
+
+#userKeys button {
+  box-sizing: border-box;
+  min-width: 32px;
+  min-height: 32px;
+  max-width: 100%;
+  padding: 4px 8px;
+  border: 1px solid #666;
+  border-radius: 4px;
+  background-color: #f7f7f7;
+  color: #111;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+@media (any-pointer: coarse) {
+  #userKeys {
+    gap: 8px;
+  }
+
+#userKeys button {
+    min-width: 48px;
+    min-height: 48px;
+    padding: 8px 12px;
+    font-size: 18px;
+  }
+}
+
+#userKeys button:enabled:active {
+  background-color: #cde7da;
+  border-color: #236747;
+}
+
+#userKeys button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+#userKeys button:focus-visible {
+  outline: 3px solid #236747;
+  outline-offset: 2px;
 }
 
 .action-buttons {
@@ -123,7 +175,8 @@ body {
 
 
 .convert-popover {
-  right: -30px;  /* Shift slightly right from button */
+  right: -30px;
+  /* Shift slightly right from button */
 }
 
 .convert-buttons {

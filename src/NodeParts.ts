@@ -222,9 +222,6 @@ export class NodeParts {
             },
             onSpeak: async () => {
                 // TODO
-            },
-            onKeyDef: () => {
-                //TODO
             }
         };
         return callbacks;

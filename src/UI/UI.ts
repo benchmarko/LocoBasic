@@ -4,15 +4,17 @@ import { SearchHandler } from "./SearchHandler";
 import { LocoBasicMode } from "./LocoBasicMode";
 import { VmMain } from "./VmMain";
 import { VmMessageHandlerCallbacks } from "../VmMessageHandler";
-
 declare global {
     interface Window {
         locoVmWorker: NodeWorkerFnType
     }
 }
-
 interface CommandActionsWithFind extends CommandActions {
     find: () => void
+}
+interface UserKeyType {
+    code: number;
+    text: string;
 }
 
 function initHtmlElements() {
@@ -83,13 +85,14 @@ export class UI implements IUI {
     private basicSearchHandler?: SearchHandler;
     private compiledSearchHandler?: SearchHandler;
     private compiledMessages: string[] = [];
+    private compiledSource = "";
     private initialUserAction = false;
     private readonly fnOnKeyPressHandler: (event: KeyboardEvent) => void;
     private readonly fnOnClickHandler: (event: MouseEvent) => void;
     private readonly fnOnUserKeyClickHandler: (event: MouseEvent) => void;
     private speechSynthesisUtterance?: SpeechSynthesisUtterance;
     private locoVmWorkerName = "";
-    private consoleInputSubmit?: (value: string | null) => void;
+    private consoleInputKey?: (value: string | null) => void;
     private geolocationPromiseRejecter?: (value: string) => void;
     private htmlElements: ReturnType<typeof initHtmlElements>;
     private openedPopover?: HTMLSpanElement;
@@ -105,6 +108,7 @@ export class UI implements IUI {
         "Dead-IntlBackslash": "^",
         "Dead-KeyN": "~",
         "Delete-Delete": "\x10",
+        "Escape-Escape": "\x42", // not really used
         "Enter-Enter": "\x0d",
         "Enter-NumpadEnter": "\x0d",
         "Tab-Tab": "\x09"
@@ -259,8 +263,31 @@ export class UI implements IUI {
         const target = event.target as HTMLButtonElement;
         const dataKey = target.getAttribute("data-key");
         if (dataKey !== null) {
-            this.putKeysInBuffer(String.fromCharCode(Number(dataKey)));
+            const key = String.fromCharCode(Number(dataKey));
+            this.putKeys(key);
         }
+    }
+
+    private appendUiKeys(keys: UserKeyType[]): void {
+        const userKeys = this.htmlElements.userKeys;
+        for (const item of keys) {
+            const code = item.code;
+            const name = item.text || String.fromCharCode(code);
+            const button = window.document.createElement("button");
+            button.type = "button";
+            button.textContent = name;
+            button.setAttribute("data-key", String(code));
+            button.setAttribute("aria-label", name);
+            button.title = `${name} (${code})`;
+            userKeys.appendChild(button);
+        }
+        userKeys.hidden = !userKeys.childElementCount;
+    }
+
+    private clearUiKeys(): void {
+        const userKeys = this.htmlElements.userKeys;
+        userKeys.replaceChildren();
+        userKeys.hidden = true;
     }
 
     private onSetUiKeys = (codes: number[]): void => { // bound this
@@ -319,14 +346,25 @@ export class UI implements IUI {
             this.scrollToBottom(outputText);
             input.focus();
 
-            const handleSubmit = (submitKey: string | null) => {
-                const isEnter = submitKey === "Enter";
+            const handleKeyInput = (key: string | null) => {
+                const isEnter = key === "\r";
+
+                if (!isEnter && key !== null) {
+                    const start = input.selectionStart ?? input.value.length;
+                    const end = input.selectionEnd ?? start;
+                    if (key.charCodeAt(0) === 127) { //Delete?
+                        input.setRangeText("", start === end ? Math.max(0, start - 1) : start, end, "end");
+                    } else {
+                        input.setRangeText(key, start, end, "end");
+                    }
+                    return;
+                }
 
                 // Replace input with submitted value, or empty for cancel
                 input.replaceWith(document.createTextNode((isEnter ? input.value : "") + "\n"));
                 this.scrollToBottom(outputText);
 
-                this.consoleInputSubmit = undefined;
+                this.consoleInputKey = undefined;
                 resolve(isEnter ? input.value : null);
             };
 
@@ -334,7 +372,7 @@ export class UI implements IUI {
                 e.stopPropagation(); // Prevent event from bubbling to outputText listeners
                 if (e.key === "Enter") {
                     e.preventDefault();
-                    handleSubmit(e.key);
+                    handleKeyInput("\r");
                 }
             });
 
@@ -343,7 +381,7 @@ export class UI implements IUI {
                 e.stopPropagation();
             });
 
-            this.consoleInputSubmit = handleSubmit;
+            this.consoleInputKey = handleKeyInput;
         });
     }
 
@@ -470,6 +508,31 @@ export class UI implements IUI {
         return hasError;
     }
 
+    private static parseUserKeys(source: string): UserKeyType[] {
+        const keys: UserKeyType[] = [];
+        for (const [index, line] of source.split(/\r?\n/).entries()) {
+            const declaration = /^\s*(?:\d+\s*)?(?:REM\s+|'\s*)CPCBasic-keys:\s*\[(.*)\]$/i.exec(line);
+            if (!declaration) {
+                continue;
+            }
+            const items = declaration[1].split(",");
+            if (items.length % 2 !== 0) {
+                console.warn(`CPCBasic-keys at line ${index + 1}: Wrong number of items: ${items.length}`);
+                continue;
+            }
+            for (let i = 0; i < items.length; i += 2) {
+                const [key, value] = [items[i], items[i + 1]];
+                const code = key.startsWith('"') ? key.charCodeAt(1) : Number(key);
+                const text = value.startsWith('"') ? value.slice(1, -1).replace(/\\u([0-9a-f]{4})/gi, (_, h) => String.fromCharCode(parseInt(h, 16))) : value.length ? String.fromCharCode(Number(value)) : "";
+                keys.push({
+                    code,
+                    text
+                });
+            }
+        }
+        return keys;
+    }
+
     private beforeExecute() {
         this.htmlElements.convertPopover.hidden = true;
 
@@ -486,13 +549,21 @@ export class UI implements IUI {
 
         const userKeys = this.htmlElements.userKeys;
         userKeys.addEventListener("click", this.fnOnUserKeyClickHandler, false);
+        this.clearUiKeys();
+        const keys = UI.parseUserKeys(this.compiledSource);
+        this.appendUiKeys(keys);
+        //for (const warning of warnings) {
+        //    console.warn(warning);
+        //}
     }
 
     private afterExecute() {
         const outputText = this.htmlElements.outputText;
         outputText.removeEventListener("keydown", this.fnOnKeyPressHandler, false);
         outputText.removeEventListener("click", this.fnOnClickHandler, false);
-        this.onSetUiKeys([0]); // remove user keys
+        this.htmlElements.userKeys.querySelectorAll("button").forEach(button => {
+            button.disabled = true;
+        });
 
         this.htmlElements.convertButton.disabled = false;
         this.htmlElements.enterButton.disabled = true;
@@ -542,6 +613,7 @@ export class UI implements IUI {
             const { compiledScript, messages } = core.compileScript(input);
 
             this.compiledMessages = messages;
+            this.compiledSource = input;
             this.getCompiledCm().setValue(compiledScript);
             this.htmlElements.compileButton.disabled = false;
             if (!compiledScript.startsWith("ERROR:")) {
@@ -552,11 +624,7 @@ export class UI implements IUI {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     private onEnterButtonClick = (_event: Event): void => { // bound this
-        if (this.consoleInputSubmit) {
-            this.consoleInputSubmit("Enter");
-        } else {
-            this.putKeysInBuffer("\x0d");
-        }
+        this.putKeys("\r");
         this.clickStartSpeechButton(); // we just did a user interaction
     }
 
@@ -627,8 +695,8 @@ export class UI implements IUI {
         this.htmlElements.resumeButton.disabled = true;
 
         // Resolve any pending input
-        if (this.consoleInputSubmit) {
-            this.consoleInputSubmit(null);
+        if (this.consoleInputKey) {
+            this.consoleInputKey(null);
         }
 
         this.getVmMain().stop();
@@ -657,8 +725,8 @@ export class UI implements IUI {
         this.clickStartSpeechButton(); // we just did a user interaction
 
         // Resolve any pending input
-        if (this.consoleInputSubmit) {
-            this.consoleInputSubmit(null);
+        if (this.consoleInputKey) {
+            this.consoleInputKey(null);
         }
         this.getVmMain().reset();
 
@@ -1136,6 +1204,14 @@ export class UI implements IUI {
         this.getVmMain().putKeys(keys);
     }
 
+    private putKeys(keys: string): void {
+        if (this.consoleInputKey) {
+            this.consoleInputKey(keys);
+        } else {
+            this.putKeysInBuffer(keys);
+        }
+    }
+
     private onOutputTextKeydown(event: KeyboardEvent): void {
         const key = event.key;
         let putKey = "";
@@ -1143,22 +1219,24 @@ export class UI implements IUI {
             if (event.ctrlKey === false) {
                 putKey = key;
             }
-        } else if (key === "Escape") {
-            const stopButton = this.htmlElements.stopButton;
-            if (!stopButton.disabled) {
-                stopButton.dispatchEvent(new Event("click"));
-            }
         } else {
             const combinedKey = key + "-" + event.code + (event.shiftKey ? "-shift" : "");
             putKey = this.keyMap[combinedKey];
+            if (key === "Escape") {
+                const stopButton = this.htmlElements.stopButton;
+                if (!stopButton.disabled) {
+                    stopButton.dispatchEvent(new Event("click"));
+                }
+            }
         }
+
         const debug = this.getCore().getConfigMap().debug;
         if (debug > 3) {
             console.log("onOutputTextKeydown:", event, putKey);
         }
 
         if (putKey) {
-            this.putKeysInBuffer(putKey);
+            this.putKeys(putKey);
             event.preventDefault();
         }
     }
@@ -1201,7 +1279,7 @@ export class UI implements IUI {
     private onOutputTextClick(event: MouseEvent): void {
         const key = this.getClickedKey(event);
         if (key) {
-            this.putKeysInBuffer(key);
+            this.putKeys(key);
             event.preventDefault(); // Prevent default action if needed
         }
     }
@@ -1303,10 +1381,7 @@ export class UI implements IUI {
                 return input;
             },
             onGeolocation: () => this.onGeolocation(),
-            onSpeak: (message: string, pitch: number) => this.onSpeak(message, pitch),
-            onKeyDef: (codes: number[]) => {
-                this.onSetUiKeys(codes);
-            }
+            onSpeak: (message: string, pitch: number) => this.onSpeak(message, pitch)
         };
         return callbacks;
     }
@@ -1467,4 +1542,10 @@ export class UI implements IUI {
             this.htmlElements.databaseSelect.dispatchEvent(new Event("change"));
         }, 10);
     }
+
+    public testGetMethods = () => {
+        return {
+            parseUserKeys: UI.parseUserKeys
+        };
+    };
 }

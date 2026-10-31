@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest'
 import { UI } from '../src/UI/UI';
 import { LocoBasicMode } from '../src/UI/LocoBasicMode';
 import type { StringStream } from 'codemirror';
@@ -31,6 +31,108 @@ describe('UI Class', () => {
     // expect(typeof ui.init).toBe('function');
   });
 });
+
+
+describe('Program key controls', () => {
+  interface MockElement {
+    children: MockElement[];
+    hidden: boolean;
+    disabled: boolean;
+    type: string;
+    textContent: string;
+    title: string;
+    readonly childElementCount: number;
+    appendChild(child: MockElement): number;
+    replaceChildren(): void;
+    querySelectorAll(selector: string): MockElement[];
+    setAttribute(name: string, value: string): Map<string, string>;
+    getAttribute(name: string): string | null;
+    addEventListener: ReturnType<typeof vi.fn>;
+    removeEventListener: ReturnType<typeof vi.fn>;
+  }
+
+  function mockElement(): MockElement {
+    const attributes = new Map<string, string>();
+    const children: MockElement[] = [];
+    return {
+      children,
+      hidden: true,
+      disabled: false,
+      type: '',
+      textContent: '',
+      title: '',
+      get childElementCount() { return children.length; },
+      appendChild: (child: ReturnType<typeof mockElement>) => children.push(child),
+      replaceChildren: () => { children.length = 0; },
+      querySelectorAll: () => children,
+      setAttribute: (name: string, value: string) => attributes.set(name, value),
+      getAttribute: (name: string) => attributes.get(name) ?? null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn()
+    };
+  }
+
+  function createUi() {
+    const elements: Record<string, ReturnType<typeof mockElement>> = {};
+    vi.stubGlobal('window', {
+      document: {
+        getElementById: (name: string) => elements[name] ??= mockElement(),
+        createElement: () => mockElement()
+      }
+    });
+    const ui = new UI() as unknown as {
+      compiledSource: string;
+      beforeExecute(): void;
+      afterExecute(): void;
+      onUserKeyClick(event: Event): void;
+      putKeysInBuffer(keys: string): void;
+    };
+    return { ui, keys: elements.userKeys };
+  }
+
+    afterEach(() => {
+    vi.restoreAllMocks();
+    //vi.unstubAllGlobals();
+  });
+ 
+  it('renders metadata as text with visible and accessible labels', () => {
+    const { ui, keys } = createUi();
+    ui.compiledSource = 'REM CPCBasic-keys: ["<","","&","",32,"Space",13,"Enter",240,"\\u2191",0,"Code 0"]';
+    ui.beforeExecute();
+    expect(keys.hidden).toBe(false);
+    expect(keys.children.map(button => button.textContent)).toEqual(['<', '&', 'Space', 'Enter', '\u2191', 'Code 0']);
+    expect(keys.children[4].getAttribute('aria-label')).toBe('\u2191'); //'Arrow Up'
+    expect(keys.children[5].getAttribute('data-key')).toBe('0');
+    expect(keys.children.every(button => button.type === 'button')).toBe(true);
+  });
+});
+
+
+describe('User key declarations', () => {
+  it('reads characters and CPC codes in declaration order', () => {
+    const parseUserKeys = new UI().testGetMethods().parseUserKeys;
+    expect(parseUserKeys('REM CPCBasic-keys: ["a","","d",""," ","",13,"",240,"",0,"",255,""]')).toEqual(
+      [97, 100, 32, 13, 240, 0, 255].map(code => ({ code, text: "" }))
+    );
+  });
+
+  it('supports numbered, indented, and apostrophe comments case-insensitively', () => {
+    const parseUserKeys = new UI().testGetMethods().parseUserKeys;
+    expect(parseUserKeys('  10 rem cpcbasic-keys: ["a","a"]\r\n20\'CPCBasic-keys: [44,44,"1","1"]\n\' CPCBasic-keys: ["x","x"]')).toEqual(
+      [97, 44, 49, 120].map(code => ({ code, text: String.fromCharCode(code) }))
+    );
+  });
+
+  it('ignores declarations inside statements, strings, and ordinary comments', () => {
+    const parseUserKeys = new UI().testGetMethods().parseUserKeys;
+    const keystring = 'CPCBasic-keys: [13,"E"]';
+    expect(parseUserKeys(`REM ${keystring}`)).toEqual([{ code: 13, text: "E"}]);
+
+    expect(parseUserKeys(`PRINT "${keystring}"\nPRINT 1: ${keystring}\nREM example ${keystring}`)).toEqual([]);
+  });
+
+});
+
 
 describe('LocoBasic syntax highlighting', () => {
   function getWordStyle(word: string, syntax?: ConfigType['syntax']) {

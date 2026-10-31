@@ -6,6 +6,8 @@ cpcBasic.addItem("", `
 REM tetris - Tetris
 REM
 REM arrows/numpad or A/D move, Q/W rotate, S down, Space drops, X exits
+REM CPCBasic-keys: ["a","\\u2190","d","\\u2192","q","\\u21ba","w","\\u21bb"]
+REM CPCBasic-keys: [32,"\\u2913","s","\\u2193","x",""]
 MODE 0:INK 0,0:INK 1,26:INK 2,20:INK 3,24:INK 4,18:INK 5,6:INK 6,2:INK 7,15
 DIM b(9,19),p(6,3),bag(6)
 FOR s=0 TO 6:FOR r=0 TO 3:READ p(s,r):NEXT r:NEXT s
@@ -13,7 +15,6 @@ keys$="a4"+CHR$(242)+"d6"+CHR$(243)+"q7,"+"w8"+CHR$(240)+"s2"+CHR$(241)+" 5"+CHR
 bagleft=0:GOSUB 8000:s=pick:GOSUB 8000:ns=pick:r=0:px=3:py=0:l=0
 score=0:level=1:delay=150
 GOSUB 9000
-k$="adqw sx":GOSUB 9700: 'LocoBasic keys
 dt=TIME+delay:k$=""
 WHILE k$<>"x"
  IF TIME>=dt THEN dt=TIME+delay:k$="s" ELSE k$=LOWER$(INKEY$)
@@ -113,12 +114,6 @@ RETURN
  PRINT "  ";
 NEXT x
 PAPER 0:PEN 1
-RETURN
-'
-' define user keys for LocoBasic UI
-9700 FOR i=1 TO LEN(k$)
-  KEY DEF 78,1,ASC(MID$(k$,i,1))
-NEXT i
 RETURN
 '
 ' four 16-bit 4x4 masks per piece, ordered I,T,O,S,Z,J,L; bit 15 is top-left

@@ -199,7 +199,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
                     break;
 
                 case 'putKeys':
-                    vm._keyBuffer.push(data.keys); // currently only one key
+                    vm._keyBuffer.push(...data.keys.split(""));
                     break;
 
                 case 'resume':
@@ -209,6 +209,7 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
 
                 case 'stop':
                     vm._stopRequested = true;
+                    vm.resolveInput(null);
                     vm.remainAll();
                     vm.resolvePause();
                     break;
@@ -634,11 +635,6 @@ export const workerFn = (parentPort: NodeWorkerThreadsType["parentPort"] | Brows
 
         int: (num: number) => Math.floor(num),
 
-        keyDef: (num: number, repeat: number, ...codes: number[]): void => {
-            if (num === 78 && repeat === 1) {
-                vm.postMessage({ type: 'keyDef', codes });
-            }
-        },
         left$: (str: string | undefined, num: number) => String(str).slice(0, num),
 
         len: (str: string | undefined) => String(str).length,

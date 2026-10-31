@@ -6,7 +6,6 @@ export interface VmMessageHandlerCallbacks {
     onInput(prompt: string): Promise<string | null>;
     onGeolocation(): Promise<string>;
     onSpeak(message: string, pitch: number): Promise<void>;
-    onKeyDef(codes: number[]): void;
 }
 
 export class VmMessageHandler {
@@ -78,9 +77,6 @@ export class VmMessageHandler {
                 }, 50); // 50ms delay to allow UI update
                 break;
             }
-            case 'keyDef':
-                this.callbacks.onKeyDef(data.codes);
-                break;
             case 'result': {
                 let res = data.result || "";
 

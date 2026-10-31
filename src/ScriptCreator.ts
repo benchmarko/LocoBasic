@@ -153,7 +153,7 @@ export class ScriptCreator {
                             input: ""
                         });
                         break;
-                    case 'keyDef':
+                    case 'inputKeys':
                         break;
                     case 'result':
                         break;

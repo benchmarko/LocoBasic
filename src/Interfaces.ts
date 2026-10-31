@@ -90,7 +90,6 @@ export type VmInstructionName =
     | "input"
     | "instr"
     | "int"
-    | "keyDef"
     | "left$"
     | "len"
     | "lineInput"
@@ -242,7 +241,7 @@ export type MessageFromWorker =
     | { type: 'flush'; message: string; hasGraphics: boolean, needCls?: boolean }
     | { type: 'geolocation' }
     | { type: 'input'; prompt: string }
-    | { type: 'keyDef'; codes: number[] }
+    | { type: 'inputKeys'; keys: string }
     | { type: 'result'; result: string }
     | { type: 'speak'; message: string; pitch: number };
 
