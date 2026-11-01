@@ -9,30 +9,30 @@ CLS
 PRINT "Test Page"
 '
 PRINT "Numbers: ";
-a=1
-a=1.2
-a=-1.2
-a=+7.2
-a=&0
-a=&A7
-a=-&A7
-a=&7FFF
-a=&8000
-a=&FFFF
-a=&E123
-a=&X0
-a=&X10100111
-a=-&X111111111111111
-a=255
-a=-255
-a=256
-a=-256
-a=32767
-a=-32767
-a=32768
-a=-32768
-a=65536
-a=1.2E+9
+a=1: IF a<>1 THEN ERROR 33
+a=1.2: IF a<>1.2 THEN ERROR 33
+a=-1.2: IF a<>-1.2 THEN ERROR 33
+a=+7.2: IF a<>7.2 THEN ERROR 33
+a=&0: IF a<>0 THEN ERROR 33
+a=&A7: IF a<>167 THEN ERROR 33
+a=-&A7: IF a<>-167 THEN ERROR 33
+a=&7FFF: IF a<>32767 THEN ERROR 33
+a=&8000:  'IF a<>32768 THEN ERROR 33
+a=&FFFF:  'IF a<>65535 THEN ERROR 33
+a=&E123:  'IF a<>57635 THEN ERROR 33
+a=&X0: IF a<>0 THEN ERROR 33
+a=&X10100111: IF a<>167 THEN ERROR 33
+a=-&X111111111111111: IF a<>-32767 THEN ERROR 33
+a=255: IF a<>255 THEN ERROR 33
+a=-255: IF a<>-255 THEN ERROR 33
+a=256: IF a<>256 THEN ERROR 33
+a=-256: IF a<>-256 THEN ERROR 33
+a=32767: IF a<>32767 THEN ERROR 33
+a=-32767: IF a<>-32767 THEN ERROR 33
+a=32768: IF a<>32768 THEN ERROR 33
+a=-32768: IF a<>-32768 THEN ERROR 33
+a=65536: IF a<>65536 THEN ERROR 33
+a=1.2E+9: IF a<>1200000000 THEN ERROR 33
 a=-1.2E-3: IF a<>-0.0012 THEN ERROR 33
 '''a=&x2
 a=1: IF a<>1 THEN ERROR 33
@@ -99,6 +99,7 @@ DIM r(9),s(1,2):s(1,2)=3:r(9)=s(1,2): IF r(9)<>3 THEN ERROR 33
 ERASE r,s
 DIM r[9],s[1,2]:s[1,2]=4:r[9]=s[1,2]: IF r(9)<>4 THEN ERROR 33
 r[9]=s[1,2]
+ERASE r,s
 DIM r(10,10,10),s(10,9):r(10,10,10)=s(10,9)
 ERASE r,s
 DIM r(2),s(2,2,1)
@@ -125,21 +126,21 @@ a=(1=0):IF a<>0 THEN ERROR 33
 a=(1>0)*(0<1):IF a<>1 THEN ERROR 33
 a=1=1=-1:IF a<>-1 THEN ERROR 33
 ''a=+++++++++---9
-a=(1=0)
-a=(1>0)*(0<1)
-a=(b>=c)*(d<=i)
-a=1=1=-1
-a=1>=1>1
-a=(29+1) MOD 10=0 AND 5=7 :' num num
-a=(29+1) MOD 10=9 AND "5"+"6"="56" :' num str
-a="5"+"6"="56" AND (29+1) MOD 10=9 :' str num
-a="5"+"6"="56" AND SPACE$(1)=" " :' str str
-a=(29+1) MOD 10=0 OR 5=7 :' num num
-a=(29+1) MOD 10=9 OR "5"+"6"="56" :' num str
-a="5"+"6"="56" OR (29+1) MOD 10=9 :' str num
-a="5"+"6"="56" OR SPACE$(1)=" " :' str str
-a=a$<>"a2" OR b$<>"2"
-a=a<>2 OR b<>2 OR b$<>"5"
+a=(1=0): IF a<>0 THEN ERROR 33
+a=(1>0)*(0<1): IF a<>1 THEN ERROR 33
+b=0:c=0:d=0:i=0:a=(b>=c)*(d<=i): IF a<>1 THEN ERROR 33
+a=1=1=-1: IF a<>-1 THEN ERROR 33
+a=1>=1>1: IF a<>0 THEN ERROR 33
+a=(29+1) MOD 10=0 AND 5=7: IF a<>0 THEN ERROR 33 ' num num
+a=(29+1) MOD 10=9 AND "5"+"6"="56": IF a<>0 THEN ERROR 33 ' num str
+a="5"+"6"="56" AND (29+1) MOD 10=9: IF a<>0 THEN ERROR 33 ' str num
+a="5"+"6"="56" AND SPACE$(1)=" ": IF a<>-1 THEN ERROR 33 ' str str
+a=(29+1) MOD 10=0 OR 5=7: IF a<>-1 THEN ERROR 33 ' num num
+a=(29+1) MOD 10=9 OR "5"+"6"="56": IF a<>-1 THEN ERROR 33 ' num str
+a="5"+"6"="56" OR (29+1) MOD 10=9: IF a<>-1 THEN ERROR 33 ' str num
+a="5"+"6"="56" OR SPACE$(1)=" ": IF a<>-1 THEN ERROR 33 ' str str
+a=a$<>"a2" OR b$<>"2": IF a<>-1 THEN ERROR 33 
+a=a<>2 OR b<>2 OR b$<>"5": IF a<>-1 THEN ERROR 33 
 '
 ' Line numbers
 '''0 c=1
@@ -154,32 +155,30 @@ PRINT "ABS, ";
 a=ABS(+67.98):IF a<>67.98 THEN ERROR 33
 a=ABS(-67.98):IF a<>67.98 THEN ERROR 33
 a=ABS(0):IF a<>0 THEN ERROR 33
-a=ABS(2.3)
+a=ABS(2.3): IF a<>2.3 THEN ERROR 33
 '
 PRINT "AFTER, ";
-AFTER 10 GOSUB 10010
-a=REMAIN(0)
-AFTER 10,1 GOSUB 10010
-a=REMAIN(1)
+FRAME:AFTER 10 GOSUB 10010:a=REMAIN(0): IF a<>10 THEN ERROR 33
+FRAME:AFTER 11,1 GOSUB 10010:a=REMAIN(1): IF a<>11 THEN ERROR 33
 '
 PRINT "AND (and OR), ";
 a=4 OR 7 AND 2:IF a<>6 THEN ERROR 33
-a=b AND c
+b=1:c=3:a=b AND c: IF a<>1 THEN ERROR 33
 '
 PRINT "ASC, ";
-a=ASC("a"):IF a<>97 THEN ERROR 33
-a=ASC("ab"):IF a<>97 THEN ERROR 33
-a=ASC("A")
-b$="B":a=ASC(b$) AND c
+a=ASC("a"): IF a<>97 THEN ERROR 33
+a=ASC("ab"): IF a<>97 THEN ERROR 33
+a=ASC("A"): IF a<>65 THEN ERROR 33
+b$="B":c=3:a=ASC(b$) AND c: IF a<>2 THEN ERROR 33
 '
 PRINT "ATN; ";
 RAD
-a=ATN(0):IF a<>0 THEN ERROR 33
-a=INT(ATN(1)*100000000)/100000000:IF a<>0.78539816 THEN ERROR 33
+a=ATN(0): IF a<>0 THEN ERROR 33
+a=INT(ATN(1)*100000000)/100000000: IF a<>0.78539816 THEN ERROR 33
 a=ATN(2.3)
 DEG
-a=ATN(0):IF a<>0 THEN ERROR 33
-a=ATN(1):IF ROUND(a,7)<>45 THEN ERROR 33
+a=ATN(0): IF a<>0 THEN ERROR 33
+a=ATN(1): IF ROUND(a,7)<>45 THEN ERROR 33
 RAD
 '
 ''AUTO
@@ -188,10 +187,10 @@ RAD
 ' BIN$, BORDER
 '
 PRINT "BIN$, ";
-a$=BIN$(3)
-a$=BIN$(3,8)
-a$=BIN$(&X1001)
-b$=BIN$(0):IF b$<>"0" THEN ERROR 33
+a$=BIN$(3): IF a$<>"11" THEN ERROR 33
+a$=BIN$(3,8): IF a$<>"00000011" THEN ERROR 33
+a$=BIN$(&X1001): IF a$<>"1001" THEN ERROR 33
+b$=BIN$(0): IF b$<>"0" THEN ERROR 33
 b$=BIN$(255):IF b$<>"11111111" THEN ERROR 33
 b$=BIN$(255,10):IF b$<>"0011111111" THEN ERROR 33
 b$=BIN$(170,6):IF b$<>"10101010" THEN ERROR 33
@@ -249,7 +248,7 @@ a=COS(0): IF a<>1 THEN ERROR 33
 RAD
 '
 PRINT "CREAL"
-a=CREAL(2.3+a)
+a=1:a=CREAL(2.3+a): IF a<>3.3 THEN ERROR 33
 '
 ''CURSOR
 ''CURSOR 0
@@ -436,10 +435,8 @@ DIM r(1),r$(1):ERASE r,r$
 ''ERROR 5+a
 '
 PRINT "EVERY, ";
-EVERY 10 GOSUB 10010
-a=REMAIN(0)
-EVERY 10,1 GOSUB 10010
-a=REMAIN(1)
+FRAME:EVERY 10 GOSUB 10010:a=REMAIN(0): IF a<>10 THEN ERROR 33 
+FRAME:EVERY 11,1 GOSUB 10010:a=REMAIN(1): IF a<>11 THEN ERROR 33
 '
 PRINT "EXP, ";
 a=EXP(0): IF a<>1 THEN ERROR 33
@@ -465,8 +462,8 @@ PRINT "FOR, ";
 FOR a=1 TO 10:NEXT
 ''FOR a%=1.5 TO 9.5: NEXT
 ''FOR a!=1.5 TO 9.5: NEXT
-FOR a=1 TO 10 STEP 3:NEXT
-b=1:FOR a=5+b TO -4 STEP -2.3:NEXT
+b=0:FOR a=1 TO 10 STEP 3:b=b+1:NEXT: IF a<>13 OR b<>4 THEN ERROR 33
+b=1:c=0:FOR a=5+b TO -4 STEP -2.3:c=c+1:NEXT: IF b<>1 OR c<>5 THEN ERROR 33
 b=1:c=5:d=2:FOR a=b TO c STEP d:NEXT
 b=1:c=3:FOR a=b TO c:NEXT
 FOR a=1 TO 1 STEP 0+1:NEXT
@@ -999,10 +996,12 @@ a$=STRING$(10,42): IF a$<>"**********" THEN ERROR 33
 '
 ' TAG, TAGOFF, TAN, TEST, TESTR, TIME, TROFF, TRON
 '
-''TAG
+PRINT "TAG, ";
+TAG
 ''TAG #2
 ''TAG #stream
-''TAGOFF
+TAGOFF
+PRINT "TAGOFF, ";
 ''TAGOFF #2
 ''TAGOFF #stream
 '
