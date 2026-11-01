@@ -236,6 +236,7 @@ export const workerFn = (parentPort) => {
         resumeTimer: (timer) => {
             const timerObj = vm._timerMap[timer];
             if (timerObj) {
+                timerObj.time = vm.time();
                 timerObj.id = timerObj.repeat ? setInterval(() => timerObj.fn(), timerObj.timeout) :
                     setTimeout(() => timerObj.fn(), timerObj.timeout);
             }
@@ -251,7 +252,8 @@ export const workerFn = (parentPort) => {
                 fn,
                 timeout,
                 repeat,
-                id: 0
+                id: 0,
+                time: 0
             };
             vm._timerMap[timer] = timerObj;
             vm.resumeTimer(timer);
@@ -686,11 +688,16 @@ export const workerFn = (parentPort) => {
         },
         remain: (timer) => {
             const timerObj = vm._timerMap[timer];
+            let rtime = 0;
             if (timerObj !== undefined) {
+                rtime = (timerObj.timeout / 20) - (vm.time() - timerObj.time) / 6;
+                if (rtime < 0) {
+                    rtime = 0;
+                }
                 clearTimeout(timerObj.id);
                 delete vm._timerMap[timer]; // eslint-disable-line @typescript-eslint/no-dynamic-delete
             }
-            return 0; // not really the remaining time
+            return rtime;
         },
         remainAll: () => {
             for (const timer in vm._timerMap) {

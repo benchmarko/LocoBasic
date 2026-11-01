@@ -326,6 +326,7 @@
         resumeTimer: (timer) => {
           const timerObj = vm._timerMap[timer];
           if (timerObj) {
+            timerObj.time = vm.time();
             timerObj.id = timerObj.repeat ? setInterval(() => timerObj.fn(), timerObj.timeout) : setTimeout(() => timerObj.fn(), timerObj.timeout);
           }
         },
@@ -340,7 +341,8 @@
             fn,
             timeout,
             repeat,
-            id: 0
+            id: 0,
+            time: 0
           };
           vm._timerMap[timer] = timerObj;
           vm.resumeTimer(timer);
@@ -748,11 +750,16 @@ ${vm._graGraphicsBuffer}
         },
         remain: (timer) => {
           const timerObj = vm._timerMap[timer];
+          let rtime = 0;
           if (timerObj !== void 0) {
+            rtime = timerObj.timeout / 20 - (vm.time() - timerObj.time) / 6;
+            if (rtime < 0) {
+              rtime = 0;
+            }
             clearTimeout(timerObj.id);
             delete vm._timerMap[timer];
           }
-          return 0;
+          return rtime;
         },
         remainAll: () => {
           for (const timer in vm._timerMap) {
