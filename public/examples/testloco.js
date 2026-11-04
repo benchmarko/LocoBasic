@@ -3,7 +3,7 @@
 "use strict";
 
 cpcBasic.addItem("", `
-REM testloco - LocoBasic syntax test
+REM testloco - Test LocoBasic syntax (loco20)
 REM Select syntax=loco11 to see warnings for BASIC 2.0 syntax.
 REM This checks syntax only, not runtime compatibility.
 MODE 1
