@@ -313,7 +313,7 @@ cpcBasic.addIndex("./examples", {
 		},
 		{
 			"key": "testloco",
-			"title": "Test LocoBasic syntax"
+			"title": "Test LocoBasic syntax (loco20)"
 		},
         {
 			"key": "testpage",
